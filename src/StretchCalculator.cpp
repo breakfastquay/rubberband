@@ -567,9 +567,23 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
         }
     }
 
-//    for (size_t i = 0; i < df.size(); ++i) {
-//        if (i == 0 || df[i] > maxDf) maxDf = df[i];
-//    }
+    float maxDf = 0;
+
+    for (size_t i = 0; i < df.size(); ++i) {
+        if (i == 0 || df[i] > maxDf) maxDf = df[i];
+    }
+
+    // We want to try to ensure the last 100ms or so (if possible) are
+    // tending back towards the maximum df, so that the stretchiness
+    // reduces at the end of the stretched region.
+    
+    int reducedRegion = (0.1 * m_sampleRate) / m_increment;
+    if (reducedRegion > df.size()/5) reducedRegion = df.size()/5;
+
+    for (size_t i = 0; i < reducedRegion; ++i) {
+        size_t index = df.size() - reducedRegion + i;
+        df[index] = df[index] + ((maxDf - df[index]) * i) / reducedRegion;
+    }
 
     long toAllot = long(duration) - long(m_increment * df.size());
 //    bool negative = (toAllot < 0);
@@ -600,7 +614,7 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
     double totalDisplacement = 0;
     double maxDisplacement = 0; // min displacement will be 0 by definition
 
-    float maxDf = 0;
+    maxDf = 0;
     float adj = 0;
 
     while (!acceptableSquashRange) {
