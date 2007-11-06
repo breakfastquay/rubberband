@@ -1,0 +1,99 @@
+
+all:	bin lib bin/rubberband lib/librubberband.a lib/vamp-rubberband.so lib/ladspa-rubberband.so
+
+CXX		= @CXX@
+CXXFLAGS	= @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @FFTWF_CFLAGS@ -Irubberband -Isrc
+LDFLAGS		= @LDFLAGS@ @SRC_LIBS@ @SNDFILE_LIBS@ @FFTW_LIBS@ @FFTWF_LIBS@
+
+MKDIR		= mkdir
+AR		= ar
+
+PROGRAM_TARGET := bin/rubberband
+STATIC_TARGET  := lib/librubberband.a
+DYNAMIC_TARGET := lib/librubberband.so
+VAMP_TARGET    := lib/vamp-rubberband.so
+LADSPA_TARGET  := lib/ladspa-rubberband.so
+
+PUBLIC_INCLUDES := \
+	rubberband/TimeStretcher.h \
+	rubberband/RubberBandStretcher.h
+
+LIBRARY_INCLUDES := \
+	src/AudioCurve.h \
+	src/ConstantAudioCurve.h \
+	src/FFT.h \
+	src/HighFrequencyAudioCurve.h \
+	src/PercussiveAudioCurve.h \
+	src/Resampler.h \
+	src/RingBuffer.h \
+	src/Scavenger.h \
+	src/StretchCalculator.h \
+	src/StretcherImpl.h \
+	src/StretcherChannelData.h \
+	src/Thread.h \
+	src/Window.h \
+	src/sysutils.h
+
+LIBRARY_SOURCES := \
+	src/RubberBandStretcher.cpp \
+	src/ConstantAudioCurve.cpp \
+	src/HighFrequencyAudioCurve.cpp \
+	src/PercussiveAudioCurve.cpp \
+	src/AudioCurve.cpp \
+	src/Resampler.cpp \
+	src/StretchCalculator.cpp \
+	src/StretcherImpl.cpp \
+	src/StretcherProcess.cpp \
+	src/StretcherChannelData.cpp \
+	src/FFT.cpp \
+	src/Thread.cpp \
+	src/sysutils.cpp
+
+PROGRAM_SOURCES := \
+	src/main.cpp
+
+VAMP_HEADERS := \
+	src/vamp/RubberBandVampPlugin.h
+
+VAMP_SOURCES := \
+	src/vamp/RubberBandVampPlugin.cpp \
+	src/vamp/libmain.cpp
+
+LADSPA_HEADERS := \
+	src/ladspa/RubberBandPitchShifter.h
+
+LADSPA_SOURCES := \
+	src/ladspa/RubberBandPitchShifter.cpp \
+	src/ladspa/libmain.cpp
+
+LIBRARY_OBJECTS := $(LIBRARY_SOURCES:.cpp=.o)
+PROGRAM_OBJECTS := $(PROGRAM_SOURCES:.cpp=.o)
+VAMP_OBJECTS    := $(VAMP_SOURCES:.cpp=.o)
+LADSPA_OBJECTS  := $(LADSPA_SOURCES:.cpp=.o)
+
+$(PROGRAM_TARGET):	$(LIBRARY_OBJECTS) $(PROGRAM_OBJECTS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+$(STATIC_TARGET):	$(LIBRARY_OBJECTS)
+	$(AR) rsc $@ $^
+
+$(DYNAMIC_TARGET):	$(LIBRARY_OBJECTS)
+	$(CXX) -shared -Wl,-Bsymbolic $^ -o $@ $(LDFLAGS)
+
+$(VAMP_TARGET):		$(LIBRARY_OBJECTS) $(VAMP_OBJECTS)
+	$(CXX) -shared -Wl,-Bsymbolic -o $@ $^ $(VAMP_PLUGIN_LIBS) $(LDFLAGS)
+
+$(LADSPA_TARGET):	$(LIBRARY_OBJECTS) $(LADSPA_OBJECTS)
+	$(CXX) -shared -Wl,-Bsymbolic -o $@ $^ $(LDFLAGS)
+
+bin:
+	$(MKDIR) $@
+lib:
+	$(MKDIR) $@
+
+clean:
+	rm -f $(LIBRARY_OBJECTS) $(PROGRAM_OBJECTS) $(LADSPA_OBJECTS) $(VAMP_OBJECTS)
+
+distclean:	clean
+	rm -f $(PROGRAM_TARGET) $(STATIC_TARGET) $(DYNAMIC_TARGET) $(VAMP_TARGET) $(LADSPA_TARGET)
+
