@@ -155,6 +155,12 @@ RubberBandStretcher::getLockCurve() const
     return m_d->getLockCurve();
 }
 
+std::vector<int>
+RubberBandStretcher::getExactTimePoints() const
+{
+    return m_d->getExactTimePoints();
+}
+
 size_t
 RubberBandStretcher::getChannelCount() const
 {

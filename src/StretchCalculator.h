@@ -53,13 +53,15 @@ public:
   
     void setDebugLevel(int level) { m_debugLevel = level; }
 
-    std::vector<float> smoothDF(const std::vector<float> &df);
-
-protected:
     struct Peak {
         size_t frame;
         bool hard;
     };
+    std::vector<Peak> getLastCalculatedPeaks() const { return m_lastPeaks; }
+
+    std::vector<float> smoothDF(const std::vector<float> &df);
+
+protected:
     std::vector<Peak> findPeaks(const std::vector<float> &audioCurve);
 
     std::vector<int> distributeRegion(const std::vector<float> &regionCurve,
@@ -82,6 +84,8 @@ protected:
     bool m_wasTransient;
     int m_debugLevel;
     bool m_useHardPeaks;
+    
+    std::vector<Peak> m_lastPeaks;
 };
 
 }

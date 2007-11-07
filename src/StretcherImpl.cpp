@@ -769,6 +769,20 @@ RubberBandStretcher::Impl::getLockCurve() const
     }
 }
 
+vector<int>
+RubberBandStretcher::Impl::getExactTimePoints() const
+{
+    std::vector<int> points;
+    if (!m_realtime) {
+        std::vector<StretchCalculator::Peak> peaks =
+            m_stretchCalculator->getLastCalculatedPeaks();
+        for (size_t i = 0; i < peaks.size(); ++i) {
+            points.push_back(peaks[i].frame);
+        }
+    }
+    return points;
+}
+
 void
 RubberBandStretcher::Impl::calculateStretch()
 {

@@ -85,7 +85,8 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 
     assert(lockDf.size() == stretchDf.size());
     
-    std::vector<Peak> peaks = findPeaks(lockDf);
+    m_lastPeaks = findPeaks(lockDf);
+    std::vector<Peak> &peaks = m_lastPeaks;
     size_t totalCount = lockDf.size();
 
     std::vector<int> increments;
@@ -434,11 +435,13 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
             //locate the lock).  For hard peaks we need to lock in
             //time to preserve the shape of the transient (unless some
             //option is set to soft mode), for soft peaks we just want
-            //to avoid phase drift so we build up to the lock at the
-            //exact peak moment.
+            //to avoid poor timing positioning so we build up to the
+            //lock at the exact peak moment.
             
 //            size_t peak = i + maxindex - mediansize;
             size_t peak = i + maxindex - middle;
+
+            std::cerr << "i = " << i << ", maxindex = " << maxindex << ", middle = " << middle << ", so peak at " << peak << std::endl;
 
 //            if (peak > 0) --peak; //!!! that's a fudge
 

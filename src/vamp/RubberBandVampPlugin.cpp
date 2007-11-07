@@ -63,6 +63,7 @@ public:
     FeatureSet createFeatures(size_t inputIncrement,
                               std::vector<int> &outputIncrements,
                               std::vector<float> &lockDf,
+                              std::vector<int> &exactPoints,
                               std::vector<float> &smoothedDF,
                               size_t baseCount,
                               bool includeFinal);
@@ -409,10 +410,12 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
     size_t inputIncrement = m_stretcher->getInputIncrement();
     std::vector<int> outputIncrements = m_stretcher->getOutputIncrements();
     std::vector<float> lockDf = m_stretcher->getLockCurve();
+    std::vector<int> peaks = m_stretcher->getExactTimePoints();
     std::vector<float> smoothedDf = sc.smoothDF(lockDf);
 
     FeatureSet features = createFeatures
-        (inputIncrement, outputIncrements, lockDf, smoothedDf, 0, true);
+        (inputIncrement, outputIncrements, lockDf, peaks, smoothedDf,
+         0, true);
 
     return features;
 }
@@ -438,8 +441,10 @@ RubberBandVampPlugin::Impl::processRealTime(const float *const *inputBuffers,
     std::vector<int> outputIncrements = m_stretcher->getOutputIncrements();
     std::vector<float> lockDf = m_stretcher->getLockCurve();
     std::vector<float> smoothedDf; // not meaningful in RT mode
-    FeatureSet features = createFeatures(inputIncrement, outputIncrements,
-                                         lockDf, smoothedDf, m_counter, false);
+    std::vector<int> dummyPoints;
+    FeatureSet features = createFeatures
+        (inputIncrement, outputIncrements, lockDf, dummyPoints, smoothedDf, 
+         m_counter, false);
     m_counter += outputIncrements.size();
 
     return features;
@@ -455,6 +460,7 @@ RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::createFeatures(size_t inputIncrement,
                                            std::vector<int> &outputIncrements,
                                            std::vector<float> &lockDf,
+                                           std::vector<int> &exactPoints,
                                            std::vector<float> &smoothedDf,
                                            size_t baseCount,
                                            bool includeFinal)
@@ -469,16 +475,24 @@ RubberBandVampPlugin::Impl::createFeatures(size_t inputIncrement,
 
     int rate = m_sampleRate;
 
+    size_t epi = 0;
+
     for (size_t i = 0; i < outputIncrements.size(); ++i) {
 
         size_t frame = (baseCount + i) * inputIncrement;
 
         int oi = outputIncrements[i];
-        bool lock = false;
+        bool hardLock = false;
+        bool softLock = false;
 
         if (oi < 0) {
             oi = -oi;
-            lock = true;
+            hardLock = true;
+        }
+
+        if (epi < exactPoints.size() && int(i) == exactPoints[epi]) {
+            softLock = true;
+            ++epi;
         }
 
         double linear = (frame * overallRatio);
@@ -528,11 +542,15 @@ RubberBandVampPlugin::Impl::createFeatures(size_t inputIncrement,
             features[m_smoothedLockDfOutput].push_back(feature);
         }
 
-        if (lock) {
+        if (hardLock) {
             feature.values.clear();
-            feature.label = buf;
+            feature.label = "Phase Reset";
             features[m_lockPointsOutput].push_back(feature);
-        }
+        } else if (softLock) {
+            feature.values.clear();
+            feature.label = "Time Sync";
+            features[m_lockPointsOutput].push_back(feature);
+        }            
     }
 
     if (includeFinal) {

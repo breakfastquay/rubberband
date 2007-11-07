@@ -89,6 +89,7 @@ public:
     virtual size_t getInputIncrement() const;
     virtual std::vector<int> getOutputIncrements() const; //!!! document particular meaning in RT mode
     virtual std::vector<float> getLockCurve() const; //!!! document particular meaning in RT mode
+    virtual std::vector<int> getExactTimePoints() const; //!!! meaningless in RT mode
 
     virtual size_t getChannelCount() const;
     

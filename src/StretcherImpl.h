@@ -71,6 +71,7 @@ public:
 
     std::vector<int> getOutputIncrements() const;
     std::vector<float> getLockCurve() const;
+    std::vector<int> getExactTimePoints() const;
 
     size_t getChannelCount() const {
         return m_channels;
