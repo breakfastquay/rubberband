@@ -22,6 +22,12 @@ PKG_CHECK_MODULES([FFTW],[fftw3])
 AC_SUBST(FFTW_CFLAGS)
 AC_SUBST(FFTW_LIBS)
 
+AC_CHECK_HEADERS(ladspa.h)
+
+PKG_CHECK_MODULES([VAMP],[vamp-sdk])
+AC_SUBST(VAMP_CFLAGS)
+AC_SUBST(VAMP_LIBS)
+
 changequote(,)dnl
 if test "x$GCC" = "xyes"; then
   case " $CXXFLAGS " in

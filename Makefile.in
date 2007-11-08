@@ -2,8 +2,13 @@
 all:	bin lib bin/rubberband lib/librubberband.a lib/vamp-rubberband.so lib/ladspa-rubberband.so
 
 CXX		= @CXX@
-CXXFLAGS	= @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @FFTWF_CFLAGS@ -Irubberband -Isrc
-LDFLAGS		= @LDFLAGS@ @SRC_LIBS@ @SNDFILE_LIBS@ @FFTW_LIBS@ @FFTWF_LIBS@
+CXXFLAGS	= @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @FFTWF_CFLAGS@ @VAMP_CFLAGS@ -Irubberband -Isrc
+LDFLAGS		= @LDFLAGS@ 
+
+LIBRARY_LIBS		= @SRC_LIBS@ @FFTW_LIBS@ @FFTWF_LIBS@
+PROGRAM_LIBS		= @SNDFILE_LIBS@ $(LIBRARY_LIBS)
+VAMP_PLUGIN_LIBS	= @VAMP_LIBS@ $(LIBRARY_LIBS)
+LADSPA_PLUGIN_LIBS	= $(LIBRARY_LIBS)
 
 MKDIR		= mkdir
 AR		= ar
@@ -72,19 +77,19 @@ VAMP_OBJECTS    := $(VAMP_SOURCES:.cpp=.o)
 LADSPA_OBJECTS  := $(LADSPA_SOURCES:.cpp=.o)
 
 $(PROGRAM_TARGET):	$(LIBRARY_OBJECTS) $(PROGRAM_OBJECTS)
-	$(CXX) -o $@ $^ $(LDFLAGS)
+	$(CXX) -o $@ $^ $(PROGRAM_LIBS) $(PROGRAM_LIBS) $(LDFLAGS)
 
 $(STATIC_TARGET):	$(LIBRARY_OBJECTS)
 	$(AR) rsc $@ $^
 
 $(DYNAMIC_TARGET):	$(LIBRARY_OBJECTS)
-	$(CXX) -shared -Wl,-Bsymbolic $^ -o $@ $(LDFLAGS)
+	$(CXX) -shared -Wl,-Bsymbolic $^ -o $@ $(LIBRARY_LIBS) $(LDFLAGS)
 
 $(VAMP_TARGET):		$(LIBRARY_OBJECTS) $(VAMP_OBJECTS)
 	$(CXX) -shared -Wl,-Bsymbolic -o $@ $^ $(VAMP_PLUGIN_LIBS) $(LDFLAGS)
 
 $(LADSPA_TARGET):	$(LIBRARY_OBJECTS) $(LADSPA_OBJECTS)
-	$(CXX) -shared -Wl,-Bsymbolic -o $@ $^ $(LDFLAGS)
+	$(CXX) -shared -Wl,-Bsymbolic -o $@ $^ $(LADSPA_PLUGIN_LIBS) $(LDFLAGS)
 
 bin:
 	$(MKDIR) $@
