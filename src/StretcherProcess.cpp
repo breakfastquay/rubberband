@@ -567,7 +567,15 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
             pp = cd.freqPeak[i-1];
         }
 
-        if (!lock) {
+        bool lockThis = lock;
+/*!!!
+        size_t low = lrint((150 * m_blockSize) / rate);
+        size_t high = lrint((1000 * m_blockSize) / rate);
+        if (lockThis) {
+            if (i > low && i < high) lockThis = false;
+        }
+*/
+        if (!lockThis) {
 
             if (i == 0 || p != pp) {
 	

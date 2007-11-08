@@ -1,0 +1,22 @@
+
+* Threading lock structure is very slow if it becomes starved of CPUs
+* Fix "!!!" points
+* Rationalise naming further (e.g. use of "lock" for both peak phases
+  and resynchronisation at transients)
+* LADSPA plugin has too much "artificial latency"
+* LADSPA plugin could do with switches for transient/phaselock
+* LADSPA plugin probably doesn't want to go any higher than about +2 octaves
+* Vamp plugin argument no longer properly reflect internal parameters
+* Solve "for very long stretches" issue in calculateSizes()
+* Sort out resynthesis gain
+
+Rejig crispness options:
+
+0 - no transients, no peak lock, long window
+1 - no transients, no peak lock, normal window
+2 - no transients, peak lock, normal window
+3 - band-limited transients, peak lock, normal window
+4 - transients, no peak lock, normal window  * - is this a good option to have?
+5 - transients, peak lock, normal window
+6 - transients, no peak lock, short window
+

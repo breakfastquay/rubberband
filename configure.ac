@@ -31,8 +31,8 @@ AC_SUBST(VAMP_LIBS)
 changequote(,)dnl
 if test "x$GCC" = "xyes"; then
   case " $CXXFLAGS " in
-    *[\ \	]-Wall[\ \	]*) ;;
-    *) CXXFLAGS="$CXXFLAGS -Wall" ;;
+    *[\ \	]-fPIC -Wall[\ \	]*) ;;
+    *) CXXFLAGS="$CXXFLAGS -fPIC -Wall" ;;
   esac
 fi
 changequote([,])dnl
