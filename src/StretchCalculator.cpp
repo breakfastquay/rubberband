@@ -335,7 +335,7 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
     //!!! we don't yet do the right thing with soft peaks.  if
     //!useHardPeaks, we should be locking on soft peaks; if
     //useHardPeaks, we should be ignoring soft peaks if they occur
-    //shortly after hard ones, otherwise either locking on the, or at
+    //shortly after hard ones, otherwise either locking on them, or at
     //least making sure they fall at the correct sample time
 
 //    int mediansize = lrint(ceil(double(m_sampleRate) /
@@ -379,11 +379,23 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
             mediansize = medianwin.size();
         }
 
+        size_t middle = medianmaxsize / 2;
+        if (middle >= mediansize) middle = mediansize-1;
+
+        size_t nextDf = i + mediansize - middle;
+
         if (mediansize < 2) {
-            if (i > medianmaxsize) {
+            if (mediansize > medianmaxsize) { // absurd, but never mind that
+//                std::cerr << "(<2) pop front ";
                 medianwin.pop_front();
             }
-            if (i < df.size()) medianwin.push_back(df[i]);
+            if (nextDf < df.size()) {
+//                std::cerr << "(<2) push back " << df[nextDf] << " ";
+                medianwin.push_back(df[nextDf]);
+            } else {
+                medianwin.push_back(0);
+            }
+//            std::cerr << "(<2) continue" << std::endl;
             continue;
         }
 
@@ -403,11 +415,15 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
         if (index == sorted.size()-1 && index > 0) --index;
         float thresh = sorted[index];
 
-        size_t middle = medianmaxsize / 2;
-        if (middle >= mediansize) middle = mediansize-1;
-
         if (m_debugLevel > 2) {
-            std::cerr << "medianwin[" << middle << "] = " << medianwin[middle] << ", thresh = " << thresh << std::endl;
+//            std::cerr << "medianwin[" << middle << "] = " << medianwin[middle] << ", thresh = " << thresh << std::endl;
+            if (medianwin[middle] == 0.f) {
+//                std::cerr << "contents: ";
+                for (size_t j = 0; j < medianwin.size(); ++j) {
+//                    std::cerr << medianwin[j] << " ";
+                }
+//                std::cerr << std::endl;
+            }
         }
 
         if (medianwin[middle] > thresh &&
@@ -441,7 +457,7 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
 //            size_t peak = i + maxindex - mediansize;
             size_t peak = i + maxindex - middle;
 
-            std::cerr << "i = " << i << ", maxindex = " << maxindex << ", middle = " << middle << ", so peak at " << peak << std::endl;
+//            std::cerr << "i = " << i << ", maxindex = " << maxindex << ", middle = " << middle << ", so peak at " << peak << std::endl;
 
 //            if (peak > 0) --peak; //!!! that's a fudge
 
@@ -472,10 +488,18 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
 
         } else if (softPeakAmnesty > 0) --softPeakAmnesty;
 
-        if (medianwin.size() >= medianmaxsize) {
+//        std::cerr << "i = " << i << " ";
+        if (mediansize >= medianmaxsize) {
+//            std::cerr << "(>= " << medianmaxsize << ") pop front ";
             medianwin.pop_front();
         }
-        if (i < df.size()) medianwin.push_back(df[i]);
+        if (nextDf < df.size()) {
+//            std::cerr << "(" << nextDf << "<" << df.size() << ") push back " << df[nextDf] << " ";
+            medianwin.push_back(df[nextDf]);
+        } else {
+            medianwin.push_back(0);
+        }
+//        std::cerr << "continue" << std::endl;
     }
 
     std::vector<Peak> peaks;
