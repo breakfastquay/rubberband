@@ -102,7 +102,7 @@ int main(int argc, char **argv)
         cerr << endl;
 	cerr << "Rubber Band" << endl;
         cerr << "An audio time-stretching and pitch-shifting library and utility program." << endl;
-	cerr << "Copyright 2007 Chris Cannam." << endl;
+	cerr << "Copyright 2007 Chris Cannam.  Distributed under the GNU General Public License." << endl;
         cerr << endl;
 	cerr << "Usage: " << argv[0] << " [options] <infile.wav> <outfile.wav>" << endl;
         cerr << endl;
