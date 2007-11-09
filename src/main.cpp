@@ -36,12 +36,17 @@ int main(int argc, char **argv)
     bool realtime = false;
     bool precise = false;
     bool threaded = true;
-    bool transients = true;
     bool peaklock = true;
     bool longwin = false;
     bool shortwin = false;
     int crispness = -1;
     bool help = false;
+
+    enum {
+        NoTransients,
+        BandLimitedTransients,
+        Transients
+    } transients = Transients;
 
     float fthresh0 = -1.f;
     float fthresh1 = -1.f;
@@ -70,6 +75,7 @@ int main(int argc, char **argv)
             { "thresh0",       1, 0, '5' },
             { "thresh1",       1, 0, '6' },
             { "thresh2",       1, 0, '7' },
+            { "bl-transients", 0, 0, '8' },
             { 0, 0, 0 }
         };
 
@@ -86,13 +92,14 @@ int main(int argc, char **argv)
         case 'R': realtime = true; break;
         case 'P': precise = true; break;
         case '0': threaded = false; break;
-        case '1': transients = false; break;
+        case '1': transients = NoTransients; break;
         case '2': peaklock = false; break;
         case '3': longwin = true; break;
         case '4': shortwin = true; break;
         case '5': fthresh0 = atof(optarg); break;
         case '6': fthresh1 = atof(optarg); break;
         case '7': fthresh2 = atof(optarg); break;
+        case '8': transients = BandLimitedTransients; break;
         case 'c': crispness = atoi(optarg); break;
         default: break;
         }
@@ -146,10 +153,10 @@ int main(int argc, char **argv)
 
     switch (crispness) {
     case -1: crispness = 2; break;
-    case 0: transients = false; peaklock = false; longwin = false; shortwin = false; break;
-    case 1: transients = true; peaklock = false; longwin = false; shortwin = false; break;
-    case 2: transients = true; peaklock = true; longwin = false; shortwin = false; break;
-    case 3: transients = true; peaklock = false; longwin = false; shortwin = true; break;
+    case 0: transients = NoTransients; peaklock = false; longwin = false; shortwin = false; break;
+    case 1: transients = Transients; peaklock = false; longwin = false; shortwin = false; break;
+    case 2: transients = Transients; peaklock = true; longwin = false; shortwin = false; break;
+    case 3: transients = Transients; peaklock = false; longwin = false; shortwin = true; break;
     };
 
     char *fileName = strdup(argv[optind++]);
@@ -188,11 +195,23 @@ int main(int argc, char **argv)
     RubberBandStretcher::Options options = 0;
     if (realtime)    options |= RubberBandStretcher::OptionProcessRealTime;
     if (precise)     options |= RubberBandStretcher::OptionStretchPrecise;
-    if (!transients) options |= RubberBandStretcher::OptionTransientsSmooth;
+//    if (!transients) options |= RubberBandStretcher::OptionTransientsSmooth;
     if (!peaklock)   options |= RubberBandStretcher::OptionPhaseIndependent;
     if (!threaded)   options |= RubberBandStretcher::OptionThreadingNone;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;
+
+    switch (transients) {
+    case NoTransients:
+        options |= RubberBandStretcher::OptionTransientsSmooth;
+        break;
+    case BandLimitedTransients:
+        options |= RubberBandStretcher::OptionTransientsMixed;
+        break;
+    case Transients:
+        options |= RubberBandStretcher::OptionTransientsCrisp;
+        break;
+    }
 
     if (pitchshift != 1.0) {
         frequencyshift *= pow(2.0, pitchshift / 12);

@@ -604,6 +604,7 @@ RubberBandStretcher::Impl::getLatency() const
 void
 RubberBandStretcher::Impl::setTransientsOption(Options options)
 {
+    //!!!
     if (options & OptionTransientsSmooth) {
         m_options |= OptionTransientsSmooth;
     } else {

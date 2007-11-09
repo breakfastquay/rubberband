@@ -34,8 +34,9 @@ public:
     static const int OptionStretchElastic   = 0x00000000;
     static const int OptionStretchPrecise   = 0x00000010;
     
-    static const int OptionTransientsCrisp  = 0x00000000;
+    static const int OptionTransientsMixed  = 0x00000000;
     static const int OptionTransientsSmooth = 0x00000100;
+    static const int OptionTransientsCrisp  = 0x00000200;
 
     static const int OptionPhasePeakLocked  = 0x00000000;
     static const int OptionPhaseIndependent = 0x00001000;
