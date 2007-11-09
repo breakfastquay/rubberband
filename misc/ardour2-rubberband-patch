@@ -1,0 +1,406 @@
+Index: gtk2_ardour/editor_timefx.cc
+===================================================================
+--- gtk2_ardour/editor_timefx.cc	(revision 2499)
++++ gtk2_ardour/editor_timefx.cc	(working copy)
+@@ -106,7 +106,7 @@
+ }
+ 
+ int
+-Editor::run_timestretch (RegionSelection& regions, float fraction)
++Editor::run_timestretch (RegionSelection& regions, double ratio)
+ {
+ 	pthread_t thread;
+ 
+@@ -126,7 +126,7 @@
+ 
+ 	current_timestretch->status = 0;
+ 	current_timestretch->regions = regions;
+-	current_timestretch->request.fraction = fraction;
++	current_timestretch->request.ratio = ratio;
+ 	current_timestretch->request.quick_seek = current_timestretch->quick_button.get_active();
+ 	current_timestretch->request.antialias = !current_timestretch->antialias_button.get_active();
+ 	current_timestretch->request.progress = 0.0f;
+Index: gtk2_ardour/SConscript
+===================================================================
+--- gtk2_ardour/SConscript	(revision 2499)
++++ gtk2_ardour/SConscript	(working copy)
+@@ -23,6 +23,7 @@
+ #gtkardour.Append(CXXFLAGS="-DFLOWCANVAS_AA")
+ gtkardour.Append(PACKAGE=domain)
+ gtkardour.Append(POTFILE=domain + '.pot')
++gtkardour.Append(LIBPATH="/work/rubberband");##!!!
+ 
+ if gtkardour['DIST_TARGET'] == 'panther' or gtkardour['DIST_TARGET'] == 'tiger':
+ 	gtkardour.Append (LINKFLAGS="-Xlinker -headerpad -Xlinker 2048")
+@@ -50,6 +51,9 @@
+     libraries['xml'],
+     libraries['xslt'],
+     libraries['soundtouch'],
++    libraries['rubberband'],
++    libraries['fftw3'],
++    libraries['fftw3f'],
+     libraries['samplerate'],
+     libraries['jack']
+ ])
+Index: gtk2_ardour/editor_mouse.cc
+===================================================================
+--- gtk2_ardour/editor_mouse.cc	(revision 2499)
++++ gtk2_ardour/editor_mouse.cc	(working copy)
+@@ -4914,11 +4914,12 @@
+ 	}
+ 	
+ 	nframes_t newlen = drag_info.last_pointer_frame - clicked_regionview->region()->position();
+-	float percentage = (float) ((double) newlen - (double) clicked_regionview->region()->length()) / ((double) newlen) * 100.0f;
++	double ratio = (double) newlen /
++		(double) clicked_regionview->region()->length();
+ 	
+ 	begin_reversible_command (_("timestretch"));
+ 
+-	if (run_timestretch (selection->regions, percentage) == 0) {
++	if (run_timestretch (selection->regions, ratio) == 0) {
+ 		session->commit_reversible_command ();
+ 	}
+ }
+Index: gtk2_ardour/editor.h
+===================================================================
+--- gtk2_ardour/editor.h	(revision 2499)
++++ gtk2_ardour/editor.h	(working copy)
+@@ -1771,7 +1771,7 @@
+ 	TimeStretchDialog* current_timestretch;
+ 
+ 	static void* timestretch_thread (void *arg);
+-	int run_timestretch (RegionSelection&, float fraction);
++	int run_timestretch (RegionSelection&, double ratio);
+ 	void do_timestretch (TimeStretchDialog&);
+ 
+ 	/* editor-mixer strip */
+Index: libs/ardour/session_timefx.cc
+===================================================================
+--- libs/ardour/session_timefx.cc	(revision 2499)
++++ libs/ardour/session_timefx.cc	(working copy)
+@@ -22,8 +22,10 @@
+ 
+ #include <pbd/basename.h>
+ 
+-#include <soundtouch/SoundTouch.h>
++//#include <soundtouch/SoundTouch.h>
+ 
++#include "/work/rubberband/rubberband/RubberBandStretcher.h" //!!!
++
+ #include <ardour/session.h>
+ #include <ardour/audioregion.h>
+ #include <ardour/sndfilesource.h>
+@@ -35,7 +37,7 @@
+ using namespace std;
+ using namespace ARDOUR;
+ using namespace PBD;
+-using namespace soundtouch;
++using namespace RubberBand;
+ 
+ boost::shared_ptr<AudioRegion>
+ Session::tempoize_region (TimeStretchRequest& tsr)
+@@ -43,39 +45,44 @@
+ 	SourceList sources;
+ 	SourceList::iterator it;
+ 	boost::shared_ptr<AudioRegion> r;
+-	SoundTouch st;
+ 	string region_name;
+ 	string ident = X_("-TIMEFX-");
+-	float percentage;
+-	nframes_t total_frames;
+-	nframes_t done;
+ 	int c;
+ 	char buf[64];
+ 	string::size_type len;
+ 
+-	/* the soundtouch code wants a *tempo* change percentage, which is 
+-	   of opposite sign to the length change.  
+-	*/
++	RubberBandStretcher stretcher
++		(frame_rate(), tsr.region->n_channels(),
++		 RubberBandStretcher::DefaultOptions,
++		 tsr.ratio, 1.0);
++	
++	stretcher.setExpectedInputDuration(tsr.region->length());
+ 
+-	percentage = -tsr.fraction;
++	stretcher.setDebugLevel(1);
+ 
+-	st.setSampleRate (frame_rate());
+-	st.setChannels (1);
+-	st.setTempoChange (percentage);
+-	st.setPitchSemiTones (0);
+-	st.setRateChange (0);
+-	
+-	st.setSetting(SETTING_USE_QUICKSEEK, tsr.quick_seek);
+-	st.setSetting(SETTING_USE_AA_FILTER, tsr.antialias);
++	uint32_t channels = tsr.region->n_channels();
++	nframes_t duration = tsr.region->length();
++	nframes_t done;
+ 
+ 	vector<string> names = tsr.region->master_source_names();
+ 
+ 	tsr.progress = 0.0f;
+-	total_frames = tsr.region->length() * tsr.region->n_channels();
+ 	done = 0;
+ 
+-	for (uint32_t i = 0; i < tsr.region->n_channels(); ++i) {
++	const nframes_t bufsize = 256; //!!! was 16384
+ 
++	float **buffers = new float *[channels];
++	for (uint32_t i = 0; i < channels; ++i) {
++		buffers[i] = new float[bufsize];
++	}
++
++	gain_t gain_buffer[bufsize]; //!!! what is this?
++
++	nframes_t pos = 0;
++	int avail = 0;
++
++	for (uint32_t i = 0; i < channels; ++i) {
++
+ 		string rstr;
+ 		string::size_type existing_ident;
+ 		
+@@ -102,63 +109,127 @@
+ 			goto out;
+ 		}
+ 	}
+-	
+-	try {
+-		const nframes_t bufsize = 16384;
+ 
+-		for (uint32_t i = 0; i < sources.size(); ++i) {
+-			gain_t gain_buffer[bufsize];
+-			Sample buffer[bufsize];
+-			nframes_t pos = 0;
+-			nframes_t this_read = 0;
++	/* we read from the master (original) sources for the region,
++	   not the ones currently in use, in case it's already been
++	   subject to timefx.  */
+ 
+-			st.clear();
+-			while (tsr.running && pos < tsr.region->length()) {
+-				nframes_t this_time;
+-			
+-				this_time = min (bufsize, tsr.region->length() - pos);
++	/* study first, process afterwards. */
+ 
+-				/* read from the master (original) sources for the region, 
+-				   not the ones currently in use, in case it's already been 
+-				   subject to timefx.  */
++	while (pos < duration && tsr.running) {
+ 
+-				if ((this_read = tsr.region->master_read_at (buffer, buffer, gain_buffer, pos + tsr.region->position(), this_time)) != this_time) {
+-					error << string_compose (_("tempoize: error reading data from %1"), sources[i]->name()) << endmsg;
+-					goto out;
+-				}
++		nframes_t this_read = 0;
++
++		for (uint32_t i = 0; i < sources.size(); ++i) {
+ 			
+-				pos += this_read;
+-				done += this_read;
++			this_read = 0;
++			nframes_t this_time;
+ 
+-				tsr.progress = (float) done / total_frames;
++			this_time = min(bufsize, duration - pos);
++
++			this_read = tsr.region->master_read_at
++				(buffers[i],
++				 buffers[i],
++				 gain_buffer,
++				 pos + tsr.region->position(),
++				 this_time,
++				 i);
++
++//			std::cerr << "read " << this_read << " from " << pos << " (length=" << duration << ")" << std::endl;
++
++			if (this_read != this_time) {
++				error << string_compose
++					(_("tempoize: error reading data from %1"),
++					 sources[i]->name()) << endmsg;
++				goto out;
++			}
++		}
++
++		pos += this_read;
++		done += this_read;
++
++		tsr.progress = ((float) done / duration) * 0.25;
+ 				
+-				st.putSamples (buffer, this_read);
++		stretcher.study(buffers, this_read, pos == duration);
++	}
++
++	pos = 0;
++	done = 0;
++	
++	while (pos < duration && tsr.running) {
++
++		nframes_t this_read = 0;
++
++		for (uint32_t i = 0; i < sources.size(); ++i) {
+ 			
+-				while ((this_read = st.receiveSamples (buffer, bufsize)) > 0 && tsr.running) {
+-					if (sources[i]->write (buffer, this_read) != this_read) {
+-						error << string_compose (_("error writing tempo-adjusted data to %1"), sources[i]->name()) << endmsg;
+-						goto out;
+-					}
+-				}
++			this_read = 0;
++			nframes_t this_time;
++
++			this_time = min(bufsize, duration - pos);
++
++			this_read = tsr.region->master_read_at
++				(buffers[i],
++				 buffers[i],
++				 gain_buffer,
++				 pos + tsr.region->position(),
++				 this_time,
++				 i);
++
++			if (this_read != this_time) {
++				error << string_compose
++					(_("tempoize: error reading data from %1"),
++					 sources[i]->name()) << endmsg;
++				goto out;
+ 			}
+-		
+-			if (tsr.running) {
+-				st.flush ();
+-			}
+-		
+-			while (tsr.running && (this_read = st.receiveSamples (buffer, bufsize)) > 0) {
+-				if (sources[i]->write (buffer, this_read) != this_read) {
++		}
++
++		pos += this_read;
++		done += this_read;
++
++//		std::cerr << "read " << this_read << " from " << pos << " (length=" << duration << ")" << std::endl;
++
++		tsr.progress = 0.25 + ((float) done / duration) * 0.75;
++
++//		std::cerr << "progress = " << tsr.progress << std::endl;
++				
++		stretcher.process(buffers, this_read, pos == duration);
++
++		int avail = 0;
++
++		while ((avail = stretcher.available()) > 0) {
++
++			this_read = min(bufsize, uint32_t(avail));
++
++			stretcher.retrieve(buffers, this_read);
++
++			for (uint32_t i = 0; i < sources.size(); ++i) {
++
++				if (sources[i]->write(buffers[i], this_read) !=
++				    this_read) {
+ 					error << string_compose (_("error writing tempo-adjusted data to %1"), sources[i]->name()) << endmsg;
+ 					goto out;
+ 				}
++//				std::cerr << "wrote " << this_read << " to channel " << i << std::endl;
+ 			}
+ 		}
+-	} catch (runtime_error& err) {
+-		error << _("timefx code failure. please notify ardour-developers.") << endmsg;
+-		error << err.what() << endmsg;
+-		goto out;
+ 	}
+ 
++	while ((avail = stretcher.available()) >= 0) {
++
++		uint32_t this_read = min(bufsize, uint32_t(avail));
++
++		stretcher.retrieve(buffers, this_read);
++
++		for (uint32_t i = 0; i < sources.size(); ++i) {
++
++			if (sources[i]->write(buffers[i], this_read) !=
++			    this_read) {
++				error << string_compose (_("error writing tempo-adjusted data to %1"), sources[i]->name()) << endmsg;
++				goto out;
++			}
++		}
++	}
++
+ 	time_t now;
+ 	struct tm* xnow;
+ 	time (&now);
+@@ -206,8 +277,11 @@
+ 			
+ 	}
+ 
+-	r = (boost::dynamic_pointer_cast<AudioRegion> (RegionFactory::create (sources, 0, sources.front()->length(), region_name,
+-									      0, AudioRegion::Flag (AudioRegion::DefaultFlags | AudioRegion::WholeFile))));
++	r = (boost::dynamic_pointer_cast<AudioRegion>
++	     (RegionFactory::create
++	      (sources, 0, sources.front()->length(), region_name, 0,
++	       AudioRegion::Flag
++	       (AudioRegion::DefaultFlags | AudioRegion::WholeFile))));
+ 	     
+   out:
+ 
+@@ -225,6 +299,13 @@
+ 
+ 		sources.clear ();
+ 	}
++
++	if (buffers) {
++		for (uint32_t i = 0; i < channels; ++i) {
++			delete[] buffers[i];
++		}
++		delete[] buffers;
++	}
+ 	
+ 	/* if the process was cancelled, delete the region */
+ 
+Index: libs/ardour/ardour/session.h
+===================================================================
+--- libs/ardour/ardour/session.h	(revision 2499)
++++ libs/ardour/ardour/session.h	(working copy)
+@@ -849,7 +849,7 @@
+ 
+ 	struct TimeStretchRequest {
+ 	    boost::shared_ptr<ARDOUR::AudioRegion> region;
+-	    float                fraction; /* session: read ; GUI: write */
++	    double               ratio; /* session: read ; GUI: write */
+ 	    float                progress; /* session: write ; GUI: read */
+ 	    bool                 running;  /* read/write */
+ 	    bool                 quick_seek; /* GUI: write */
+Index: SConstruct
+===================================================================
+--- SConstruct	(revision 2499)
++++ SConstruct	(working copy)
+@@ -481,7 +481,16 @@
+         if conf.CheckHeader ('fftw3.h') == False:
+                 print "FFT Analysis cannot be compiled without the FFTW3 headers, which don't seem to be installed"
+                 sys.exit (1)
+-        libraries['fftw3f'] = conf.Finish();
++        libraries['fftw3f'] = conf.Finish()
++	libraries['fftw3'] = LibraryInfo()
++	libraries['fftw3'].ParseConfig('pkg-config --cflags --libs fftw3')
++        #
++        # Check for fftw3 header as well as the library
++        conf = Configure (libraries['fftw3'])
++        if conf.CheckHeader ('fftw3.h') == False:
++                print "FFT Analysis cannot be compiled without the FFTW3 headers, which don't seem to be installed"
++                sys.exit (1)
++        libraries['fftw3'] = conf.Finish();
+ 
+ libraries['jack'] = LibraryInfo()
+ libraries['jack'].ParseConfig('pkg-config --cflags --libs jack')
+@@ -509,6 +518,9 @@
+ 
+ #libraries['flowcanvas'] = LibraryInfo(LIBS='flowcanvas', LIBPATH='#/libs/flowcanvas', CPPPATH='#libs/flowcanvas')
+ 
++##!!!
++libraries['rubberband'] = LibraryInfo (LIBS='rubberband', LIBPATH='/work/rubberband/lib')
++
+ # The Ardour Control Protocol Library
+ 
+ libraries['ardour_cp'] = LibraryInfo (LIBS='ardour_cp', LIBPATH='#libs/surfaces/control_protocol',
