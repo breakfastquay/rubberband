@@ -183,12 +183,12 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_extraLatency(8192), //!!! this should be at least the maximum possible displacement from linear at input rates, divided by the pitch scale factor.  It could be very large
     m_stretcher(new RubberBand::RubberBandStretcher
                 (sampleRate, channels,
-                 RubberBand::RubberBandStretcher::OptionProcessRealTime |
-                 RubberBand::RubberBandStretcher::OptionStretchPrecise  |
+                 RubberBand::RubberBandStretcher::OptionProcessRealTime)),// |
+//                 RubberBand::RubberBandStretcher::OptionStretchPrecise  |
 //                 RubberBand::RubberBandStretcher::OptionTransientsSmooth |
-                 RubberBand::RubberBandStretcher::OptionTransientsCrisp |
-                 RubberBand::RubberBandStretcher::OptionPhasePeakLocked |
-                 RubberBand::RubberBandStretcher::OptionThreadingNone)),
+//                 RubberBand::RubberBandStretcher::OptionTransientsCrisp |
+//                 RubberBand::RubberBandStretcher::OptionPhasePeakLocked |
+//                 RubberBand::RubberBandStretcher::OptionThreadingNone)),
     m_sampleRate(sampleRate),
     m_channels(channels)
 {

@@ -376,7 +376,7 @@ int main(int argc, char **argv)
                     float value = obf[c][i];
                     if (fabsf(value) > outpeak) outpeak = fabsf(value);
                     outsum += value * value;
-                    value *= 0.75;
+                    value *= 0.75;//!!!
                     if (value > 1.f) value = 1.f;
                     if (value < -1.f) value = -1.f;
                     fobf[i * channels + c] = value;

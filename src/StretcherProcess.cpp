@@ -481,9 +481,27 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
 
         cd.freqPeak[0] = 0;
 
-        size_t limit0 = lrint((m_freq0 * m_blockSize) / rate);
+        float freq0 = m_freq0;
+
+        // As the stretch ratio increases, so the frequency thresholds
+        // for phase lamination should increase.  Beyond a ratio of
+        // about 1.5, the threshold should be about 1200Hz; beyond a
+        // ratio of 2, we probably want no lamination to happen at all
+        // by default.  This calculation aims for that.
+
+        //!!! we should only do this if asked to -- and when not
+        //setting f0,f1,f2 explicitly
+        float r = getEffectiveRatio();
+        if (r > 1) {
+            float rf0 = 600 + (600 * ((r-1)*(r-1)*2));
+//            std::cerr << "ratio = " << r << ", rf0 = " << rf0 << std::endl;
+            freq0 = std::max(freq0, rf0);
+        }
+
+        size_t limit0 = lrint((freq0 * m_blockSize) / rate);
         size_t limit1 = lrint((m_freq1 * m_blockSize) / rate);
         size_t limit2 = lrint((m_freq2 * m_blockSize) / rate);
+
         size_t range = 0;
 
         if (limit1 < limit0) limit1 = limit0;
@@ -700,6 +718,11 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
             cd.resamplebuf = new float[cd.resamplebufSize];
         }
 
+#ifdef HAVE_IPP
+        if (m_threaded) {
+            m_resamplerMutex.lock();
+        }
+#endif
 
         size_t outframes = cd.resampler->resample(&cd.accumulator,
                                                   &cd.resamplebuf,
@@ -707,6 +730,11 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
                                                   1.0 / m_pitchScale,
                                                   last);
 
+#ifdef HAVE_IPP
+        if (m_threaded) {
+            m_resamplerMutex.unlock();
+        }
+#endif
 
         writeOutput(*cd.outbuf, cd.resamplebuf,
                     outframes, cd.outCount, theoreticalOut);

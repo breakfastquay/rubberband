@@ -303,7 +303,8 @@ RubberBandStretcher::Impl::calculateSizes()
                 inputIncrement /= 2;
                 outputIncrement = lrint(ceil(inputIncrement * r));
             }
-            blockSize = std::max(blockSize, roundUp(outputIncrement * 4.5));
+            blockSize = std::max(blockSize, roundUp(outputIncrement * 6));
+            if (r > 5) while (blockSize < 8192) blockSize *= 2;
         }
 
     } else {
@@ -327,6 +328,7 @@ RubberBandStretcher::Impl::calculateSizes()
                 inputIncrement = int(outputIncrement / r);
             }
             blockSize = std::max(blockSize, roundUp(outputIncrement * 6));
+            if (r > 5) while (blockSize < 8192) blockSize *= 2;
         }
     }        
 
@@ -391,7 +393,7 @@ RubberBandStretcher::Impl::calculateSizes()
     //necessary. clearly something wrong in our calculations... or do
     //we just need to ensure client calls setMaxProcessBlockSize?
     if (!m_realtime && !m_threaded) {
-//!!!        m_outbufSize = m_outbufSize * 2;
+        m_outbufSize = m_outbufSize * 2;
     }
 }
 
