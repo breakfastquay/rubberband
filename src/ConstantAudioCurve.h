@@ -23,10 +23,10 @@ namespace RubberBand
 class ConstantAudioCurve : public AudioCurve
 {
 public:
-    ConstantAudioCurve(size_t sampleRate, size_t blockSize);
+    ConstantAudioCurve(size_t sampleRate, size_t windowSize);
     virtual ~ConstantAudioCurve();
 
-    virtual void setBlockSize(size_t newSize);
+    virtual void setWindowSize(size_t newSize);
 
     virtual float process(float *mag, size_t increment);
     virtual void reset();

@@ -23,11 +23,11 @@ namespace RubberBand
 class PercussiveAudioCurve : public AudioCurve
 {
 public:
-    PercussiveAudioCurve(size_t sampleRate, size_t blockSize);
+    PercussiveAudioCurve(size_t sampleRate, size_t windowSize);
 
     virtual ~PercussiveAudioCurve();
 
-    virtual void setBlockSize(size_t newSize);
+    virtual void setWindowSize(size_t newSize);
 
     virtual float process(float *mag, size_t increment);
     virtual void reset();

@@ -19,12 +19,12 @@
 namespace RubberBand
 {
 
-PercussiveAudioCurve::PercussiveAudioCurve(size_t sampleRate, size_t blockSize) :
-    AudioCurve(sampleRate, blockSize)
+PercussiveAudioCurve::PercussiveAudioCurve(size_t sampleRate, size_t windowSize) :
+    AudioCurve(sampleRate, windowSize)
 {
-    m_prevMag = new double[m_blockSize/2 + 1];
+    m_prevMag = new double[m_windowSize/2 + 1];
 
-    for (size_t i = 0; i <= m_blockSize/2; ++i) {
+    for (size_t i = 0; i <= m_windowSize/2; ++i) {
         m_prevMag[i] = 0.f;
     }
 }
@@ -37,18 +37,18 @@ PercussiveAudioCurve::~PercussiveAudioCurve()
 void
 PercussiveAudioCurve::reset()
 {
-    for (size_t i = 0; i <= m_blockSize/2; ++i) {
+    for (size_t i = 0; i <= m_windowSize/2; ++i) {
         m_prevMag[i] = 0;
     }
 }
 
 void
-PercussiveAudioCurve::setBlockSize(size_t newSize)
+PercussiveAudioCurve::setWindowSize(size_t newSize)
 {
     delete[] m_prevMag;
-    m_blockSize = newSize;
+    m_windowSize = newSize;
     
-    m_prevMag = new double[m_blockSize/2 + 1];
+    m_prevMag = new double[m_windowSize/2 + 1];
 
     reset();
 }
@@ -62,7 +62,7 @@ PercussiveAudioCurve::process(float *mag, size_t increment)
     size_t count = 0;
     size_t nonZeroCount = 0;
 
-    for (size_t n = 1; n <= m_blockSize / 2; ++n) {
+    for (size_t n = 1; n <= m_windowSize / 2; ++n) {
         //!!! adjust threshold so that this multiplication is unnecessary
 	float sqrmag = mag[n] * mag[n];
         bool above = ((sqrmag / m_prevMag[n]) >= threshold);
@@ -71,7 +71,7 @@ PercussiveAudioCurve::process(float *mag, size_t increment)
 	m_prevMag[n] = sqrmag;
     }
 
-//!!!    return float(count) / float(m_blockSize);
+//!!!    return float(count) / float(m_windowSize);
     if (nonZeroCount == 0) return 0;
     else return float(count) / float(nonZeroCount);
 }

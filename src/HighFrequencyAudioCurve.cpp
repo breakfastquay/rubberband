@@ -17,12 +17,12 @@
 namespace RubberBand
 {
 
-HighFrequencyAudioCurve::HighFrequencyAudioCurve(size_t sampleRate, size_t blockSize) :
-    AudioCurve(sampleRate, blockSize)
+HighFrequencyAudioCurve::HighFrequencyAudioCurve(size_t sampleRate, size_t windowSize) :
+    AudioCurve(sampleRate, windowSize)
 {
-    m_prevMag = new double[m_blockSize/2 + 1];
+    m_prevMag = new double[m_windowSize/2 + 1];
 
-    for (size_t i = 0; i <= m_blockSize/2; ++i) {
+    for (size_t i = 0; i <= m_windowSize/2; ++i) {
         m_prevMag[i] = 0.f;
     }
 }
@@ -35,15 +35,15 @@ HighFrequencyAudioCurve::~HighFrequencyAudioCurve()
 void
 HighFrequencyAudioCurve::reset()
 {
-    for (size_t i = 0; i <= m_blockSize/2; ++i) {
+    for (size_t i = 0; i <= m_windowSize/2; ++i) {
         m_prevMag[i] = 0;
     }
 }
 
 void
-HighFrequencyAudioCurve::setBlockSize(size_t newSize)
+HighFrequencyAudioCurve::setWindowSize(size_t newSize)
 {
-    m_blockSize = newSize;
+    m_windowSize = newSize;
 }
 
 float
@@ -51,7 +51,7 @@ HighFrequencyAudioCurve::process(float *mag, size_t increment)
 {
     float result = 0.0;
 
-    for (size_t n = 0; n <= m_blockSize / 2; ++n) {
+    for (size_t n = 0; n <= m_windowSize / 2; ++n) {
         result += mag[n];
     }
 

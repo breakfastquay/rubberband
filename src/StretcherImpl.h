@@ -52,7 +52,7 @@ public:
     void setPhaseOption(Options);
 
     void setExpectedInputDuration(size_t samples);
-    void setMaxProcessBlockSize(size_t samples);
+    void setMaxProcessSize(size_t samples);
 
     size_t getSamplesRequired() const;
 
@@ -111,11 +111,11 @@ protected:
     double m_timeRatio;
     double m_pitchScale;
 
-    size_t m_blockSize;
-    size_t m_outbufSize;
+    size_t m_windowSize;
     size_t m_increment;
+    size_t m_outbufSize;
 
-    size_t m_maxProcessBlockSize;
+    size_t m_maxProcessSize;
     size_t m_expectedInputDuration;
     
     bool m_threaded;
@@ -173,7 +173,7 @@ protected:
     float m_freq1;
     float m_freq2;
 
-    size_t m_baseBlockSize;
+    size_t m_baseWindowSize;
 
     void writeOutput(RingBuffer<float> &to, float *from,
                      size_t qty, size_t &outCount, size_t theoreticalOut);

@@ -51,10 +51,6 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 
     //!!! This description is out of date.
 
-    //!!! Rationalise naming -- generally wise to avoid the word
-    //"frame" and instead use "block" / "sample" for processing frame /
-    // audio frame.
-
     // 1. Pre-process the df array, and for each (say) one second's
     // worth of values, calculate the number of peaks that would
     // qualify for phase locking given the default threshold.  Then
@@ -74,12 +70,12 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
     // ensure that their timing is strictly "correct".
 
     // 4. Calculate how much time is left in the stretch total, after
-    // each of the locked frames has been allocated its static
-    // allowance.  Also count the non-locked frames.
+    // each of the locked chunks has been allocated its static
+    // allowance.  Also count the non-locked chunks.
 
-    // 5. For each region between two locked frames, calculate the
+    // 5. For each region between two locked chunks, calculate the
     // number of samples to allocate that region given the time
-    // available for stretch and the number of non-locked frames.
+    // available for stretch and the number of non-locked chunks.
     // Then divvy them up... how exactly?
 
 
@@ -109,11 +105,11 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 
 //    size_t stretchable = outputDuration - lockCount * m_increment;
     
-    std::vector<size_t> fixedAudioFrames;
+    std::vector<size_t> fixedAudioChunks;
     for (size_t i = 0; i < peaks.size(); ++i) {
-        fixedAudioFrames.push_back
+        fixedAudioChunks.push_back
             //!!! this should be rounding down, shouldn't it? not lrint?
-            (lrint((double(peaks[i].frame) * outputDuration) / totalCount));
+            (lrint((double(peaks[i].chunk) * outputDuration) / totalCount));
     }
 
 //    size_t lockIndex = 0;
@@ -125,9 +121,9 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
     size_t totalInput = 0, totalOutput = 0;
 
     // so for each inter-lock region, we want to take the number of
-    // output frames to be allocated and the detection function values
+    // output chunks to be allocated and the detection function values
     // within the range, and produce a series of increments that sum
-    // to the number of output frames, such that each increment is
+    // to the number of output chunks, such that each increment is
     // displaced from the input increment by an amount inversely
     // proportional to the magnitude of the detection function at that
     // input step.  Ideally the detection function would have been
@@ -136,41 +132,41 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
     //!!! Actually, we would possibly be better off using a fixed
     // smooth curve than the detection function itself.
 
-    size_t regionTotalFrames = 0;
+    size_t regionTotalChunks = 0;
 
     for (size_t i = 0; i <= peaks.size(); ++i) {
         
-        size_t regionStart, regionStartBlock, regionEnd, regionEndBlock;
+        size_t regionStart, regionStartChunk, regionEnd, regionEndChunk;
         bool phaseLock = false;
 
         if (i == 0) {
-            regionStartBlock = 0;
+            regionStartChunk = 0;
             regionStart = 0;
         } else {
-            regionStartBlock = peaks[i-1].frame;
-            regionStart = fixedAudioFrames[i-1];
+            regionStartChunk = peaks[i-1].chunk;
+            regionStart = fixedAudioChunks[i-1];
             phaseLock = peaks[i-1].hard;
         }
 
         if (i == peaks.size()) {
-            regionEndBlock = totalCount;
+            regionEndChunk = totalCount;
             regionEnd = outputDuration;
         } else {
-            regionEndBlock = peaks[i].frame;
-            regionEnd = fixedAudioFrames[i];
+            regionEndChunk = peaks[i].chunk;
+            regionEnd = fixedAudioChunks[i];
         }
         
         size_t regionDuration = regionEnd - regionStart;
-        regionTotalFrames += regionDuration;
+        regionTotalChunks += regionDuration;
 
         std::vector<float> dfRegion;
 
-        for (size_t j = regionStartBlock; j != regionEndBlock; ++j) {
+        for (size_t j = regionStartChunk; j != regionEndChunk; ++j) {
             dfRegion.push_back(stretchDf[j]);
         }
 
         if (m_debugLevel > 1) {
-            std::cerr << "distributeRegion from " << regionStartBlock << " to " << regionEndBlock << " (frames " << regionStart << " to " << regionEnd << ")" << std::endl;
+            std::cerr << "distributeRegion from " << regionStartChunk << " to " << regionEndChunk << " (chunks " << regionStart << " to " << regionEnd << ")" << std::endl;
         }
 
         dfRegion = smoothDF(dfRegion);
@@ -201,8 +197,8 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
     }
 
     if (m_debugLevel > 0) {
-        std::cerr << "total input increment = " << totalInput << " (= " << totalInput / m_increment << " blocks), output = " << totalOutput << ", ratio = " << double(totalOutput)/double(totalInput) << ", ideal output " << ceil(totalInput * ratio) << std::endl;
-        std::cerr << "(region total = " << regionTotalFrames << ")" << std::endl;
+        std::cerr << "total input increment = " << totalInput << " (= " << totalInput / m_increment << " chunks), output = " << totalOutput << ", ratio = " << double(totalOutput)/double(totalInput) << ", ideal output " << ceil(totalInput * ratio) << std::endl;
+        std::cerr << "(region total = " << regionTotalChunks << ")" << std::endl;
     }
     return increments;
 }
@@ -215,10 +211,10 @@ StretchCalculator::calculateSingle(double ratio,
     bool isTransient = false;
 
     //!!! We want to ensure, as close as possible, that the lock
-    // points appear at _exactly_ the right frame numbers
+    // points appear at _exactly_ the right audio frame numbers
 
-    //!!! depends on block size.  larger block sizes need higher
-    //thresholds.  since block size depends on ratio, I suppose we
+    //!!! depends on chunk size.  larger chunk sizes need higher
+    //thresholds.  since chunk size depends on ratio, I suppose we
     //could in theory calculate the threshold from the ratio directly.
     //For now we just frig it to work OK for a couple of common cases
     float transientThreshold = 0.35;
@@ -306,7 +302,7 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
         std::cerr << "hardPeakAmnesty = " << hardPeakAmnesty << std::endl;
         for (size_t i = 1; i + 1 < df.size(); ++i) {
 
-            //!!! this ratio configurable? dependent on block size and sr?
+            //!!! this ratio configurable? dependent on chunk size and sr?
 
             if (df[i] < 0.1) continue;
             if (df[i] <= df[i-1] * 1.2) continue;
@@ -518,14 +514,14 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
         size_t softPeak = (haveSoftPeak ? *softPeakCandidates.begin() : 0);
         Peak peak;
         peak.hard = false;
-        peak.frame = softPeak;
+        peak.chunk = softPeak;
         if (haveHardPeak &&
             (!haveSoftPeak || hardPeak <= softPeak)) {
             if (m_debugLevel > 2) {
                 std::cerr << "Hard peak: " << hardPeak << std::endl;
             }
             peak.hard = true;
-            peak.frame = hardPeak;
+            peak.chunk = hardPeak;
             hardPeakCandidates.erase(hardPeakCandidates.begin());
         } else {
             if (m_debugLevel > 2) {
@@ -533,7 +529,7 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
             }
         }            
 
-        if (haveSoftPeak && peak.frame == softPeak) {
+        if (haveSoftPeak && peak.chunk == softPeak) {
             softPeakCandidates.erase(softPeakCandidates.begin());
         }
             
@@ -616,7 +612,7 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
 //    bool negative = (toAllot < 0);
     
     if (m_debugLevel > 1) {
-        std::cerr << "region of " << df.size() << " blocks, output duration " << duration << ", toAllot " << toAllot << std::endl;
+        std::cerr << "region of " << df.size() << " chunks, output duration " << duration << ", toAllot " << toAllot << std::endl;
     }
 
     size_t totalIncrement = 0;

@@ -17,9 +17,9 @@
 namespace RubberBand
 {
 
-AudioCurve::AudioCurve(size_t sampleRate, size_t blockSize) :
+AudioCurve::AudioCurve(size_t sampleRate, size_t windowSize) :
     m_sampleRate(sampleRate),
-    m_blockSize(blockSize)
+    m_windowSize(windowSize)
 {
 }
 

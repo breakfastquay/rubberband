@@ -88,9 +88,9 @@ RubberBandStretcher::setExpectedInputDuration(size_t samples)
 }
 
 void
-RubberBandStretcher::setMaxProcessBlockSize(size_t samples)
+RubberBandStretcher::setMaxProcessSize(size_t samples)
 {
-    m_d->setMaxProcessBlockSize(samples);
+    m_d->setMaxProcessSize(samples);
 }
 
 size_t

@@ -17,8 +17,8 @@
 namespace RubberBand
 {
 
-ConstantAudioCurve::ConstantAudioCurve(size_t sampleRate, size_t blockSize) :
-    AudioCurve(sampleRate, blockSize)
+ConstantAudioCurve::ConstantAudioCurve(size_t sampleRate, size_t windowSize) :
+    AudioCurve(sampleRate, windowSize)
 {
 }
 
@@ -32,9 +32,9 @@ ConstantAudioCurve::reset()
 }
 
 void
-ConstantAudioCurve::setBlockSize(size_t newSize)
+ConstantAudioCurve::setWindowSize(size_t newSize)
 {
-    m_blockSize = newSize;
+    m_windowSize = newSize;
 }
 
 float

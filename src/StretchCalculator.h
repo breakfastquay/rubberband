@@ -54,7 +54,7 @@ public:
     void setDebugLevel(int level) { m_debugLevel = level; }
 
     struct Peak {
-        size_t frame;
+        size_t chunk;
         bool hard;
     };
     std::vector<Peak> getLastCalculatedPeaks() const { return m_lastPeaks; }

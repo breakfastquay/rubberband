@@ -24,11 +24,11 @@ namespace RubberBand
 class HighFrequencyAudioCurve : public AudioCurve
 {
 public:
-    HighFrequencyAudioCurve(size_t sampleRate, size_t blockSize);
+    HighFrequencyAudioCurve(size_t sampleRate, size_t windowSize);
 
     virtual ~HighFrequencyAudioCurve();
 
-    virtual void setBlockSize(size_t newSize);
+    virtual void setWindowSize(size_t newSize);
 
     virtual float process(float *mag, size_t increment);
     virtual void reset();

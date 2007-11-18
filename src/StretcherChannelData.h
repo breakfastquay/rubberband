@@ -30,7 +30,7 @@ public:
     /**
      * Construct a ChannelData structure.
      *
-     * The block size passed in here is the size for the FFT
+     * The window size passed in here is the size for the FFT
      * calculation, and most of the buffer sizes also depend on
      * it.  In practice it is always a power of two and except for
      * very extreme stretches is always either 1024, 2048 or 4096.
@@ -39,22 +39,22 @@ public:
      * the pitch scale factor and any maximum processing block
      * size specified by the user of the code.
      */
-    ChannelData(size_t blockSize, size_t outbufSize);
+    ChannelData(size_t windowSize, size_t outbufSize);
 
     /**
      * Construct a ChannelData structure that can process at
      * different FFT sizes without requiring reallocation when the
      * size changes.  The size can subsequently be changed with a
-     * call to setBlockSize.  Reallocation will only be necessary
-     * if setBlockSize is called with a value not equal to one of
+     * call to setWindowSize.  Reallocation will only be necessary
+     * if setWindowSize is called with a value not equal to one of
      * those passed in to the constructor.
      *
      * The outbufSize should be the maximum possible outbufSize to
      * avoid reallocation, which will happen if setOutbufSize is
      * called subsequently.
      */
-    ChannelData(const std::set<size_t> &blockSizes,
-                size_t initialBlockSize, size_t outbufSize);
+    ChannelData(const std::set<size_t> &windowSizes,
+                size_t initialWindowSize, size_t outbufSize);
     ~ChannelData();
 
     /**
@@ -64,11 +64,11 @@ public:
 
     /**
      * Set the FFT and buffer sizes from the given processing
-     * block size.  If this ChannelData was constructed with a set
-     * of block sizes and the given block size here was among
+     * window size.  If this ChannelData was constructed with a set
+     * of window sizes and the given window size here was among
      * them, no reallocation will be required.
      */
-    void setBlockSize(size_t blockSize);
+    void setWindowSize(size_t windowSize);
 
     /**
      * Set the outbufSize for the channel data.  Reallocation will
@@ -96,7 +96,7 @@ public:
 
     size_t prevIncrement; // only used in RT mode
 
-    size_t blockCount;
+    size_t chunkCount;
     size_t inCount;
     long inputSize; // set only after known (when data ended); -1 previously
     size_t outCount;
@@ -112,8 +112,8 @@ public:
     size_t resamplebufSize;
 
 private:
-    void construct(const std::set<size_t> &blockSizes,
-                   size_t initialBlockSize, size_t outbufSize);
+    void construct(const std::set<size_t> &windowSizes,
+                   size_t initialWindowSize, size_t outbufSize);
 };        
 
 }

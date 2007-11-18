@@ -7,39 +7,39 @@
 namespace RubberBand 
 {
 
-RubberBandStretcher::Impl::ChannelData::ChannelData(size_t blockSize,
+RubberBandStretcher::Impl::ChannelData::ChannelData(size_t windowSize,
                                                     size_t outbufSize)
 {
     std::set<size_t> s;
-    construct(s, blockSize, outbufSize);
+    construct(s, windowSize, outbufSize);
 }
 
-RubberBandStretcher::Impl::ChannelData::ChannelData(const std::set<size_t> &blockSizes,
-                                                    size_t initialBlockSize,
+RubberBandStretcher::Impl::ChannelData::ChannelData(const std::set<size_t> &windowSizes,
+                                                    size_t initialWindowSize,
                                                     size_t outbufSize)
 {
-    construct(blockSizes, initialBlockSize, outbufSize);
+    construct(windowSizes, initialWindowSize, outbufSize);
 }
 
 void
-RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &blockSizes,
-                                                  size_t initialBlockSize,
+RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &windowSizes,
+                                                  size_t initialWindowSize,
                                                   size_t outbufSize)
 {
-    size_t maxSize = initialBlockSize;
+    size_t maxSize = initialWindowSize;
 
-    if (!blockSizes.empty()) {
+    if (!windowSizes.empty()) {
         // std::set is ordered by value
-        std::set<size_t>::const_iterator i = blockSizes.end();
+        std::set<size_t>::const_iterator i = windowSizes.end();
         maxSize = *--i;
     }
-    if (blockSizes.find(initialBlockSize) == blockSizes.end()) {
-        if (initialBlockSize > maxSize) maxSize = initialBlockSize;
+    if (windowSizes.find(initialWindowSize) == windowSizes.end()) {
+        if (initialWindowSize > maxSize) maxSize = initialWindowSize;
     }
 
     size_t realSize = maxSize/2 + 1; // size of the real "half" of freq data
 
-    std::cerr << "ChannelData::construct([" << blockSizes.size() << "], " << maxSize << ", " << outbufSize << ")" << std::endl;
+    std::cerr << "ChannelData::construct([" << windowSizes.size() << "], " << maxSize << ", " << outbufSize << ")" << std::endl;
     
     if (outbufSize < maxSize) outbufSize = maxSize;
 
@@ -58,16 +58,16 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &blockS
     fltbuf = new float[maxSize];
     dblbuf = new double[maxSize];
 
-    for (std::set<size_t>::const_iterator i = blockSizes.begin();
-         i != blockSizes.end(); ++i) {
+    for (std::set<size_t>::const_iterator i = windowSizes.begin();
+         i != windowSizes.end(); ++i) {
         ffts[*i] = new FFT(*i);
         ffts[*i]->initDouble();
     }
-    if (blockSizes.find(initialBlockSize) == blockSizes.end()) {
-        ffts[initialBlockSize] = new FFT(initialBlockSize);
-        ffts[initialBlockSize]->initDouble();
+    if (windowSizes.find(initialWindowSize) == windowSizes.end()) {
+        ffts[initialWindowSize] = new FFT(initialWindowSize);
+        ffts[initialWindowSize]->initDouble();
     }
-    fft = ffts[initialBlockSize];
+    fft = ffts[initialWindowSize];
 
     resampler = 0;
     resamplebuf = 0;
@@ -92,14 +92,14 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &blockS
 }
 
 void
-RubberBandStretcher::Impl::ChannelData::setBlockSize(size_t blockSize)
+RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
 {
     size_t oldSize = inbuf->getSize();
-    size_t realSize = blockSize/2 + 1;
+    size_t realSize = windowSize/2 + 1;
 
-    std::cerr << "ChannelData::setBlockSize(" << blockSize << ") [from " << oldSize << "]" << std::endl;
+    std::cerr << "ChannelData::setWindowSize(" << windowSize << ") [from " << oldSize << "]" << std::endl;
 
-    if (oldSize >= blockSize) {
+    if (oldSize >= windowSize) {
 
         // no need to reallocate buffers, just reselect fft
 
@@ -107,14 +107,14 @@ RubberBandStretcher::Impl::ChannelData::setBlockSize(size_t blockSize)
         //process thread, can we?  we need to zero the mag/phase
         //buffers without interference
 
-        if (ffts.find(blockSize) == ffts.end()) {
+        if (ffts.find(windowSize) == ffts.end()) {
             //!!! this also requires a lock, but it shouldn't occur in
             //RT mode with proper initialisation
-            ffts[blockSize] = new FFT(blockSize);
-            ffts[blockSize]->initDouble();
+            ffts[windowSize] = new FFT(windowSize);
+            ffts[windowSize]->initDouble();
         }
         
-        fft = ffts[blockSize];
+        fft = ffts[windowSize];
 
         for (size_t i = 0; i < realSize; ++i) {
             mag[i] = 0.0;
@@ -134,7 +134,7 @@ RubberBandStretcher::Impl::ChannelData::setBlockSize(size_t blockSize)
     //is unavailable (since this should never normally be the case in
     //general use in RT mode)
 
-    RingBuffer<float> *newbuf = inbuf->resized(blockSize);
+    RingBuffer<float> *newbuf = inbuf->resized(windowSize);
     delete inbuf;
     inbuf = newbuf;
 
@@ -155,17 +155,17 @@ RubberBandStretcher::Impl::ChannelData::setBlockSize(size_t blockSize)
     delete[] fltbuf;
     delete[] dblbuf;
 
-    fltbuf = new float[blockSize];
-    dblbuf = new double[blockSize];
+    fltbuf = new float[windowSize];
+    dblbuf = new double[windowSize];
 
     // But we do want to preserve data in these
 
-    float *newAcc = new float[blockSize];
+    float *newAcc = new float[windowSize];
     for (size_t i = 0; i < oldSize; ++i) newAcc[i] = accumulator[i];
     delete[] accumulator;
     accumulator = newAcc;
 
-    newAcc = new float[blockSize];
+    newAcc = new float[windowSize];
     for (size_t i = 0; i < oldSize; ++i) newAcc[i] = windowAccumulator[i];
     delete[] windowAccumulator;
     windowAccumulator = newAcc;
@@ -180,22 +180,22 @@ RubberBandStretcher::Impl::ChannelData::setBlockSize(size_t blockSize)
         freqPeak[i] = 0;
     }
 
-    for (size_t i = 0; i < blockSize; ++i) {
+    for (size_t i = 0; i < windowSize; ++i) {
         dblbuf[i] = 0.0;
         fltbuf[i] = 0.0;
     }
 
-    for (size_t i = oldSize; i < blockSize; ++i) {
+    for (size_t i = oldSize; i < windowSize; ++i) {
         accumulator[i] = 0.f;
         windowAccumulator[i] = 0.f;
     }
 
-    if (ffts.find(blockSize) == ffts.end()) {
-        ffts[blockSize] = new FFT(blockSize);
-        ffts[blockSize]->initDouble();
+    if (ffts.find(windowSize) == ffts.end()) {
+        ffts[windowSize] = new FFT(windowSize);
+        ffts[windowSize]->initDouble();
     }
     
-    fft = ffts[blockSize];
+    fft = ffts[windowSize];
 }
 
 void
@@ -253,7 +253,7 @@ RubberBandStretcher::Impl::ChannelData::reset()
 
     accumulatorFill = 0;
     prevIncrement = 0;
-    blockCount = 0;
+    chunkCount = 0;
     inCount = 0;
     inputSize = -1;
     outCount = 0;

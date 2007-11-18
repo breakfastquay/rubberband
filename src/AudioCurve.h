@@ -23,17 +23,17 @@ namespace RubberBand
 class AudioCurve
 {
 public:
-    AudioCurve(size_t sampleRate, size_t blockSize);
+    AudioCurve(size_t sampleRate, size_t windowSize);
     virtual ~AudioCurve();
 
-    virtual void setBlockSize(size_t newSize) = 0;
+    virtual void setWindowSize(size_t newSize) = 0;
     
     virtual float process(float *mag, size_t increment) = 0;
     virtual void reset() = 0;
 
 protected:
     size_t m_sampleRate;
-    size_t m_blockSize;
+    size_t m_windowSize;
 };
 
 }

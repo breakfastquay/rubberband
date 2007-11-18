@@ -72,7 +72,7 @@ public:
     virtual void setPhaseOption(Options options);
 
     virtual void setExpectedInputDuration(size_t samples);
-    virtual void setMaxProcessBlockSize(size_t samples);
+    virtual void setMaxProcessSize(size_t samples);
     virtual size_t getSamplesRequired() const;
 
     // if samples == 0, input may be null
