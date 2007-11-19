@@ -89,11 +89,11 @@ RubberBandStretcher::Impl::processChunks(size_t c)
             analyseChunk(c);
         }
 
-        bool lock = false;
+        bool phaseReset = false;
         size_t phaseIncrement, shiftIncrement;
-        getIncrements(c, phaseIncrement, shiftIncrement, lock);
+        getIncrements(c, phaseIncrement, shiftIncrement, phaseReset);
 
-        last = processChunkForChannel(c, phaseIncrement, shiftIncrement, lock);
+        last = processChunkForChannel(c, phaseIncrement, shiftIncrement, phaseReset);
         cd.chunkCount++;
         if (m_debugLevel > 2) {
             cerr << "channel " << c << ": last = " << last << ", chunkCount = " << cd.chunkCount << endl;
@@ -121,15 +121,15 @@ RubberBandStretcher::Impl::processOneChunk()
         }
     }
     
-    bool lock = false;
+    bool phaseReset = false;
     size_t phaseIncrement, shiftIncrement;
-    if (!getIncrements(0, phaseIncrement, shiftIncrement, lock)) {
-        calculateIncrements(phaseIncrement, shiftIncrement, lock);
+    if (!getIncrements(0, phaseIncrement, shiftIncrement, phaseReset)) {
+        calculateIncrements(phaseIncrement, shiftIncrement, phaseReset);
     }
 
     bool last = false;
     for (size_t c = 0; c < m_channels; ++c) {
-        last = processChunkForChannel(c, phaseIncrement, shiftIncrement, lock);
+        last = processChunkForChannel(c, phaseIncrement, shiftIncrement, phaseReset);
         m_channelData[c]->chunkCount++;
     }
 
@@ -187,15 +187,15 @@ bool
 RubberBandStretcher::Impl::processChunkForChannel(size_t c,
                                                   size_t phaseIncrement,
                                                   size_t shiftIncrement,
-                                                  bool lock)
+                                                  bool phaseReset)
 {
     // Process a single chunk on a single channel.  This assumes
     // enough input data is available; caller must have tested this
     // using e.g. testInbufReadSpace first.  Return true if this is
     // the last chunk on the channel.
 
-    if (lock && (m_debugLevel > 1)) {
-        cerr << "processChunkForChannel: lock found, incrs "
+    if (phaseReset && (m_debugLevel > 1)) {
+        cerr << "processChunkForChannel: phase reset found, incrs "
                   << phaseIncrement << ":" << shiftIncrement << endl;
     }
 
@@ -216,11 +216,11 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         // We need to peek m_windowSize samples for processing, and
         // then skip m_increment to advance the read pointer.
         
-        modifyChunk(c, phaseIncrement, lock);
+        modifyChunk(c, phaseIncrement, phaseReset);
         synthesiseChunk(c); // reads from cd.mag, cd.phase
 
         if (m_debugLevel > 2) {
-            if (lock) {
+            if (phaseReset) {
                 for (int i = 0; i < 10; ++i) {
                     cd.accumulator[i] = ((drand48() * 2 - 1.0) > 0 ? 1 : -1);
                 }
@@ -277,7 +277,7 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
 void
 RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
                                                size_t &shiftIncrementRtn,
-                                               bool &lock)
+                                               bool &phaseReset)
 {
 //    cerr << "calculateIncrements" << endl;
     
@@ -294,7 +294,7 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
 
     phaseIncrementRtn = m_increment;
     shiftIncrementRtn = m_increment;
-    lock = false;
+    phaseReset = false;
 
     if (m_channels == 0) return;
 
@@ -328,18 +328,18 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
         }
     }
     
-    float df = m_lockAudioCurve->process(cd.fltbuf, m_increment);
+    float df = m_phaseResetAudioCurve->process(cd.fltbuf, m_increment);
 
     int incr = m_stretchCalculator->calculateSingle
         (getEffectiveRatio(),
          m_inputDuration, //!!! no, totally wrong... fortunately it doesn't matter atm
          df);
 
-    m_lastProcessLockDf.write(&df, 1);
+    m_lastProcessPhaseResetDf.write(&df, 1);
     m_lastProcessOutputIncrements.write(&incr, 1);
 
     if (incr < 0) {
-        lock = true;
+        phaseReset = true;
         incr = -incr;
     }
     
@@ -352,9 +352,9 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
     // This implies we should use this increment for the shift
     // increment, and make the following phase increment the same as
     // it.  This means in RT mode we'll be one chunk later with our
-    // phase lock than we would be in non-RT mode.  The sensitivity of
-    // the broadband onset detector may mean that this isn't a problem
-    // -- test it and see.
+    // phase reset than we would be in non-RT mode.  The sensitivity
+    // of the broadband onset detector may mean that this isn't a
+    // problem -- test it and see.
 
     shiftIncrementRtn = incr;
 
@@ -371,12 +371,12 @@ bool
 RubberBandStretcher::Impl::getIncrements(size_t channel,
                                          size_t &phaseIncrementRtn,
                                          size_t &shiftIncrementRtn,
-                                         bool &lock)
+                                         bool &phaseReset)
 {
     if (channel >= m_channels) {
         phaseIncrementRtn = m_increment;
         shiftIncrementRtn = m_increment;
-        lock = false;
+        phaseReset = false;
         return false;
     }
 
@@ -387,10 +387,10 @@ RubberBandStretcher::Impl::getIncrements(size_t channel,
     // writing the chunk.  The shift increment for one chunk is the
     // same as the phase increment for the following chunk.
     
-    // When an onset occurs for which we need to lock phases, the
+    // When an onset occurs for which we need to reset phases, the
     // increment given will be negative.
     
-    // When we lock phases, the previous shift increment (and so
+    // When we reset phases, the previous shift increment (and so
     // current phase increments) must have been m_increment to ensure
     // consistency.
     
@@ -406,7 +406,7 @@ RubberBandStretcher::Impl::getIncrements(size_t channel,
         if (m_outputIncrements.size() == 0) {
             phaseIncrementRtn = m_increment;
             shiftIncrementRtn = m_increment;
-            lock = false;
+            phaseReset = false;
             return false;
         } else {
             cd.chunkCount = m_outputIncrements.size()-1;
@@ -423,7 +423,7 @@ RubberBandStretcher::Impl::getIncrements(size_t channel,
     
     if (phaseIncrement < 0) {
         phaseIncrement = -phaseIncrement;
-        lock = true;
+        phaseReset = true;
     }
     
     if (shiftIncrement < 0) {
@@ -437,7 +437,7 @@ RubberBandStretcher::Impl::getIncrements(size_t channel,
 
     phaseIncrementRtn = phaseIncrement;
     shiftIncrementRtn = shiftIncrement;
-    if (cd.chunkCount == 0) lock = true; // don't mess with the first chunk
+    if (cd.chunkCount == 0) phaseReset = true; // don't mess with the first chunk
     return gotData;
 }
 
@@ -465,12 +465,12 @@ double princarg(double a) { return mod(a + M_PI, -2 * M_PI) + M_PI; }
 
 void
 RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
-                                       bool lock)
+                                       bool phaseReset)
 {
     ChannelData &cd = *m_channelData[channel];
 
-    if (lock && m_debugLevel > 1) {
-        cerr << "lock: leaving phases unmodified" << endl;
+    if (phaseReset && m_debugLevel > 1) {
+        cerr << "phase reset: leaving phases unmodified" << endl;
     }
 
     size_t count = m_windowSize/2;
@@ -585,19 +585,19 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
             pp = cd.freqPeak[i-1];
         }
 
-        bool lockThis = lock;
+        bool resetThis = phaseReset;
         
         if (!(m_options & OptionTransientsSmooth) &&
             !(m_options & OptionTransientsCrisp)) { 
             // must be OptionTransientsMixed
             size_t low = lrint((150 * m_windowSize) / rate);
             size_t high = lrint((1000 * m_windowSize) / rate);
-            if (lockThis) {
-                if (i > low && i < high) lockThis = false;
+            if (resetThis) {
+                if (i > low && i < high) resetThis = false;
             }
         }
 
-        if (!lockThis) {
+        if (!resetThis) {
 
             if (i == 0 || p != pp) {
 	

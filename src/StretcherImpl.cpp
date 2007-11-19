@@ -62,8 +62,8 @@ RubberBandStretcher::Impl::Impl(RubberBandStretcher *stretcher,
     m_studyFFT(0),
     m_inputDuration(0),
     m_lastProcessOutputIncrements(16),
-    m_lastProcessLockDf(16),
-    m_lockAudioCurve(0),
+    m_lastProcessPhaseResetDf(16),
+    m_phaseResetAudioCurve(0),
     m_stretchAudioCurve(0),
     m_stretchCalculator(0),
     m_freq0(600),
@@ -134,7 +134,7 @@ RubberBandStretcher::Impl::~Impl()
         delete m_channelData[c];
     }
 
-    delete m_lockAudioCurve;
+    delete m_phaseResetAudioCurve;
     delete m_stretchAudioCurve;
     delete m_stretchCalculator;
     delete m_studyFFT;
@@ -157,7 +157,7 @@ RubberBandStretcher::Impl::reset()
         m_channelData[c] = new ChannelData(m_windowSize, m_outbufSize);
     }
     m_mode = JustCreated;
-    if (m_lockAudioCurve) m_lockAudioCurve->reset();
+    if (m_phaseResetAudioCurve) m_phaseResetAudioCurve->reset();
     if (m_stretchAudioCurve) m_stretchAudioCurve->reset();
     m_inputDuration = 0;
 
@@ -478,11 +478,11 @@ RubberBandStretcher::Impl::configure()
         }
     }
     
-    delete m_lockAudioCurve;
-    m_lockAudioCurve = new PercussiveAudioCurve(m_stretcher->m_sampleRate,
-                                                m_windowSize);
+    delete m_phaseResetAudioCurve;
+    m_phaseResetAudioCurve = new PercussiveAudioCurve(m_stretcher->m_sampleRate,
+                                                      m_windowSize);
 
-    // stretchAudioCurve unused in RT mode; lockAudioCurve and
+    // stretchAudioCurve unused in RT mode; phaseResetAudioCurve and
     // stretchCalculator however are used in all modes
 
     if (!m_realtime) {
@@ -536,7 +536,7 @@ RubberBandStretcher::Impl::reconfigure()
             // stop and calculate the stretch curve so far, then reset
             // the df vectors
             calculateStretch();
-            m_lockDf.clear();
+            m_phaseResetDf.clear();
             m_stretchDf.clear();
             m_inputDuration = 0;
         }
@@ -592,7 +592,7 @@ RubberBandStretcher::Impl::reconfigure()
     }
 
     if (m_windowSize != prevWindowSize) {
-        m_lockAudioCurve->setWindowSize(m_windowSize);
+        m_phaseResetAudioCurve->setWindowSize(m_windowSize);
     }
 }
 
@@ -705,10 +705,10 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
 
             m_studyFFT->forwardMagnitude(cd.accumulator, cd.fltbuf);
 
-            float df = m_lockAudioCurve->process(cd.fltbuf, m_increment);
-            m_lockDf.push_back(df);
+            float df = m_phaseResetAudioCurve->process(cd.fltbuf, m_increment);
+            m_phaseResetDf.push_back(df);
 
-//            cout << m_lockDf.size() << " [" << final << "] -> " << df << " \t: ";
+//            cout << m_phaseResetDf.size() << " [" << final << "] -> " << df << " \t: ";
 
             df = m_stretchAudioCurve->process(cd.fltbuf, m_increment);
             m_stretchDf.push_back(df);
@@ -756,14 +756,14 @@ RubberBandStretcher::Impl::getOutputIncrements() const
 }
 
 vector<float>
-RubberBandStretcher::Impl::getLockCurve() const
+RubberBandStretcher::Impl::getPhaseResetCurve() const
 {
     if (!m_realtime) {
-        return m_lockDf;
+        return m_phaseResetDf;
     } else {
         vector<float> df;
-        while (m_lastProcessLockDf.getReadSpace() > 0) {
-            df.push_back(m_lastProcessLockDf.readOne());
+        while (m_lastProcessPhaseResetDf.getReadSpace() > 0) {
+            df.push_back(m_lastProcessPhaseResetDf.readOne());
         }
         return df;
     }
@@ -789,7 +789,7 @@ RubberBandStretcher::Impl::calculateStretch()
     std::vector<int> increments = m_stretchCalculator->calculate
         (getEffectiveRatio(),
          m_inputDuration,
-         m_lockDf,
+         m_phaseResetDf,
          m_stretchDf);
 
     if (m_outputIncrements.empty()) m_outputIncrements = increments;

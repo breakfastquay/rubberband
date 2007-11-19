@@ -66,7 +66,7 @@ protected:
 
     std::vector<int> distributeRegion(const std::vector<float> &regionCurve,
                                       size_t outputDuration, float ratio,
-                                      bool lock);
+                                      bool phaseReset);
 
     void calculateDisplacements(const std::vector<float> &df,
                                 float &maxDf,

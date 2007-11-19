@@ -70,7 +70,7 @@ public:
     }
 
     std::vector<int> getOutputIncrements() const;
-    std::vector<float> getLockCurve() const;
+    std::vector<float> getPhaseResetCurve() const;
     std::vector<int> getExactTimePoints() const;
 
     size_t getChannelCount() const {
@@ -89,14 +89,14 @@ protected:
     bool processChunks(size_t channel); // returns "last"
     bool processOneChunk(); // across all channels, for real time use
     bool processChunkForChannel(size_t channel, size_t phaseIncrement,
-                                size_t shiftIncrement, bool lock);
+                                size_t shiftIncrement, bool phaseReset);
     bool testInbufReadSpace(size_t channel);
     void calculateIncrements(size_t &phaseIncrement,
-                             size_t &shiftIncrement, bool &lock);
+                             size_t &shiftIncrement, bool &phaseReset);
     bool getIncrements(size_t channel, size_t &phaseIncrement,
-                       size_t &shiftIncrement, bool &lock);
+                       size_t &shiftIncrement, bool &phaseReset);
     void analyseChunk(size_t channel);
-    void modifyChunk(size_t channel, size_t outputIncrement, bool lock);
+    void modifyChunk(size_t channel, size_t outputIncrement, bool phaseReset);
     void synthesiseChunk(size_t channel);
     void writeChunk(size_t channel, size_t shiftIncrement, bool last);
 
@@ -154,7 +154,7 @@ protected:
     
 
     size_t m_inputDuration;
-    std::vector<float> m_lockDf;
+    std::vector<float> m_phaseResetDf;
     std::vector<float> m_stretchDf;
 
     class ChannelData; 
@@ -163,9 +163,9 @@ protected:
     std::vector<int> m_outputIncrements;
 
     mutable RingBuffer<int> m_lastProcessOutputIncrements;
-    mutable RingBuffer<float> m_lastProcessLockDf;
+    mutable RingBuffer<float> m_lastProcessPhaseResetDf;
 
-    AudioCurve *m_lockAudioCurve;
+    AudioCurve *m_phaseResetAudioCurve;
     AudioCurve *m_stretchAudioCurve;
     StretchCalculator *m_stretchCalculator;
 

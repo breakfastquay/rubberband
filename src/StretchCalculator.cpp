@@ -44,7 +44,7 @@ StretchCalculator::~StretchCalculator()
 
 std::vector<int>
 StretchCalculator::calculate(double ratio, size_t inputDuration,
-                             const std::vector<float> &lockDf,
+                             const std::vector<float> &phaseResetDf,
                              const std::vector<float> &stretchDf)
 {
     // Method:
@@ -53,14 +53,14 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 
     // 1. Pre-process the df array, and for each (say) one second's
     // worth of values, calculate the number of peaks that would
-    // qualify for phase locking given the default threshold.  Then
+    // qualify for phase reset given the default threshold.  Then
     // reduce or increase the threshold by stages until that number is
     // in a sensible range (say 1-10 peaks per second -- the low end
     // is harder to estimate than the high end, so it may be better to
     // start with a high sensitivity and reduce it).
 
     // 2. Record the positions of peaks, and separately the positions
-    // of those peaks that qualify for locking using the sliding
+    // of those peaks that qualify for reset using the sliding
     // threshold window.  Don't permit two locked peaks within a very
     // short time frame (e.g. 30-50ms).
 
@@ -79,11 +79,11 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
     // Then divvy them up... how exactly?
 
 
-    assert(lockDf.size() == stretchDf.size());
+    assert(phaseResetDf.size() == stretchDf.size());
     
-    m_lastPeaks = findPeaks(lockDf);
+    m_lastPeaks = findPeaks(phaseResetDf);
     std::vector<Peak> &peaks = m_lastPeaks;
-    size_t totalCount = lockDf.size();
+    size_t totalCount = phaseResetDf.size();
 
     std::vector<int> increments;
 
@@ -96,11 +96,11 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
     }
 
     //!!! round down?
-    outputDuration = lrint((lockDf.size() * m_increment) * ratio);
+    outputDuration = lrint((phaseResetDf.size() * m_increment) * ratio);
 
     if (m_debugLevel > 0) {
         std::cerr << " (rounded up to " << outputDuration << ")";
-        std::cerr << ", df size " << lockDf.size() << std::endl;
+        std::cerr << ", df size " << phaseResetDf.size() << std::endl;
     }
 
 //    size_t stretchable = outputDuration - lockCount * m_increment;
@@ -329,10 +329,10 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
     }
 
     //!!! we don't yet do the right thing with soft peaks.  if
-    //!useHardPeaks, we should be locking on soft peaks; if
+    //!useHardPeaks, we should be resetting on soft peaks; if
     //useHardPeaks, we should be ignoring soft peaks if they occur
-    //shortly after hard ones, otherwise either locking on them, or at
-    //least making sure they fall at the correct sample time
+    //shortly after hard ones, otherwise either resetting on them, or
+    //at least making sure they fall at the correct sample time
 
 //    int mediansize = lrint(ceil(double(m_sampleRate) /
 //                                (4 * double(m_increment)))); // 0.25 sec ish
@@ -444,11 +444,11 @@ StretchCalculator::findPeaks(const std::vector<float> &rawDf)
             //a very rapid rise in detection function prior to the
             //peak (the first value after the rise is not necessarily
             //the peak itself, but it is probably where we should
-            //locate the lock).  For hard peaks we need to lock in
-            //time to preserve the shape of the transient (unless some
-            //option is set to soft mode), for soft peaks we just want
-            //to avoid poor timing positioning so we build up to the
-            //lock at the exact peak moment.
+            //locate the phase reset).  For hard peaks we need to
+            //reset in time to preserve the shape of the transient
+            //(unless some option is set to soft mode), for soft peaks
+            //we just want to avoid poor timing positioning so we
+            //build up to the reset at the exact peak moment.
             
 //            size_t peak = i + maxindex - mediansize;
             size_t peak = i + maxindex - middle;
@@ -563,7 +563,7 @@ StretchCalculator::smoothDF(const std::vector<float> &df)
 
 std::vector<int>
 StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
-                                    size_t duration, float ratio, bool lock)
+                                    size_t duration, float ratio, bool phaseReset)
 {
     std::vector<float> df(dfIn);
     std::vector<int> increments;
@@ -706,7 +706,7 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
         if (displacement < 0) displacement -= adj;
         else displacement += adj;
 
-        if (i == 0 && lock) {
+        if (i == 0 && phaseReset) {
             if (df.size() == 1) {
                 increments.push_back(duration);
                 totalIncrement += duration;

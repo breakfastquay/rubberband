@@ -150,9 +150,9 @@ RubberBandStretcher::getOutputIncrements() const
 }
 
 std::vector<float>
-RubberBandStretcher::getLockCurve() const
+RubberBandStretcher::getPhaseResetCurve() const
 {
-    return m_d->getLockCurve();
+    return m_d->getPhaseResetCurve();
 }
 
 std::vector<int>

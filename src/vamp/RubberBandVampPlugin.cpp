@@ -35,17 +35,20 @@ public:
 
     bool m_realtime;
     bool m_elasticTiming;
-    bool m_crispTransients;
+    int m_transientMode;
+    bool m_phaseIndependent;
     bool m_threadingAllowed;
+    int m_windowLength;
 
     RubberBand::RubberBandStretcher *m_stretcher;
 
     int m_incrementsOutput;
     int m_aggregateIncrementsOutput;
     int m_divergenceOutput;
-    int m_lockDfOutput;
-    int m_smoothedLockDfOutput;
-    int m_lockPointsOutput;
+    int m_phaseResetDfOutput;
+    int m_smoothedPhaseResetDfOutput;
+    int m_phaseResetPointsOutput;
+    int m_timeSyncPointsOutput;
 
     size_t m_counter;
     size_t m_accumulatedIncrement;
@@ -62,9 +65,9 @@ public:
 
     FeatureSet createFeatures(size_t inputIncrement,
                               std::vector<int> &outputIncrements,
-                              std::vector<float> &lockDf,
+                              std::vector<float> &phaseResetDf,
                               std::vector<int> &exactPoints,
-                              std::vector<float> &smoothedDF,
+                              std::vector<float> &smoothedDf,
                               size_t baseCount,
                               bool includeFinal);
 };
@@ -75,12 +78,14 @@ RubberBandVampPlugin::RubberBandVampPlugin(float inputSampleRate) :
 {
     m_d = new Impl();
     m_d->m_stepSize = 0;
-    m_d->m_timeRatio = 1.0;
-    m_d->m_pitchRatio = 1.0;
+    m_d->m_timeRatio = 1.f;
+    m_d->m_pitchRatio = 1.f;
     m_d->m_realtime = false;
     m_d->m_elasticTiming = true;
-    m_d->m_crispTransients = true;
+    m_d->m_transientMode = 0;
+    m_d->m_phaseIndependent = false;
     m_d->m_threadingAllowed = true;
+    m_d->m_windowLength = 0;
     m_d->m_stretcher = 0;
     m_d->m_sampleRate = lrintf(m_inputSampleRate);
 }
@@ -140,11 +145,11 @@ RubberBandVampPlugin::getOutputDescriptors() const
     OutputDescriptor d;
     d.identifier = "increments";
     d.name = "Output Increments";
-    d.description = ""; //!!!
+    d.description = "Output time increment for each input step";
     d.unit = "samples";
     d.hasFixedBinCount = true;
     d.binCount = 1;
-    d.hasKnownExtents = false; //!!!
+    d.hasKnownExtents = false;
     d.isQuantized = true;
     d.quantizeStep = 1.0;
     d.sampleType = OutputDescriptor::VariableSampleRate;
@@ -154,44 +159,56 @@ RubberBandVampPlugin::getOutputDescriptors() const
 
     d.identifier = "aggregate_increments";
     d.name = "Accumulated Output Increments";
-    d.description = ""; //!!!
+    d.description = "Accumulated output time increments";
     d.sampleRate = 0;
     m_d->m_aggregateIncrementsOutput = list.size();
     list.push_back(d);
 
     d.identifier = "divergence";
     d.name = "Divergence from Linear";
-    d.description = ""; //!!!
+    d.description = "Difference between actual output time and the output time for a theoretical linear stretch";
     d.isQuantized = false;
     d.sampleRate = 0;
     m_d->m_divergenceOutput = list.size();
     list.push_back(d);
 
-    d.identifier = "lockdf";
-    d.name = "Lock Point Detection Function";
-    d.description = ""; //!!!
+    d.identifier = "phaseresetdf";
+    d.name = "Phase Reset Detection Function";
+    d.description = "Curve whose peaks are used to identify transients for phase reset points";
     d.unit = "";
     d.sampleRate = rate;
-    m_d->m_lockDfOutput = list.size();
+    m_d->m_phaseResetDfOutput = list.size();
     list.push_back(d);
 
-    d.identifier = "smoothedlockdf";
-    d.name = "Smoothed Lock Point Detection Function";
-    d.description = ""; //!!!
+    d.identifier = "smoothedphaseresetdf";
+    d.name = "Smoothed Phase Reset Detection Function";
+    d.description = "Phase reset curve smoothed for peak picking";
     d.unit = "";
-    m_d->m_smoothedLockDfOutput = list.size();
+    m_d->m_smoothedPhaseResetDfOutput = list.size();
     list.push_back(d);
 
-    d.identifier = "lockpoints";
-    d.name = "Phase Lock Points";
-    d.description = ""; //!!!
+    d.identifier = "phaseresetpoints";
+    d.name = "Phase Reset Points";
+    d.description = "Points estimated as transients at which phase reset occurs";
     d.unit = "";
     d.hasFixedBinCount = true;
     d.binCount = 0;
     d.hasKnownExtents = false;
     d.isQuantized = false;
     d.sampleRate = 0;
-    m_d->m_lockPointsOutput = list.size();
+    m_d->m_phaseResetPointsOutput = list.size();
+    list.push_back(d);
+
+    d.identifier = "timesyncpoints";
+    d.name = "Time Sync Points";
+    d.description = "Salient points which stretcher aims to place with strictly correct timing";
+    d.unit = "";
+    d.hasFixedBinCount = true;
+    d.binCount = 0;
+    d.hasKnownExtents = false;
+    d.isQuantized = false;
+    d.sampleRate = 0;
+    m_d->m_timeSyncPointsOutput = list.size();
     list.push_back(d);
 
     return list;
@@ -204,22 +221,22 @@ RubberBandVampPlugin::getParameterDescriptors() const
 
     ParameterDescriptor d;
     d.identifier = "timeratio";
-    d.name = "Timestretch Ratio";
-    d.description = ""; //!!!
-    d.unit = "";
-    d.minValue = 0.0000001;
-    d.maxValue = 1000;
-    d.defaultValue = 1.0;
+    d.name = "Time Ratio";
+    d.description = "Ratio to modify overall duration by";
+    d.unit = "%";
+    d.minValue = 1;
+    d.maxValue = 500;
+    d.defaultValue = 100;
     d.isQuantized = false;
     list.push_back(d);
 
     d.identifier = "pitchratio";
-    d.name = "Pitch Scaling Ratio";
-    d.description = ""; //!!!
-    d.unit = "";
-    d.minValue = 0.0000001;
-    d.maxValue = 1000;
-    d.defaultValue = 1.0;
+    d.name = "Pitch Scale Ratio";
+    d.description = "Frequency ratio to modify pitch by";
+    d.unit = "%";
+    d.minValue = 1;
+    d.maxValue = 500;
+    d.defaultValue = 100;
     d.isQuantized = false;
     list.push_back(d);
 
@@ -256,13 +273,43 @@ RubberBandVampPlugin::getParameterDescriptors() const
     d.description = ""; //!!!
     d.unit = "";
     d.minValue = 0;
+    d.maxValue = 2;
+    d.defaultValue = 0;
+    d.isQuantized = true;
+    d.quantizeStep = 1;
+    d.valueNames.clear();
+    d.valueNames.push_back("Mixed");
+    d.valueNames.push_back("Smooth");
+    d.valueNames.push_back("Crisp");
+    list.push_back(d);
+
+    d.identifier = "phasemode";
+    d.name = "Phase Handling";
+    d.description = ""; //!!!
+    d.unit = "";
+    d.minValue = 0;
     d.maxValue = 1;
     d.defaultValue = 0;
     d.isQuantized = true;
     d.quantizeStep = 1;
     d.valueNames.clear();
-    d.valueNames.push_back("Crisp");
-    d.valueNames.push_back("Soft");
+    d.valueNames.push_back("Peak Locked");
+    d.valueNames.push_back("Independent");
+    list.push_back(d);
+
+    d.identifier = "windowmode";
+    d.name = "Window Length";
+    d.description = ""; //!!!
+    d.unit = "";
+    d.minValue = 0;
+    d.maxValue = 2;
+    d.defaultValue = 0;
+    d.isQuantized = true;
+    d.quantizeStep = 1;
+    d.valueNames.clear();
+    d.valueNames.push_back("Standard");
+    d.valueNames.push_back("Short");
+    d.valueNames.push_back("Long");
     list.push_back(d);
 
     d.identifier = "threadingmode";
@@ -275,7 +322,7 @@ RubberBandVampPlugin::getParameterDescriptors() const
     d.isQuantized = true;
     d.quantizeStep = 1;
     d.valueNames.clear();
-    d.valueNames.push_back("Enabled");
+    d.valueNames.push_back("Automatic");
     d.valueNames.push_back("Disabled");
     list.push_back(d);
 
@@ -285,12 +332,14 @@ RubberBandVampPlugin::getParameterDescriptors() const
 float
 RubberBandVampPlugin::getParameter(std::string id) const
 {
-    if (id == "timeratio") return m_d->m_timeRatio;
-    if (id == "pitchratio") return m_d->m_pitchRatio;
+    if (id == "timeratio") return m_d->m_timeRatio * 100.f;
+    if (id == "pitchratio") return m_d->m_pitchRatio * 100.f;
     if (id == "mode") return m_d->m_realtime ? 1 : 0;
     if (id == "stretchtype") return m_d->m_elasticTiming ? 0 : 1;
-    if (id == "transientmode") return m_d->m_crispTransients ? 0 : 1;
+    if (id == "transientmode") return m_d->m_transientMode;
+    if (id == "phasemode") return m_d->m_phaseIndependent ? 1 : 0;
     if (id == "threadingmode") return m_d->m_threadingAllowed ? 0 : 1;
+    if (id == "windowmode") return m_d->m_windowLength;
     return 0.f;
 }
 
@@ -298,15 +347,17 @@ void
 RubberBandVampPlugin::setParameter(std::string id, float value)
 {
     if (id == "timeratio") {
-        m_d->m_timeRatio = value;
+        m_d->m_timeRatio = value / 100;
     } else if (id == "pitchratio") {
-        m_d->m_pitchRatio = value;
+        m_d->m_pitchRatio = value / 100;
     } else {
         bool set = (value > 0.5);
         if (id == "mode") m_d->m_realtime = set;
         else if (id == "stretchtype") m_d->m_elasticTiming = !set;
-        else if (id == "transientmode") m_d->m_crispTransients = !set;
+        else if (id == "transientmode") m_d->m_transientMode = int(value + 0.5);
+        else if (id == "phasemode") m_d->m_phaseIndependent = set;
         else if (id == "threadingmode") m_d->m_threadingAllowed = !set;
+        else if (id == "windowmode") m_d->m_windowLength = int(value + 0.5);
     }
 }
 
@@ -329,13 +380,25 @@ RubberBandVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockS
          options |= RubberBand::RubberBandStretcher::OptionStretchElastic;
     else options |= RubberBand::RubberBandStretcher::OptionStretchPrecise;
  
-    if (m_d->m_crispTransients) 
-         options |= RubberBand::RubberBandStretcher::OptionTransientsCrisp;
-    else options |= RubberBand::RubberBandStretcher::OptionTransientsSmooth;
+    if (m_d->m_transientMode == 0) 
+         options |= RubberBand::RubberBandStretcher::OptionTransientsMixed;
+    else if (m_d->m_transientMode == 1) 
+         options |= RubberBand::RubberBandStretcher::OptionTransientsSmooth;
+    else options |= RubberBand::RubberBandStretcher::OptionTransientsCrisp;
+
+    if (m_d->m_phaseIndependent) 
+         options |= RubberBand::RubberBandStretcher::OptionPhaseIndependent;
+    else options |= RubberBand::RubberBandStretcher::OptionPhasePeakLocked;
 
     if (m_d->m_threadingAllowed)
          options |= RubberBand::RubberBandStretcher::OptionThreadingAuto;
     else options |= RubberBand::RubberBandStretcher::OptionThreadingNone;
+
+    if (m_d->m_windowLength == 0)
+         options |= RubberBand::RubberBandStretcher::OptionWindowStandard;
+    else if (m_d->m_windowLength == 1)
+         options |= RubberBand::RubberBandStretcher::OptionWindowShort;
+    else options |= RubberBand::RubberBandStretcher::OptionWindowLong;
 
     delete m_d->m_stretcher;
     m_d->m_stretcher = new RubberBand::RubberBandStretcher
@@ -409,12 +472,12 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
 
     size_t inputIncrement = m_stretcher->getInputIncrement();
     std::vector<int> outputIncrements = m_stretcher->getOutputIncrements();
-    std::vector<float> lockDf = m_stretcher->getLockCurve();
+    std::vector<float> phaseResetDf = m_stretcher->getPhaseResetCurve();
     std::vector<int> peaks = m_stretcher->getExactTimePoints();
-    std::vector<float> smoothedDf = sc.smoothDF(lockDf);
+    std::vector<float> smoothedDf = sc.smoothDF(phaseResetDf);
 
     FeatureSet features = createFeatures
-        (inputIncrement, outputIncrements, lockDf, peaks, smoothedDf,
+        (inputIncrement, outputIncrements, phaseResetDf, peaks, smoothedDf,
          0, true);
 
     return features;
@@ -439,11 +502,11 @@ RubberBandVampPlugin::Impl::processRealTime(const float *const *inputBuffers,
     
     size_t inputIncrement = m_stretcher->getInputIncrement();
     std::vector<int> outputIncrements = m_stretcher->getOutputIncrements();
-    std::vector<float> lockDf = m_stretcher->getLockCurve();
+    std::vector<float> phaseResetDf = m_stretcher->getPhaseResetCurve();
     std::vector<float> smoothedDf; // not meaningful in RT mode
     std::vector<int> dummyPoints;
     FeatureSet features = createFeatures
-        (inputIncrement, outputIncrements, lockDf, dummyPoints, smoothedDf, 
+        (inputIncrement, outputIncrements, phaseResetDf, dummyPoints, smoothedDf, 
          m_counter, false);
     m_counter += outputIncrements.size();
 
@@ -459,7 +522,7 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesRealTime()
 RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::createFeatures(size_t inputIncrement,
                                            std::vector<int> &outputIncrements,
-                                           std::vector<float> &lockDf,
+                                           std::vector<float> &phaseResetDf,
                                            std::vector<int> &exactPoints,
                                            std::vector<float> &smoothedDf,
                                            size_t baseCount,
@@ -482,16 +545,16 @@ RubberBandVampPlugin::Impl::createFeatures(size_t inputIncrement,
         size_t frame = (baseCount + i) * inputIncrement;
 
         int oi = outputIncrements[i];
-        bool hardLock = false;
-        bool softLock = false;
+        bool hard = false;
+        bool soft = false;
 
         if (oi < 0) {
             oi = -oi;
-            hardLock = true;
+            hard = true;
         }
 
         if (epi < exactPoints.size() && int(i) == exactPoints[epi]) {
-            softLock = true;
+            soft = true;
             ++epi;
         }
 
@@ -528,28 +591,30 @@ RubberBandVampPlugin::Impl::createFeatures(size_t inputIncrement,
         
         char buf[30];
 
-        if (i < lockDf.size()) {
+        if (i < phaseResetDf.size()) {
             feature.values.clear();
-            feature.values.push_back(lockDf[i]);
+            feature.values.push_back(phaseResetDf[i]);
             sprintf(buf, "%d", baseCount + i);
             feature.label = buf;
-            features[m_lockDfOutput].push_back(feature);
+            features[m_phaseResetDfOutput].push_back(feature);
         }
 
         if (i < smoothedDf.size()) {
             feature.values.clear();
             feature.values.push_back(smoothedDf[i]);
-            features[m_smoothedLockDfOutput].push_back(feature);
+            features[m_smoothedPhaseResetDfOutput].push_back(feature);
         }
 
-        if (hardLock) {
+        if (hard) {
             feature.values.clear();
             feature.label = "Phase Reset";
-            features[m_lockPointsOutput].push_back(feature);
-        } else if (softLock) {
+            features[m_phaseResetPointsOutput].push_back(feature);
+        }
+
+        if (hard || soft) {
             feature.values.clear();
             feature.label = "Time Sync";
-            features[m_lockPointsOutput].push_back(feature);
+            features[m_timeSyncPointsOutput].push_back(feature);
         }            
     }
 
