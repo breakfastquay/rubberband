@@ -13,6 +13,7 @@
 */
 
 #include "FFT.h"
+#include "Thread.h"
 
 
 #include <fftw3.h>
@@ -22,6 +23,8 @@
 #include <map>
 #include <cstdio>
 #include <vector>
+
+namespace RubberBand {
 
 class FFTImpl
 {
@@ -52,22 +55,27 @@ public:
 class D_FFTW : public FFTImpl
 {
 public:
-    D_FFTW(unsigned int size) : m_size(size), m_fplanf(0), m_dplanf(0) { 
+    D_FFTW(unsigned int size) : m_size(size), m_fplanf(0), m_dplanf(0) {
     }
 
     ~D_FFTW() {
         if (m_fplanf) {
-	    //!!! shouldn't do this every time, but only when the last one
-            // is destroyed (likewise shouldn't load every time) -- want
-            // a static refcount + mutex
-            saveWisdom('f');
+            bool save = false;
+            m_extantMutex.lock();
+            if (m_extantf > 0 && --m_extantf == 0) save = true;
+            m_extantMutex.unlock();
+            if (save) saveWisdom('f');
             fftwf_destroy_plan(m_fplanf);
             fftwf_destroy_plan(m_fplani);
             fftwf_free(m_fbuf);
             fftwf_free(m_fpacked);
         }
         if (m_dplanf) {
-            saveWisdom('d');
+            bool save = false;
+            m_extantMutex.lock();
+            if (m_extantd > 0 && --m_extantd == 0) save = true;
+            m_extantMutex.unlock();
+            if (save) saveWisdom('d');
             fftw_destroy_plan(m_dplanf);
             fftw_destroy_plan(m_dplani);
             fftw_free(m_dbuf);
@@ -75,11 +83,13 @@ public:
         }
     }
 
-    //!!! check return values
-
     void initFloat() {
         if (m_fplanf) return;
-        loadWisdom('f');
+        bool load = false;
+        m_extantMutex.lock();
+        if (m_extantf++ == 0) load = true;
+        m_extantMutex.unlock();
+        if (load) loadWisdom('f');
         m_fbuf = (float *)fftw_malloc(m_size * sizeof(float));
         m_fpacked = (fftwf_complex *)fftw_malloc
             ((m_size/2 + 1) * sizeof(fftwf_complex));
@@ -91,7 +101,11 @@ public:
 
     void initDouble() {
         if (m_dplanf) return;
-        loadWisdom('d');
+        bool load = false;
+        m_extantMutex.lock();
+        if (m_extantd++ == 0) load = true;
+        m_extantMutex.unlock();
+        if (load) loadWisdom('d');
         m_dbuf = (double *)fftw_malloc(m_size * sizeof(double));
         m_dpacked = (fftw_complex *)fftw_malloc
             ((m_size/2 + 1) * sizeof(fftw_complex));
@@ -278,7 +292,19 @@ private:
     fftwf_complex *m_fpacked;
     double *m_dbuf;
     fftw_complex *m_dpacked;
+    static unsigned int m_extantf;
+    static unsigned int m_extantd;
+    static Mutex m_extantMutex;
 };
+
+unsigned int
+D_FFTW::m_extantf = 0;
+
+unsigned int
+D_FFTW::m_extantd = 0;
+
+Mutex
+D_FFTW::m_extantMutex;
 
 
 class D_Cross : public FFTImpl
@@ -641,3 +667,5 @@ FFT::tune()
 {
 }
 
+
+}

@@ -15,8 +15,9 @@
 #ifndef _RUBBERBAND_FFT_H_
 #define _RUBBERBAND_FFT_H_
 
-class FFTImpl;
+namespace RubberBand {
 
+class FFTImpl;
 
 /**
  * Provide the basic FFT computations we need, using one of a set of
@@ -65,6 +66,8 @@ protected:
     FFTImpl *d;
     static int m_method;
 };
+
+}
 
 #endif
 

@@ -237,6 +237,9 @@ int main(int argc, char **argv)
         frequencyshift *= pow(2.0, pitchshift / 12);
     }
 
+    struct timeval tv;
+    (void)gettimeofday(&tv, 0);
+
     RubberBandStretcher::setDefaultDebugLevel(debug);
 
     RubberBandStretcher ts(sfinfo.samplerate, channels, options,
@@ -250,9 +253,6 @@ int main(int argc, char **argv)
 
     int frame = 0;
     int percent = 0;
-
-    struct timeval tv;
-    (void)gettimeofday(&tv, 0);
 
     if (!realtime) {
 

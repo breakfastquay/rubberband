@@ -102,3 +102,40 @@ clean:
 distclean:	clean
 	rm -f $(PROGRAM_TARGET) $(STATIC_TARGET) $(DYNAMIC_TARGET) $(VAMP_TARGET) $(LADSPA_TARGET)
 
+# DO NOT DELETE
+
+src/AudioCurve.o: src/AudioCurve.h
+src/ConstantAudioCurve.o: src/ConstantAudioCurve.h src/AudioCurve.h
+src/FFT.o: src/FFT.h src/Thread.h
+src/HighFrequencyAudioCurve.o: src/HighFrequencyAudioCurve.h src/AudioCurve.h
+src/HighFrequencyAudioCurve.o: src/Window.h
+src/main.o: rubberband/RubberBandStretcher.h rubberband/TimeStretcher.h
+src/PercussiveAudioCurve.o: src/PercussiveAudioCurve.h src/AudioCurve.h
+src/Resampler.o: src/Resampler.h
+src/RubberBandStretcher.o: src/StretcherImpl.h
+src/RubberBandStretcher.o: rubberband/RubberBandStretcher.h
+src/RubberBandStretcher.o: rubberband/TimeStretcher.h src/Window.h
+src/RubberBandStretcher.o: src/Thread.h src/RingBuffer.h src/Scavenger.h
+src/RubberBandStretcher.o: src/FFT.h src/sysutils.h
+src/StretchCalculator.o: src/StretchCalculator.h
+src/StretcherChannelData.o: src/StretcherChannelData.h src/StretcherImpl.h
+src/StretcherChannelData.o: rubberband/RubberBandStretcher.h
+src/StretcherChannelData.o: rubberband/TimeStretcher.h src/Window.h
+src/StretcherChannelData.o: src/Thread.h src/RingBuffer.h src/Scavenger.h
+src/StretcherChannelData.o: src/FFT.h src/sysutils.h src/Resampler.h
+src/StretcherImpl.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
+src/StretcherImpl.o: rubberband/TimeStretcher.h src/Window.h src/Thread.h
+src/StretcherImpl.o: src/RingBuffer.h src/Scavenger.h src/FFT.h
+src/StretcherImpl.o: src/sysutils.h src/PercussiveAudioCurve.h
+src/StretcherImpl.o: src/AudioCurve.h src/HighFrequencyAudioCurve.h
+src/StretcherImpl.o: src/ConstantAudioCurve.h src/StretchCalculator.h
+src/StretcherImpl.o: src/StretcherChannelData.h src/Resampler.h
+src/StretcherProcess.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
+src/StretcherProcess.o: rubberband/TimeStretcher.h src/Window.h src/Thread.h
+src/StretcherProcess.o: src/RingBuffer.h src/Scavenger.h src/FFT.h
+src/StretcherProcess.o: src/sysutils.h src/PercussiveAudioCurve.h
+src/StretcherProcess.o: src/AudioCurve.h src/HighFrequencyAudioCurve.h
+src/StretcherProcess.o: src/ConstantAudioCurve.h src/StretchCalculator.h
+src/StretcherProcess.o: src/StretcherChannelData.h src/Resampler.h
+src/sysutils.o: src/sysutils.h
+src/Thread.o: src/Thread.h
