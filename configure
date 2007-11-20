@@ -674,8 +674,8 @@ FFTWF_CFLAGS
 FFTWF_LIBS
 FFTW_CFLAGS
 FFTW_LIBS
-VAMP_CFLAGS
-VAMP_LIBS
+Vamp_CFLAGS
+Vamp_LIBS
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -700,8 +700,8 @@ FFTWF_CFLAGS
 FFTWF_LIBS
 FFTW_CFLAGS
 FFTW_LIBS
-VAMP_CFLAGS
-VAMP_LIBS'
+Vamp_CFLAGS
+Vamp_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1292,8 +1292,8 @@ Some influential environment variables:
   FFTWF_LIBS  linker flags for FFTWF, overriding pkg-config
   FFTW_CFLAGS C compiler flags for FFTW, overriding pkg-config
   FFTW_LIBS   linker flags for FFTW, overriding pkg-config
-  VAMP_CFLAGS C compiler flags for VAMP, overriding pkg-config
-  VAMP_LIBS   linker flags for VAMP, overriding pkg-config
+  Vamp_CFLAGS C compiler flags for Vamp, overriding pkg-config
+  Vamp_LIBS   linker flags for Vamp, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -4096,7 +4096,7 @@ Alternatively, you may set the environment variables SRC_CFLAGS
 and SRC_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&5
 echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
 is in your PATH or set the PKG_CONFIG environment variable to the full
@@ -4106,7 +4106,7 @@ Alternatively, you may set the environment variables SRC_CFLAGS
 and SRC_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&2;}
    { (exit 1); exit 1; }; }
 else
@@ -4210,7 +4210,7 @@ Alternatively, you may set the environment variables SNDFILE_CFLAGS
 and SNDFILE_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&5
 echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
 is in your PATH or set the PKG_CONFIG environment variable to the full
@@ -4220,7 +4220,7 @@ Alternatively, you may set the environment variables SNDFILE_CFLAGS
 and SNDFILE_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&2;}
    { (exit 1); exit 1; }; }
 else
@@ -4324,7 +4324,7 @@ Alternatively, you may set the environment variables FFTWF_CFLAGS
 and FFTWF_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&5
 echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
 is in your PATH or set the PKG_CONFIG environment variable to the full
@@ -4334,7 +4334,7 @@ Alternatively, you may set the environment variables FFTWF_CFLAGS
 and FFTWF_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&2;}
    { (exit 1); exit 1; }; }
 else
@@ -4438,7 +4438,7 @@ Alternatively, you may set the environment variables FFTW_CFLAGS
 and FFTW_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&5
 echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
 is in your PATH or set the PKG_CONFIG environment variable to the full
@@ -4448,7 +4448,7 @@ Alternatively, you may set the environment variables FFTW_CFLAGS
 and FFTW_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&2;}
    { (exit 1); exit 1; }; }
 else
@@ -4609,12 +4609,12 @@ done
 
 
 pkg_failed=no
-{ echo "$as_me:$LINENO: checking for VAMP" >&5
-echo $ECHO_N "checking for VAMP... $ECHO_C" >&6; }
+{ echo "$as_me:$LINENO: checking for Vamp" >&5
+echo $ECHO_N "checking for Vamp... $ECHO_C" >&6; }
 
 if test -n "$PKG_CONFIG"; then
-    if test -n "$VAMP_CFLAGS"; then
-        pkg_cv_VAMP_CFLAGS="$VAMP_CFLAGS"
+    if test -n "$Vamp_CFLAGS"; then
+        pkg_cv_Vamp_CFLAGS="$Vamp_CFLAGS"
     else
         if test -n "$PKG_CONFIG" && \
     { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"vamp-sdk\"") >&5
@@ -4622,7 +4622,7 @@ if test -n "$PKG_CONFIG"; then
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_VAMP_CFLAGS=`$PKG_CONFIG --cflags "vamp-sdk" 2>/dev/null`
+  pkg_cv_Vamp_CFLAGS=`$PKG_CONFIG --cflags "vamp-sdk" 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -4631,8 +4631,8 @@ else
 	pkg_failed=untried
 fi
 if test -n "$PKG_CONFIG"; then
-    if test -n "$VAMP_LIBS"; then
-        pkg_cv_VAMP_LIBS="$VAMP_LIBS"
+    if test -n "$Vamp_LIBS"; then
+        pkg_cv_Vamp_LIBS="$Vamp_LIBS"
     else
         if test -n "$PKG_CONFIG" && \
     { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"vamp-sdk\"") >&5
@@ -4640,7 +4640,7 @@ if test -n "$PKG_CONFIG"; then
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_VAMP_LIBS=`$PKG_CONFIG --libs "vamp-sdk" 2>/dev/null`
+  pkg_cv_Vamp_LIBS=`$PKG_CONFIG --libs "vamp-sdk" 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -4659,33 +4659,33 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        VAMP_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "vamp-sdk"`
+	        Vamp_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "vamp-sdk"`
         else
-	        VAMP_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "vamp-sdk"`
+	        Vamp_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "vamp-sdk"`
         fi
 	# Put the nasty error message in config.log where it belongs
-	echo "$VAMP_PKG_ERRORS" >&5
+	echo "$Vamp_PKG_ERRORS" >&5
 
 	{ { echo "$as_me:$LINENO: error: Package requirements (vamp-sdk) were not met:
 
-$VAMP_PKG_ERRORS
+$Vamp_PKG_ERRORS
 
 Consider adjusting the PKG_CONFIG_PATH environment variable if you
 installed software in a non-standard prefix.
 
-Alternatively, you may set the environment variables VAMP_CFLAGS
-and VAMP_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables Vamp_CFLAGS
+and Vamp_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 " >&5
 echo "$as_me: error: Package requirements (vamp-sdk) were not met:
 
-$VAMP_PKG_ERRORS
+$Vamp_PKG_ERRORS
 
 Consider adjusting the PKG_CONFIG_PATH environment variable if you
 installed software in a non-standard prefix.
 
-Alternatively, you may set the environment variables VAMP_CFLAGS
-and VAMP_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables Vamp_CFLAGS
+and Vamp_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 " >&2;}
    { (exit 1); exit 1; }; }
@@ -4694,26 +4694,26 @@ elif test $pkg_failed = untried; then
 is in your PATH or set the PKG_CONFIG environment variable to the full
 path to pkg-config.
 
-Alternatively, you may set the environment variables VAMP_CFLAGS
-and VAMP_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables Vamp_CFLAGS
+and Vamp_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&5
 echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
 is in your PATH or set the PKG_CONFIG environment variable to the full
 path to pkg-config.
 
-Alternatively, you may set the environment variables VAMP_CFLAGS
-and VAMP_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables Vamp_CFLAGS
+and Vamp_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
-To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." >&2;}
    { (exit 1); exit 1; }; }
 else
-	VAMP_CFLAGS=$pkg_cv_VAMP_CFLAGS
-	VAMP_LIBS=$pkg_cv_VAMP_LIBS
+	Vamp_CFLAGS=$pkg_cv_Vamp_CFLAGS
+	Vamp_LIBS=$pkg_cv_Vamp_LIBS
         { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
 	:
@@ -4723,8 +4723,8 @@ fi
 
 if test "x$GCC" = "xyes"; then
   case " $CXXFLAGS " in
-    *[\ \	]-Wall[\ \	]*) ;;
-    *) CXXFLAGS="$CXXFLAGS -Wall" ;;
+    *[\ \	]-fPIC\ -Wall[\ \	]*) ;;
+    *) CXXFLAGS="$CXXFLAGS -fPIC -Wall" ;;
   esac
 fi
 
@@ -5417,8 +5417,8 @@ FFTWF_CFLAGS!$FFTWF_CFLAGS$ac_delim
 FFTWF_LIBS!$FFTWF_LIBS$ac_delim
 FFTW_CFLAGS!$FFTW_CFLAGS$ac_delim
 FFTW_LIBS!$FFTW_LIBS$ac_delim
-VAMP_CFLAGS!$VAMP_CFLAGS$ac_delim
-VAMP_LIBS!$VAMP_LIBS$ac_delim
+Vamp_CFLAGS!$Vamp_CFLAGS$ac_delim
+Vamp_LIBS!$Vamp_LIBS$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
