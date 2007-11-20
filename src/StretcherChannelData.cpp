@@ -39,7 +39,7 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &window
 
     size_t realSize = maxSize/2 + 1; // size of the real "half" of freq data
 
-    std::cerr << "ChannelData::construct([" << windowSizes.size() << "], " << maxSize << ", " << outbufSize << ")" << std::endl;
+//    std::cerr << "ChannelData::construct([" << windowSizes.size() << "], " << maxSize << ", " << outbufSize << ")" << std::endl;
     
     if (outbufSize < maxSize) outbufSize = maxSize;
 
@@ -97,7 +97,7 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
     size_t oldSize = inbuf->getSize();
     size_t realSize = windowSize/2 + 1;
 
-    std::cerr << "ChannelData::setWindowSize(" << windowSize << ") [from " << oldSize << "]" << std::endl;
+//    std::cerr << "ChannelData::setWindowSize(" << windowSize << ") [from " << oldSize << "]" << std::endl;
 
     if (oldSize >= windowSize) {
 
@@ -203,7 +203,7 @@ RubberBandStretcher::Impl::ChannelData::setOutbufSize(size_t outbufSize)
 {
     size_t oldSize = outbuf->getSize();
 
-    std::cerr << "ChannelData::setOutbufSize(" << outbufSize << ") [from " << oldSize << "]" << std::endl;
+//    std::cerr << "ChannelData::setOutbufSize(" << outbufSize << ") [from " << oldSize << "]" << std::endl;
 
     if (oldSize < outbufSize) {
 

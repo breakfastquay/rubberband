@@ -22,6 +22,9 @@
 
 #include <getopt.h>
 
+// for import and export of FFTW wisdom
+#include <fftw3.h>
+
 using namespace std;
 using namespace RubberBand;
 
@@ -32,15 +35,19 @@ int main(int argc, char **argv)
     double ratio = 1.0;
     double pitchshift = 1.0;
     double frequencyshift = 1.0;
-    int debug = 1;
+    int debug = 0;
     bool realtime = false;
     bool precise = false;
     bool threaded = true;
     bool peaklock = true;
     bool longwin = false;
     bool shortwin = false;
+    bool softening = true;
     int crispness = -1;
     bool help = false;
+    bool quiet = false;
+
+    bool haveRatio = false;
 
     enum {
         NoTransients,
@@ -53,7 +60,6 @@ int main(int argc, char **argv)
     float fthresh2 = -1.f;
 
     while (1) {
-        int thisOptind = optind ? optind : 1;
         int optionIndex = 0;
 
         static struct option longOpts[] = {
@@ -76,18 +82,20 @@ int main(int argc, char **argv)
             { "thresh1",       1, 0, '6' },
             { "thresh2",       1, 0, '7' },
             { "bl-transients", 0, 0, '8' },
+            { "no-softening",  0, 0, '9' },
+            { "quiet",         0, 0, 'q' },
             { 0, 0, 0 }
         };
 
-        c = getopt_long(argc, argv, "t:p:d:RPc:f:", longOpts, &optionIndex);
+        c = getopt_long(argc, argv, "t:p:d:RPc:f:qh", longOpts, &optionIndex);
         if (c == -1) break;
 
         switch (c) {
         case 'h': help = true; break;
-        case 't': ratio *= atof(optarg); break;
-        case 'T': { double m = atof(optarg); if (m != 0.0) ratio /= m; } break;
-        case 'p': pitchshift = atof(optarg); break;
-        case 'f': frequencyshift = atof(optarg); break;
+        case 't': ratio *= atof(optarg); haveRatio = true; break;
+        case 'T': { double m = atof(optarg); if (m != 0.0) ratio /= m; }; haveRatio = true; break;
+        case 'p': pitchshift = atof(optarg); haveRatio = true; break;
+        case 'f': frequencyshift = atof(optarg); haveRatio = true; break;
         case 'd': debug = atoi(optarg); break;
         case 'R': realtime = true; break;
         case 'P': precise = true; break;
@@ -100,20 +108,22 @@ int main(int argc, char **argv)
         case '6': fthresh1 = atof(optarg); break;
         case '7': fthresh2 = atof(optarg); break;
         case '8': transients = BandLimitedTransients; break;
+        case '9': softening = false; break;
         case 'c': crispness = atoi(optarg); break;
-        default: break;
+        case 'q': quiet = true; break;
+        default:  help = true; break;
         }
     }
 
-    if (help || optind + 2 != argc) {
+    if (help || !haveRatio || optind + 2 != argc) {
         cerr << endl;
 	cerr << "Rubber Band" << endl;
         cerr << "An audio time-stretching and pitch-shifting library and utility program." << endl;
 	cerr << "Copyright 2007 Chris Cannam.  Distributed under the GNU General Public License." << endl;
         cerr << endl;
-	cerr << "Usage: " << argv[0] << " [options] <infile.wav> <outfile.wav>" << endl;
+	cerr << "   Usage: " << argv[0] << " [options] <infile.wav> <outfile.wav>" << endl;
         cerr << endl;
-        cerr << "where options may be:" << endl;
+        cerr << "You must specify at least one of the following time and pitch ratio options." << endl;
         cerr << endl;
         cerr << "  -t<X>, --time <X>       Stretch to X times original duration, or" << endl;
         cerr << "  -T<X>, --tempo <X>      Change tempo by multiple X (equivalent to --time 1/X)" << endl;
@@ -121,9 +131,12 @@ int main(int argc, char **argv)
         cerr << "  -p<X>, --pitch <X>      Raise pitch by X semitones, or" << endl;
         cerr << "  -f<X>, --frequency <X>  Change frequency by multiple X" << endl;
         cerr << endl;
-        cerr << "  -c<N>, --crisp <N>      Crispness (N = 0,1,2,3); default 2 (see below)" << endl;
+        cerr << "The following option provides a simple way to adjust the sound.  See below" << endl;
+        cerr << "for more details." << endl;
         cerr << endl;
-        cerr << "The following options adjust the processing mode and stretch algorithm." << endl;
+        cerr << "  -c<N>, --crisp <N>      Crispness (N = 0,1,2,3,4,5); default 4 (see below)" << endl;
+        cerr << endl;
+        cerr << "The remaining options fine-tune the processing mode and stretch algorithm." << endl;
         cerr << "These are mostly included for test purposes; the default settings and standard" << endl;
         cerr << "crispness parameter are intended to provide the best sounding set of options" << endl;
         cerr << "for most situations." << endl;
@@ -132,31 +145,38 @@ int main(int argc, char **argv)
         cerr << "  -R,    --realtime       Select realtime mode (implies -P --no-threads)" << endl;
         cerr << "         --no-threads     No extra threads regardless of cpus/channel count" << endl;
         cerr << "         --no-transients  Disable phase resynchronisation at transients" << endl;
+        cerr << "         --bl-transients  Band-limit phase resync to extreme frequencies" << endl;
         cerr << "         --no-peaklock    Disable phase locking to peak frequencies" << endl;
+        cerr << "         --no-softening   Disable large-ratio softening of phase locking" << endl;
         cerr << "         --window-long    Use longer processing window (actual size may vary)" << endl;
         cerr << "         --window-short   Use shorter processing window" << endl;
         cerr << "         --thresh<N> <F>  Set internal freq threshold N (N = 0,1,2) to F Hz" << endl;
         cerr << endl;
-        cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 1, full 3" << std::endl;
+        cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 0, full 3" << endl;
         cerr << "                          (N.B. debug level 3 includes audible ticks in output)" << endl;
+        cerr << "  -q,    --quiet          Suppress progress output" << endl;
         cerr << endl;
         cerr << "  -h,    --help           Show this help" << endl;
         cerr << endl;
         cerr << "\"Crispness\" levels:" << endl;
-        cerr << "  -c 0   equivalent to --no-transients --no-peaklock" << endl;
-        cerr << "  -c 1   equivalent to --no-peaklock" << endl;
-        cerr << "  -c 2   default processing options" << endl;
-        cerr << "  -c 3   equivalent to --no-peaklock --window-short (may be suitable for drums)" << endl;
+        cerr << "  -c 0   equivalent to --no-transients --no-peaklock --window-long" << endl;
+        cerr << "  -c 1   equivalent to --no-transients --no-peaklock" << endl;
+        cerr << "  -c 2   equivalent to --no-transients" << endl;
+        cerr << "  -c 3   equivalent to --bl-transients" << endl;
+        cerr << "  -c 4   default processing options" << endl;
+        cerr << "  -c 5   equivalent to --no-peaklock --window-short (may be suitable for drums)" << endl;
         cerr << endl;
 	return 2;
     }
 
     switch (crispness) {
-    case -1: crispness = 2; break;
-    case 0: transients = NoTransients; peaklock = false; longwin = false; shortwin = false; break;
-    case 1: transients = Transients; peaklock = false; longwin = false; shortwin = false; break;
-    case 2: transients = Transients; peaklock = true; longwin = false; shortwin = false; break;
-    case 3: transients = Transients; peaklock = false; longwin = false; shortwin = true; break;
+    case -1: crispness = 4; break;
+    case 0: transients = NoTransients; peaklock = false; longwin = true; shortwin = false; break;
+    case 1: transients = NoTransients; peaklock = false; longwin = false; shortwin = false; break;
+    case 2: transients = NoTransients; peaklock = true; longwin = false; shortwin = false; break;
+    case 3: transients = BandLimitedTransients; peaklock = true; longwin = false; shortwin = false; break;
+    case 4: transients = Transients; peaklock = true; longwin = false; shortwin = false; break;
+    case 5: transients = Transients; peaklock = false; longwin = false; shortwin = true; break;
     };
 
     char *fileName = strdup(argv[optind++]);
@@ -195,8 +215,8 @@ int main(int argc, char **argv)
     RubberBandStretcher::Options options = 0;
     if (realtime)    options |= RubberBandStretcher::OptionProcessRealTime;
     if (precise)     options |= RubberBandStretcher::OptionStretchPrecise;
-//    if (!transients) options |= RubberBandStretcher::OptionTransientsSmooth;
     if (!peaklock)   options |= RubberBandStretcher::OptionPhaseIndependent;
+    if (!softening)  options |= RubberBandStretcher::OptionPhasePeakLocked;
     if (!threaded)   options |= RubberBandStretcher::OptionThreadingNone;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;
@@ -217,15 +237,12 @@ int main(int argc, char **argv)
         frequencyshift *= pow(2.0, pitchshift / 12);
     }
 
+    RubberBandStretcher::setDefaultDebugLevel(debug);
+
     RubberBandStretcher ts(sfinfo.samplerate, channels, options,
                            ratio, frequencyshift);
-    
-    ts.setDebugLevel(debug);
 
     ts.setExpectedInputDuration(sfinfo.frames);
-
-//    ts.setTimeRatio(ratio);
-//    ts.setPitchScale(pitchshift);
 
     float *fbuf = new float[channels * ibs];
     float **ibuf = new float *[channels];
@@ -239,11 +256,11 @@ int main(int argc, char **argv)
 
     if (!realtime) {
 
-        cerr << "First pass (studying)..." << endl;
+        if (!quiet) {
+            cerr << "Pass 1: Studying..." << endl;
+        }
 
         while (frame < sfinfo.frames) {
-
-//        std::cout << "study frame " << frame << std::endl;
 
             int count = -1;
 
@@ -264,15 +281,17 @@ int main(int argc, char **argv)
             int p = int((double(frame) * 100.0) / sfinfo.frames);
             if (p > percent || frame == 0) {
                 percent = p;
-                cerr << "\r" << percent << "% ";
+                if (!quiet) {
+                    cerr << "\r" << percent << "% ";
+                }
             }
 
             frame += ibs;
         }
 
-        cerr << endl;
-
-        cerr << "Second pass (processing)..." << endl;
+        if (!quiet) {
+            cerr << "\rCalculating profile..." << endl;
+        }
     }
 
     frame = 0;
@@ -306,13 +325,8 @@ int main(int argc, char **argv)
 
         ts.process(ibuf, count, final);
 
-//        if 
-//            std::cerr << frame << " + " << ibs << " >= " << sfinfo.frames << ": calling ts.complete()!" << std::endl;
-//            ts.complete();
-//        }
-
         int avail = ts.available();
-        if (debug > 1) std::cerr << "available = " << avail << std::endl;
+        if (debug > 1) cerr << "available = " << avail << endl;
 
         if (avail > 0) {
             float **obf = new float *[channels];
@@ -323,7 +337,7 @@ int main(int argc, char **argv)
             countOut += avail;
             float *fobf = new float[channels * avail];
             for (size_t c = 0; c < channels; ++c) {
-                for (size_t i = 0; i < avail; ++i) {
+                for (int i = 0; i < avail; ++i) {
                     float value = obf[c][i];
                     if (fabsf(value) > outpeak) outpeak = fabsf(value);
                     outsum += value * value;
@@ -333,13 +347,13 @@ int main(int argc, char **argv)
                     fobf[i * channels + c] = value;
                 }
             }
-//            std::cout << "fobf mean: ";
+//            cout << "fobf mean: ";
 //    double d = 0;
 //    for (int i = 0; i < avail; ++i) {
 //        d += fobf[i];
 //    }
 //    d /= avail;
-//    std::cout << d << std::endl;
+//    cout << d << endl;
             sf_writef_float(sndfileOut, fobf, avail);
             delete[] fobf;
             for (size_t i = 0; i < channels; ++i) {
@@ -348,20 +362,31 @@ int main(int argc, char **argv)
             delete[] obf;
         }
 
+        if (frame == 0 && !realtime && !quiet) {
+            cerr << "Pass 2: Processing..." << endl;
+        }
+
 	int p = int((double(frame) * 100.0) / sfinfo.frames);
 	if (p > percent || frame == 0) {
 	    percent = p;
-	    cerr << "\r" << percent << "% ";
+            if (!quiet) {
+                cerr << "\r" << percent << "% ";
+            }
 	}
 
         frame += ibs;
     }
 
+    if (!quiet) {
+        cerr << "\r    " << endl;
+    }
     int avail;
 
     while ((avail = ts.available()) >= 0) {
 
-        if (debug > 1) std::cerr << "(completing) available = " << avail << std::endl;
+        if (debug > 1) {
+            cerr << "(completing) available = " << avail << endl;
+        }
 
         if (avail > 0) {
             float **obf = new float *[channels];
@@ -372,7 +397,7 @@ int main(int argc, char **argv)
             countOut += avail;
             float *fobf = new float[channels * avail];
             for (size_t c = 0; c < channels; ++c) {
-                for (size_t i = 0; i < avail; ++i) {
+                for (int i = 0; i < avail; ++i) {
                     float value = obf[c][i];
                     if (fabsf(value) > outpeak) outpeak = fabsf(value);
                     outsum += value * value;
@@ -389,6 +414,8 @@ int main(int argc, char **argv)
                 delete[] obf[i];
             }
             delete[] obf;
+        } else {
+            usleep(10000);
         }
     }
 
@@ -398,28 +425,26 @@ int main(int argc, char **argv)
     double inmean = sqrt(insum / (sfinfo.frames * sfinfo.channels));
     double outmean = sqrt(outsum / (countOut * sfinfo.channels));
 
-    cerr << endl << "in: " << countIn << ", out: " << countOut << ", ratio: " << float(countOut)/float(countIn) << ", ideal output: " << lrint(countIn * ratio) << ", diff: " << abs(lrint(countIn * ratio) - int(countOut)) << endl;
+    if (!quiet) {
 
-    cerr << "input peak: " << inpeak << "; output peak " << outpeak << "; gain " << (inpeak > 0 ? outpeak/inpeak : 1) << endl;
-    cerr << "input rms: " << inmean << "; output rms " << outmean << "; gain " << (inmean > 0 ? outmean/inmean : 1) << endl;
+        cerr << "in: " << countIn << ", out: " << countOut << ", ratio: " << float(countOut)/float(countIn) << ", ideal output: " << lrint(countIn * ratio) << ", error: " << abs(lrint(countIn * ratio) - int(countOut)) << endl;
 
-    struct timeval etv;
-    (void)gettimeofday(&etv, 0);
+        cerr << "input peak: " << inpeak << "; output peak " << outpeak << "; gain " << (inpeak > 0 ? outpeak/inpeak : 1) << endl;
+        cerr << "input rms: " << inmean << "; output rms " << outmean << "; gain " << (inmean > 0 ? outmean/inmean : 1) << endl;
 
-    cerr << "\nstart:   " << tv.tv_sec << ":" << tv.tv_usec << endl;
-    cerr << "finish:  " << etv.tv_sec << ":" << etv.tv_usec << endl;
-    
-    etv.tv_sec -= tv.tv_sec;
-    if (etv.tv_usec < tv.tv_usec) {
-        etv.tv_usec += 1000000;
-        etv.tv_sec -= 1;
+        struct timeval etv;
+        (void)gettimeofday(&etv, 0);
+
+        etv.tv_sec -= tv.tv_sec;
+        if (etv.tv_usec < tv.tv_usec) {
+            etv.tv_usec += 1000000;
+            etv.tv_sec -= 1;
+        }
+        etv.tv_usec -= tv.tv_usec;
+        
+        double sec = double(etv.tv_sec) + (double(etv.tv_usec) / 1000000.0);
+        cerr << "\nelapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
     }
-    etv.tv_usec -= tv.tv_usec;
-
-    cerr << "elapsed: " << etv.tv_sec << ":" << etv.tv_usec << endl;
-
-    double sec = double(etv.tv_sec) + (double(etv.tv_usec) / 1000000.0);
-    cerr << "\nin/sec: " << countIn/sec << ", out/sec: " << countOut/sec << endl;
 
     return 0;
 }

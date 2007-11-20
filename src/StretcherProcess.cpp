@@ -482,25 +482,32 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
         cd.freqPeak[0] = 0;
 
         float freq0 = m_freq0;
+        float freq1 = m_freq1;
+        float freq2 = m_freq2;
 
         // As the stretch ratio increases, so the frequency thresholds
         // for phase lamination should increase.  Beyond a ratio of
         // about 1.5, the threshold should be about 1200Hz; beyond a
         // ratio of 2, we probably want no lamination to happen at all
-        // by default.  This calculation aims for that.
+        // by default.  This calculation aims for more or less that.
+        // We only do this if the phase option is OptionPhaseAdaptive
+        // (the default), i.e. not Independent or PeakLocked.
 
-        //!!! we should only do this if asked to -- and when not
-        //setting f0,f1,f2 explicitly
-        float r = getEffectiveRatio();
-        if (r > 1) {
-            float rf0 = 600 + (600 * ((r-1)*(r-1)*2));
-//            std::cerr << "ratio = " << r << ", rf0 = " << rf0 << std::endl;
-            freq0 = std::max(freq0, rf0);
+        if (!(m_options & OptionPhasePeakLocked)) {
+            float r = getEffectiveRatio();
+            if (r > 1) {
+                float rf0 = 600 + (600 * ((r-1)*(r-1)*(r-1)*2));
+                float f1ratio = freq1 / freq0;
+                float f2ratio = freq2 / freq0;
+                freq0 = std::max(freq0, rf0);
+                freq1 = freq0 * f1ratio;
+                freq2 = freq0 * f2ratio;
+            }
         }
 
         size_t limit0 = lrint((freq0 * m_windowSize) / rate);
-        size_t limit1 = lrint((m_freq1 * m_windowSize) / rate);
-        size_t limit2 = lrint((m_freq2 * m_windowSize) / rate);
+        size_t limit1 = lrint((freq1 * m_windowSize) / rate);
+        size_t limit2 = lrint((freq2 * m_windowSize) / rate);
 
         size_t range = 0;
 
@@ -514,11 +521,6 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
         for (size_t i = 0; i <= count; ++i) {
 
             double mag = cd.mag[i];
-
-            //!!! N.B. if the stretch ratio is very long, it's generally
-            //better not to attempt this phase lamination -- stick with
-            //range==0 throughout.
-
             bool isPeak = true;
 
             for (size_t j = 1; j <= range; ++j) {
@@ -587,9 +589,7 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
 
         bool resetThis = phaseReset;
         
-        if (!(m_options & OptionTransientsSmooth) &&
-            !(m_options & OptionTransientsCrisp)) { 
-            // must be OptionTransientsMixed
+        if (m_options & OptionTransientsMixed) {
             size_t low = lrint((150 * m_windowSize) / rate);
             size_t high = lrint((1000 * m_windowSize) / rate);
             if (resetThis) {
@@ -827,10 +827,11 @@ RubberBandStretcher::Impl::available() const
     if (!m_threaded) {
         for (size_t c = 0; c < m_channels; ++c) {
             if (m_channelData[c]->inputSize >= 0) {
-                cerr << "available: m_done true" << endl;
+//                cerr << "available: m_done true" << endl;
                 if (m_channelData[c]->inbuf->getReadSpace() > 0) {
-                    cerr << "calling processChunks(" << c << ") from available" << endl;
+//                    cerr << "calling processChunks(" << c << ") from available" << endl;
                     //!!! do we ever actually do this? if so, this method should not be const
+                    // ^^^ yes, we do sometimes -- e.g. when fed a very short file
                     ((RubberBandStretcher::Impl *)this)->processChunks(c);
                 }
             }

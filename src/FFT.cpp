@@ -20,6 +20,7 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <cstdio>
 #include <vector>
 
 class FFTImpl
@@ -56,12 +57,17 @@ public:
 
     ~D_FFTW() {
         if (m_fplanf) {
+	    //!!! shouldn't do this every time, but only when the last one
+            // is destroyed (likewise shouldn't load every time) -- want
+            // a static refcount + mutex
+            saveWisdom('f');
             fftwf_destroy_plan(m_fplanf);
             fftwf_destroy_plan(m_fplani);
             fftwf_free(m_fbuf);
             fftwf_free(m_fpacked);
         }
         if (m_dplanf) {
+            saveWisdom('d');
             fftw_destroy_plan(m_dplanf);
             fftw_destroy_plan(m_dplani);
             fftw_free(m_dbuf);
@@ -73,6 +79,7 @@ public:
 
     void initFloat() {
         if (m_fplanf) return;
+        loadWisdom('f');
         m_fbuf = (float *)fftw_malloc(m_size * sizeof(float));
         m_fpacked = (fftwf_complex *)fftw_malloc
             ((m_size/2 + 1) * sizeof(fftwf_complex));
@@ -84,6 +91,7 @@ public:
 
     void initDouble() {
         if (m_dplanf) return;
+        loadWisdom('d');
         m_dbuf = (double *)fftw_malloc(m_size * sizeof(double));
         m_dpacked = (fftw_complex *)fftw_malloc
             ((m_size/2 + 1) * sizeof(fftw_complex));
@@ -91,6 +99,35 @@ public:
             (m_size, m_dbuf, m_dpacked, FFTW_MEASURE);
         m_dplani = fftw_plan_dft_c2r_1d
             (m_size, m_dpacked, m_dbuf, FFTW_MEASURE);
+    }
+
+    void loadWisdom(char type) { wisdom(false, type); }
+    void saveWisdom(char type) { wisdom(true, type); }
+
+    void wisdom(bool save, char type) {
+
+        const char *home = getenv("HOME");
+        if (!home) return;
+
+        char fn[256];
+        snprintf(fn, 256, "%s/%s.%c", home, ".rubberband.wisdom", type);
+
+        FILE *f = fopen(fn, save ? "wb" : "rb");
+        if (!f) return;
+
+        if (save) {
+            switch (type) {
+            case 'f': fftwf_export_wisdom_to_file(f); break;
+            case 'd': fftw_export_wisdom_to_file(f); break;
+            }
+        } else {
+            switch (type) {
+            case 'f': fftwf_import_wisdom_from_file(f); break;
+            case 'd': fftw_import_wisdom_from_file(f); break;
+            }
+        }
+
+        fclose(f);
     }
 
     void packFloat(float *re, float *im) {
@@ -508,14 +545,14 @@ FFT::FFT(unsigned int size)
         break;
 
     case 1:
-        std::cerr << "FFT::FFT(" << size << "): using FFTW3 implementation"
-                  << std::endl;
+//        std::cerr << "FFT::FFT(" << size << "): using FFTW3 implementation"
+//                  << std::endl;
         d = new D_FFTW(size);
         break;
 
     default:
-        std::cerr << "FFT::FFT(" << size << "): using built-in implementation"
-                  << std::endl;
+//        std::cerr << "FFT::FFT(" << size << "): using built-in implementation"
+//                  << std::endl;
         d = new D_Cross(size);
         break;
     }

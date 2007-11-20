@@ -179,6 +179,11 @@ RubberBandStretcher::setDebugLevel(int level)
     m_d->setDebugLevel(level);
 }
 
+void
+RubberBandStretcher::setDefaultDebugLevel(int level)
+{
+    Impl::setDefaultDebugLevel(level);
+}
 
 }
 

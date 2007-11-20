@@ -35,9 +35,16 @@ using std::min;
 
 namespace RubberBand {
 
-static const size_t defaultIncrement = 256;
-static const size_t defaultWindowSize = 2048;
-    
+const size_t
+RubberBandStretcher::Impl::m_defaultIncrement = 256;
+
+const size_t
+RubberBandStretcher::Impl::m_defaultWindowSize = 2048;
+
+int
+RubberBandStretcher::Impl::m_defaultDebugLevel = 0;
+
+
 RubberBandStretcher::Impl::Impl(RubberBandStretcher *stretcher,
                                 size_t sampleRate,
                                 size_t channels,
@@ -48,15 +55,15 @@ RubberBandStretcher::Impl::Impl(RubberBandStretcher *stretcher,
     m_channels(channels),
     m_timeRatio(initialTimeRatio),
     m_pitchScale(initialPitchScale),
-    m_windowSize(defaultWindowSize),
-    m_increment(defaultIncrement),
-    m_outbufSize(defaultWindowSize * 2),
-    m_maxProcessSize(defaultWindowSize),
+    m_windowSize(m_defaultWindowSize),
+    m_increment(m_defaultIncrement),
+    m_outbufSize(m_defaultWindowSize * 2),
+    m_maxProcessSize(m_defaultWindowSize),
     m_expectedInputDuration(0),
     m_threaded(false),
     m_realtime(false),
     m_options(options),
-    m_debugLevel(1),
+    m_debugLevel(m_defaultDebugLevel),
     m_mode(JustCreated),
     m_window(0),
     m_studyFFT(0),
@@ -69,19 +76,31 @@ RubberBandStretcher::Impl::Impl(RubberBandStretcher *stretcher,
     m_freq0(600),
     m_freq1(1200),
     m_freq2(12000),
-    m_baseWindowSize(defaultWindowSize)
+    m_baseWindowSize(m_defaultWindowSize)
 {
-    cerr << "RubberBandStretcher::Impl::Impl: options = " << options << endl;
+    if (m_debugLevel > 0) {
+        cerr << "RubberBandStretcher::Impl::Impl: rate = " << m_stretcher->m_sampleRate << ", options = " << options << endl;
+    }
+
+    // Window size will vary according to the audio sample rate, but
+    // we don't let it drop below the 48k default
+    m_rateMultiple = float(m_stretcher->m_sampleRate) / 48000.f;
+    if (m_rateMultiple < 1.f) m_rateMultiple = 1.f;
+    m_baseWindowSize = roundUp(int(m_defaultWindowSize * m_rateMultiple));
 
     if ((options & OptionWindowShort) || (options & OptionWindowLong)) {
         if ((options & OptionWindowShort) && (options & OptionWindowLong)) {
             cerr << "RubberBandStretcher::Impl::Impl: Cannot specify OptionWindowLong and OptionWindowShort together; falling back to OptionWindowStandard" << endl;
         } else if (options & OptionWindowShort) {
-            m_baseWindowSize = defaultWindowSize / 2;
-            cerr << "setting baseWindowSize to " << m_baseWindowSize << endl;
+            m_baseWindowSize = m_baseWindowSize / 2;
+            if (m_debugLevel > 0) {
+                cerr << "setting baseWindowSize to " << m_baseWindowSize << endl;
+            }
         } else if (options & OptionWindowLong) {
-            m_baseWindowSize = defaultWindowSize * 2;
-            cerr << "setting baseWindowSize to " << m_baseWindowSize << endl;
+            m_baseWindowSize = m_baseWindowSize * 2;
+            if (m_debugLevel > 0) {
+                cerr << "setting baseWindowSize to " << m_baseWindowSize << endl;
+            }
         }
         m_windowSize = m_baseWindowSize;
         m_outbufSize = m_baseWindowSize * 2;
@@ -278,7 +297,7 @@ RubberBandStretcher::Impl::roundUp(size_t value)
 void
 RubberBandStretcher::Impl::calculateSizes()
 {
-    size_t inputIncrement = defaultIncrement;
+    size_t inputIncrement = m_defaultIncrement;
     size_t windowSize = m_baseWindowSize;
     size_t outputIncrement;
 
@@ -288,7 +307,7 @@ RubberBandStretcher::Impl::calculateSizes()
 
         // use a fixed input increment
 
-        inputIncrement = defaultIncrement;
+        inputIncrement = roundUp(int(m_defaultIncrement * m_rateMultiple));
 
         if (r < 1) {
             outputIncrement = int(floor(inputIncrement * r));
@@ -340,7 +359,7 @@ RubberBandStretcher::Impl::calculateSizes()
     }
 
     // windowSize can be almost anything, but it can't be greater than
-    // 4 * defaultWindowSize unless ratio is less than 1/1024.
+    // 4 * m_baseWindowSize unless ratio is less than 1/1024.
 
     m_windowSize = windowSize;
     m_increment = inputIncrement;
@@ -355,15 +374,6 @@ RubberBandStretcher::Impl::calculateSizes()
     if (m_debugLevel > 0) {
         cerr << "configure: effective ratio = " << getEffectiveRatio() << endl;
         cerr << "configure: window size = " << m_windowSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
-    }
-
-    static size_t maxWindowSize = 0;
-
-    if (m_windowSize > maxWindowSize) {
-        //!!!
-        cerr << "configure: NOTE: max window size so far increased from "
-                  << maxWindowSize << " to " << m_windowSize << endl;
-        maxWindowSize = m_windowSize;
     }
 
     if (m_windowSize > m_maxProcessSize) {
@@ -606,22 +616,19 @@ RubberBandStretcher::Impl::getLatency() const
 void
 RubberBandStretcher::Impl::setTransientsOption(Options options)
 {
-    //!!!
-    if (options & OptionTransientsSmooth) {
-        m_options |= OptionTransientsSmooth;
-    } else {
-        m_options &= ~OptionTransientsSmooth;
-    }
+    m_options &= ~(OptionTransientsMixed |
+                   OptionTransientsSmooth |
+                   OptionTransientsCrisp);
+    m_options |= options;
 }
 
 void
 RubberBandStretcher::Impl::setPhaseOption(Options options)
 {
-    if (options & OptionPhaseIndependent) {
-        m_options |= OptionPhaseIndependent;
-    } else {
-        m_options &= ~OptionPhaseIndependent;
-    }
+    m_options &= ~(OptionPhaseAdaptive |
+                   OptionPhasePeakLocked |
+                   OptionPhaseIndependent);
+    m_options |= options;
 }
 
 void

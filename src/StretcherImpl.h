@@ -80,6 +80,7 @@ public:
     void calculateStretch();
 
     void setDebugLevel(int level);
+    static void setDefaultDebugLevel(int level) { m_defaultDebugLevel = level; }
 
 protected:
     RubberBandStretcher *m_stretcher;
@@ -174,10 +175,14 @@ protected:
     float m_freq2;
 
     size_t m_baseWindowSize;
+    float m_rateMultiple;
 
     void writeOutput(RingBuffer<float> &to, float *from,
                      size_t qty, size_t &outCount, size_t theoreticalOut);
 
+    static int m_defaultDebugLevel;
+    static const size_t m_defaultIncrement;
+    static const size_t m_defaultWindowSize;
 };
 
 }

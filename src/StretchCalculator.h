@@ -81,7 +81,7 @@ protected:
     double m_divergence;
     float m_recovery;
     float m_prevRatio;
-    bool m_wasTransient;
+    int m_transientAmnesty; // only in RT mode; handled differently offline
     int m_debugLevel;
     bool m_useHardPeaks;
     

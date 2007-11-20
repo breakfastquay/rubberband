@@ -52,8 +52,8 @@ Resampler::D::D(Quality quality, size_t channels, size_t maxBufferSize) :
     m_iinsize(0),
     m_ioutsize(0)
 {
-    std::cerr << "Resampler::Resampler: using libsamplerate implementation"
-              << std::endl;
+//    std::cerr << "Resampler::Resampler: using libsamplerate implementation"
+//              << std::endl;
 
     int err = 0;
     m_src = src_new(quality == Best ? SRC_SINC_BEST_QUALITY :
@@ -122,7 +122,7 @@ Resampler::D::resample(float **in, float **out, size_t incount, float ratio,
     //!!! check err, respond appropriately
 
     if (m_channels > 1) {
-        for (size_t i = 0; i < data.output_frames_gen; ++i) {
+        for (int i = 0; i < data.output_frames_gen; ++i) {
             for (size_t c = 0; c < m_channels; ++c) {
                 out[c][i] = m_iout[i * m_channels + c];
             }
