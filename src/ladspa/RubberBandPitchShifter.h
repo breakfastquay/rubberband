@@ -37,12 +37,13 @@ protected:
 	OctavesPort      = 1,
 	SemitonesPort    = 2,
 	CentsPort        = 3,
-        InputPort1       = 4,
-        OutputPort1      = 5,
-        PortCountMono    = 6,
-        InputPort2       = 6,
-        OutputPort2      = 7,
-        PortCountStereo  = 8
+        CrispnessPort    = 4,
+        InputPort1       = 5,
+        OutputPort1      = 6,
+        PortCountMono    = OutputPort1 + 1,
+        InputPort2       = 7,
+        OutputPort2      = 8,
+        PortCountStereo  = OutputPort2 + 1
     };
 
     static const char *const portNamesMono[PortCountMono];
@@ -67,6 +68,7 @@ protected:
 
     void runImpl(unsigned long);
     void updateRatio();
+    void updateCrispness();
 
     float *m_input[2];
     float *m_output[2];
@@ -74,8 +76,10 @@ protected:
     float *m_cents;
     float *m_semitones;
     float *m_octaves;
+    float *m_crispness;
     double m_ratio;
     double m_prevRatio;
+    int m_currentCrispness;
 
     size_t m_extraLatency;
 

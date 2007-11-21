@@ -403,7 +403,7 @@ RubberBandStretcher::Impl::calculateSizes()
     //necessary. clearly something wrong in our calculations... or do
     //we just need to ensure client calls setMaxProcessSize?
     if (!m_realtime && !m_threaded) {
-        m_outbufSize = m_outbufSize * 2;
+        m_outbufSize = m_outbufSize * 5;
     }
 }
 
@@ -616,10 +616,17 @@ RubberBandStretcher::Impl::getLatency() const
 void
 RubberBandStretcher::Impl::setTransientsOption(Options options)
 {
+    if (!m_realtime) {
+        cerr << "RubberBandStretcher::Impl::setTransientsOption: Not permissible in non-realtime mode" << endl;
+        return;
+    }
     m_options &= ~(OptionTransientsMixed |
                    OptionTransientsSmooth |
                    OptionTransientsCrisp);
     m_options |= options;
+
+    m_stretchCalculator->setUseHardPeaks
+        (!(m_options & OptionTransientsSmooth));
 }
 
 void

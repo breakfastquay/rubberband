@@ -49,6 +49,8 @@ public:
     virtual int calculateSingle(double ratio, size_t inputDurationSoFar,
                                 float curveValue);
 
+    void setUseHardPeaks(bool use) { m_useHardPeaks = use; }
+
     void reset();
   
     void setDebugLevel(int level) { m_debugLevel = level; }

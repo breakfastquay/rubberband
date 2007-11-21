@@ -19,6 +19,8 @@
 #include <iostream>
 #include <map>
 
+namespace RubberBand {
+
 enum WindowType {
     RectangularWindow,
     BartlettWindow,
@@ -156,6 +158,8 @@ void Window<T>::cosinewin(T *mult, T a0, T a1, T a2, T a3)
                     + a2 * cos(4 * M_PI * i / n)
                     - a3 * cos(6 * M_PI * i / n));
     }
+}
+
 }
 
 #endif

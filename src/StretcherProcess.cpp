@@ -661,7 +661,8 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
 
     //!!! not much cop, this bit
 
-    float area = m_window->getArea();
+    float area = m_window->getArea() * 1.5;
+//    float area = 1.f;
 
     for (size_t i = 0; i < m_windowSize; ++i) {
         float val = m_window->getValue(i);

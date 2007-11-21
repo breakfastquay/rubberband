@@ -19,6 +19,8 @@
 #include <iostream>
 #include <cmath>
 
+using namespace RubberBand;
+
 const char *const
 RubberBandPitchShifter::portNamesMono[PortCountMono] =
 {
@@ -26,6 +28,7 @@ RubberBandPitchShifter::portNamesMono[PortCountMono] =
     "Cents",
     "Semitones",
     "Octaves",
+    "Crispness",
     "Input",
     "Output"
 };
@@ -37,6 +40,7 @@ RubberBandPitchShifter::portNamesStereo[PortCountStereo] =
     "Cents",
     "Semitones",
     "Octaves",
+    "Crispness",
     "Input L",
     "Output L",
     "Input R",
@@ -50,6 +54,7 @@ RubberBandPitchShifter::portsMono[PortCountMono] =
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
+    LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_AUDIO,
     LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO
 };
@@ -58,6 +63,7 @@ const LADSPA_PortDescriptor
 RubberBandPitchShifter::portsStereo[PortCountStereo] =
 {
     LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL,
+    LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
@@ -85,6 +91,11 @@ RubberBandPitchShifter::hintsMono[PortCountMono] =
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_INTEGER,
       -4.0, 4.0 },
+    { LADSPA_HINT_DEFAULT_MAXIMUM |
+      LADSPA_HINT_BOUNDED_BELOW |
+      LADSPA_HINT_BOUNDED_ABOVE |
+      LADSPA_HINT_INTEGER,
+       0.0, 3.0 },
     { 0, 0, 0 },
     { 0, 0, 0 }
 };
@@ -107,6 +118,11 @@ RubberBandPitchShifter::hintsStereo[PortCountStereo] =
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_INTEGER,
       -4.0, 4.0 },
+    { LADSPA_HINT_DEFAULT_MAXIMUM |
+      LADSPA_HINT_BOUNDED_BELOW |
+      LADSPA_HINT_BOUNDED_ABOVE |
+      LADSPA_HINT_INTEGER,
+       0.0, 3.0 },
     { 0, 0, 0 },
     { 0, 0, 0 },
     { 0, 0, 0 },
@@ -167,7 +183,6 @@ RubberBandPitchShifter::ladspaDescriptorStereo =
 const LADSPA_Descriptor *
 RubberBandPitchShifter::getDescriptor(unsigned long index)
 {
-//    std::cerr << "RubberBandPitchShifter::getDescriptor(" << index << ")" << std::endl;
     if (index == 0) return &ladspaDescriptorMono;
     if (index == 1) return &ladspaDescriptorStereo;
     else return 0;
@@ -178,27 +193,22 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_cents(0),
     m_semitones(0),
     m_octaves(0),
+    m_crispness(0),
     m_ratio(1.0),
     m_prevRatio(1.0),
+    m_currentCrispness(-1),
     m_extraLatency(8192), //!!! this should be at least the maximum possible displacement from linear at input rates, divided by the pitch scale factor.  It could be very large
-    m_stretcher(new RubberBand::RubberBandStretcher
+    m_stretcher(new RubberBandStretcher
                 (sampleRate, channels,
-                 RubberBand::RubberBandStretcher::OptionProcessRealTime)),// |
-//                 RubberBand::RubberBandStretcher::OptionStretchPrecise  |
-//                 RubberBand::RubberBandStretcher::OptionTransientsSmooth |
-//                 RubberBand::RubberBandStretcher::OptionTransientsCrisp |
-//                 RubberBand::RubberBandStretcher::OptionPhasePeakLocked |
-//                 RubberBand::RubberBandStretcher::OptionThreadingNone)),
+                 RubberBandStretcher::OptionProcessRealTime)),
     m_sampleRate(sampleRate),
     m_channels(channels)
 {
-//    m_stretcher->setMaxProcessBlockSize(4096);
-
     for (size_t c = 0; c < m_channels; ++c) {
         m_input[c] = 0;
         m_output[c] = 0;
         //!!! size must be at least max process size plus m_extraLatency:
-        m_outputBuffer[c] = new RubberBand::RingBuffer<float>(8092); //!!!
+        m_outputBuffer[c] = new RingBuffer<float>(8092); //!!!
         m_outputBuffer[c]->zero(m_extraLatency);
         //!!! size must be at least max process size:
         m_scratch[c] = new float[16384];//!!!
@@ -236,6 +246,7 @@ RubberBandPitchShifter::connectPort(LADSPA_Handle handle,
 	&shifter->m_cents,
 	&shifter->m_semitones,
 	&shifter->m_octaves,
+        &shifter->m_crispness,
 	&shifter->m_input[0],
 	&shifter->m_output[0],
 	&shifter->m_input[1],
@@ -249,8 +260,6 @@ void
 RubberBandPitchShifter::activate(LADSPA_Handle handle)
 {
     RubberBandPitchShifter *shifter = (RubberBandPitchShifter *)handle;
-//!!!    QMutexLocker locker(&shifter->m_mutex);
-
     shifter->updateRatio();
     shifter->m_prevRatio = shifter->m_ratio;
     shifter->m_stretcher->reset();
@@ -274,6 +283,38 @@ RubberBandPitchShifter::updateRatio()
 }
 
 void
+RubberBandPitchShifter::updateCrispness()
+{
+    if (!m_crispness) return;
+    
+    int c = lrintf(*m_crispness);
+    if (c == m_currentCrispness) return;
+    if (c < 0 || c > 3) return;
+    RubberBandStretcher *s = m_stretcher;
+
+    switch (c) {
+    case 0:
+        s->setPhaseOption(RubberBandStretcher::OptionPhaseIndependent);
+        s->setTransientsOption(RubberBandStretcher::OptionTransientsSmooth);
+        break;
+    case 1:
+        s->setPhaseOption(RubberBandStretcher::OptionPhaseAdaptive);
+        s->setTransientsOption(RubberBandStretcher::OptionTransientsSmooth);
+        break;
+    case 2:
+        s->setPhaseOption(RubberBandStretcher::OptionPhaseAdaptive);
+        s->setTransientsOption(RubberBandStretcher::OptionTransientsMixed);
+        break;
+    case 3:
+        s->setPhaseOption(RubberBandStretcher::OptionPhaseAdaptive);
+        s->setTransientsOption(RubberBandStretcher::OptionTransientsCrisp);
+        break;
+    }
+
+    m_currentCrispness = c;
+}
+
+void
 RubberBandPitchShifter::runImpl(unsigned long insamples)
 {
 //    std::cerr << "RubberBandPitchShifter::runImpl(" << insamples << ")" << std::endl;
@@ -288,6 +329,8 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
         *m_latency = m_stretcher->getLatency() + m_extraLatency;
 //        std::cerr << "latency = " << *m_latency << std::endl;
     }
+
+    updateCrispness();
 
     int samples = insamples;
     int processed = 0;
