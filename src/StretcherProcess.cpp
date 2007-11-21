@@ -257,7 +257,7 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         
         if (cd.outbuf->getWriteSpace() < required) {
             if (m_debugLevel > 0) {
-                cerr << "buffer overrun on output for channel " << c << endl;
+                cerr << "Buffer overrun on output for channel " << c << endl;
             }
 
             //!!! The only correct thing we can do here is resize the
@@ -400,9 +400,9 @@ RubberBandStretcher::Impl::getIncrements(size_t channel,
     bool gotData = true;
 
     if (cd.chunkCount >= m_outputIncrements.size()) {
-        //!!! this is an error if in non-realtime mode
-//        cerr << "*** ERROR: chunk count " << cd.chunkCount << " >= "
-//                  << m_outputIncrements.size() << endl;
+//        cerr << "WARNING: RubberBandStretcher::Impl::getIncrements:"
+//             << " chunk count " << cd.chunkCount << " >= "
+//             << m_outputIncrements.size() << endl;
         if (m_outputIncrements.size() == 0) {
             phaseIncrementRtn = m_increment;
             shiftIncrementRtn = m_increment;
@@ -659,14 +659,11 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
 
     cd.accumulatorFill = m_windowSize;
 
-    //!!! not much cop, this bit
-
-    float area = m_window->getArea() * 1.5;
-//    float area = 1.f;
+    float fixed = m_window->getArea() * 1.5;
 
     for (size_t i = 0; i < m_windowSize; ++i) {
         float val = m_window->getValue(i);
-        cd.windowAccumulator[i] += val * area;
+        cd.windowAccumulator[i] += val * fixed;
     }
 }
 
@@ -679,17 +676,9 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
         cerr << "writeChunk(" << channel << ", " << shiftIncrement << ", " << last << ")" << endl;
     }
 
-    static float windowaccmax = 0; //!!!
-        
     for (int i = 0; i < shiftIncrement; ++i) {
         if (cd.windowAccumulator[i] > 0.f) {
             cd.accumulator[i] /= cd.windowAccumulator[i];
-            if (fabsf(cd.windowAccumulator[i]) > windowaccmax) {
-//                cerr << "window accumulator max " << windowaccmax
-//                          << " -> " << fabsf(cd.windowAccumulator[i]) << endl;
-                //!!!
-                windowaccmax = fabsf(cd.windowAccumulator[i]);
-            }
         }
     }
 
@@ -697,13 +686,10 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
     // were running in RT mode)
     size_t theoreticalOut = 0;
     if (cd.inputSize >= 0) {
-//        cerr << "cd.inputSize = " << cd.inputSize << endl;
         theoreticalOut = lrint(cd.inputSize * m_timeRatio);
-//        cerr << "theoreticalOut = " << theoreticalOut << endl;
     }
 
     if (m_pitchScale != 1.0 && cd.resampler) {
-//            cerr << "resampler: input " << shiftIncrement << ", output max " << int(shiftIncrement / m_pitchScale) + 1 << endl;
 
         size_t reqSize = int(ceil(shiftIncrement / m_pitchScale));
         if (reqSize > cd.resamplebufSize) {
@@ -711,8 +697,8 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
             // supposed to be initialised with enough space in the
             // first place.  But we retain this check in case the
             // pitch scale has changed since then, or the stretch
-            // calculator has goneb mad, or something.
-            cerr << "resampler: resizing buffer from "
+            // calculator has gone mad, or something.
+            cerr << "WARNING: RubberBandStretcher::Impl::writeChunk: resizing resampler buffer from "
                       << cd.resamplebufSize << " to " << reqSize << endl;
             cd.resamplebufSize = reqSize;
             if (cd.resamplebuf) delete[] cd.resamplebuf;
@@ -778,9 +764,15 @@ RubberBandStretcher::Impl::writeOutput(RingBuffer<float> &to, float *from, size_
     }
 
     if (outCount > startSkip) {
+        
+        // this is the normal case
+
         if (theoreticalOut > 0) {
             if (m_debugLevel > 1) {
-                cerr << "theoreticalOut = " << theoreticalOut << ", outCount = " << outCount << ", startSkip = " << startSkip << ", qty = " << qty << endl;
+                cerr << "theoreticalOut = " << theoreticalOut
+                     << ", outCount = " << outCount
+                     << ", startSkip = " << startSkip
+                     << ", qty = " << qty << endl;
             }
             if (outCount - startSkip <= theoreticalOut &&
                 outCount - startSkip + qty > theoreticalOut) {
@@ -794,14 +786,26 @@ RubberBandStretcher::Impl::writeOutput(RingBuffer<float> &to, float *from, size_
         if (m_debugLevel > 2) {
             cerr << "writing " << qty << endl;
         }
-        to.write(from, qty);
-        outCount += qty;
+
+        size_t written = to.write(from, qty);
+
+        if (written < qty) {
+            cerr << "WARNING: RubberBandStretcher::Impl::writeOutput: "
+                 << "Buffer overrun on output: wrote " << written
+                 << " of " << qty << " samples" << endl;
+        }
+
+        outCount += written;
         return;
     }
 
+    // the rest of this is only used during the first startSkip samples
+
     if (outCount + qty <= startSkip) {
         if (m_debugLevel > 1) {
-            cerr << "qty = " << qty << ", startSkip = " << startSkip << ", outCount = " << outCount << ", discarding" << endl;
+            cerr << "qty = " << qty << ", startSkip = "
+                 << startSkip << ", outCount = " << outCount
+                 << ", discarding" << endl;
         }
         outCount += qty;
         return;
@@ -809,7 +813,10 @@ RubberBandStretcher::Impl::writeOutput(RingBuffer<float> &to, float *from, size_
 
     size_t off = startSkip - outCount;
     if (m_debugLevel > 1) {
-        cerr << "qty = " << qty << ", startSkip = " << startSkip << ", outCount = " << outCount << ", writing " << qty - off << " from start offset " << off << endl;
+        cerr << "qty = " << qty << ", startSkip = "
+             << startSkip << ", outCount = " << outCount
+             << ", writing " << qty - off
+             << " from start offset " << off << endl;
     }
     to.write(from + off, qty - off);
     outCount += qty;

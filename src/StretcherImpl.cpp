@@ -380,9 +380,11 @@ RubberBandStretcher::Impl::calculateSizes()
         m_maxProcessSize = m_windowSize;
     }
 
-    m_outbufSize = max
-        (size_t(ceil(m_maxProcessSize / m_pitchScale)),
-         m_windowSize);
+    m_outbufSize =
+        size_t
+        (ceil(max
+              (m_maxProcessSize / m_pitchScale,
+               m_windowSize * 2 * (m_timeRatio > 1.f ? m_timeRatio : 1.f))));
 
     if (m_realtime) {
         // This headroom is so as to try to avoid reallocation when
@@ -398,13 +400,17 @@ RubberBandStretcher::Impl::calculateSizes()
         }
     }
 
+    if (m_debugLevel > 0) {
+        cerr << "configure: outbuf size = " << m_outbufSize << endl;
+    }
+    
     //!!! for very long stretches (e.g. x5), this is necessary; for
     //even longer ones (e.g. x10), even more of an outbuf is
     //necessary. clearly something wrong in our calculations... or do
     //we just need to ensure client calls setMaxProcessSize?
-    if (!m_realtime && !m_threaded) {
-        m_outbufSize = m_outbufSize * 5;
-    }
+//    if (!m_realtime && !m_threaded) {
+//        m_outbufSize = m_outbufSize * 10;
+//    }
 }
 
 void
@@ -481,10 +487,14 @@ RubberBandStretcher::Impl::configure()
             m_channelData[c]->resampler =
                 new Resampler(Resampler::FastestTolerable, 1, 4096 * 16);
 
-            m_channelData[c]->resamplebufSize =
+            // rbs is the amount of buffer space we think we'll need
+            // for resampling; but allocate a sensible amount in case
+            // the pitch scale changes during use
+            size_t rbs = 
                 lrintf(ceil((m_increment * m_timeRatio * 2) / m_pitchScale));
-            m_channelData[c]->resamplebuf =
-                new float[m_channelData[c]->resamplebufSize];
+            if (rbs < m_increment * 16) rbs = m_increment * 16;
+            m_channelData[c]->resamplebufSize = rbs;
+            m_channelData[c]->resamplebuf = new float[rbs];
         }
     }
     

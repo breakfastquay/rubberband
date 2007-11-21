@@ -153,7 +153,7 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
     }
 
     if (m_debugLevel > 0) {
-        std::cerr << "total input increment = " << totalInput << " (= " << totalInput / m_increment << " chunks), output = " << totalOutput << ", ratio = " << double(totalOutput)/double(totalInput) << ", ideal output " << ceil(totalInput * ratio) << std::endl;
+        std::cerr << "total input increment = " << totalInput << " (= " << totalInput / m_increment << " chunks), output = " << totalOutput << ", ratio = " << double(totalOutput)/double(totalInput) << ", ideal output " << size_t(ceil(totalInput * ratio)) << std::endl;
         std::cerr << "(region total = " << regionTotalChunks << ")" << std::endl;
     }
 

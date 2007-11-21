@@ -210,10 +210,6 @@ RubberBandStretcher::Impl::ChannelData::setOutbufSize(size_t outbufSize)
         //!!! at this point we need a lock in case a different client
         //thread is calling process()
 
-        //!!! this doesn't do what we want -- we want a locking resize
-        //that preserves the existing data
-//        outbuf->resize(outbufSize);
-
         RingBuffer<float> *newbuf = outbuf->resized(outbufSize);
         delete outbuf;
         outbuf = newbuf;
