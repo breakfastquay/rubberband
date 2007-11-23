@@ -53,6 +53,8 @@ public:
     size_t m_counter;
     size_t m_accumulatedIncrement;
 
+    float **m_outputDump;
+
     FeatureSet processOffline(const float *const *inputBuffers,
                               Vamp::RealTime timestamp);
 
@@ -92,6 +94,12 @@ RubberBandVampPlugin::RubberBandVampPlugin(float inputSampleRate) :
 
 RubberBandVampPlugin::~RubberBandVampPlugin()
 {
+    if (m_d->m_outputDump) {
+        for (size_t i = 0; i < m_d->m_stretcher->getChannelCount(); ++i) {
+            delete[] m_d->m_outputDump[i];
+        }
+        delete[] m_d->m_outputDump;
+    }
     delete m_d->m_stretcher;
     delete m_d;
 }
@@ -403,12 +411,14 @@ RubberBandVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockS
     delete m_d->m_stretcher;
     m_d->m_stretcher = new RubberBand::RubberBandStretcher
         (m_d->m_sampleRate, channels, options);
-    m_d->m_stretcher->setDebugLevel(2);
+    m_d->m_stretcher->setDebugLevel(1);
     m_d->m_stretcher->setTimeRatio(m_d->m_timeRatio);
     m_d->m_stretcher->setPitchScale(m_d->m_pitchRatio);
 
     m_d->m_counter = 0;
     m_d->m_accumulatedIncrement = 0;
+
+    m_d->m_outputDump = 0;
 
     return true;
 }
@@ -509,6 +519,18 @@ RubberBandVampPlugin::Impl::processRealTime(const float *const *inputBuffers,
         (inputIncrement, outputIncrements, phaseResetDf, dummyPoints, smoothedDf, 
          m_counter, false);
     m_counter += outputIncrements.size();
+
+    int available = 0;
+    while ((available = m_stretcher->available()) > 0) {
+        if (!m_outputDump) {
+            m_outputDump = new float *[m_stretcher->getChannelCount()];
+            for (size_t i = 0; i < m_stretcher->getChannelCount(); ++i) {
+                m_outputDump[i] = new float[m_blockSize];
+            }
+        }
+        m_stretcher->retrieve(m_outputDump,
+                              std::min(int(m_blockSize), available));
+    }
 
     return features;
 }
