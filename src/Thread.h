@@ -56,6 +56,7 @@ public:
 
 private:
     pthread_mutex_t m_mutex;
+    bool m_locked;
 };
 
 class MutexLocker
@@ -75,6 +76,7 @@ public:
     ~Condition();
     
     void lock();
+    void unlock();
     void wait(int us = 0);
     void signal();
     

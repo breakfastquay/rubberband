@@ -25,7 +25,6 @@ system_is_multiprocessor()
     static bool tested = false, mp = false;
 
     if (tested) return mp;
-
     
     //...
 

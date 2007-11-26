@@ -1,5 +1,4 @@
 
-* Threading lock structure is very slow if it becomes starved of CPUs
 * Fix "!!!" points
 * LADSPA plugin has too much "artificial latency"
 * LADSPA plugin probably doesn't want to go any higher than about +2 octaves
@@ -7,6 +6,7 @@
 * sweeps & tones
 * ensure default options don't produce garbage at any extreme
 
+DONE * Threading lock structure is very slow if it becomes starved of CPUs
 DONE * Rationalise naming further (e.g. use of "lock" for both peak phases
   and resynchronisation at transients; use of block vs chunk vs frame
   vs window)

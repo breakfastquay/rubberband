@@ -47,19 +47,23 @@ RubberBandStretcher::Impl::ProcessThread::run()
                  << ", readSpace == " << cd.inbuf->getReadSpace() << endl;
         }
         
-        bool last = m_s->processChunks(m_channel);
-
-        m_s->m_spaceAvailable.signal();
+        bool any = false, last = false;
+        m_s->processChunks(m_channel, any, last);
 
         if (last) break;
 
+        if (any) m_s->m_spaceAvailable.signal();
+
         m_s->m_dataAvailable.lock();
-        if (cd.inbuf->getReadSpace() == 0) {
+        if (!m_s->testInbufReadSpace(m_channel)) {
             m_s->m_dataAvailable.wait();
+        } else {
+            m_s->m_dataAvailable.unlock();
         }
     }
 
-    m_s->processChunks(m_channel);
+    bool any = false, last = false;
+    m_s->processChunks(m_channel, any, last);
     m_s->m_spaceAvailable.signal();
     
     if (m_s->m_debugLevel > 1) {
@@ -67,8 +71,8 @@ RubberBandStretcher::Impl::ProcessThread::run()
     }
 }
 
-bool
-RubberBandStretcher::Impl::processChunks(size_t c)
+void
+RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
 {
     // Process as many chunks as there are available on the input
     // buffer for channel c.  This requires that the increments have
@@ -76,11 +80,17 @@ RubberBandStretcher::Impl::processChunks(size_t c)
 
     ChannelData &cd = *m_channelData[c];
 
-    bool last = false;
+    last = false;
+    any = false;
 
     while (!last) {
 
-        if (!testInbufReadSpace(c)) break;
+        if (!testInbufReadSpace(c)) {
+//            cerr << "not enough input" << endl;
+            break;
+        }
+
+        any = true;
 
         if (!cd.draining) {
             size_t got = cd.inbuf->peek(cd.fltbuf, m_windowSize);
@@ -99,8 +109,6 @@ RubberBandStretcher::Impl::processChunks(size_t c)
             cerr << "channel " << c << ": last = " << last << ", chunkCount = " << cd.chunkCount << endl;
         }
     }
-
-    return last;
 }
 
 bool
@@ -840,7 +848,8 @@ RubberBandStretcher::Impl::available() const
 //                    cerr << "calling processChunks(" << c << ") from available" << endl;
                     //!!! do we ever actually do this? if so, this method should not be const
                     // ^^^ yes, we do sometimes -- e.g. when fed a very short file
-                    ((RubberBandStretcher::Impl *)this)->processChunks(c);
+                    bool any = false, last = false;
+                    ((RubberBandStretcher::Impl *)this)->processChunks(c, any, last);
                 }
             }
         }

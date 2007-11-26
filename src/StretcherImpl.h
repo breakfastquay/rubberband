@@ -87,7 +87,7 @@ protected:
     size_t m_channels;
 
     size_t consumeChannel(size_t channel, const float *input, size_t samples);
-    bool processChunks(size_t channel); // returns "last"
+    void processChunks(size_t channel, bool &any, bool &last);
     bool processOneChunk(); // across all channels, for real time use
     bool processChunkForChannel(size_t channel, size_t phaseIncrement,
                                 size_t shiftIncrement, bool phaseReset);

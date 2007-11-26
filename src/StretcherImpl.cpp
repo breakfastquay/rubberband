@@ -945,7 +945,8 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
 //                cerr << "process: happy with channel " << c << endl;
             }
             if (!m_threaded && !m_realtime) {
-                processChunks(c);
+                bool any = false, last = false;
+                processChunks(c, any, last);
             }
         }
 
