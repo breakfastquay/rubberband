@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     int debug = 0;
     bool realtime = false;
     bool precise = false;
-    bool threaded = true;
+    int threading = 0;
     bool peaklock = true;
     bool longwin = false;
     bool shortwin = false;
@@ -83,6 +83,7 @@ int main(int argc, char **argv)
             { "thresh2",       1, 0, '7' },
             { "bl-transients", 0, 0, '8' },
             { "no-softening",  0, 0, '9' },
+            { "threads",       0, 0, '@' },
             { "quiet",         0, 0, 'q' },
             { 0, 0, 0 }
         };
@@ -99,7 +100,8 @@ int main(int argc, char **argv)
         case 'd': debug = atoi(optarg); break;
         case 'R': realtime = true; break;
         case 'P': precise = true; break;
-        case '0': threaded = false; break;
+        case '0': threading = 1; break;
+        case '@': threading = 2; break;
         case '1': transients = NoTransients; break;
         case '2': peaklock = false; break;
         case '3': longwin = true; break;
@@ -143,7 +145,8 @@ int main(int argc, char **argv)
         cerr << endl;
         cerr << "  -P,    --precise        Aim for minimal time distortion (implied by -R)" << endl;
         cerr << "  -R,    --realtime       Select realtime mode (implies -P --no-threads)" << endl;
-        cerr << "         --no-threads     No extra threads regardless of cpus/channel count" << endl;
+        cerr << "         --no-threads     No extra threads regardless of CPU and channel count" << endl;
+        cerr << "         --threads        Assume multi-CPU even if only one CPU is identified" << endl;
         cerr << "         --no-transients  Disable phase resynchronisation at transients" << endl;
         cerr << "         --bl-transients  Band-limit phase resync to extreme frequencies" << endl;
         cerr << "         --no-peaklock    Disable phase locking to peak frequencies" << endl;
@@ -217,9 +220,20 @@ int main(int argc, char **argv)
     if (precise)     options |= RubberBandStretcher::OptionStretchPrecise;
     if (!peaklock)   options |= RubberBandStretcher::OptionPhaseIndependent;
     if (!softening)  options |= RubberBandStretcher::OptionPhasePeakLocked;
-    if (!threaded)   options |= RubberBandStretcher::OptionThreadingNone;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;
+
+    switch (threading) {
+    case 0:
+        options |= RubberBandStretcher::OptionThreadingAuto;
+        break;
+    case 1:
+        options |= RubberBandStretcher::OptionThreadingNever;
+        break;
+    case 2:
+        options |= RubberBandStretcher::OptionThreadingAlways;
+        break;
+    }
 
     switch (transients) {
     case NoTransients:

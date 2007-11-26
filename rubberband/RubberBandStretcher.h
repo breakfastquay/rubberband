@@ -122,10 +122,15 @@ public:
      *
      *   OptionThreadingAuto - Permit the stretcher to determine its
      *   own threading model.  Usually this means using one processing
-     *   thread per audio channel in offline mode, and one thread only
-     *   in realtime mode.
+     *   thread per audio channel in offline mode if the stretcher is
+     *   able to determine that more than one CPU is available, and
+     *   one thread only in realtime mode.
      *
-     *   OptionThreadingNone - Never use more than one thread.
+     *   OptionThreadingNever - Never use more than one thread.
+     *  
+     *   OptionThreadingAlways - Use multiple threads in any situation
+     *   where OptionThreadingAuto would do so, except omit the check
+     *   for multiple CPUs and instead assume it to be true.
      *
      * 6. Options prefixed OptionWindow control the window size for
      * FFT processing.  The window size actually used will depend on
@@ -162,7 +167,8 @@ public:
     static const int OptionPhaseIndependent = 0x00002000;
     
     static const int OptionThreadingAuto    = 0x00000000;
-    static const int OptionThreadingNone    = 0x00010000;
+    static const int OptionThreadingNever   = 0x00010000;
+    static const int OptionThreadingAlways  = 0x00020000;
 
     static const int OptionWindowStandard   = 0x00000000;
     static const int OptionWindowShort      = 0x00100000;

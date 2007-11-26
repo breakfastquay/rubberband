@@ -119,16 +119,19 @@ RubberBandStretcher::Impl::Impl(RubberBandStretcher *stretcher,
 
     if (m_channels > 1) {
 
-        if (!m_realtime &&
-            !(m_options & OptionThreadingNone) &&
-            Thread::threadingAvailable() &&
-            system_is_multiprocessor()) {
+        m_threaded = true;
 
-            m_threaded = true;
-        
-            if (m_debugLevel > 0) {
-                cerr << "Going multithreaded..." << endl;
-            }
+        if (m_realtime) {
+            m_threaded = false;
+        } else if (m_options & OptionThreadingNever) {
+            m_threaded = false;
+        } else if (!(m_options & OptionThreadingAlways) &&
+                   !system_is_multiprocessor()) {
+            m_threaded = false;
+        }
+
+        if (m_threaded && m_debugLevel > 0) {
+            cerr << "Going multithreaded..." << endl;
         }
     }
 
