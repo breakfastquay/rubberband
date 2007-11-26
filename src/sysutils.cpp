@@ -25,13 +25,22 @@ system_is_multiprocessor()
     static bool tested = false, mp = false;
 
     if (tested) return mp;
+    int count = 0;
     
-    //...
+#ifdef __APPLE__
+
+    size_t sz = sizeof(count);
+    if (sysctlbyname("hw.ncpu", &count, &sz, NULL, 0)) {
+        mp = false;
+    } else {
+        mp = (count > 1);
+    }
+
+#else
 
     FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
     if (!cpuinfo) return false;
 
-    int count = 0;
     char buf[256];
     while (!feof(cpuinfo)) {
         fgets(buf, 256, cpuinfo);
@@ -40,10 +49,13 @@ system_is_multiprocessor()
         }
         if (count > 1) break;
     }
-
     fclose(cpuinfo);
-    return (count > 1);
 
+#endif
+
+    mp = (count > 1);
+    tested = true;
+    return mp;
 }
 
 }
