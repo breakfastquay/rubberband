@@ -37,7 +37,6 @@ public:
     bool m_elasticTiming;
     int m_transientMode;
     bool m_phaseIndependent;
-    bool m_threadingAllowed;
     int m_windowLength;
 
     RubberBand::RubberBandStretcher *m_stretcher;
@@ -86,7 +85,6 @@ RubberBandVampPlugin::RubberBandVampPlugin(float inputSampleRate) :
     m_d->m_elasticTiming = true;
     m_d->m_transientMode = 0;
     m_d->m_phaseIndependent = false;
-    m_d->m_threadingAllowed = true;
     m_d->m_windowLength = 0;
     m_d->m_stretcher = 0;
     m_d->m_sampleRate = lrintf(m_inputSampleRate);
@@ -320,20 +318,6 @@ RubberBandVampPlugin::getParameterDescriptors() const
     d.valueNames.push_back("Long");
     list.push_back(d);
 
-    d.identifier = "threadingmode";
-    d.name = "Threading";
-    d.description = ""; //!!!
-    d.unit = "";
-    d.minValue = 0;
-    d.maxValue = 1;
-    d.defaultValue = 0;
-    d.isQuantized = true;
-    d.quantizeStep = 1;
-    d.valueNames.clear();
-    d.valueNames.push_back("Automatic");
-    d.valueNames.push_back("Disabled");
-    list.push_back(d);
-
     return list;
 }
 
@@ -346,7 +330,6 @@ RubberBandVampPlugin::getParameter(std::string id) const
     if (id == "stretchtype") return m_d->m_elasticTiming ? 0 : 1;
     if (id == "transientmode") return m_d->m_transientMode;
     if (id == "phasemode") return m_d->m_phaseIndependent ? 1 : 0;
-    if (id == "threadingmode") return m_d->m_threadingAllowed ? 0 : 1;
     if (id == "windowmode") return m_d->m_windowLength;
     return 0.f;
 }
@@ -364,7 +347,6 @@ RubberBandVampPlugin::setParameter(std::string id, float value)
         else if (id == "stretchtype") m_d->m_elasticTiming = !set;
         else if (id == "transientmode") m_d->m_transientMode = int(value + 0.5);
         else if (id == "phasemode") m_d->m_phaseIndependent = set;
-        else if (id == "threadingmode") m_d->m_threadingAllowed = !set;
         else if (id == "windowmode") m_d->m_windowLength = int(value + 0.5);
     }
 }
@@ -397,10 +379,6 @@ RubberBandVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockS
     if (m_d->m_phaseIndependent) 
          options |= RubberBand::RubberBandStretcher::OptionPhaseIndependent;
     else options |= RubberBand::RubberBandStretcher::OptionPhasePeakLocked;
-
-    if (m_d->m_threadingAllowed)
-         options |= RubberBand::RubberBandStretcher::OptionThreadingAuto;
-    else options |= RubberBand::RubberBandStretcher::OptionThreadingNone;
 
     if (m_d->m_windowLength == 0)
          options |= RubberBand::RubberBandStretcher::OptionWindowStandard;
