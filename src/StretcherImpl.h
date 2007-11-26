@@ -137,21 +137,23 @@ protected:
     Window<float> *m_window;
     FFT *m_studyFFT;
 
-    Condition m_dataAvailable;
     Condition m_spaceAvailable;
     
     class ProcessThread : public Thread
     {
     public:
-        ProcessThread(Impl *s, size_t c) : m_s(s), m_channel(c) { }
+        ProcessThread(Impl *s, size_t c);
         void run();
+        void signalDataAvailable();
     private:
         Impl *m_s;
         size_t m_channel;
+        Condition m_dataAvailable;
     };
 
     mutable Mutex m_threadSetMutex;
-    std::set<ProcessThread *> m_threadSet;
+    typedef std::set<ProcessThread *> ThreadSet;
+    ThreadSet m_threadSet;
     
 
     size_t m_inputDuration;

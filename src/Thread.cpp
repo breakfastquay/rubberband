@@ -25,6 +25,7 @@
 
 using std::cerr;
 using std::endl;
+using std::string;
 
 namespace RubberBand
 {
@@ -164,20 +165,21 @@ Mutex::trylock()
     }
 }
 
-Condition::Condition()
+Condition::Condition(string name) :
+    m_name(name)
 {
     pthread_mutex_init(&m_mutex, 0);
     m_locked = false;
     pthread_cond_init(&m_condition, 0);
 #ifdef DEBUG_CONDITION
-    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Initialised condition " << &m_condition << endl;
+    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Initialised condition " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
 }
 
 Condition::~Condition()
 {
 #ifdef DEBUG_CONDITION
-    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Destroying condition " << &m_condition << endl;
+    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Destroying condition " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
     if (m_locked) pthread_mutex_unlock(&m_mutex);
     pthread_cond_destroy(&m_condition);
@@ -189,17 +191,17 @@ Condition::lock()
 {
     if (m_locked) {
 #ifdef DEBUG_CONDITION
-        cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Already locked " << &m_condition << endl;
+        cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Already locked " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
         return;
     }
 #ifdef DEBUG_CONDITION
-    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Want to lock " << &m_condition << endl;
+    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Want to lock " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
     pthread_mutex_lock(&m_mutex);
     m_locked = true;
 #ifdef DEBUG_CONDITION
-    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Locked " << &m_condition << endl;
+    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Locked " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
 }
 
@@ -208,12 +210,12 @@ Condition::unlock()
 {
     if (!m_locked) {
 #ifdef DEBUG_CONDITION
-        cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Not locked " << &m_condition << endl;
+        cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Not locked " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
         return;
     }
 #ifdef DEBUG_CONDITION
-    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Unlocking " << &m_condition << endl;
+    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Unlocking " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
     m_locked = false;
     pthread_mutex_unlock(&m_mutex);
@@ -222,11 +224,12 @@ Condition::unlock()
 void 
 Condition::wait(int us)
 {
-    lock();
+    if (!m_locked) lock();
+
     if (us == 0) {
 
 #ifdef DEBUG_CONDITION
-        cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Waiting on " << &m_condition << endl;
+        cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Waiting on " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
         pthread_cond_wait(&m_condition, &m_mutex);
 
@@ -246,13 +249,13 @@ Condition::wait(int us)
         timeout.tv_nsec = now.tv_usec * 1000;
     
 #ifdef DEBUG_CONDITION
-        cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Timed waiting on " << &m_condition << endl;
+        cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Timed waiting on " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
         pthread_cond_timedwait(&m_condition, &m_mutex, &timeout);
     }
 
 #ifdef DEBUG_CONDITION
-    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Wait done on " << &m_condition << endl;
+    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Wait done on " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
     pthread_mutex_unlock(&m_mutex);
     m_locked = false;
@@ -262,7 +265,7 @@ void
 Condition::signal()
 {
 #ifdef DEBUG_CONDITION
-    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Signalling " << &m_condition << endl;
+    cerr << "CONDITION DEBUG: " << (void *)pthread_self() << ": Signalling " << &m_condition << " \"" << m_name << "\"" << endl;
 #endif
     pthread_cond_signal(&m_condition);
 }

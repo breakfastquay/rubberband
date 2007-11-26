@@ -30,6 +30,12 @@ using std::endl;
 
 namespace RubberBand {
 
+RubberBandStretcher::Impl::ProcessThread::ProcessThread(Impl *s, size_t c) :
+    m_s(s),
+    m_channel(c),
+    m_dataAvailable(std::string("data ") + char('A' + c))
+{ }
+
 void
 RubberBandStretcher::Impl::ProcessThread::run()
 {
@@ -54,11 +60,11 @@ RubberBandStretcher::Impl::ProcessThread::run()
 
         if (any) m_s->m_spaceAvailable.signal();
 
-        m_s->m_dataAvailable.lock();
+        m_dataAvailable.lock();
         if (!m_s->testInbufReadSpace(m_channel)) {
-            m_s->m_dataAvailable.wait(500);
+            m_dataAvailable.wait();
         } else {
-            m_s->m_dataAvailable.unlock();
+            m_dataAvailable.unlock();
         }
     }
 
@@ -69,6 +75,12 @@ RubberBandStretcher::Impl::ProcessThread::run()
     if (m_s->m_debugLevel > 1) {
         cerr << "thread " << m_channel << " done" << endl;
     }
+}
+
+void
+RubberBandStretcher::Impl::ProcessThread::signalDataAvailable()
+{
+    m_dataAvailable.signal();
 }
 
 void

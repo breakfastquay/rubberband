@@ -17,6 +17,8 @@
 
 #include <pthread.h>
 
+#include <string>
+
 namespace RubberBand
 {
 
@@ -72,7 +74,7 @@ private:
 class Condition
 {
 public:
-    Condition();
+    Condition(std::string name);
     ~Condition();
     
     void lock();
@@ -84,6 +86,7 @@ private:
     pthread_mutex_t m_mutex;
     bool m_locked;
     pthread_cond_t m_condition;
+    std::string m_name;
 };
 
 }

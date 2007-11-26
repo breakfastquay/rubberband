@@ -67,6 +67,7 @@ RubberBandStretcher::Impl::Impl(RubberBandStretcher *stretcher,
     m_mode(JustCreated),
     m_window(0),
     m_studyFFT(0),
+    m_spaceAvailable("space"),
     m_inputDuration(0),
     m_lastProcessOutputIncrements(16),
     m_lastProcessPhaseResetDf(16),
@@ -962,12 +963,12 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
         }
 
         if (m_threaded) {
-            m_dataAvailable.signal();
-            m_spaceAvailable.lock();
+            for (ThreadSet::iterator i = m_threadSet.begin();
+                 i != m_threadSet.end(); ++i) {
+                (*i)->signalDataAvailable();
+            }
             if (!allConsumed) {
                 m_spaceAvailable.wait(500);
-            } else {
-                m_spaceAvailable.unlock();
             }
 /*
         } else {
