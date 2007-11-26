@@ -56,7 +56,7 @@ RubberBandStretcher::Impl::ProcessThread::run()
 
         m_s->m_dataAvailable.lock();
         if (!m_s->testInbufReadSpace(m_channel)) {
-            m_s->m_dataAvailable.wait();
+            m_s->m_dataAvailable.wait(500);
         } else {
             m_s->m_dataAvailable.unlock();
         }

@@ -966,6 +966,8 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
             m_spaceAvailable.lock();
             if (!allConsumed) {
                 m_spaceAvailable.wait(500);
+            } else {
+                m_spaceAvailable.unlock();
             }
 /*
         } else {

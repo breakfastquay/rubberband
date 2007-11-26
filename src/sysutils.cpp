@@ -14,12 +14,15 @@
 
 #include "sysutils.h"
 
-#include <stdio.h>
-#include <string.h>
-
+#ifdef _WIN32
+#else /* !_WIN32 */
 #ifdef __APPLE__
 #include <sys/sysctl.h>
-#endif
+#else /* !__APPLE__, !_WIN32 */
+#include <stdio.h>
+#include <string.h>
+#endif /* !__APPLE__, !_WIN32 */
+#endif /* !_WIN32 */
 
 namespace RubberBand {
 
@@ -30,9 +33,14 @@ system_is_multiprocessor()
 
     if (tested) return mp;
     int count = 0;
-    
-#ifdef __APPLE__
 
+#ifdef _WIN32
+
+    //...
+
+#else /* !_WIN32 */
+#ifdef __APPLE__
+    
     size_t sz = sizeof(count);
     if (sysctlbyname("hw.ncpu", &count, &sz, NULL, 0)) {
         mp = false;
@@ -40,7 +48,9 @@ system_is_multiprocessor()
         mp = (count > 1);
     }
 
-#else
+#else /* !__APPLE__, !_WIN32 */
+    
+    //...
 
     FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
     if (!cpuinfo) return false;
@@ -53,9 +63,11 @@ system_is_multiprocessor()
         }
         if (count > 1) break;
     }
+
     fclose(cpuinfo);
 
-#endif
+#endif /* !__APPLE__, !_WIN32 */
+#endif /* !_WIN32 */
 
     mp = (count > 1);
     tested = true;
