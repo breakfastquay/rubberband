@@ -17,6 +17,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#endif
+
 namespace RubberBand {
 
 bool
