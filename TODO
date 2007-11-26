@@ -1,5 +1,6 @@
 
 * Fix "!!!" points
+* Add and test Win32 threading primitives in Thread.cpp
 * LADSPA plugin has too much "artificial latency"
 * LADSPA plugin probably doesn't want to go any higher than about +2 octaves
 * implement+test, or remove, reset()
@@ -16,14 +17,4 @@ DONE * save/restore FFTW wisdom if using FFTW
 DONE * Sort out resynthesis gain
 DONE * LADSPA plugin could do with switches for transient/phaselock
 DONE * Solve "for very long stretches" issue in calculateSizes()
-
-DONE Rejig crispness options:
-
-0 - no transients, no peak lock, long window
-1 - no transients, no peak lock, normal window
-2 - no transients, peak lock, normal window
-3 - band-limited transients, peak lock, normal window
-[NO] 4 - transients, no peak lock, normal window  * - is this a good option to have?
-5 - transients, peak lock, normal window
-6 - transients, no peak lock, short window
-
+DONE * Rejig crispness options
