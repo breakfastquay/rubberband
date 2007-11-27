@@ -52,6 +52,24 @@ public:
 
 
 
+// Remove this define to make float FFTs be carried out using fftwf_*
+// functions instead of converting to doubles and using fftw_*.  
+#define FFTW_DOUBLE_ONLY 1
+
+#ifdef FFTW_DOUBLE_ONLY
+#define fftwf_complex fftw_complex
+#define fftwf_plan fftw_plan
+#define fftwf_plan_dft_r2c_1d fftw_plan_dft_r2c_1d
+#define fftwf_plan_dft_c2r_1d fftw_plan_dft_c2r_1d
+#define fftwf_destroy_plan fftw_destroy_plan
+#define fftwf_free fftw_free
+#define fftwf_execute fftw_execute
+#define atan2f atan2
+#define sqrtf sqrt
+#define cosf cos
+#define sinf sin
+#endif
+
 class D_FFTW : public FFTImpl
 {
 public:
@@ -90,7 +108,11 @@ public:
         if (m_extantf++ == 0) load = true;
         m_extantMutex.unlock();
         if (load) loadWisdom('f');
+#ifdef FFTW_DOUBLE_ONLY
+        m_fbuf = (double *)fftw_malloc(m_size * sizeof(double));
+#else
         m_fbuf = (float *)fftw_malloc(m_size * sizeof(float));
+#endif
         m_fpacked = (fftwf_complex *)fftw_malloc
             ((m_size/2 + 1) * sizeof(fftwf_complex));
         m_fplanf = fftwf_plan_dft_r2c_1d
@@ -120,6 +142,10 @@ public:
 
     void wisdom(bool save, char type) {
 
+#ifdef FFTW_DOUBLE_ONLY
+        if (type == 'f') return;
+#endif
+
         const char *home = getenv("HOME");
         if (!home) return;
 
@@ -131,13 +157,18 @@ public:
 
         if (save) {
             switch (type) {
+#ifndef FFTW_DOUBLE_ONLY
             case 'f': fftwf_export_wisdom_to_file(f); break;
             case 'd': fftw_export_wisdom_to_file(f); break;
+            default: break;
             }
         } else {
             switch (type) {
+#ifndef FFTW_DOUBLE_ONLY
             case 'f': fftwf_import_wisdom_from_file(f); break;
+#endif
             case 'd': fftw_import_wisdom_from_file(f); break;
+            default: break;
             }
         }
 
@@ -283,15 +314,19 @@ public:
     }
 
 private:
-    unsigned int m_size;
     fftwf_plan m_fplanf;
     fftwf_plan m_fplani;
+#ifdef FFTW_DOUBLE_ONLY
+    double *m_fbuf;
+#else
+    float *m_fbuf;
+#endif
+    fftwf_complex *m_fpacked;
     fftw_plan m_dplanf;
     fftw_plan m_dplani;
-    float *m_fbuf;
-    fftwf_complex *m_fpacked;
     double *m_dbuf;
     fftw_complex *m_dpacked;
+    unsigned int m_size;
     static unsigned int m_extantf;
     static unsigned int m_extantd;
     static Mutex m_extantMutex;
@@ -306,6 +341,7 @@ D_FFTW::m_extantd = 0;
 Mutex
 D_FFTW::m_extantMutex;
 
+#endif
 
 class D_Cross : public FFTImpl
 {

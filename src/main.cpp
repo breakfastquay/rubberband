@@ -268,6 +268,8 @@ int main(int argc, char **argv)
     int frame = 0;
     int percent = 0;
 
+    sf_seek(sndfile, 0, SEEK_SET);
+
     if (!realtime) {
 
         if (!quiet) {
@@ -278,7 +280,6 @@ int main(int argc, char **argv)
 
             int count = -1;
 
-            if (sf_seek(sndfile, frame, SEEK_SET) < 0) break;
             if ((count = sf_readf_float(sndfile, fbuf, ibs)) <= 0) break;
         
             for (size_t c = 0; c < channels; ++c) {
@@ -306,6 +307,8 @@ int main(int argc, char **argv)
         if (!quiet) {
             cerr << "\rCalculating profile..." << endl;
         }
+
+        sf_seek(sndfile, 0, SEEK_SET);
     }
 
     frame = 0;
@@ -321,7 +324,6 @@ int main(int argc, char **argv)
 
         int count = -1;
 
-	if (sf_seek(sndfile, frame, SEEK_SET) < 0) break;
 	if ((count = sf_readf_float(sndfile, fbuf, ibs)) < 0) break;
         
         countIn += count;
@@ -446,7 +448,7 @@ int main(int argc, char **argv)
 
         struct timeval etv;
         (void)gettimeofday(&etv, 0);
-
+        
         etv.tv_sec -= tv.tv_sec;
         if (etv.tv_usec < tv.tv_usec) {
             etv.tv_usec += 1000000;

@@ -385,6 +385,13 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
 //        std::cout << "out chunk: " << chunk << std::endl;
         m_outputBuffer[c]->read(m_output[c], chunk);
     }
+
+    static int minr = -1;
+    int avail = m_outputBuffer[0]->getReadSpace();
+    if (minr == -1 || (avail >= 0 && avail < minr)) {
+        std::cerr << "RubberBandPitchShifter::runImpl: new min remaining " << avail << " from " << minr << std::endl;
+        minr = avail;
+    }
 }
 
 void

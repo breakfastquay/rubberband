@@ -1,23 +1,26 @@
 
-all:	bin lib bin/rubberband lib/librubberband.a lib/vamp-rubberband.so lib/ladspa-rubberband.so
+CXX		:= @CXX@
+CXXFLAGS	:= @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @Vamp_CFLAGS@ -Irubberband -Isrc $(CXXFLAGS)
+LDFLAGS		:= @LDFLAGS@ -lpthread $(LDFLAGS)
 
-CXX		= @CXX@
-CXXFLAGS	= @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @FFTWF_CFLAGS@ @Vamp_CFLAGS@ -Irubberband -Isrc
-LDFLAGS		= @LDFLAGS@ 
+LIBRARY_LIBS		:= @SRC_LIBS@ @FFTW_LIBS@ 
+PROGRAM_LIBS		:= @SNDFILE_LIBS@ $(LIBRARY_LIBS)
+VAMP_PLUGIN_LIBS	:= @Vamp_LIBS@ $(LIBRARY_LIBS)
+LADSPA_PLUGIN_LIBS	:= $(LIBRARY_LIBS)
 
-LIBRARY_LIBS		= @SRC_LIBS@ @FFTW_LIBS@ @FFTWF_LIBS@
-PROGRAM_LIBS		= @SNDFILE_LIBS@ $(LIBRARY_LIBS)
-VAMP_PLUGIN_LIBS	= @Vamp_LIBS@ $(LIBRARY_LIBS)
-LADSPA_PLUGIN_LIBS	= $(LIBRARY_LIBS)
+MKDIR			:= mkdir
+AR			:= ar
 
-MKDIR		= mkdir
-AR		= ar
+DYNAMIC_LDFLAGS		:= -shared -Wl,-Bsymbolic
+DYNAMIC_EXTENSION	:= .so
 
-PROGRAM_TARGET := bin/rubberband
-STATIC_TARGET  := lib/librubberband.a
-DYNAMIC_TARGET := lib/librubberband.so
-VAMP_TARGET    := lib/vamp-rubberband.so
-LADSPA_TARGET  := lib/ladspa-rubberband.so
+PROGRAM_TARGET 		:= bin/rubberband
+STATIC_TARGET  		:= lib/librubberband.a
+DYNAMIC_TARGET 		:= lib/librubberband$(DYNAMIC_EXTENSION)
+VAMP_TARGET    		:= lib/vamp-rubberband$(DYNAMIC_EXTENSION)
+LADSPA_TARGET  		:= lib/ladspa-rubberband$(DYNAMIC_EXTENSION)
+
+all:	bin lib $(PROGRAM_TARGET) $(STATIC_TARGET) $(DYNAMIC_TARGET) $(VAMP_TARGET) $(LADSPA_TARGET)
 
 PUBLIC_INCLUDES := \
 	rubberband/TimeStretcher.h \
@@ -83,13 +86,13 @@ $(STATIC_TARGET):	$(LIBRARY_OBJECTS)
 	$(AR) rsc $@ $^
 
 $(DYNAMIC_TARGET):	$(LIBRARY_OBJECTS)
-	$(CXX) -shared -Wl,-Bsymbolic $^ -o $@ $(LIBRARY_LIBS) $(LDFLAGS)
+	$(CXX) $(DYNAMIC_LDFLAGS) $^ -o $@ $(LIBRARY_LIBS) $(LDFLAGS)
 
 $(VAMP_TARGET):		$(LIBRARY_OBJECTS) $(VAMP_OBJECTS)
-	$(CXX) -shared -Wl,-Bsymbolic -o $@ $^ $(VAMP_PLUGIN_LIBS) $(LDFLAGS)
+	$(CXX) $(DYNAMIC_LDFLAGS) -o $@ $^ $(VAMP_PLUGIN_LIBS) $(LDFLAGS)
 
 $(LADSPA_TARGET):	$(LIBRARY_OBJECTS) $(LADSPA_OBJECTS)
-	$(CXX) -shared -Wl,-Bsymbolic -o $@ $^ $(LADSPA_PLUGIN_LIBS) $(LDFLAGS)
+	$(CXX) $(DYNAMIC_LDFLAGS) -o $@ $^ $(LADSPA_PLUGIN_LIBS) $(LDFLAGS)
 
 bin:
 	$(MKDIR) $@
