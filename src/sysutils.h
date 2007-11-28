@@ -19,6 +19,12 @@ namespace RubberBand {
 
 extern bool system_is_multiprocessor();
 
+#ifdef _WIN32
+struct timeval { long tv_sec; long tv_usec; };
+void gettimeofday(struct timeval *p, void *tz);
+void usleep(unsigned long);
+#endif
+
 }
 
 #endif

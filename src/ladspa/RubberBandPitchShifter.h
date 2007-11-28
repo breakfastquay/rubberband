@@ -15,7 +15,7 @@
 #ifndef _RUBBERBAND_PITCH_SHIFTER_H_
 #define _RUBBERBAND_PITCH_SHIFTER_H_
 
-#include <ladspa.h>
+#include "ladspa.h"
 
 #include "RingBuffer.h"
 

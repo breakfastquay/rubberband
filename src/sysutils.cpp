@@ -15,6 +15,7 @@
 #include "sysutils.h"
 
 #ifdef _WIN32
+#include <windows.h>
 #else /* !_WIN32 */
 #ifdef __APPLE__
 #include <sys/sysctl.h>
@@ -23,6 +24,8 @@
 #include <string.h>
 #endif /* !__APPLE__, !_WIN32 */
 #endif /* !_WIN32 */
+
+#include <iostream>
 
 namespace RubberBand {
 
@@ -36,7 +39,9 @@ system_is_multiprocessor()
 
 #ifdef _WIN32
 
-    //...
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    count = sysinfo.dwNumberOfProcessors;
 
 #else /* !_WIN32 */
 #ifdef __APPLE__
@@ -73,6 +78,27 @@ system_is_multiprocessor()
     tested = true;
     return mp;
 }
+
+#ifdef _WIN32
+
+void gettimeofday(struct timeval *tv, void *tz)
+{
+    union { 
+	long long ns100;  
+	FILETIME ft; 
+    } now; 
+    
+    ::GetSystemTimeAsFileTime(&now.ft); 
+    tv->tv_usec = (long)((now.ns100 / 10LL) % 1000000LL); 
+    tv->tv_sec = (long)((now.ns100 - 116444736000000000LL) / 10000000LL); 
+}
+
+void usleep(unsigned long usec)
+{
+    ::Sleep(usec == 0 ? 0 : usec < 1000 ? 1 : usec / 1000);
+}
+
+#endif
 
 }
 

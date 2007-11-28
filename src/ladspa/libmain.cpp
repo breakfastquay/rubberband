@@ -12,8 +12,6 @@
     COPYING included with this distribution for more information.
 */
 
-#include <ladspa.h>
-
 #include "RubberBandPitchShifter.h"
 
 #include <stdio.h>

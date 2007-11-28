@@ -157,14 +157,19 @@ public:
 
         if (save) {
             switch (type) {
-#ifndef FFTW_DOUBLE_ONLY
+#ifdef FFTW_DOUBLE_ONLY
+            case 'f': break;
+#else
             case 'f': fftwf_export_wisdom_to_file(f); break;
+#endif
             case 'd': fftw_export_wisdom_to_file(f); break;
             default: break;
             }
         } else {
             switch (type) {
-#ifndef FFTW_DOUBLE_ONLY
+#ifdef FFTW_DOUBLE_ONLY
+            case 'f': break;
+#else
             case 'f': fftwf_import_wisdom_from_file(f); break;
 #endif
             case 'd': fftw_import_wisdom_from_file(f); break;
@@ -341,7 +346,6 @@ D_FFTW::m_extantd = 0;
 Mutex
 D_FFTW::m_extantMutex;
 
-#endif
 
 class D_Cross : public FFTImpl
 {
@@ -613,8 +617,8 @@ FFT::FFT(unsigned int size)
         break;
 
     default:
-//        std::cerr << "FFT::FFT(" << size << "): using built-in implementation"
-//                  << std::endl;
+        std::cerr << "FFT::FFT(" << size << "): WARNING: using slow built-in implementation"
+                  << std::endl;
         d = new D_Cross(size);
         break;
     }

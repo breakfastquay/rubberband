@@ -16,14 +16,22 @@
 #define _RUBBERBAND_RINGBUFFER_H_
 
 #include <sys/types.h>
+
+#ifndef _WIN32
 #include <sys/mman.h>
+#endif
 
 #include "Scavenger.h"
 
 //#define DEBUG_RINGBUFFER 1
 
+#ifdef _WIN32
+#define MLOCK(a,b) 1
+#define MUNLOCK(a,b) 1
+#else
 #define MLOCK(a,b) ::mlock(a,b)
 #define MUNLOCK(a,b) ::munlock(a,b)
+#endif
 
 #ifdef DEBUG_RINGBUFFER
 #include <iostream>

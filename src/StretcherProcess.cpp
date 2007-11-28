@@ -242,7 +242,7 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         if (m_debugLevel > 2) {
             if (phaseReset) {
                 for (int i = 0; i < 10; ++i) {
-                    cd.accumulator[i] = ((drand48() * 2 - 1.0) > 0 ? 1 : -1);
+                    cd.accumulator[i] = 1.2f - (i % 3) * 1.2f;
                 }
             }
         }

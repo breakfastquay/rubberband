@@ -19,6 +19,7 @@
 #include <cmath>
 #include <sys/time.h>
 #include <time.h>
+#include "sysutils.h"
 
 #include <getopt.h>
 
@@ -27,6 +28,11 @@
 
 using namespace std;
 using namespace RubberBand;
+
+#ifdef _WIN32
+using RubberBand::gettimeofday;
+using RubberBand::usleep;
+#endif
 
 int main(int argc, char **argv)
 {
@@ -251,7 +257,10 @@ int main(int argc, char **argv)
         frequencyshift *= pow(2.0, pitchshift / 12);
     }
 
-    struct timeval tv;
+#ifdef _WIN32
+    RubberBand::
+#endif
+    timeval tv;
     (void)gettimeofday(&tv, 0);
 
     RubberBandStretcher::setDefaultDebugLevel(debug);
@@ -446,7 +455,10 @@ int main(int argc, char **argv)
         cerr << "input peak: " << inpeak << "; output peak " << outpeak << "; gain " << (inpeak > 0 ? outpeak/inpeak : 1) << endl;
         cerr << "input rms: " << inmean << "; output rms " << outmean << "; gain " << (inmean > 0 ? outmean/inmean : 1) << endl;
 
-        struct timeval etv;
+#ifdef _WIN32
+        RubberBand::
+#endif
+        timeval etv;
         (void)gettimeofday(&etv, 0);
         
         etv.tv_sec -= tv.tv_sec;
