@@ -179,7 +179,7 @@ public:
                                               OptionPhaseIndependent;
 
     /**
-     * Construct a time-and-pitch-scaling object to run at the given
+     * Construct a time and pitch stretcher object to run at the given
      * sample rate, with the given number of channels.  Processing
      * options and the time and pitch scaling ratios may be provided.
      * The time and pitch ratios may be changed after construction,
@@ -192,35 +192,199 @@ public:
                         double initialTimeRatio = 1.0,
                         double initialPitchScale = 1.0);
     virtual ~RubberBandStretcher();
-    
+
+    /**
+     * Reset the stretcher's internal buffers.  The stretcher should
+     * subsequently behave as if it had just been constructed
+     * (although retaining the current time and pitch ratio).
+     */
     virtual void reset();
+
+    /**
+     * Set the time ratio for the stretcher.  This is the ratio of
+     * stretched to unstretched duration -- not tempo.  For example, a
+     * ratio of 2.0 would make the audio twice as long (i.e. halve the
+     * tempo); 0.5 would make it half as long (i.e. double the tempo);
+     * 1.0 would leave the duration unaffected.
+     *
+     * If the stretcher was constructed in Offline mode, the time
+     * ratio is fixed throughout operation; this function may be
+     * called any number of times between construction (or a call to
+     * reset()) and the first call to study() or process(), but may
+     * not be called after study() or process() has been called.
+     *
+     * If the stretcher was constructed in RealTime mode, the time
+     * ratio may be varied during operation; this function may be
+     * called at any time, so long as it is not called concurrently
+     * with process().  You should either call this function from the
+     * same thread as process(), or provide your own mutex or similar
+     * mechanism to ensure that setTimeRatio and process() cannot be
+     * run at once (there is no internal mutex for this purpose).
+     */
     virtual void setTimeRatio(double ratio);
+
+    /**
+     * Set the pitch scaling ratio for the stretcher.  This is the
+     * ratio of target frequency to source frequency.  For example, a
+     * ratio of 2.0 would shift up by one octave; 0.5 down by one
+     * octave; or 1.0 leave the pitch unaffected.
+     *
+     * To put this in musical terms, a pitch scaling ratio
+     * corresponding to a shift of S equal-tempered semitones (where S
+     * is positive for an upwards shift and negative for downwards) is
+     * pow(2.0, S / 12.0).
+     *
+     * If the stretcher was constructed in Offline mode, the pitch
+     * scaling ratio is fixed throughout operation; this function may
+     * be called any number of times between construction (or a call
+     * to reset()) and the first call to study() or process(), but may
+     * not be called after study() or process() has been called.
+     *
+     * If the stretcher was constructed in RealTime mode, the pitch
+     * scaling ratio may be varied during operation; this function may
+     * be called at any time, so long as it is not called concurrently
+     * with process().  You should either call this function from the
+     * same thread as process(), or provide your own mutex or similar
+     * mechanism to ensure that setPitchScale and process() cannot be
+     * run at once (there is no internal mutex for this purpose).
+     */
     virtual void setPitchScale(double scale);
 
+    /**
+     * Return the last time ratio value that was set (either on
+     * construction or with setTimeRatio()).
+     */
     virtual double getTimeRatio() const;
+
+    /**
+     * Return the last pitch scaling ratio value that was set (either
+     * on construction or with setPitchScale()).
+     */
     virtual double getPitchScale() const;
 
+    /**
+     * Return the processing latency of the stretcher.  This is the
+     * number of audio samples that one would have to discard at the
+     * start of the output in order to ensure that the resulting audio
+     * aligned with the input audio at the start.  In Offline mode,
+     * latency is automatically adjusted for and the result is zero.
+     * In RealTime mode, the latency may depend on the time and pitch
+     * ratio and other options.
+     */
     virtual size_t getLatency() const;
 
+    /**
+     * Change an OptionTransients configuration setting.  This may be
+     * called at any time in RealTime mode.  It may not be called in
+     * Offline mode (for which the transients option is fixed on
+     * construction).
+     */
     virtual void setTransientsOption(Options options);
+
+    /**
+     * Change an OptionPhase configuration setting.  This may be
+     * called at any time in any mode.
+     *
+     * Note that if running multi-threaded in Offline mode, the change
+     * may not take effect immediately if processing is already under
+     * way when this function is called.
+     */
     virtual void setPhaseOption(Options options);
 
+    /**
+     * Tell the stretcher exactly how many input samples it will
+     * receive.  This is only useful in Offline mode, when it allows
+     * the stretcher to ensure that the number of output samples is
+     * exactly correct.  In RealTime mode no such guarantee is
+     * possible and this value is ignored.
+     */
     virtual void setExpectedInputDuration(size_t samples);
-    virtual void setMaxProcessSize(size_t samples);
-    virtual size_t getSamplesRequired() const;
 
-    // if samples == 0, input may be null
+    /**
+     * Ask the stretcher how many audio sample frames should be
+     * provided as input in order to ensure that some more output
+     * becomes available.  Normal usage consists of querying this
+     * function, providing that number of samples to process(),
+     * reading the output using available() and retrieve(), and then
+     * repeating.
+     *
+     * Note that this value is only relevant to process(), not to
+     * study() (to which you may pass any number of samples at a time,
+     * and from which there is no output).
+     */
+     virtual size_t getSamplesRequired() const;
+
+    /**
+     * Tell the stretcher the maximum number of sample frames that you
+     * will ever be passing in to a single process() call. If you
+     * don't call this function, the stretcher will assume that you
+     * never pass in more samples than getSamplesRequired() suggested
+     * you should.  You should not pass in more samples than that
+     * unless you have called setMaxProcessSize first.
+     *
+     * This function may not be called after the first call to study()
+     * or process().
+     *
+     * Note that this value is only relevant to process(), not to
+     * study() (to which you may pass any number of samples at a time,
+     * and from which there is no output).
+     */
+    virtual void setMaxProcessSize(size_t samples);
+
+    /**
+     * Provide a block of "samples" sample frames for the stretcher to
+     * study and calculate a stretch profile from.
+     *
+     * This is only meaningful in Offline mode, and is required if
+     * running in that mode.  You should pass the entire input through
+     * study() before any process() calls are made, as a sequence of
+     * blocks in individual study() calls, or as a single large block.
+     *
+     * "input" should point to de-interleaved audio data with one
+     * float array per channel.  "samples" supplies the number of
+     * audio sample frames available in "input".  If "samples" is
+     * zero, "input" may be NULL.
+     * 
+     * Set "final" to true if this is the last block of data that will
+     * be provided to study() before the first process() call.
+     */
     virtual void study(const float *const *input, size_t samples, bool final);
+
+    /**
+     * Provide a block of "samples" sample frames for processing.
+     * See also getSamplesRequired() and setMaxProcessSize().
+     *
+     * Set "final" to true if this is the last block of input data.
+     */
     virtual void process(const float *const *input, size_t samples, bool final);
 
-    virtual int available() const; // returns -1 if all data processed and nothing further will be available
+    /**
+     * Ask the stretcher how many audio sample frames of output data
+     * are available for reading (via retrieve()).
+     * 
+     * This function returns 0 if no frames are available: this
+     * usually means more input data needs to be provided, but if the
+     * stretcher is running in threaded mode it may just mean that not
+     * enough data has yet been processed.  Call getSamplesRequired()
+     * to discover whether more input is needed.
+     *
+     * This function returns -1 if all data has been fully processed
+     * and all output read, and the stretch process is now finished.
+     */
+    virtual int available() const;
+
+    /**
+     * Obtain some processed output data from the stretcher.  Up to
+     * "samples" samples will be stored in the output arrays (one per
+     * channel for de-interleaved audio data) pointed to by "output".
+     * The return value is the actual number of sample frames
+     * retrieved.
+     */
     virtual size_t retrieve(float *const *output, size_t samples) const;
 
     virtual float getFrequencyCutoff(int n) const;
     virtual void setFrequencyCutoff(int n, float f);
     
-    //!!! ideally, this stuff wouldn't be here...
-
     virtual size_t getInputIncrement() const;
     virtual std::vector<int> getOutputIncrements() const; //!!! document particular meaning in RT mode
     virtual std::vector<float> getPhaseResetCurve() const; //!!! document particular meaning in RT mode

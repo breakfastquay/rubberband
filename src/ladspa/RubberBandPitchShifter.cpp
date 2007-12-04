@@ -338,7 +338,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
 
     float *ptrs[2];
 
-    //!!! We have to break up the input into chunks like this because
+    // We have to break up the input into chunks like this because
     // insamples could be arbitrarily large 
 
     while (processed < samples) {
