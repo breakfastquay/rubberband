@@ -20,6 +20,13 @@ DYNAMIC_TARGET 		:= lib/librubberband$(DYNAMIC_EXTENSION)
 VAMP_TARGET    		:= lib/vamp-rubberband$(DYNAMIC_EXTENSION)
 LADSPA_TARGET  		:= lib/ladspa-rubberband$(DYNAMIC_EXTENSION)
 
+INSTALL_BINDIR		:= @prefix@/bin
+INSTALL_INCDIR		:= @prefix@/include/rubberband
+INSTALL_LIBDIR		:= @prefix@/lib
+INSTALL_VAMPDIR		:= @prefix@/lib/vamp
+INSTALL_LADSPADIR	:= @prefix@/lib/ladspa
+INSTALL_PKGDIR		:= @prefix@/lib/pkgconfig
+
 all:	bin lib $(PROGRAM_TARGET) $(STATIC_TARGET) $(DYNAMIC_TARGET) $(VAMP_TARGET) $(LADSPA_TARGET)
 
 PUBLIC_INCLUDES := \
@@ -98,6 +105,23 @@ bin:
 	$(MKDIR) $@
 lib:
 	$(MKDIR) $@
+
+install:	all
+	$(MKDIR) -p $(INSTALL_BINDIR)
+	$(MKDIR) -p $(INSTALL_INCDIR)
+	$(MKDIR) -p $(INSTALL_LIBDIR)
+	$(MKDIR) -p $(INSTALL_VAMPDIR)
+	$(MKDIR) -p $(INSTALL_LADSPADIR)
+	cp $(PROGRAM_TARGET) $(INSTALL_BINDIR)
+	cp $(PUBLIC_INCLUDES) $(INSTALL_INCDIR)
+	cp $(STATIC_TARGET) $(INSTALL_LIBDIR)
+	cp $(DYNAMIC_TARGET) $(INSTALL_LIBDIR)
+	cp $(VAMP_TARGET) $(INSTALL_VAMPDIR)
+	cp src/vamp/vamp-rubberband.cat $(INSTALL_VAMPDIR)
+	cp $(LADSPA_TARGET) $(INSTALL_LADSPADIR)
+	cp src/ladspa/ladspa-rubberband.cat $(INSTALL_LADSPADIR)
+	sed "s,%PREFIX%,@prefix@," rubberband.pc.in \
+	  > $(INSTALL_PKGDIR)/rubberband.pc
 
 clean:
 	rm -f $(LIBRARY_OBJECTS) $(PROGRAM_OBJECTS) $(LADSPA_OBJECTS) $(VAMP_OBJECTS)
