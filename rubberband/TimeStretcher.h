@@ -20,6 +20,12 @@
 namespace RubberBand
 {
 
+/**
+ * Base class for time stretchers.  RubberBand currently provides only
+ * a single subclass implementation.
+ *
+ * @see RubberBandStretcher
+ */
 class TimeStretcher
 {
 public:
@@ -32,10 +38,11 @@ public:
 
     virtual void reset() = 0;
     virtual void setTimeRatio(double ratio) = 0;
+    virtual void setPitchScale(double scale) = 0;
     virtual size_t getLatency() const = 0;
 
     virtual void study(const float *const *input, size_t samples, bool final) = 0;
-    virtual size_t getSamplesRequired() const = 0; // to cause processing to happen
+    virtual size_t getSamplesRequired() const = 0;
     virtual void process(const float *const *input, size_t samples, bool final) = 0;
     virtual int available() const = 0;
     virtual size_t retrieve(float *const *output, size_t samples) const = 0;
