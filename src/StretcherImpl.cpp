@@ -424,8 +424,8 @@ RubberBandStretcher::Impl::calculateSizes()
 void
 RubberBandStretcher::Impl::configure()
 {
-    std::cerr << "configure[" << this << "]: realtime = " << m_realtime << ", pitch scale = "
-              << m_pitchScale << ", channels = " << m_channels << std::endl;
+//    std::cerr << "configure[" << this << "]: realtime = " << m_realtime << ", pitch scale = "
+//              << m_pitchScale << ", channels = " << m_channels << std::endl;
 
     size_t prevWindowSize = m_windowSize;
     size_t prevOutbufSize = m_outbufSize;
