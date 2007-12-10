@@ -92,7 +92,7 @@ public:
     float *windowAccumulator;
 
     float *fltbuf;
-    double *dblbuf;
+    double *dblbuf; // owned by FFT object, only used for time domain FFT i/o
 
     size_t prevIncrement; // only used in RT mode
 

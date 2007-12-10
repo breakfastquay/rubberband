@@ -33,7 +33,8 @@ namespace RubberBand {
 RubberBandStretcher::Impl::ProcessThread::ProcessThread(Impl *s, size_t c) :
     m_s(s),
     m_channel(c),
-    m_dataAvailable(std::string("data ") + char('A' + c))
+    m_dataAvailable(std::string("data ") + char('A' + c)),
+    m_abandoning(false)
 { }
 
 void
@@ -61,10 +62,17 @@ RubberBandStretcher::Impl::ProcessThread::run()
         if (any) m_s->m_spaceAvailable.signal();
 
         m_dataAvailable.lock();
-        if (!m_s->testInbufReadSpace(m_channel)) {
+        if (!m_s->testInbufReadSpace(m_channel) && !m_abandoning) {
             m_dataAvailable.wait();
         } else {
             m_dataAvailable.unlock();
+        }
+
+        if (m_abandoning) {
+            if (m_s->m_debugLevel > 1) {
+                cerr << "thread " << m_channel << " abandoning" << endl;
+            }
+            return;
         }
     }
 
@@ -81,6 +89,12 @@ void
 RubberBandStretcher::Impl::ProcessThread::signalDataAvailable()
 {
     m_dataAvailable.signal();
+}
+
+void
+RubberBandStretcher::Impl::ProcessThread::abandon()
+{
+    m_abandoning = true;
 }
 
 void

@@ -3,10 +3,10 @@
 * LADSPA plugin has too much "artificial latency"
 * LADSPA plugin probably doesn't want to go any higher than about +2 octaves
 * Return value check in FFT and resampler!
-* implement+test, or remove, reset()
 * sweeps & tones
 * ensure default options don't produce garbage at any extreme
 
+DONE * implement+test, or remove, reset()
 DONE * Add and test Win32 threading primitives in Thread.cpp
 DONE * Threading lock structure is very slow if it becomes starved of CPUs
 DONE * Rationalise naming further (e.g. use of "lock" for both peak phases

@@ -60,6 +60,9 @@ public:
     void initFloat();
     void initDouble();
 
+    float *getFloatTimeBuffer();
+    double *getDoubleTimeBuffer();
+
     static void tune();
 
 protected:

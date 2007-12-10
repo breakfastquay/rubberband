@@ -20,24 +20,15 @@ namespace RubberBand
 HighFrequencyAudioCurve::HighFrequencyAudioCurve(size_t sampleRate, size_t windowSize) :
     AudioCurve(sampleRate, windowSize)
 {
-    m_prevMag = new double[m_windowSize/2 + 1];
-
-    for (size_t i = 0; i <= m_windowSize/2; ++i) {
-        m_prevMag[i] = 0.f;
-    }
 }
 
 HighFrequencyAudioCurve::~HighFrequencyAudioCurve()
 {
-    delete[] m_prevMag;
 }
 
 void
 HighFrequencyAudioCurve::reset()
 {
-    for (size_t i = 0; i <= m_windowSize/2; ++i) {
-        m_prevMag[i] = 0;
-    }
 }
 
 void
@@ -52,7 +43,7 @@ HighFrequencyAudioCurve::process(float *mag, size_t increment)
     float result = 0.0;
 
     for (size_t n = 0; n <= m_windowSize / 2; ++n) {
-        result += mag[n];
+        result += mag[n] * n;
     }
 
     return result;

@@ -32,9 +32,6 @@ public:
 
     virtual float process(float *mag, size_t increment);
     virtual void reset();
-
-protected:
-    double *m_prevMag;
 };
 
 }

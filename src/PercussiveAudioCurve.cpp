@@ -63,7 +63,6 @@ PercussiveAudioCurve::process(float *mag, size_t increment)
     size_t nonZeroCount = 0;
 
     for (size_t n = 1; n <= m_windowSize / 2; ++n) {
-        //!!! adjust threshold so that this multiplication is unnecessary
 	float sqrmag = mag[n] * mag[n];
         bool above = ((sqrmag / m_prevMag[n]) >= threshold);
         if (above) ++count;
@@ -71,7 +70,6 @@ PercussiveAudioCurve::process(float *mag, size_t increment)
 	m_prevMag[n] = sqrmag;
     }
 
-//!!!    return float(count) / float(m_windowSize);
     if (nonZeroCount == 0) return 0;
     else return float(count) / float(nonZeroCount);
 }

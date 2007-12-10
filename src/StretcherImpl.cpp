@@ -15,6 +15,7 @@
 #include "StretcherImpl.h"
 #include "PercussiveAudioCurve.h"
 #include "HighFrequencyAudioCurve.h"
+#include "SpectralDifferenceAudioCurve.h"
 #include "ConstantAudioCurve.h"
 #include "StretchCalculator.h"
 #include "StretcherChannelData.h"
@@ -113,7 +114,6 @@ RubberBandStretcher::Impl::Impl(RubberBandStretcher *stretcher,
         m_realtime = true;
 
         if (!(m_options & OptionStretchPrecise)) {
-            cerr << "RubberBandStretcher::Impl::Impl: Real-time mode: enabling OptionStretchPrecise" << endl;
             m_options |= OptionStretchPrecise;
         }
     }
@@ -148,6 +148,7 @@ RubberBandStretcher::Impl::~Impl()
             if (m_debugLevel > 0) {
                 cerr << "RubberBandStretcher::~RubberBandStretcher: joining (channel " << *i << ")" << endl;
             }
+            (*i)->abandon();
             (*i)->wait();
             delete *i;
         }
@@ -171,21 +172,32 @@ RubberBandStretcher::Impl::~Impl()
 void
 RubberBandStretcher::Impl::reset()
 {
-    //!!! does not do the right thing in threaded mode
-
-    if (m_threaded) m_threadSetMutex.lock();
+    if (m_threaded) {
+        m_threadSetMutex.lock();
+        for (set<ProcessThread *>::iterator i = m_threadSet.begin();
+             i != m_threadSet.end(); ++i) {
+            if (m_debugLevel > 0) {
+                cerr << "RubberBandStretcher::~RubberBandStretcher: joining (channel " << *i << ")" << endl;
+            }
+            (*i)->abandon();
+            (*i)->wait();
+            delete *i;
+        }
+        m_threadSet.clear();
+    }
 
     for (size_t c = 0; c < m_channels; ++c) {
-        delete m_channelData[c];
-        m_channelData[c] = new ChannelData(m_windowSize, m_outbufSize);
+        m_channelData[c]->reset();
     }
+
     m_mode = JustCreated;
     if (m_phaseResetAudioCurve) m_phaseResetAudioCurve->reset();
     if (m_stretchAudioCurve) m_stretchAudioCurve->reset();
     m_inputDuration = 0;
 
     if (m_threaded) m_threadSetMutex.unlock();
-//    m_done = false;
+
+    reconfigure();
 }
 
 void
@@ -407,19 +419,14 @@ RubberBandStretcher::Impl::calculateSizes()
     if (m_debugLevel > 0) {
         cerr << "configure: outbuf size = " << m_outbufSize << endl;
     }
-    
-    //!!! for very long stretches (e.g. x5), this is necessary; for
-    //even longer ones (e.g. x10), even more of an outbuf is
-    //necessary. clearly something wrong in our calculations... or do
-    //we just need to ensure client calls setMaxProcessSize?
-//    if (!m_realtime && !m_threaded) {
-//        m_outbufSize = m_outbufSize * 10;
-//    }
 }
 
 void
 RubberBandStretcher::Impl::configure()
 {
+    std::cerr << "configure[" << this << "]: realtime = " << m_realtime << ", pitch scale = "
+              << m_pitchScale << ", channels = " << m_channels << std::endl;
+
     size_t prevWindowSize = m_windowSize;
     size_t prevOutbufSize = m_outbufSize;
     if (m_windows.empty()) {
@@ -512,9 +519,7 @@ RubberBandStretcher::Impl::configure()
     if (!m_realtime) {
         delete m_stretchAudioCurve;
         if (!(m_options & OptionStretchPrecise)) {
-            //!!! probably adaptively-whitened spectral difference curve
-            //would be better
-            m_stretchAudioCurve = new HighFrequencyAudioCurve
+            m_stretchAudioCurve = new SpectralDifferenceAudioCurve
                 (m_stretcher->m_sampleRate, m_windowSize);
         } else {
             m_stretchAudioCurve = new ConstantAudioCurve
@@ -550,8 +555,6 @@ RubberBandStretcher::Impl::configure()
 }
 
 
-//!!! separated out from configure() for the moment so we can look at
-// the logic of it
 void
 RubberBandStretcher::Impl::reconfigure()
 {
@@ -881,9 +884,6 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
     }
 
     if (m_mode == JustCreated || m_mode == Studying) {
-
-        //!!! m_studying isn't the right test for "is this the first
-        //time we've processed?"
 
         if (m_mode == Studying) {
             calculateStretch();

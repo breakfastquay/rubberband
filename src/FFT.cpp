@@ -47,33 +47,79 @@ public:
 
     virtual void inverse(float *realIn, float *imagIn, float *realOut) = 0;
     virtual void inversePolar(float *magIn, float *phaseIn, float *realOut) = 0;
+
+    virtual float *getFloatTimeBuffer() = 0;
+    virtual double *getDoubleTimeBuffer() = 0;
 };    
 
 
 
 
-// Remove this define to make float FFTs be carried out using fftwf_*
-// functions instead of converting to doubles and using fftw_*.  
-#define FFTW_DOUBLE_ONLY 1
+// Define FFTW_DOUBLE_ONLY to make all uses of FFTW functions be
+// double-precision (so "float" FFTs are calculated by casting to
+// doubles and using the double-precision FFTW function).
+//
+// Define FFTW_FLOAT_ONLY to make all uses of FFTW functions be
+// single-precision (so "double" FFTs are calculated by casting to
+// floats and using the single-precision FFTW function).
+//
+// Neither of these flags is terribly desirable -- FFTW_FLOAT_ONLY
+// obviously loses you precision, and neither is handled in the most
+// efficient way so any performance improvement will be small at best.
+// The only real reason to define either flag would be to avoid
+// linking against both fftw3 and fftw3f libraries.
+
+//#define FFTW_DOUBLE_ONLY 1
+//#define FFTW_FLOAT_ONLY 1
 
 #ifdef FFTW_DOUBLE_ONLY
+#ifdef FFTW_FLOAT_ONLY
+// Can't meaningfully define both
+#undef FFTW_DOUBLE_ONLY
+#undef FFTW_FLOAT_ONLY
+#else /* !FFTW_FLOAT_ONLY */
 #define fftwf_complex fftw_complex
 #define fftwf_plan fftw_plan
 #define fftwf_plan_dft_r2c_1d fftw_plan_dft_r2c_1d
 #define fftwf_plan_dft_c2r_1d fftw_plan_dft_c2r_1d
 #define fftwf_destroy_plan fftw_destroy_plan
+#define fftwf_malloc fftw_malloc
 #define fftwf_free fftw_free
 #define fftwf_execute fftw_execute
 #define atan2f atan2
 #define sqrtf sqrt
 #define cosf cos
 #define sinf sin
-#endif
+#endif /* !FFTW_FLOAT_ONLY */
+
+#ifdef FFTW_FLOAT_ONLY
+#define fftw_complex fftwf_complex
+#define fftw_plan fftwf_plan
+#define fftw_plan_dft_r2c_1d fftwf_plan_dft_r2c_1d
+#define fftw_plan_dft_c2r_1d fftwf_plan_dft_c2r_1d
+#define fftw_destroy_plan fftwf_destroy_plan
+#define fftw_malloc fftwf_malloc
+#define fftw_free fftwf_free
+#define fftw_execute fftwf_execute
+#define atan2 atan2f
+#define sqrt sqrtf
+#define cos cosf
+#define sif sinf
+#endif /* FFTW_FLOAT_ONLY */
 
 class D_FFTW : public FFTImpl
 {
 public:
-    D_FFTW(unsigned int size) : m_size(size), m_fplanf(0), m_dplanf(0) {
+    D_FFTW(unsigned int size) : m_fplanf(0)
+#ifdef FFTW_DOUBLE_ONLY
+                              , m_frb(0)
+#endif
+                              , m_dplanf(0)
+#ifdef FFTW_FLOAT_ONLY
+                              , m_drb(0)
+#endif
+                              , m_size(size)
+    {
     }
 
     ~D_FFTW() {
@@ -87,6 +133,9 @@ public:
             fftwf_destroy_plan(m_fplani);
             fftwf_free(m_fbuf);
             fftwf_free(m_fpacked);
+#ifdef FFTW_DOUBLE_ONLY
+            if (m_frb) fftw_free(m_frb);
+#endif
         }
         if (m_dplanf) {
             bool save = false;
@@ -98,6 +147,9 @@ public:
             fftw_destroy_plan(m_dplani);
             fftw_free(m_dbuf);
             fftw_free(m_dpacked);
+#ifdef FFTW_FLOAT_ONLY
+            if (m_drb) fftwf_free(m_drb);
+#endif
         }
     }
 
@@ -107,11 +159,12 @@ public:
         m_extantMutex.lock();
         if (m_extantf++ == 0) load = true;
         m_extantMutex.unlock();
-        if (load) loadWisdom('f');
 #ifdef FFTW_DOUBLE_ONLY
+        if (load) loadWisdom('d');
         m_fbuf = (double *)fftw_malloc(m_size * sizeof(double));
 #else
-        m_fbuf = (float *)fftw_malloc(m_size * sizeof(float));
+        if (load) loadWisdom('f');
+        m_fbuf = (float *)fftwf_malloc(m_size * sizeof(float));
 #endif
         m_fpacked = (fftwf_complex *)fftw_malloc
             ((m_size/2 + 1) * sizeof(fftwf_complex));
@@ -127,8 +180,13 @@ public:
         m_extantMutex.lock();
         if (m_extantd++ == 0) load = true;
         m_extantMutex.unlock();
+#ifdef FFTW_FLOAT_ONLY
+        if (load) loadWisdom('f');
+        m_dbuf = (float *)fftwf_malloc(m_size * sizeof(float));
+#else
         if (load) loadWisdom('d');
         m_dbuf = (double *)fftw_malloc(m_size * sizeof(double));
+#endif
         m_dpacked = (fftw_complex *)fftw_malloc
             ((m_size/2 + 1) * sizeof(fftw_complex));
         m_dplanf = fftw_plan_dft_r2c_1d
@@ -144,6 +202,9 @@ public:
 
 #ifdef FFTW_DOUBLE_ONLY
         if (type == 'f') return;
+#endif
+#ifdef FFTW_FLOAT_ONLY
+        if (type == 'd') return;
 #endif
 
         const char *home = getenv("HOME");
@@ -162,7 +223,11 @@ public:
 #else
             case 'f': fftwf_export_wisdom_to_file(f); break;
 #endif
+#ifdef FFTW_FLOAT_ONLY
+            case 'd': break;
+#else
             case 'd': fftw_export_wisdom_to_file(f); break;
+#endif
             default: break;
             }
         } else {
@@ -172,7 +237,11 @@ public:
 #else
             case 'f': fftwf_import_wisdom_from_file(f); break;
 #endif
+#ifdef FFTW_FLOAT_ONLY
+            case 'd': break;
+#else
             case 'd': fftw_import_wisdom_from_file(f); break;
+#endif
             default: break;
             }
         }
@@ -210,31 +279,42 @@ public:
 
     void forward(double *realIn, double *realOut, double *imagOut) {
         if (!m_dplanf) initDouble();
-        for (unsigned int i = 0; i < m_size; ++i) {
-            m_dbuf[i] = realIn[i];
-        }
+#ifndef FFTW_FLOAT_ONLY
+        if (realIn != m_dbuf) 
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                m_dbuf[i] = realIn[i];
+            }
         fftw_execute(m_dplanf);
         unpackDouble(realOut, imagOut);
     }
 
     void forwardPolar(double *realIn, double *magOut, double *phaseOut) {
         if (!m_dplanf) initDouble();
-        for (unsigned int i = 0; i < m_size; ++i) {
-            m_dbuf[i] = realIn[i];
-        }
+#ifndef FFTW_FLOAT_ONLY
+        if (realIn != m_dbuf)
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                m_dbuf[i] = realIn[i];
+            }
         fftw_execute(m_dplanf);
         for (unsigned int i = 0; i <= m_size/2; ++i) {
             magOut[i] = sqrt(m_dpacked[i][0] * m_dpacked[i][0] +
                              m_dpacked[i][1] * m_dpacked[i][1]);
+        }
+        for (unsigned int i = 0; i <= m_size/2; ++i) {
             phaseOut[i] = atan2(m_dpacked[i][1], m_dpacked[i][0]);
         }
     }
 
     void forwardMagnitude(double *realIn, double *magOut) {
         if (!m_dplanf) initDouble();
-        for (unsigned int i = 0; i < m_size; ++i) {
-            m_dbuf[i] = realIn[i];
-        }
+#ifndef FFTW_FLOAT_ONLY
+        if (realIn != m_dbuf)
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                m_dbuf[i] = realIn[i];
+            }
         fftw_execute(m_dplanf);
         for (unsigned int i = 0; i <= m_size/2; ++i) {
             magOut[i] = sqrt(m_dpacked[i][0] * m_dpacked[i][0] +
@@ -244,31 +324,42 @@ public:
 
     void forward(float *realIn, float *realOut, float *imagOut) {
         if (!m_fplanf) initFloat();
-        for (unsigned int i = 0; i < m_size; ++i) {
-            m_fbuf[i] = realIn[i];
-        }
+#ifndef FFTW_DOUBLE_ONLY
+        if (realIn != m_fbuf)
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                m_fbuf[i] = realIn[i];
+            }
         fftwf_execute(m_fplanf);
         unpackFloat(realOut, imagOut);
     }
 
     void forwardPolar(float *realIn, float *magOut, float *phaseOut) {
         if (!m_fplanf) initFloat();
-        for (unsigned int i = 0; i < m_size; ++i) {
-            m_fbuf[i] = realIn[i];
-        }
+#ifndef FFTW_DOUBLE_ONLY
+        if (realIn != m_fbuf) 
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                m_fbuf[i] = realIn[i];
+            }
         fftwf_execute(m_fplanf);
         for (unsigned int i = 0; i <= m_size/2; ++i) {
             magOut[i] = sqrtf(m_fpacked[i][0] * m_fpacked[i][0] +
                               m_fpacked[i][1] * m_fpacked[i][1]);
+        }
+        for (unsigned int i = 0; i <= m_size/2; ++i) {
           phaseOut[i] = atan2f(m_fpacked[i][1], m_fpacked[i][0]) ;
         }
     }
 
     void forwardMagnitude(float *realIn, float *magOut) {
         if (!m_fplanf) initFloat();
-        for (unsigned int i = 0; i < m_size; ++i) {
-            m_fbuf[i] = realIn[i];
-        }
+#ifndef FFTW_DOUBLE_ONLY
+        if (realIn != m_fbuf)
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                m_fbuf[i] = realIn[i];
+            }
         fftwf_execute(m_fplanf);
         for (unsigned int i = 0; i <= m_size/2; ++i) {
             magOut[i] = sqrtf(m_fpacked[i][0] * m_fpacked[i][0] +
@@ -280,9 +371,12 @@ public:
         if (!m_dplanf) initDouble();
         packDouble(realIn, imagIn);
         fftw_execute(m_dplani);
-        for (unsigned int i = 0; i < m_size; ++i) {
-            realOut[i] = m_dbuf[i];
-        }
+#ifndef FFTW_FLOAT_ONLY
+        if (realOut != m_dbuf) 
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                realOut[i] = m_dbuf[i];
+            }
     }
 
     void inversePolar(double *magIn, double *phaseIn, double *realOut) {
@@ -292,18 +386,24 @@ public:
             m_dpacked[i][1] = magIn[i] * sin(phaseIn[i]);
         }
         fftw_execute(m_dplani);
-        for (unsigned int i = 0; i < m_size; ++i) {
-            realOut[i] = m_dbuf[i];
-        }
+#ifndef FFTW_FLOAT_ONLY
+        if (realOut != m_dbuf)
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                realOut[i] = m_dbuf[i];
+            }
     }
 
     void inverse(float *realIn, float *imagIn, float *realOut) {
         if (!m_fplanf) initFloat();
         packFloat(realIn, imagIn);
         fftwf_execute(m_fplani);
-        for (unsigned int i = 0; i < m_size; ++i) {
-            realOut[i] = m_fbuf[i];
-        }
+#ifndef FFTW_DOUBLE_ONLY
+        if (realOut != m_fbuf)
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                realOut[i] = m_fbuf[i];
+            }
     }
 
     void inversePolar(float *magIn, float *phaseIn, float *realOut) {
@@ -313,15 +413,39 @@ public:
             m_fpacked[i][1] = magIn[i] * sinf(phaseIn[i]);
         }
         fftwf_execute(m_fplani);
-        for (unsigned int i = 0; i < m_size; ++i) {
-            realOut[i] = m_fbuf[i];
-        }
+#ifndef FFTW_DOUBLE_ONLY
+        if (realOut != m_fbuf)
+#endif
+            for (unsigned int i = 0; i < m_size; ++i) {
+                realOut[i] = m_fbuf[i];
+            }
+    }
+
+    float *getFloatTimeBuffer() {
+        initFloat();
+#ifdef FFTW_DOUBLE_ONLY
+        if (!m_frb) m_frb = (float *)fftw_malloc(m_size * sizeof(float));
+        return m_frb;
+#else
+        return m_fbuf;
+#endif
+    }
+
+    double *getDoubleTimeBuffer() {
+        initDouble();
+#ifdef FFTW_FLOAT_ONLY
+        if (!m_drb) m_drb = (double *)fftwf_malloc(m_size * sizeof(double));
+        return m_drb;
+#else
+        return m_dbuf;
+#endif
     }
 
 private:
     fftwf_plan m_fplanf;
     fftwf_plan m_fplani;
 #ifdef FFTW_DOUBLE_ONLY
+    float *m_frb;
     double *m_fbuf;
 #else
     float *m_fbuf;
@@ -329,7 +453,12 @@ private:
     fftwf_complex *m_fpacked;
     fftw_plan m_dplanf;
     fftw_plan m_dplani;
+#ifdef FFTW_FLOAT_ONLY
+    float *m_dbuf;
+    double *m_drb;
+#else
     double *m_dbuf;
+#endif
     fftw_complex *m_dpacked;
     unsigned int m_size;
     static unsigned int m_extantf;
@@ -346,11 +475,12 @@ D_FFTW::m_extantd = 0;
 Mutex
 D_FFTW::m_extantMutex;
 
+#endif
 
 class D_Cross : public FFTImpl
 {
 public:
-    D_Cross(unsigned int size) : m_size(size), m_table(0) {
+    D_Cross(unsigned int size) : m_size(size), m_table(0), m_frb(0), m_drb(0) {
         
         m_a = new double[size];
         m_b = new double[size];
@@ -388,6 +518,8 @@ public:
         delete[] m_b;
         delete[] m_c;
         delete[] m_d;
+        delete[] m_frb;
+        delete[] m_drb;
     }
 
     void initFloat() { }
@@ -496,9 +628,21 @@ public:
         for (unsigned int i = 0; i < m_size; ++i) realOut[i] = m_c[i];
     }
 
+    float *getFloatTimeBuffer() {
+        if (!m_frb) m_frb = new float[m_size];
+        return m_frb;
+    }
+
+    double *getDoubleTimeBuffer() {
+        if (!m_drb) m_drb = new double[m_size];
+        return m_drb;
+    }
+
 private:
     unsigned int m_size;
     int *m_table;
+    float *m_frb;
+    double *m_drb;
     double *m_a;
     double *m_b;
     double *m_c;
@@ -699,6 +843,18 @@ void
 FFT::initDouble() 
 {
     d->initDouble();
+}
+
+float *
+FFT::getFloatTimeBuffer()
+{
+    return d->getFloatTimeBuffer();
+}
+
+double *
+FFT::getDoubleTimeBuffer()
+{
+    return d->getDoubleTimeBuffer();
 }
 
 

@@ -56,7 +56,6 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &window
     windowAccumulator = new float[maxSize];
 
     fltbuf = new float[maxSize];
-    dblbuf = new double[maxSize];
 
     for (std::set<size_t>::const_iterator i = windowSizes.begin();
          i != windowSizes.end(); ++i) {
@@ -68,6 +67,8 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &window
         ffts[initialWindowSize]->initDouble();
     }
     fft = ffts[initialWindowSize];
+
+    dblbuf = fft->getDoubleTimeBuffer();
 
     resampler = 0;
     resamplebuf = 0;
@@ -83,10 +84,13 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &window
         freqPeak[i] = 0;
     }
 
+    for (size_t i = 0; i < initialWindowSize; ++i) {
+        dblbuf[i] = 0.0;
+    }
+
     for (size_t i = 0; i < maxSize; ++i) {
         accumulator[i] = 0.f;
         windowAccumulator[i] = 0.f;
-        dblbuf[i] = 0.0;
         fltbuf[i] = 0.0;
     }
 }
@@ -115,6 +119,12 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
         }
         
         fft = ffts[windowSize];
+
+        dblbuf = fft->getDoubleTimeBuffer();
+
+        for (size_t i = 0; i < windowSize; ++i) {
+            dblbuf[i] = 0.0;
+        }
 
         for (size_t i = 0; i < realSize; ++i) {
             mag[i] = 0.0;
@@ -153,10 +163,7 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
     freqPeak = new size_t[realSize];
 
     delete[] fltbuf;
-    delete[] dblbuf;
-
     fltbuf = new float[windowSize];
-    dblbuf = new double[windowSize];
 
     // But we do want to preserve data in these
 
@@ -181,7 +188,6 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
     }
 
     for (size_t i = 0; i < windowSize; ++i) {
-        dblbuf[i] = 0.0;
         fltbuf[i] = 0.0;
     }
 
@@ -196,6 +202,12 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
     }
     
     fft = ffts[windowSize];
+
+    dblbuf = fft->getDoubleTimeBuffer();
+
+    for (size_t i = 0; i < windowSize; ++i) {
+        dblbuf[i] = 0.0;
+    }
 }
 
 void
@@ -231,7 +243,6 @@ RubberBandStretcher::Impl::ChannelData::~ChannelData()
     delete[] accumulator;
     delete[] windowAccumulator;
     delete[] fltbuf;
-    delete[] dblbuf;
 
     for (std::map<size_t, FFT *>::iterator i = ffts.begin();
          i != ffts.end(); ++i) {

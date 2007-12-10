@@ -145,10 +145,12 @@ protected:
         ProcessThread(Impl *s, size_t c);
         void run();
         void signalDataAvailable();
+        void abandon();
     private:
         Impl *m_s;
         size_t m_channel;
         Condition m_dataAvailable;
+        bool m_abandoning;
     };
 
     mutable Mutex m_threadSetMutex;

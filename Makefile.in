@@ -1,6 +1,6 @@
 
 CXX		:= @CXX@
-CXXFLAGS	:= @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @Vamp_CFLAGS@ -Irubberband -Isrc $(OPTFLAGS)
+CXXFLAGS	:= -DFFTW_DOUBLE_ONLY @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @Vamp_CFLAGS@ -Irubberband -Isrc $(OPTFLAGS)
 LDFLAGS		:= @LDFLAGS@ -lpthread $(LDFLAGS)
 
 LIBRARY_LIBS		:= @SRC_LIBS@ @FFTW_LIBS@ 
@@ -42,6 +42,7 @@ LIBRARY_INCLUDES := \
 	src/Resampler.h \
 	src/RingBuffer.h \
 	src/Scavenger.h \
+	src/SpectralDifferenceAudioCurve.h \
 	src/StretchCalculator.h \
 	src/StretcherImpl.h \
 	src/StretcherChannelData.h \
@@ -56,6 +57,7 @@ LIBRARY_SOURCES := \
 	src/PercussiveAudioCurve.cpp \
 	src/AudioCurve.cpp \
 	src/Resampler.cpp \
+	src/SpectralDifferenceAudioCurve.cpp \
 	src/StretchCalculator.cpp \
 	src/StretcherImpl.cpp \
 	src/StretcherProcess.cpp \

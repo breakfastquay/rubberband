@@ -59,7 +59,6 @@ Thread::start()
 {
     m_id = CreateThread(NULL, 0, staticRun, this, 0, 0);
     if (!m_id) {
-        //!!!
         cerr << "ERROR: thread creation failed" << endl;
         exit(1);
     } else {
@@ -296,7 +295,6 @@ void
 Thread::start()
 {
     if (pthread_create(&m_id, 0, staticRun, this)) {
-        //!!!
         cerr << "ERROR: thread creation failed" << endl;
         exit(1);
     } else {
