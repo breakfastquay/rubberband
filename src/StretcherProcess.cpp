@@ -49,10 +49,10 @@ RubberBandStretcher::Impl::ProcessThread::run()
     while (cd.inputSize == -1 ||
            cd.inbuf->getReadSpace() > 0) {
 
-        if (cd.inputSize != -1) {
-            cerr << "inputSize == " << cd.inputSize
-                 << ", readSpace == " << cd.inbuf->getReadSpace() << endl;
-        }
+//        if (cd.inputSize != -1) {
+//            cerr << "inputSize == " << cd.inputSize
+//                 << ", readSpace == " << cd.inbuf->getReadSpace() << endl;
+//        }
         
         bool any = false, last = false;
         m_s->processChunks(m_channel, any, last);

@@ -188,6 +188,19 @@ int main(int argc, char **argv)
     case 5: transients = Transients; peaklock = false; longwin = false; shortwin = true; break;
     };
 
+    if (!quiet) {
+        cerr << "Using crispness level: " << crispness << " (";
+        switch (crispness) {
+        case 0: cerr << "Mushy"; break;
+        case 1: cerr << "Smooth"; break;
+        case 2: cerr << "Balanced multitimbral mixture"; break;
+        case 3: cerr << "Unpitched percussion with stable notes"; break;
+        case 4: cerr << "Crisp monophonic instrumental"; break;
+        case 5: cerr << "Unpitched solo percussion"; break;
+        }
+        cerr << ")" << endl;
+    }
+
     char *fileName = strdup(argv[optind++]);
     char *fileNameOut = strdup(argv[optind++]);
     
@@ -323,10 +336,6 @@ int main(int argc, char **argv)
     frame = 0;
     percent = 0;
     
-    float inpeak = 0;
-    double insum = 0;
-    float outpeak = 0.0;
-    double outsum = 0.0;
     size_t countIn = 0, countOut = 0;
 
     while (frame < sfinfo.frames) {
@@ -341,8 +350,6 @@ int main(int argc, char **argv)
             for (int i = 0; i < count; ++i) {
                 float value = fbuf[i * channels + c];
                 ibuf[c][i] = value;
-                if (fabsf(value) > inpeak) inpeak = fabsf(value);
-                insum += value * value;
             }
         }
 
@@ -364,8 +371,6 @@ int main(int argc, char **argv)
             for (size_t c = 0; c < channels; ++c) {
                 for (int i = 0; i < avail; ++i) {
                     float value = obf[c][i];
-                    if (fabsf(value) > outpeak) outpeak = fabsf(value);
-                    outsum += value * value;
                     if (value > 1.f) value = 1.f;
                     if (value < -1.f) value = -1.f;
                     fobf[i * channels + c] = value;
@@ -423,8 +428,6 @@ int main(int argc, char **argv)
             for (size_t c = 0; c < channels; ++c) {
                 for (int i = 0; i < avail; ++i) {
                     float value = obf[c][i];
-                    if (fabsf(value) > outpeak) outpeak = fabsf(value);
-                    outsum += value * value;
                     if (value > 1.f) value = 1.f;
                     if (value < -1.f) value = -1.f;
                     fobf[i * channels + c] = value;
@@ -445,15 +448,9 @@ int main(int argc, char **argv)
     sf_close(sndfile);
     sf_close(sndfileOut);
 
-    double inmean = sqrt(insum / (sfinfo.frames * sfinfo.channels));
-    double outmean = sqrt(outsum / (countOut * sfinfo.channels));
-
     if (!quiet) {
 
         cerr << "in: " << countIn << ", out: " << countOut << ", ratio: " << float(countOut)/float(countIn) << ", ideal output: " << lrint(countIn * ratio) << ", error: " << abs(lrint(countIn * ratio) - int(countOut)) << endl;
-
-        cerr << "input peak: " << inpeak << "; output peak " << outpeak << "; gain " << (inpeak > 0 ? outpeak/inpeak : 1) << endl;
-        cerr << "input rms: " << inmean << "; output rms " << outmean << "; gain " << (inmean > 0 ? outmean/inmean : 1) << endl;
 
 #ifdef _WIN32
         RubberBand::
@@ -469,7 +466,7 @@ int main(int argc, char **argv)
         etv.tv_usec -= tv.tv_usec;
         
         double sec = double(etv.tv_sec) + (double(etv.tv_usec) / 1000000.0);
-        cerr << "\nelapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
+        cerr << "elapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
     }
 
     return 0;

@@ -854,7 +854,7 @@ RubberBandStretcher::Impl::getSamplesRequired() const
 
         size_t rs = inbuf.getReadSpace();
 
-        // See notes in testInbufReadSpace below
+        // See notes in testInbufReadSpace 
 
         if (rs < m_windowSize && !cd.draining) {
             
