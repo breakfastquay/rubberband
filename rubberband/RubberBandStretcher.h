@@ -384,20 +384,89 @@ public:
      */
     virtual size_t retrieve(float *const *output, size_t samples) const;
 
+    /**
+     * Return the value of internal frequency cutoff value n.
+     *
+     * This function is not for general use.
+     */
     virtual float getFrequencyCutoff(int n) const;
+
+    /** 
+     * Set the value of internal frequency cutoff n to f Hz.
+     *
+     * This function is not for general use.
+     */
     virtual void setFrequencyCutoff(int n, float f);
     
+    /**
+     * Retrieve the value of the internal input block increment value.
+     *
+     * This function is provided for diagnostic purposes only.
+     */
     virtual size_t getInputIncrement() const;
-    virtual std::vector<int> getOutputIncrements() const; //!!! document particular meaning in RT mode
-    virtual std::vector<float> getPhaseResetCurve() const; //!!! document particular meaning in RT mode
-    virtual std::vector<int> getExactTimePoints() const; //!!! meaningless in RT mode
 
+    /**
+     * In offline mode, retrieve the sequence of internal block
+     * increments for output, for the entire audio data, provided the
+     * stretch profile has been calculated.  In realtime mode,
+     * retrieve any output increments that have accumulated since the
+     * last call to getOutputIncrements, to a limit of 16.
+     *
+     * This function is provided for diagnostic purposes only.
+     */
+    virtual std::vector<int> getOutputIncrements() const;
+
+    /**
+     * In offline mode, retrieve the sequence of internal phase reset
+     * detection function values, for the entire audio data, provided
+     * the stretch profile has been calculated.  In realtime mode,
+     * retrieve any phase reset points that have accumulated since the
+     * last call to getPhaseResetCurve, to a limit of 16.
+     *
+     * This function is provided for diagnostic purposes only.
+     */
+    virtual std::vector<float> getPhaseResetCurve() const;
+
+    /**
+     * In offline mode, retrieve the sequence of internal frames for
+     * which exact timing has been sought, for the entire audio data,
+     * provided the stretch profile has been calculated.  In realtime
+     * mode, return an empty sequence.
+     *
+     * This function is provided for diagnostic purposes only.
+     */
+    virtual std::vector<int> getExactTimePoints() const;
+
+    /**
+     * Return the number of channels this stretcher was constructed
+     * with.
+     */
     virtual size_t getChannelCount() const;
-    
+
+    /**
+     * Force the stretcher to calculate a stretch profile.  Normally
+     * this happens automatically for the first process() call in
+     * offline mode.
+     *
+     * This function is provided for diagnostic purposes only.
+     */
     virtual void calculateStretch();
 
+    /**
+     * Set the level of debug output.  The value may be from 0 (errors
+     * only) to 3 (very verbose, with audible ticks in the output at
+     * phase reset points).  The default is whatever has been set
+     * using setDefaultDebugLevel, or 0 if that function has not been
+     * called.
+     */
     virtual void setDebugLevel(int level);
 
+    /**
+     * Set the default level of debug output for subsequently
+     * constructed stretchers.
+     *
+     * @see setDebugLevel
+     */
     static void setDefaultDebugLevel(int level);
 
 protected:
