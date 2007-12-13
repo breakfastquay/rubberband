@@ -72,12 +72,13 @@ public:
 //#define FFTW_DOUBLE_ONLY 1
 //#define FFTW_FLOAT_ONLY 1
 
-#ifdef FFTW_DOUBLE_ONLY
-#ifdef FFTW_FLOAT_ONLY
+#if defined(FFTW_DOUBLE_ONLY) && defined(FFTW_FLOAT_ONLY)
 // Can't meaningfully define both
 #undef FFTW_DOUBLE_ONLY
 #undef FFTW_FLOAT_ONLY
-#else /* !FFTW_FLOAT_ONLY */
+#endif
+
+#ifdef FFTW_DOUBLE_ONLY
 #define fftwf_complex fftw_complex
 #define fftwf_plan fftw_plan
 #define fftwf_plan_dft_r2c_1d fftw_plan_dft_r2c_1d
@@ -90,7 +91,7 @@ public:
 #define sqrtf sqrt
 #define cosf cos
 #define sinf sin
-#endif /* !FFTW_FLOAT_ONLY */
+#endif /* FFTW_DOUBLE_ONLY */
 
 #ifdef FFTW_FLOAT_ONLY
 #define fftw_complex fftwf_complex
@@ -475,7 +476,6 @@ D_FFTW::m_extantd = 0;
 Mutex
 D_FFTW::m_extantMutex;
 
-#endif
 
 class D_Cross : public FFTImpl
 {

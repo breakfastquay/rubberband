@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     int c;
 
     double ratio = 1.0;
-    double pitchshift = 1.0;
+    double pitchshift = 0.0;
     double frequencyshift = 1.0;
     int debug = 0;
     bool realtime = false;
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
             { 0, 0, 0 }
         };
 
-        c = getopt_long(argc, argv, "t:p:d:RPc:f:qh", longOpts, &optionIndex);
+        c = getopt_long(argc, argv, "t:p:d:RPc:f:T:qh", longOpts, &optionIndex);
         if (c == -1) break;
 
         switch (c) {
@@ -266,8 +266,13 @@ int main(int argc, char **argv)
         break;
     }
 
-    if (pitchshift != 1.0) {
+    if (pitchshift != 0.0) {
         frequencyshift *= pow(2.0, pitchshift / 12);
+    }
+
+    if (debug > 0) {
+	cerr << "Time ratio: " << ratio << endl;
+	cerr << "Frequency ratio: " << frequencyshift << endl;
     }
 
 #ifdef _WIN32
