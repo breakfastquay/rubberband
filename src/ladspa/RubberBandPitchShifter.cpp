@@ -24,7 +24,7 @@ using namespace RubberBand;
 const char *const
 RubberBandPitchShifter::portNamesMono[PortCountMono] =
 {
-    "_latency",
+    "latency",
     "Cents",
     "Semitones",
     "Octaves",
@@ -36,7 +36,7 @@ RubberBandPitchShifter::portNamesMono[PortCountMono] =
 const char *const
 RubberBandPitchShifter::portNamesStereo[PortCountStereo] =
 {
-    "_latency",
+    "latency",
     "Cents",
     "Semitones",
     "Octaves",
