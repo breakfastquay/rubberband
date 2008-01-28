@@ -597,7 +597,7 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
             if (i == limit1) range = 2;
             if (i >= limit2) {
                 range = 3;
-                if (i + range + 1 > count) range = count - i;
+                if (i + range + 1 > count) range = count - i - 1;
             }
         }
 
@@ -609,16 +609,16 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
 
     double peakInPhase = 0.0;
     double peakOutPhase = 0.0;
-    size_t p, pp;
+    int p = -1, pp = -1;
 
     for (size_t i = 0; i <= count; ++i) {
         
         if (m_options & OptionPhaseIndependent) {
             p = i;
-            pp = i-1;
+            pp = int(i)-1;
         } else {
             p = cd.freqPeak[i];
-            pp = cd.freqPeak[i-1];
+            if (i > 0) pp = int(cd.freqPeak[i-1]);
         }
 
         bool resetThis = phaseReset;
