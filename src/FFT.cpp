@@ -741,8 +741,11 @@ FFT::m_method = -1;
 
 FFT::FFT(unsigned int size)
 {
-    if (size < 2) throw InvalidSize;
-    if (size & (size-1)) throw InvalidSize;
+    if ((size < 2) ||
+        (size & (size-1))) {
+        std::cerr << "FFT::FFT(" << size << "): power-of-two sizes only supported, minimum size 2" << std::endl;
+        throw InvalidSize;
+    }
 
     if (m_method == -1) {
         m_method = 1;
