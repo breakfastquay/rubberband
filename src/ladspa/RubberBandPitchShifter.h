@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007 Chris Cannam.
+    Copyright 2007-2008 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -15,7 +15,7 @@
 #ifndef _RUBBERBAND_PITCH_SHIFTER_H_
 #define _RUBBERBAND_PITCH_SHIFTER_H_
 
-#include "ladspa.h"
+#include <ladspa.h>
 
 #include "RingBuffer.h"
 
@@ -38,11 +38,11 @@ protected:
 	SemitonesPort    = 2,
 	CentsPort        = 3,
         CrispnessPort    = 4,
-        InputPort1       = 5,
-        OutputPort1      = 6,
+	InputPort1       = 6,
+        OutputPort1      = 7,
         PortCountMono    = OutputPort1 + 1,
-        InputPort2       = 7,
-        OutputPort2      = 8,
+        InputPort2       = 8,
+        OutputPort2      = 9,
         PortCountStereo  = OutputPort2 + 1
     };
 

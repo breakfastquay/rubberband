@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007 Chris Cannam.
+    Copyright 2007-2008 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -81,7 +81,7 @@ system_is_multiprocessor()
 
 #ifdef _WIN32
 
-void gettimeofday(struct timeval *tv, void *tz)
+int gettimeofday(struct timeval *tv, void *tz)
 {
     union { 
 	long long ns100;  
@@ -91,6 +91,7 @@ void gettimeofday(struct timeval *tv, void *tz)
     ::GetSystemTimeAsFileTime(&now.ft); 
     tv->tv_usec = (long)((now.ns100 / 10LL) % 1000000LL); 
     tv->tv_sec = (long)((now.ns100 - 116444736000000000LL) / 10000000LL); 
+    return 0;
 }
 
 void usleep(unsigned long usec)

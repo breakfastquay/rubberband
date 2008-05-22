@@ -1,0 +1,9 @@
+
+Changes since Rubber Band v1.0.1
+
+ * Added an initial "formant preservation" option when pitch shifting
+ * Real-time pitch shifting now uses a faster method by default, with
+   less variation in CPU usage
+ * The code is more amenable to compiler auto-vectorization (through
+   e.g. gcc --ftree-vectorize).
+

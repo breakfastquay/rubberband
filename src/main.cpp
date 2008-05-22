@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007 Chris Cannam.
+    Copyright 2007-2008 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -17,14 +17,19 @@
 #include <iostream>
 #include <sndfile.h>
 #include <cmath>
-#include <sys/time.h>
 #include <time.h>
+#include <cstdlib>
+#include <cstring>
 #include "sysutils.h"
 
+#ifdef _WIN32
+#include "bsd-3rdparty/getopt/getopt.h"
+#else
 #include <getopt.h>
+#include <sys/time.h>
+#endif
 
-// for import and export of FFTW wisdom
-#include <fftw3.h>
+#include "Profiler.h"
 
 using namespace std;
 using namespace RubberBand;
@@ -48,7 +53,9 @@ int main(int argc, char **argv)
     bool peaklock = true;
     bool longwin = false;
     bool shortwin = false;
+    bool hqpitch = false;
     bool softening = true;
+    bool formant = false;
     int crispness = -1;
     bool help = false;
     bool quiet = false;
@@ -79,6 +86,7 @@ int main(int argc, char **argv)
             { "debug",         1, 0, 'd' },
             { "realtime",      0, 0, 'R' },
             { "precise",       0, 0, 'P' },
+            { "formant",       0, 0, 'F' },
             { "no-threads",    0, 0, '0' },
             { "no-transients", 0, 0, '1' },
             { "no-peaklock",   0, 0, '2' },
@@ -89,12 +97,13 @@ int main(int argc, char **argv)
             { "thresh2",       1, 0, '7' },
             { "bl-transients", 0, 0, '8' },
             { "no-softening",  0, 0, '9' },
+            { "pitch-hq",      0, 0, '%' },
             { "threads",       0, 0, '@' },
             { "quiet",         0, 0, 'q' },
             { 0, 0, 0 }
         };
 
-        c = getopt_long(argc, argv, "t:p:d:RPc:f:T:qh", longOpts, &optionIndex);
+        c = getopt_long(argc, argv, "t:p:d:RPFc:f:T:qh", longOpts, &optionIndex);
         if (c == -1) break;
 
         switch (c) {
@@ -106,6 +115,7 @@ int main(int argc, char **argv)
         case 'd': debug = atoi(optarg); break;
         case 'R': realtime = true; break;
         case 'P': precise = true; break;
+	case 'F': formant = true; break;
         case '0': threading = 1; break;
         case '@': threading = 2; break;
         case '1': transients = NoTransients; break;
@@ -117,6 +127,7 @@ int main(int argc, char **argv)
         case '7': fthresh2 = atof(optarg); break;
         case '8': transients = BandLimitedTransients; break;
         case '9': softening = false; break;
+        case '%': hqpitch = true; break;
         case 'c': crispness = atoi(optarg); break;
         case 'q': quiet = true; break;
         default:  help = true; break;
@@ -127,7 +138,7 @@ int main(int argc, char **argv)
         cerr << endl;
 	cerr << "Rubber Band" << endl;
         cerr << "An audio time-stretching and pitch-shifting library and utility program." << endl;
-	cerr << "Copyright 2007 Chris Cannam.  Distributed under the GNU General Public License." << endl;
+	cerr << "Copyright 2008 Chris Cannam.  Distributed under the GNU General Public License." << endl;
         cerr << endl;
 	cerr << "   Usage: " << argv[0] << " [options] <infile.wav> <outfile.wav>" << endl;
         cerr << endl;
@@ -139,15 +150,16 @@ int main(int argc, char **argv)
         cerr << "  -p<X>, --pitch <X>      Raise pitch by X semitones, or" << endl;
         cerr << "  -f<X>, --frequency <X>  Change frequency by multiple X" << endl;
         cerr << endl;
-        cerr << "The following option provides a simple way to adjust the sound.  See below" << endl;
+        cerr << "The following options provide a simple way to adjust the sound.  See below" << endl;
         cerr << "for more details." << endl;
         cerr << endl;
         cerr << "  -c<N>, --crisp <N>      Crispness (N = 0,1,2,3,4,5); default 4 (see below)" << endl;
+	cerr << "  -F,    --formant        Enable formant preservation when pitch shifting" << endl;
         cerr << endl;
         cerr << "The remaining options fine-tune the processing mode and stretch algorithm." << endl;
         cerr << "These are mostly included for test purposes; the default settings and standard" << endl;
         cerr << "crispness parameter are intended to provide the best sounding set of options" << endl;
-        cerr << "for most situations." << endl;
+        cerr << "for most situations.  The default is to use none of these options." << endl;
         cerr << endl;
         cerr << "  -P,    --precise        Aim for minimal time distortion (implied by -R)" << endl;
         cerr << "  -R,    --realtime       Select realtime mode (implies -P --no-threads)" << endl;
@@ -159,6 +171,7 @@ int main(int argc, char **argv)
         cerr << "         --no-softening   Disable large-ratio softening of phase locking" << endl;
         cerr << "         --window-long    Use longer processing window (actual size may vary)" << endl;
         cerr << "         --window-short   Use shorter processing window" << endl;
+        cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
         cerr << "         --thresh<N> <F>  Set internal freq threshold N (N = 0,1,2) to F Hz" << endl;
         cerr << endl;
         cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 0, full 3" << endl;
@@ -203,7 +216,7 @@ int main(int argc, char **argv)
 
     char *fileName = strdup(argv[optind++]);
     char *fileNameOut = strdup(argv[optind++]);
-    
+
     SNDFILE *sndfile;
     SNDFILE *sndfileOut;
     SF_INFO sfinfo;
@@ -226,8 +239,8 @@ int main(int argc, char **argv)
 
     sndfileOut = sf_open(fileNameOut, SFM_WRITE, &sfinfoOut) ;
     if (!sndfileOut) {
-	cerr << "ERROR: Failed to open output file \"" << fileName << "\" for writing: "
-	     << sf_strerror(sndfile) << endl;
+	cerr << "ERROR: Failed to open output file \"" << fileNameOut << "\" for writing: "
+	     << sf_strerror(sndfileOut) << endl;
 	return 1;
     }
     
@@ -241,6 +254,8 @@ int main(int argc, char **argv)
     if (!softening)  options |= RubberBandStretcher::OptionPhasePeakLocked;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;
+    if (formant)     options |= RubberBandStretcher::OptionFormantPreserved;
+    if (hqpitch)     options |= RubberBandStretcher::OptionPitchHighQuality;
 
     switch (threading) {
     case 0:
@@ -473,6 +488,8 @@ int main(int argc, char **argv)
         double sec = double(etv.tv_sec) + (double(etv.tv_usec) / 1000000.0);
         cerr << "elapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
     }
+
+    Profiler::dump();
 
     return 0;
 }

@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007 Chris Cannam.
+    Copyright 2007-2008 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -55,6 +55,7 @@ RubberBandPitchShifter::portsMono[PortCountMono] =
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
+    LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_AUDIO,
     LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO
 };
@@ -63,6 +64,7 @@ const LADSPA_PortDescriptor
 RubberBandPitchShifter::portsStereo[PortCountStereo] =
 {
     LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL,
+    LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
@@ -96,6 +98,11 @@ RubberBandPitchShifter::hintsMono[PortCountMono] =
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_INTEGER,
        0.0, 3.0 },
+    { LADSPA_HINT_DEFAULT_0 |
+      LADSPA_HINT_BOUNDED_BELOW |
+      LADSPA_HINT_BOUNDED_ABOVE |
+      LADSPA_HINT_TOGGLED,
+       0.0, 1.0 },
     { 0, 0, 0 },
     { 0, 0, 0 }
 };
@@ -123,6 +130,11 @@ RubberBandPitchShifter::hintsStereo[PortCountStereo] =
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_INTEGER,
        0.0, 3.0 },
+    { LADSPA_HINT_DEFAULT_0 |
+      LADSPA_HINT_BOUNDED_BELOW |
+      LADSPA_HINT_BOUNDED_ABOVE |
+      LADSPA_HINT_TOGGLED,
+       0.0, 1.0 },
     { 0, 0, 0 },
     { 0, 0, 0 },
     { 0, 0, 0 },
@@ -247,7 +259,7 @@ RubberBandPitchShifter::connectPort(LADSPA_Handle handle,
 	&shifter->m_semitones,
 	&shifter->m_octaves,
         &shifter->m_crispness,
-	&shifter->m_input[0],
+    	&shifter->m_input[0],
 	&shifter->m_output[0],
 	&shifter->m_input[1],
 	&shifter->m_output[1]
@@ -326,7 +338,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
     }
 
     if (m_latency) {
-        *m_latency = m_stretcher->getLatency() + m_extraLatency;
+        *m_latency = float(m_stretcher->getLatency() + m_extraLatency);
 //        std::cerr << "latency = " << *m_latency << std::endl;
     }
 

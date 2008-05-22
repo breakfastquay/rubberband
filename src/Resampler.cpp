@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007 Chris Cannam.
+    Copyright 2007-2008 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -14,6 +14,8 @@
 
 #include "Resampler.h"
 
+#include "Profiler.h"
+
 #include <cstdlib>
 #include <cmath>
 
@@ -22,16 +24,40 @@
 
 #include <samplerate.h>
 
+
+
 namespace RubberBand {
 
-class Resampler::D
+class ResamplerImpl
 {
 public:
-    D(Quality quality, size_t channels, size_t maxBufferSize);
-    ~D();
+    virtual ~ResamplerImpl() { }
+    
+    virtual int resample(const float *const R__ *const R__ in, 
+                         float *const R__ *const R__ out,
+                         int incount,
+                         float ratio,
+                         bool final) = 0;
 
-    size_t resample(float **in, float **out,
-                    size_t incount, float ratio, bool final);
+    virtual void reset() = 0;
+};
+
+namespace Resamplers {
+
+
+
+class D_SRC : public ResamplerImpl
+{
+public:
+    D_SRC(Resampler::Quality quality, int channels, int maxBufferSize,
+          int m_debugLevel);
+    ~D_SRC();
+
+    int resample(const float *const R__ *const R__ in,
+                 float *const R__ *const R__ out,
+                 int incount,
+                 float ratio,
+                 bool final);
 
     void reset();
 
@@ -39,25 +65,30 @@ protected:
     SRC_STATE *m_src;
     float *m_iin;
     float *m_iout;
-    size_t m_channels;
-    size_t m_iinsize;
-    size_t m_ioutsize;
+    int m_channels;
+    int m_iinsize;
+    int m_ioutsize;
+    int m_debugLevel;
 };
 
-Resampler::D::D(Quality quality, size_t channels, size_t maxBufferSize) :
+D_SRC::D_SRC(Resampler::Quality quality, int channels, int maxBufferSize,
+             int debugLevel) :
     m_src(0),
     m_iin(0),
     m_iout(0),
     m_channels(channels),
     m_iinsize(0),
-    m_ioutsize(0)
+    m_ioutsize(0),
+    m_debugLevel(debugLevel)
 {
-//    std::cerr << "Resampler::Resampler: using libsamplerate implementation"
-//              << std::endl;
+    if (m_debugLevel > 0) {
+        std::cerr << "Resampler::Resampler: using libsamplerate implementation"
+                  << std::endl;
+    }
 
     int err = 0;
-    m_src = src_new(quality == Best ? SRC_SINC_BEST_QUALITY :
-                    quality == Fastest ? SRC_LINEAR :
+    m_src = src_new(quality == Resampler::Best ? SRC_SINC_BEST_QUALITY :
+                    quality == Resampler::Fastest ? SRC_LINEAR :
                     SRC_SINC_FASTEST,
                     channels, &err);
 
@@ -72,7 +103,7 @@ Resampler::D::D(Quality quality, size_t channels, size_t maxBufferSize) :
     }
 }
 
-Resampler::D::~D()
+D_SRC::~D_SRC()
 {
     src_delete(m_src);
     if (m_iinsize > 0) {
@@ -83,16 +114,19 @@ Resampler::D::~D()
     }
 }
 
-size_t
-Resampler::D::resample(float **in, float **out, size_t incount, float ratio,
-                       bool final)
+int
+D_SRC::resample(const float *const R__ *const R__ in,
+                float *const R__ *const R__ out,
+                int incount,
+                float ratio,
+                bool final)
 {
     SRC_DATA data;
 
-    size_t outcount = lrintf(ceilf(incount * ratio));
+    int outcount = lrintf(ceilf(incount * ratio));
 
     if (m_channels == 1) {
-        data.data_in = *in;
+        data.data_in = const_cast<float *>(*in); //!!!???
         data.data_out = *out;
     } else {
         if (incount * m_channels > m_iinsize) {
@@ -103,8 +137,8 @@ Resampler::D::resample(float **in, float **out, size_t incount, float ratio,
             m_ioutsize = outcount * m_channels;
             m_iout = (float *)realloc(m_iout, m_ioutsize * sizeof(float));
         }
-        for (size_t i = 0; i < incount; ++i) {
-            for (size_t c = 0; c < m_channels; ++c) {
+        for (int i = 0; i < incount; ++i) {
+            for (int c = 0; c < m_channels; ++c) {
                 m_iin[i * m_channels + c] = in[c][i];
             }
         }
@@ -123,7 +157,7 @@ Resampler::D::resample(float **in, float **out, size_t incount, float ratio,
 
     if (m_channels > 1) {
         for (int i = 0; i < data.output_frames_gen; ++i) {
-            for (size_t c = 0; c < m_channels; ++c) {
+            for (int c = 0; c < m_channels; ++c) {
                 out[c][i] = m_iout[i * m_channels + c];
             }
         }
@@ -133,37 +167,81 @@ Resampler::D::resample(float **in, float **out, size_t incount, float ratio,
 }
 
 void
-Resampler::D::reset()
+D_SRC::reset()
 {
     src_reset(m_src);
 }
 
-} // end namespace
 
 
-namespace RubberBand {
+} /* end namespace Resamplers */
 
-Resampler::Resampler(Quality quality, size_t channels, size_t maxBufferSize)
+Resampler::Resampler(Resampler::Quality quality, int channels,
+                     int maxBufferSize, int debugLevel)
 {
-    m_d = new D(quality, channels, maxBufferSize);
+    m_method = -1;
+    
+    switch (quality) {
+
+    case Resampler::Best:
+        m_method = 1;
+        break;
+
+    case Resampler::FastestTolerable:
+        m_method = 1;
+        break;
+
+    case Resampler::Fastest:
+        m_method = 1;
+        break;
+    }
+
+    if (m_method == -1) {
+        std::cerr << "Resampler::Resampler(" << quality << ", " << channels
+                  << ", " << maxBufferSize << "): No implementation available!"
+                  << std::endl;
+        abort();
+    }
+
+    switch (m_method) {
+    case 0:
+        std::cerr << "Resampler::Resampler(" << quality << ", " << channels
+                  << ", " << maxBufferSize << "): No implementation available!"
+                  << std::endl;
+        abort();
+        break;
+
+    case 1:
+        d = new Resamplers::D_SRC(quality, channels, maxBufferSize, debugLevel);
+        break;
+
+    case 2:
+        std::cerr << "Resampler::Resampler(" << quality << ", " << channels
+                  << ", " << maxBufferSize << "): No implementation available!"
+                  << std::endl;
+        abort();
+        break;
+    }
 }
 
 Resampler::~Resampler()
 {
-    delete m_d;
+    delete d;
 }
 
-size_t 
-Resampler::resample(float **in, float **out,
-                    size_t incount, float ratio, bool final)
+int 
+Resampler::resample(const float *const R__ *const R__ in,
+                    float *const R__ *const R__ out,
+                    int incount, float ratio, bool final)
 {
-    return m_d->resample(in, out, incount, ratio, final);
+    Profiler profiler("Resampler::resample");
+    return d->resample(in, out, incount, ratio, final);
 }
 
 void
 Resampler::reset()
 {
-    m_d->reset();
+    d->reset();
 }
 
 }

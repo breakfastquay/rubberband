@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007 Chris Cannam.
+    Copyright 2007-2008 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -20,6 +20,7 @@
 #include "StretchCalculator.h"
 #include "StretcherChannelData.h"
 #include "Resampler.h"
+#include "Profiler.h"
 
 #include <cassert>
 #include <cmath>
@@ -34,6 +35,7 @@ using std::set;
 using std::max;
 using std::min;
 
+
 namespace RubberBand {
 
 const size_t
@@ -44,6 +46,7 @@ RubberBandStretcher::Impl::m_defaultWindowSize = 2048;
 
 int
 RubberBandStretcher::Impl::m_defaultDebugLevel = 0;
+
 
 
 RubberBandStretcher::Impl::Impl(RubberBandStretcher *stretcher,
@@ -80,6 +83,7 @@ RubberBandStretcher::Impl::Impl(RubberBandStretcher *stretcher,
     m_freq2(12000),
     m_baseWindowSize(m_defaultWindowSize)
 {
+
     if (m_debugLevel > 0) {
         cerr << "RubberBandStretcher::Impl::Impl: rate = " << m_stretcher->m_sampleRate << ", options = " << options << endl;
     }
@@ -321,30 +325,61 @@ RubberBandStretcher::Impl::calculateSizes()
 
     if (m_realtime) {
 
-        // use a fixed input increment
-
-        inputIncrement = roundUp(int(m_defaultIncrement * m_rateMultiple));
-
         if (r < 1) {
+            
+            bool rsb = (m_pitchScale < 1.0 && !resampleBeforeStretching());
+            float windowIncrRatio = 4.5;
+            if (r == 1.0) windowIncrRatio = 4;
+            else if (rsb) windowIncrRatio = 4.5;
+            else windowIncrRatio = 6;
+
+            inputIncrement = int(windowSize / windowIncrRatio);
             outputIncrement = int(floor(inputIncrement * r));
-            if (outputIncrement < 1) {
-                outputIncrement = 1;
-                inputIncrement = roundUp(lrint(ceil(outputIncrement / r)));
-                windowSize = inputIncrement * 4;
+
+            // Very long stretch or very low pitch shift
+            if (outputIncrement < m_defaultIncrement / 4) {
+                if (outputIncrement < 1) outputIncrement = 1;
+                while (outputIncrement < m_defaultIncrement / 4 &&
+                       windowSize < m_baseWindowSize * 4) {
+                    outputIncrement *= 2;
+                    inputIncrement = lrint(ceil(outputIncrement / r));
+                    windowSize = roundUp(lrint(ceil(inputIncrement * windowIncrRatio)));
+                }
             }
+
         } else {
-            outputIncrement = int(ceil(inputIncrement * r));
-            while (outputIncrement > 1024 && inputIncrement > 1) {
-                inputIncrement /= 2;
-                outputIncrement = lrint(ceil(inputIncrement * r));
+
+            bool rsb = (m_pitchScale > 1.0 && resampleBeforeStretching());
+            float windowIncrRatio = 4.5;
+            if (r == 1.0) windowIncrRatio = 4;
+            else if (rsb) windowIncrRatio = 4.5;
+            else windowIncrRatio = 6;
+
+            outputIncrement = int(windowSize / windowIncrRatio);
+            inputIncrement = int(outputIncrement / r);
+            while (outputIncrement > 1024 * m_rateMultiple &&
+                   inputIncrement > 1) {
+                outputIncrement /= 2;
+                inputIncrement = int(outputIncrement / r);
             }
-            windowSize = std::max(windowSize, roundUp(outputIncrement * 6));
-            if (r > 5) while (windowSize < 8192) windowSize *= 2;
+			size_t minwin = roundUp(lrint(outputIncrement * windowIncrRatio));
+			if (windowSize < minwin) windowSize = minwin;
+
+            if (rsb) {
+//                cerr << "adjusting window size from " << windowSize;
+                size_t newWindowSize = roundUp(lrint(windowSize / m_pitchScale));
+                if (newWindowSize < 512) newWindowSize = 512;
+                size_t div = windowSize / newWindowSize;
+                if (inputIncrement > div && outputIncrement > div) {
+                    inputIncrement /= div;
+                    outputIncrement /= div;
+                    windowSize /= div;
+                }
+//                cerr << " to " << windowSize << " (inputIncrement = " << inputIncrement << ", outputIncrement = " << outputIncrement << ")" << endl;
+            }
         }
 
     } else {
-
-        // use a variable increment
 
         if (r < 1) {
             inputIncrement = windowSize / 4;
@@ -365,7 +400,7 @@ RubberBandStretcher::Impl::calculateSizes()
             windowSize = std::max(windowSize, roundUp(outputIncrement * 6));
             if (r > 5) while (windowSize < 8192) windowSize *= 2;
         }
-    }        
+    }
 
     if (m_expectedInputDuration > 0) {
         while (inputIncrement * 4 > m_expectedInputDuration &&
@@ -450,8 +485,9 @@ RubberBandStretcher::Impl::configure()
     set<size_t> windowSizes;
     if (m_realtime) {
         windowSizes.insert(m_baseWindowSize);
+        windowSizes.insert(m_baseWindowSize / 2);
         windowSizes.insert(m_baseWindowSize * 2);
-        windowSizes.insert(m_baseWindowSize * 4);
+//        windowSizes.insert(m_baseWindowSize * 4);
     }
     windowSizes.insert(m_windowSize);
 
@@ -479,13 +515,13 @@ RubberBandStretcher::Impl::configure()
 
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData.push_back
-                (new ChannelData(windowSizes, m_windowSize, m_outbufSize));
+                (new ChannelData(windowSizes, 1, m_windowSize, m_outbufSize));
         }
     }
 
     if (!m_realtime && windowSizeChanged) {
         delete m_studyFFT;
-        m_studyFFT = new FFT(m_windowSize);
+        m_studyFFT = new FFT(m_windowSize, m_debugLevel);
         m_studyFFT->initFloat();
     }
 
@@ -496,7 +532,8 @@ RubberBandStretcher::Impl::configure()
             if (m_channelData[c]->resampler) continue;
 
             m_channelData[c]->resampler =
-                new Resampler(Resampler::FastestTolerable, 1, 4096 * 16);
+                new Resampler(Resampler::FastestTolerable, 1, 4096 * 16,
+                              m_debugLevel);
 
             // rbs is the amount of buffer space we think we'll need
             // for resampling; but allocate a sensible amount in case
@@ -504,8 +541,7 @@ RubberBandStretcher::Impl::configure()
             size_t rbs = 
                 lrintf(ceil((m_increment * m_timeRatio * 2) / m_pitchScale));
             if (rbs < m_increment * 16) rbs = m_increment * 16;
-            m_channelData[c]->resamplebufSize = rbs;
-            m_channelData[c]->resamplebuf = new float[rbs];
+            m_channelData[c]->setResampleBufSize(rbs);
         }
     }
     
@@ -609,12 +645,11 @@ RubberBandStretcher::Impl::reconfigure()
             std::cerr << "WARNING: reconfigure(): resampler construction required in RT mode" << std::endl;
 
             m_channelData[c]->resampler =
-                new Resampler(Resampler::FastestTolerable, 1, m_windowSize);
+                new Resampler(Resampler::FastestTolerable, 1, m_windowSize,
+                              m_debugLevel);
 
-            m_channelData[c]->resamplebufSize =
-                lrintf(ceil((m_increment * m_timeRatio * 2) / m_pitchScale));
-            m_channelData[c]->resamplebuf =
-                new float[m_channelData[c]->resamplebufSize];
+            m_channelData[c]->setResampleBufSize
+                (lrintf(ceil((m_increment * m_timeRatio * 2) / m_pitchScale)));
         }
     }
 
@@ -637,9 +672,9 @@ RubberBandStretcher::Impl::setTransientsOption(Options options)
         cerr << "RubberBandStretcher::Impl::setTransientsOption: Not permissible in non-realtime mode" << endl;
         return;
     }
-    m_options &= ~(OptionTransientsMixed |
-                   OptionTransientsSmooth |
-                   OptionTransientsCrisp);
+    int mask = (OptionTransientsMixed | OptionTransientsSmooth | OptionTransientsCrisp);
+    m_options &= ~mask;
+    options &= mask;
     m_options |= options;
 
     m_stretchCalculator->setUseHardPeaks
@@ -649,15 +684,44 @@ RubberBandStretcher::Impl::setTransientsOption(Options options)
 void
 RubberBandStretcher::Impl::setPhaseOption(Options options)
 {
-    m_options &= ~(OptionPhaseAdaptive |
-                   OptionPhasePeakLocked |
-                   OptionPhaseIndependent);
+    int mask = (OptionPhaseAdaptive | OptionPhasePeakLocked | OptionPhaseIndependent);
+    m_options &= ~mask;
+    options &= mask;
     m_options |= options;
+}
+
+void
+RubberBandStretcher::Impl::setFormantOption(Options options)
+{
+    int mask = (OptionFormantShifted | OptionFormantPreserved);
+    m_options &= ~mask;
+    options &= mask;
+    m_options |= options;
+}
+
+void
+RubberBandStretcher::Impl::setPitchOption(Options options)
+{
+    if (!m_realtime) {
+        cerr << "RubberBandStretcher::Impl::setPitchOption: Pitch option is not used in non-RT mode" << endl;
+        return;
+    }
+
+    Options prior = m_options;
+
+    int mask = (OptionPitchHighQuality | OptionPitchHighSpeed);
+    m_options &= ~mask;
+    options &= mask;
+    m_options |= options;
+
+    if (prior != m_options) reconfigure();
 }
 
 void
 RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool final)
 {
+    Profiler profiler("RubberBandStretcher::Impl::study");
+
     if (m_realtime) {
         if (m_debugLevel > 1) {
             cerr << "RubberBandStretcher::Impl::study: Not meaningful in realtime mode" << endl;
@@ -817,6 +881,8 @@ RubberBandStretcher::Impl::getExactTimePoints() const
 void
 RubberBandStretcher::Impl::calculateStretch()
 {
+    Profiler profiler("RubberBandStretcher::Impl::calculateStretch");
+
     std::vector<int> increments = m_stretchCalculator->calculate
         (getEffectiveRatio(),
          m_inputDuration,
@@ -843,6 +909,8 @@ RubberBandStretcher::Impl::setDebugLevel(int level)
 size_t
 RubberBandStretcher::Impl::getSamplesRequired() const
 {
+    Profiler profiler("RubberBandStretcher::Impl::getSamplesRequired");
+
     size_t reqd = 0;
 
     for (size_t c = 0; c < m_channels; ++c) {
@@ -878,6 +946,8 @@ RubberBandStretcher::Impl::getSamplesRequired() const
 void
 RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bool final)
 {
+    Profiler profiler("RubberBandStretcher::Impl::process");
+
     if (m_mode == Finished) {
         cerr << "RubberBandStretcher::Impl::process: Cannot process again after final chunk" << endl;
         return;
@@ -935,10 +1005,12 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
         // have actually been processed.
 
         allConsumed = true;
+
         for (size_t c = 0; c < m_channels; ++c) {
             consumed[c] += consumeChannel(c,
                                           input[c] + consumed[c],
-                                          samples - consumed[c]);
+                                          samples - consumed[c],
+                                          final);
             if (consumed[c] < samples) {
                 allConsumed = false;
 //                cerr << "process: waiting on input consumption for channel " << c << endl;
@@ -986,36 +1058,6 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
 //    cerr << "process returning" << endl;
 
     if (final) m_mode = Finished;
-}
-
-size_t
-RubberBandStretcher::Impl::consumeChannel(size_t c, const float *input, size_t samples)
-{
-    size_t consumed = 0;
-    
-    ChannelData &cd = *m_channelData[c];
-    RingBuffer<float> &inbuf = *cd.inbuf;
-    
-    while (consumed < samples) {
-
-	size_t writable = inbuf.getWriteSpace();
-
-//        cerr << "channel " << c << ": samples remaining = " << samples - consumed << ", writable space = " << writable << endl;
-
-	writable = min(writable, samples - consumed);
-
-	if (writable == 0) {
-            // warn
-//            cerr << "WARNING: writable == 0 for ch " << c << " (consumed = " << consumed << ", samples = " << samples << ")" << endl;
-            return consumed;
-	} else {
-            inbuf.write(input + consumed, writable);
-            consumed += writable;
-            cd.inCount += writable;
-        }
-    }
-
-    return samples;
 }
 
 

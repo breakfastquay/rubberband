@@ -1,5 +1,5 @@
 
-AC_INIT(RubberBand, 0.1, cannam@all-day-breakfast.com)
+AC_INIT(RubberBand, 1.1, cannam@all-day-breakfast.com)
 
 AC_CONFIG_SRCDIR(src/StretcherImpl.h)
 AC_PROG_CXX
@@ -27,6 +27,10 @@ AC_SUBST(Vamp_LIBS)
 
 changequote(,)dnl
 if test "x$GCC" = "xyes"; then
+  case " $CFLAGS " in
+    *[\ \	]-fPIC\ -Wall[\ \	]*) ;;
+    *) CFLAGS="$CFLAGS -fPIC -Wall" ;;
+  esac
   case " $CXXFLAGS " in
     *[\ \	]-fPIC\ -Wall[\ \	]*) ;;
     *) CXXFLAGS="$CXXFLAGS -fPIC -Wall" ;;

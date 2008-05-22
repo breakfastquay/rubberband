@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007 Chris Cannam.
+    Copyright 2007-2008 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -18,6 +18,13 @@
 #include "TimeStretcher.h"
 
 #include <vector>
+
+/**
+ * @mainpage RubberBand
+ * 
+ * The Rubber Band API is contained in the single class
+ * RubberBand::RubberBandStretcher.
+ */
 
 namespace RubberBand
 {
@@ -151,34 +158,72 @@ public:
      *   \li \c OptionWindowLong - Use a longer window.  This is
      *   likely to result in a smoother sound at the expense of
      *   clarity and timing.
+     *
+     * 7. Flags prefixed \c OptionFormant control the handling of
+     * formant shape (spectral envelope) when pitch-shifting.  These
+     * options may be changed at any time.
+     *
+     *   \li \c OptionFormantShifted - Apply no special formant
+     *   processing.  The spectral envelope will be pitch shifted as
+     *   normal.
+     *
+     *   \li \c OptionFormantPreserved - Preserve the spectral
+     *   envelope of the unshifted signal.  This permits shifting the
+     *   note frequency without so substantially affecting the
+     *   perceived pitch profile of the voice or instrument.
+     *
+     * 8. Flags prefixed \c OptionPitch control the method used for
+     * pitch shifting.  These options may be changed at any time.
+     * They are only effective in realtime mode; in offline mode, the
+     * pitch-shift method is fixed.
+     *
+     *   \li \c OptionPitchHighSpeed - Use a method with a CPU cost
+     *   that is relatively moderate and predictable.  This may
+     *   sound less clear than OptionPitchHighQuality, especially
+     *   for large pitch shifts. 
+
+     *   \li \c OptionPitchHighQuality - Use the highest quality
+     *   method for pitch shifting.  This method has a CPU cost
+     *   approximately proportional to the required frequency shift.
      */
+    
+    enum Option {
+
+        OptionProcessOffline   = 0x00000000,
+        OptionProcessRealTime  = 0x00000001,
+
+        OptionStretchElastic   = 0x00000000,
+        OptionStretchPrecise   = 0x00000010,
+    
+        OptionTransientsCrisp  = 0x00000000,
+        OptionTransientsMixed  = 0x00000100,
+        OptionTransientsSmooth = 0x00000200,
+
+        OptionPhaseAdaptive    = 0x00000000,
+        OptionPhasePeakLocked  = 0x00001000,
+        OptionPhaseIndependent = 0x00002000,
+    
+        OptionThreadingAuto    = 0x00000000,
+        OptionThreadingNever   = 0x00010000,
+        OptionThreadingAlways  = 0x00020000,
+
+        OptionWindowStandard   = 0x00000000,
+        OptionWindowShort      = 0x00100000,
+        OptionWindowLong       = 0x00200000,
+
+        OptionFormantShifted   = 0x00000000,
+        OptionFormantPreserved = 0x01000000,
+
+        OptionPitchHighSpeed   = 0x00000000,
+        OptionPitchHighQuality = 0x02000000
+    };
+
     typedef int Options;
-    
-    static const int OptionProcessOffline   = 0x00000000;
-    static const int OptionProcessRealTime  = 0x00000001;
 
-    static const int OptionStretchElastic   = 0x00000000;
-    static const int OptionStretchPrecise   = 0x00000010;
-    
-    static const int OptionTransientsCrisp  = 0x00000000;
-    static const int OptionTransientsMixed  = 0x00000100;
-    static const int OptionTransientsSmooth = 0x00000200;
-
-    static const int OptionPhaseAdaptive    = 0x00000000;
-    static const int OptionPhasePeakLocked  = 0x00001000;
-    static const int OptionPhaseIndependent = 0x00002000;
-    
-    static const int OptionThreadingAuto    = 0x00000000;
-    static const int OptionThreadingNever   = 0x00010000;
-    static const int OptionThreadingAlways  = 0x00020000;
-
-    static const int OptionWindowStandard   = 0x00000000;
-    static const int OptionWindowShort      = 0x00100000;
-    static const int OptionWindowLong       = 0x00200000;
-
-    static const int DefaultOptions         = 0x00000000;
-    static const int PercussiveOptions      = OptionWindowShort | \
-                                              OptionPhaseIndependent;
+    enum PresetOption {
+        DefaultOptions         = 0x00000000,
+        PercussiveOptions      = 0x00102000
+    };
 
     /**
      * Construct a time and pitch stretcher object to run at the given
@@ -292,6 +337,24 @@ public:
      * way when this function is called.
      */
     virtual void setPhaseOption(Options options);
+
+    /**
+     * Change an OptionFormant configuration setting.  This may be
+     * called at any time in any mode.
+     *
+     * Note that if running multi-threaded in Offline mode, the change
+     * may not take effect immediately if processing is already under
+     * way when this function is called.
+     */
+    virtual void setFormantOption(Options options);
+
+    /**
+     * Change an OptionPitch configuration setting.  This may be
+     * called at any time in RealTime mode.  It may not be called in
+     * Offline mode (for which the transients option is fixed on
+     * construction).
+     */
+    virtual void setPitchOption(Options options);
 
     /**
      * Tell the stretcher exactly how many input samples it will

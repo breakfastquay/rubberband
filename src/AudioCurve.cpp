@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007 Chris Cannam.
+    Copyright 2007-2008 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -13,6 +13,9 @@
 */
 
 #include "AudioCurve.h"
+
+#include <iostream>
+using namespace std;
 
 namespace RubberBand
 {
@@ -27,5 +30,15 @@ AudioCurve::~AudioCurve()
 {
 }
 
+float
+AudioCurve::process(const double *R__ mag, size_t increment)
+{
+    cerr << "WARNING: Using inefficient AudioCurve::process(double)" << endl;
+    float *tmp = new float[m_windowSize];
+    for (int i = 0; i < m_windowSize; ++i) tmp[i] = float(mag[i]);
+    float df = process(tmp, increment);
+    delete[] tmp;
+    return df;
+}
 
 }
