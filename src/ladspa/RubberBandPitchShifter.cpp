@@ -151,7 +151,7 @@ RubberBandPitchShifter::ladspaDescriptorMono =
     "rubberband-pitchshifter-mono", // Label
     properties,
     "Rubber Band Mono Pitch Shifter", // Name
-    "Chris Cannam",
+    "Breakfast Quay",
     "GPL",
     PortCountMono,
     portsMono,
@@ -175,7 +175,7 @@ RubberBandPitchShifter::ladspaDescriptorStereo =
     "rubberband-pitchshifter-stereo", // Label
     properties,
     "Rubber Band Stereo Pitch Shifter", // Name
-    "Chris Cannam",
+    "Breakfast Quay",
     "GPL",
     PortCountStereo,
     portsStereo,

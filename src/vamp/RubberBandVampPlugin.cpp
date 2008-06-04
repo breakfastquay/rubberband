@@ -127,7 +127,7 @@ RubberBandVampPlugin::getDescription() const
 string
 RubberBandVampPlugin::getMaker() const
 {
-    return "Rubber Band"; ///!!!
+    return "Breakfast Quay";
 }
 
 int
