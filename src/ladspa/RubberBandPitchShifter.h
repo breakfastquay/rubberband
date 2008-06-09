@@ -38,6 +38,7 @@ protected:
 	SemitonesPort    = 2,
 	CentsPort        = 3,
         CrispnessPort    = 4,
+	FormantPort      = 5,
 	InputPort1       = 6,
         OutputPort1      = 7,
         PortCountMono    = OutputPort1 + 1,
@@ -69,6 +70,7 @@ protected:
     void runImpl(unsigned long);
     void updateRatio();
     void updateCrispness();
+    void updateFormant();
 
     float *m_input[2];
     float *m_output[2];
@@ -77,9 +79,11 @@ protected:
     float *m_semitones;
     float *m_octaves;
     float *m_crispness;
+    float *m_formant;
     double m_ratio;
     double m_prevRatio;
     int m_currentCrispness;
+    bool m_currentFormant;
 
     size_t m_extraLatency;
 

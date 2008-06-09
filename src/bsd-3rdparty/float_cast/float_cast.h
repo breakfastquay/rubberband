@@ -37,6 +37,8 @@
 
 #if (defined (WIN32) || defined (_WIN32))
 
+#ifndef MINGW32
+
 	#include	<math.h>
 
 	/*	Win32 doesn't seem to have these functions. 
@@ -66,6 +68,8 @@
 			
 		return intgr ;
 	}
+
+#endif
 
 #endif
 

@@ -26,7 +26,7 @@ namespace RubberBand
 
 class Resampler;
 	
-class RubberBandStretcher::Impl::ChannelData
+class StretcherImpl::ChannelData
 {
 public:        
     /**

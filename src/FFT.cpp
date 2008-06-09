@@ -482,7 +482,7 @@ public:
     void inverseCepstral(const double *R__ magIn, double *R__ cepOut) {
         if (!m_dplanf) initDouble();
         fft_double_type *const R__ dbuf = m_dbuf;
-        fftwf_complex *const R__ dpacked = m_dpacked;
+        fftw_complex *const R__ dpacked = m_dpacked;
         const int hs = m_size/2;
         for (int i = 0; i <= hs; ++i) {
             dpacked[i][0] = log(magIn[i] + 0.000001);
@@ -545,7 +545,7 @@ public:
         for (int i = 0; i <= hs; ++i) {
             fpacked[i][1] = 0.f;
         }
-        fftw_execute(m_fplani);
+        fftwf_execute(m_fplani);
         const int sz = m_size;
         fft_float_type *const R__ fbuf = m_fbuf;
 #ifndef FFTW_DOUBLE_ONLY

@@ -31,13 +31,14 @@ namespace RubberBand
 class AudioCurve;
 class StretchCalculator;
 
-class RubberBandStretcher::Impl
+class StretcherImpl
 {
 public:
-    Impl(RubberBandStretcher *stretcher,
-         size_t sampleRate, size_t channels, Options options,
-         double initialTimeRatio, double initialPitchScale);
-    ~Impl();
+    typedef RubberBandStretcher::Options Options;
+
+    StretcherImpl(size_t sampleRate, size_t channels, Options options,
+                  double initialTimeRatio, double initialPitchScale);
+    ~StretcherImpl();
     
     void reset();
     void setTimeRatio(double ratio);
@@ -85,7 +86,7 @@ public:
     static void setDefaultDebugLevel(int level) { m_defaultDebugLevel = level; }
 
 protected:
-    RubberBandStretcher *m_stretcher;
+    size_t m_sampleRate;
     size_t m_channels;
 
     size_t consumeChannel(size_t channel, const float *input,
@@ -148,12 +149,12 @@ protected:
     class ProcessThread : public Thread
     {
     public:
-        ProcessThread(Impl *s, size_t c);
+        ProcessThread(StretcherImpl *s, size_t c);
         void run();
         void signalDataAvailable();
         void abandon();
     private:
-        Impl *m_s;
+        StretcherImpl *m_s;
         size_t m_channel;
         Condition m_dataAvailable;
         bool m_abandoning;

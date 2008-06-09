@@ -76,7 +76,7 @@ protected:
 class Profiler
 {
 public:
-    Profiler(const char *, bool = false) { }
+    Profiler(const char *) { }
     ~Profiler() { }
 
     void update() const { }

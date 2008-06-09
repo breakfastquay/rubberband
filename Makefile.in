@@ -38,7 +38,7 @@ vamp:		$(VAMP_TARGET)
 ladspa:		$(LADSPA_TARGET)
 
 PUBLIC_INCLUDES := \
-	rubberband/TimeStretcher.h \
+	rubberband/rubberband.h \
 	rubberband/RubberBandStretcher.h
 
 LIBRARY_INCLUDES := \
@@ -153,7 +153,7 @@ src/ConstantAudioCurve.o: src/sysutils.h
 src/FFT.o: src/FFT.h src/sysutils.h src/Thread.h src/Profiler.h
 src/HighFrequencyAudioCurve.o: src/HighFrequencyAudioCurve.h src/AudioCurve.h
 src/HighFrequencyAudioCurve.o: src/sysutils.h src/Window.h
-src/main.o: rubberband/RubberBandStretcher.h rubberband/TimeStretcher.h
+src/main.o: rubberband/RubberBandStretcher.h rubberband/rubberband.h
 src/main.o: src/sysutils.h src/Profiler.h
 src/PercussiveAudioCurve.o: src/PercussiveAudioCurve.h src/AudioCurve.h
 src/PercussiveAudioCurve.o: src/sysutils.h
@@ -163,7 +163,7 @@ src/RingBuffer.o: src/RingBuffer.h src/Scavenger.h src/Thread.h
 src/RingBuffer.o: src/sysutils.h src/Profiler.h
 src/RubberBandStretcher.o: src/StretcherImpl.h
 src/RubberBandStretcher.o: rubberband/RubberBandStretcher.h
-src/RubberBandStretcher.o: rubberband/TimeStretcher.h src/Window.h
+src/RubberBandStretcher.o: rubberband/rubberband.h src/Window.h
 src/RubberBandStretcher.o: src/sysutils.h src/Thread.h src/RingBuffer.h
 src/RubberBandStretcher.o: src/Scavenger.h src/Profiler.h src/FFT.h
 src/SpectralDifferenceAudioCurve.o: src/SpectralDifferenceAudioCurve.h
@@ -172,12 +172,12 @@ src/SpectralDifferenceAudioCurve.o: src/Window.h
 src/StretchCalculator.o: src/StretchCalculator.h src/sysutils.h
 src/StretcherChannelData.o: src/StretcherChannelData.h src/StretcherImpl.h
 src/StretcherChannelData.o: rubberband/RubberBandStretcher.h
-src/StretcherChannelData.o: rubberband/TimeStretcher.h src/Window.h
+src/StretcherChannelData.o: rubberband/rubberband.h src/Window.h
 src/StretcherChannelData.o: src/sysutils.h src/Thread.h src/RingBuffer.h
 src/StretcherChannelData.o: src/Scavenger.h src/Profiler.h src/FFT.h
 src/StretcherChannelData.o: src/Resampler.h
 src/StretcherImpl.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
-src/StretcherImpl.o: rubberband/TimeStretcher.h src/Window.h src/sysutils.h
+src/StretcherImpl.o: rubberband/rubberband.h src/Window.h src/sysutils.h
 src/StretcherImpl.o: src/Thread.h src/RingBuffer.h src/Scavenger.h
 src/StretcherImpl.o: src/Profiler.h src/FFT.h src/PercussiveAudioCurve.h
 src/StretcherImpl.o: src/AudioCurve.h src/HighFrequencyAudioCurve.h
@@ -185,7 +185,7 @@ src/StretcherImpl.o: src/SpectralDifferenceAudioCurve.h
 src/StretcherImpl.o: src/ConstantAudioCurve.h src/StretchCalculator.h
 src/StretcherImpl.o: src/StretcherChannelData.h src/Resampler.h
 src/StretcherProcess.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
-src/StretcherProcess.o: rubberband/TimeStretcher.h src/Window.h
+src/StretcherProcess.o: rubberband/rubberband.h src/Window.h
 src/StretcherProcess.o: src/sysutils.h src/Thread.h src/RingBuffer.h
 src/StretcherProcess.o: src/Scavenger.h src/Profiler.h src/FFT.h
 src/StretcherProcess.o: src/PercussiveAudioCurve.h src/AudioCurve.h
@@ -195,7 +195,7 @@ src/StretcherProcess.o: src/StretcherChannelData.h src/Resampler.h
 src/sysutils.o: src/sysutils.h
 src/Thread.o: src/Thread.h
 src/Window.o: src/Window.h src/sysutils.h
-rubberband/RubberBandStretcher.o: rubberband/TimeStretcher.h
+rubberband/RubberBandStretcher.o: rubberband/rubberband.h
 src/AudioCurve.o: src/sysutils.h
 src/ConstantAudioCurve.o: src/AudioCurve.h src/sysutils.h
 src/FFT.o: src/sysutils.h
@@ -209,11 +209,11 @@ src/SpectralDifferenceAudioCurve.o: src/AudioCurve.h src/sysutils.h
 src/SpectralDifferenceAudioCurve.o: src/Window.h
 src/StretcherChannelData.o: src/StretcherImpl.h
 src/StretcherChannelData.o: rubberband/RubberBandStretcher.h
-src/StretcherChannelData.o: rubberband/TimeStretcher.h src/Window.h
+src/StretcherChannelData.o: rubberband/rubberband.h src/Window.h
 src/StretcherChannelData.o: src/sysutils.h src/Thread.h src/RingBuffer.h
 src/StretcherChannelData.o: src/Scavenger.h src/Profiler.h src/FFT.h
 src/StretcherImpl.o: rubberband/RubberBandStretcher.h
-src/StretcherImpl.o: rubberband/TimeStretcher.h src/Window.h src/sysutils.h
+src/StretcherImpl.o: rubberband/rubberband.h src/Window.h src/sysutils.h
 src/StretcherImpl.o: src/Thread.h src/RingBuffer.h src/Scavenger.h
 src/StretcherImpl.o: src/Profiler.h src/FFT.h
 src/Window.o: src/sysutils.h
@@ -225,16 +225,16 @@ src/ladspa/RubberBandPitchShifter.o: src/RingBuffer.h
 src/ladspa/RubberBandPitchShifter.o: src/Scavenger.h src/Thread.h
 src/ladspa/RubberBandPitchShifter.o: src/sysutils.h src/Profiler.h
 src/ladspa/RubberBandPitchShifter.o: rubberband/RubberBandStretcher.h
-src/ladspa/RubberBandPitchShifter.o: rubberband/TimeStretcher.h
+src/ladspa/RubberBandPitchShifter.o: rubberband/rubberband.h
 src/vamp/libmain.o: src/vamp/RubberBandVampPlugin.h
 src/vamp/libmain.o: rubberband/RubberBandStretcher.h
-src/vamp/libmain.o: rubberband/TimeStretcher.h
+src/vamp/libmain.o: rubberband/rubberband.h
 src/vamp/RubberBandVampPlugin.o: src/vamp/RubberBandVampPlugin.h
 src/vamp/RubberBandVampPlugin.o: rubberband/RubberBandStretcher.h
-src/vamp/RubberBandVampPlugin.o: rubberband/TimeStretcher.h
+src/vamp/RubberBandVampPlugin.o: rubberband/rubberband.h
 src/vamp/RubberBandVampPlugin.o: src/StretchCalculator.h
 src/ladspa/RubberBandPitchShifter.o: src/RingBuffer.h
 src/ladspa/RubberBandPitchShifter.o: src/Scavenger.h src/Thread.h
 src/ladspa/RubberBandPitchShifter.o: src/sysutils.h src/Profiler.h
 src/vamp/RubberBandVampPlugin.o: rubberband/RubberBandStretcher.h
-src/vamp/RubberBandVampPlugin.o: rubberband/TimeStretcher.h
+src/vamp/RubberBandVampPlugin.o: rubberband/rubberband.h

@@ -29,6 +29,7 @@ RubberBandPitchShifter::portNamesMono[PortCountMono] =
     "Semitones",
     "Octaves",
     "Crispness",
+    "Formant Preservation",
     "Input",
     "Output"
 };
@@ -41,6 +42,7 @@ RubberBandPitchShifter::portNamesStereo[PortCountStereo] =
     "Semitones",
     "Octaves",
     "Crispness",
+    "Formant Preservation",
     "Input L",
     "Output L",
     "Input R",
@@ -206,9 +208,11 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_semitones(0),
     m_octaves(0),
     m_crispness(0),
+    m_formant(0),
     m_ratio(1.0),
     m_prevRatio(1.0),
     m_currentCrispness(-1),
+    m_currentFormant(false),
     m_extraLatency(8192), //!!! this should be at least the maximum possible displacement from linear at input rates, divided by the pitch scale factor.  It could be very large
     m_stretcher(new RubberBandStretcher
                 (sampleRate, channels,
@@ -259,6 +263,7 @@ RubberBandPitchShifter::connectPort(LADSPA_Handle handle,
 	&shifter->m_semitones,
 	&shifter->m_octaves,
         &shifter->m_crispness,
+	&shifter->m_formant,
     	&shifter->m_input[0],
 	&shifter->m_output[0],
 	&shifter->m_input[1],
@@ -327,6 +332,23 @@ RubberBandPitchShifter::updateCrispness()
 }
 
 void
+RubberBandPitchShifter::updateFormant()
+{
+    if (!m_formant) return;
+
+    bool f = (*m_formant > 0.5f);
+    if (f == m_currentFormant) return;
+    
+    RubberBandStretcher *s = m_stretcher;
+    
+    s->setFormantOption(f ?
+                        RubberBandStretcher::OptionFormantPreserved :
+                        RubberBandStretcher::OptionFormantShifted);
+
+    m_currentFormant = f;
+}
+
+void
 RubberBandPitchShifter::runImpl(unsigned long insamples)
 {
 //    std::cerr << "RubberBandPitchShifter::runImpl(" << insamples << ")" << std::endl;
@@ -343,6 +365,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
     }
 
     updateCrispness();
+    updateFormant();
 
     int samples = insamples;
     int processed = 0;
