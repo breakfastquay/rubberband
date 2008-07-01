@@ -15,14 +15,12 @@
 #ifndef _RUBBERBANDSTRETCHER_H_
 #define _RUBBERBANDSTRETCHER_H_
 
-#include "rubberband.h"
-
 #include <vector>
 
 /**
  * @mainpage RubberBand
  * 
- * The Rubber Band C++ API is contained in the single class
+ * The Rubber Band API is contained in the single class
  * RubberBand::RubberBandStretcher.
  */
 
@@ -33,10 +31,10 @@ class RubberBandStretcher
 {
 public:
     /**
-     * Processing options for the Rubber Band audio timestretcher.  The
-     * preferred options should normally be set in the constructor, as a
-     * bitwise OR of the option flags.  The default value (DefaultOptions)
-     * is intended to give good results in most situations.
+     * Processing options for the timestretcher.  The preferred
+     * options should normally be set in the constructor, as a bitwise
+     * OR of the option flags.  The default value (DefaultOptions) is
+     * intended to give good results in most situations.
      *
      * 1. Flags prefixed \c OptionProcess determine how the timestretcher
      * will be invoked.  These options may not be changed after
@@ -188,8 +186,6 @@ public:
     
     enum Option {
 
-        //!!! sort out this duplication
-
         OptionProcessOffline   = 0x00000000,
         OptionProcessRealTime  = 0x00000001,
 
@@ -223,7 +219,7 @@ public:
 
     enum PresetOption {
         DefaultOptions         = 0x00000000,
-        PercussiveOptions      = (OptionWindowShort | OptionPhaseIndependent)
+        PercussiveOptions      = 0x00102000
     };
 
     /**
@@ -238,22 +234,15 @@ public:
                         size_t channels,
                         Options options = DefaultOptions,
                         double initialTimeRatio = 1.0,
-                        double initialPitchScale = 1.0) :
-        r(rubberband_new(sampleRate, channels, options,
-                               initialTimeRatio, initialPitchScale)) { }
-
-    ~RubberBandStretcher() { 
-        rubberband_delete(r);
-    }
+                        double initialPitchScale = 1.0);
+    ~RubberBandStretcher();
 
     /**
      * Reset the stretcher's internal buffers.  The stretcher should
      * subsequently behave as if it had just been constructed
      * (although retaining the current time and pitch ratio).
      */
-    void reset() {
-        rubberband_reset(r);
-    }
+    void reset();
 
     /**
      * Set the time ratio for the stretcher.  This is the ratio of
@@ -276,9 +265,7 @@ public:
      * mechanism to ensure that setTimeRatio and process() cannot be
      * run at once (there is no internal mutex for this purpose).
      */
-    void setTimeRatio(double ratio) {
-        rubberband_set_time_ratio(r, ratio);
-    }
+    void setTimeRatio(double ratio);
 
     /**
      * Set the pitch scaling ratio for the stretcher.  This is the
@@ -305,25 +292,19 @@ public:
      * mechanism to ensure that setPitchScale and process() cannot be
      * run at once (there is no internal mutex for this purpose).
      */
-    void setPitchScale(double scale) {
-        rubberband_set_pitch_scale(r, scale);
-    }
+    void setPitchScale(double scale);
 
     /**
      * Return the last time ratio value that was set (either on
      * construction or with setTimeRatio()).
      */
-    double getTimeRatio() const {
-        return rubberband_get_time_ratio(r);
-    }
+    double getTimeRatio() const;
 
     /**
      * Return the last pitch scaling ratio value that was set (either
      * on construction or with setPitchScale()).
      */
-    double getPitchScale() const {
-        return rubberband_get_pitch_scale(r);
-    }
+    double getPitchScale() const;
 
     /**
      * Return the processing latency of the stretcher.  This is the
@@ -334,9 +315,7 @@ public:
      * In RealTime mode, the latency may depend on the time and pitch
      * ratio and other options.
      */
-    size_t getLatency() const {
-        return rubberband_get_latency(r);
-    }
+    size_t getLatency() const;
 
     /**
      * Change an OptionTransients configuration setting.  This may be
@@ -344,9 +323,7 @@ public:
      * Offline mode (for which the transients option is fixed on
      * construction).
      */
-    void setTransientsOption(Options options) {
-        rubberband_set_transients_option(r, options);
-    }
+    void setTransientsOption(Options options);
 
     /**
      * Change an OptionPhase configuration setting.  This may be
@@ -356,9 +333,7 @@ public:
      * may not take effect immediately if processing is already under
      * way when this function is called.
      */
-    void setPhaseOption(Options options) {
-        rubberband_set_phase_option(r, options);
-    }
+    void setPhaseOption(Options options);
 
     /**
      * Change an OptionFormant configuration setting.  This may be
@@ -368,9 +343,7 @@ public:
      * may not take effect immediately if processing is already under
      * way when this function is called.
      */
-    void setFormantOption(Options options) {
-        rubberband_set_formant_option(r, options);
-    }
+    void setFormantOption(Options options);
 
     /**
      * Change an OptionPitch configuration setting.  This may be
@@ -378,9 +351,7 @@ public:
      * Offline mode (for which the transients option is fixed on
      * construction).
      */
-    void setPitchOption(Options options) {
-        rubberband_set_pitch_option(r, options);
-    }
+    void setPitchOption(Options options);
 
     /**
      * Tell the stretcher exactly how many input samples it will
@@ -389,9 +360,7 @@ public:
      * exactly correct.  In RealTime mode no such guarantee is
      * possible and this value is ignored.
      */
-    void setExpectedInputDuration(size_t samples) {
-        rubberband_set_expected_input_duration(r, samples);
-    }
+    void setExpectedInputDuration(size_t samples);
 
     /**
      * Ask the stretcher how many audio sample frames should be
@@ -405,9 +374,7 @@ public:
      * study() (to which you may pass any number of samples at a time,
      * and from which there is no output).
      */
-    size_t getSamplesRequired() const {
-        return rubberband_get_samples_required(r);
-    }
+     size_t getSamplesRequired() const;
 
     /**
      * Tell the stretcher the maximum number of sample frames that you
@@ -424,9 +391,7 @@ public:
      * study() (to which you may pass any number of samples at a time,
      * and from which there is no output).
      */
-    void setMaxProcessSize(size_t samples) {
-        rubberband_set_max_process_size(r, samples);
-    }
+    void setMaxProcessSize(size_t samples);
 
     /**
      * Provide a block of "samples" sample frames for the stretcher to
@@ -445,9 +410,7 @@ public:
      * Set "final" to true if this is the last block of data that will
      * be provided to study() before the first process() call.
      */
-    void study(const float *const *input, size_t samples, bool final) {
-        rubberband_study(r, input, samples, final);
-    }
+    void study(const float *const *input, size_t samples, bool final);
 
     /**
      * Provide a block of "samples" sample frames for processing.
@@ -455,9 +418,7 @@ public:
      *
      * Set "final" to true if this is the last block of input data.
      */
-    void process(const float *const *input, size_t samples, bool final) {
-        rubberband_process(r, input, samples, final);
-    }
+    void process(const float *const *input, size_t samples, bool final);
 
     /**
      * Ask the stretcher how many audio sample frames of output data
@@ -472,9 +433,7 @@ public:
      * This function returns -1 if all data has been fully processed
      * and all output read, and the stretch process is now finished.
      */
-    int available() const {
-        return rubberband_available(r);
-    }
+    int available() const;
 
     /**
      * Obtain some processed output data from the stretcher.  Up to
@@ -483,9 +442,7 @@ public:
      * The return value is the actual number of sample frames
      * retrieved.
      */
-    size_t retrieve(float *const *output, size_t samples) const {
-        return rubberband_retrieve(r, output, samples);
-    }
+    size_t retrieve(float *const *output, size_t samples) const;
 
     /**
      * Return the value of internal frequency cutoff value n.
@@ -544,9 +501,7 @@ public:
      * Return the number of channels this stretcher was constructed
      * with.
      */
-    size_t getChannelCount() const {
-        return rubberband_get_channel_count(r);
-    }
+    size_t getChannelCount() const;
 
     /**
      * Force the stretcher to calculate a stretch profile.  Normally
@@ -555,9 +510,7 @@ public:
      *
      * This function is provided for diagnostic purposes only.
      */
-    void calculateStretch() {
-        rubberband_calculate_stretch(r);
-    }
+    void calculateStretch();
 
     /**
      * Set the level of debug output.  The value may be from 0 (errors
@@ -566,9 +519,7 @@ public:
      * using setDefaultDebugLevel, or 0 if that function has not been
      * called.
      */
-    void setDebugLevel(int level) {
-        rubberband_set_debug_level(r, level);
-    }
+    void setDebugLevel(int level);
 
     /**
      * Set the default level of debug output for subsequently
@@ -576,12 +527,11 @@ public:
      *
      * @see setDebugLevel
      */
-    static void setDefaultDebugLevel(int level) {
-        rubberband_set_default_debug_level(level);
-    }
+    static void setDefaultDebugLevel(int level);
 
 protected:
-    RubberBandState r;
+    class Impl;
+    Impl *m_d;
 };
 
 }

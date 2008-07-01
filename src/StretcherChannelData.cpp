@@ -20,7 +20,7 @@
 namespace RubberBand 
 {
 
-StretcherImpl::ChannelData::ChannelData(size_t windowSize,
+RubberBandStretcher::Impl::ChannelData::ChannelData(size_t windowSize,
                                                     int overSample,
                                                     size_t outbufSize) :
     oversample(overSample)
@@ -29,7 +29,7 @@ StretcherImpl::ChannelData::ChannelData(size_t windowSize,
     construct(s, windowSize, outbufSize);
 }
 
-StretcherImpl::ChannelData::ChannelData(const std::set<size_t> &windowSizes,
+RubberBandStretcher::Impl::ChannelData::ChannelData(const std::set<size_t> &windowSizes,
                                                     int overSample,
                                                     size_t initialWindowSize,
                                                     size_t outbufSize) :
@@ -39,7 +39,7 @@ StretcherImpl::ChannelData::ChannelData(const std::set<size_t> &windowSizes,
 }
 
 void
-StretcherImpl::ChannelData::construct(const std::set<size_t> &windowSizes,
+RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &windowSizes,
                                                   size_t initialWindowSize,
                                                   size_t outbufSize)
 {
@@ -117,7 +117,7 @@ StretcherImpl::ChannelData::construct(const std::set<size_t> &windowSizes,
 }
 
 void
-StretcherImpl::ChannelData::setWindowSize(size_t windowSize)
+RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
 {
     size_t oldSize = inbuf->getSize();
     size_t realSize = (windowSize * oversample) / 2 + 1;
@@ -236,7 +236,7 @@ StretcherImpl::ChannelData::setWindowSize(size_t windowSize)
 }
 
 void
-StretcherImpl::ChannelData::setOutbufSize(size_t outbufSize)
+RubberBandStretcher::Impl::ChannelData::setOutbufSize(size_t outbufSize)
 {
     size_t oldSize = outbuf->getSize();
 
@@ -254,7 +254,7 @@ StretcherImpl::ChannelData::setOutbufSize(size_t outbufSize)
 }
 
 void
-StretcherImpl::ChannelData::setResampleBufSize(size_t sz)
+RubberBandStretcher::Impl::ChannelData::setResampleBufSize(size_t sz)
 {
     if (!resamplebuf) {
         resamplebuf = new float[sz];
@@ -268,7 +268,7 @@ StretcherImpl::ChannelData::setResampleBufSize(size_t sz)
     resamplebufSize = sz;
 }
 
-StretcherImpl::ChannelData::~ChannelData()
+RubberBandStretcher::Impl::ChannelData::~ChannelData()
 {
     delete resampler;
 
@@ -296,7 +296,7 @@ StretcherImpl::ChannelData::~ChannelData()
 }
 
 void
-StretcherImpl::ChannelData::reset()
+RubberBandStretcher::Impl::ChannelData::reset()
 {
     inbuf->reset();
     outbuf->reset();

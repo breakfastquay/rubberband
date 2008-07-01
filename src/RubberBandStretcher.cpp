@@ -14,133 +14,187 @@
 
 #include "StretcherImpl.h"
 
-#include "rubberband.h"
+namespace RubberBand {
 
-struct RubberBandState_
-{
-    RubberBand::StretcherImpl *m_impl;
-};
 
-RubberBandState rubberband_new(unsigned int sampleRate,
-                               unsigned int channels,
-                               RubberBandOptions options, //!!! sort out RubberBand namespacing
-                               double initialTimeRatio,
-                               double initialPitchScale)
+RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
+                                         size_t channels,
+                                         Options options,
+                                         double initialTimeRatio,
+                                         double initialPitchScale) :
+    m_d(new Impl(sampleRate, channels, options,
+                 initialTimeRatio, initialPitchScale))
 {
-    RubberBandState_ *state = new RubberBandState_();
-    state->m_impl = new RubberBand::StretcherImpl
-        (sampleRate, channels, options,
-         initialTimeRatio, initialPitchScale);
-    return state;
 }
 
-void rubberband_delete(RubberBandState state)
+RubberBandStretcher::~RubberBandStretcher()
 {
-    delete state->m_impl;
-    delete state;
+    delete m_d;
 }
 
-void rubberband_reset(RubberBandState state)
+void
+RubberBandStretcher::reset()
 {
-    state->m_impl->reset();
+    m_d->reset();
 }
 
-void rubberband_set_time_ratio(RubberBandState state, double ratio)
+void
+RubberBandStretcher::setTimeRatio(double ratio)
 {
-    state->m_impl->setTimeRatio(ratio);
+    m_d->setTimeRatio(ratio);
 }
 
-void rubberband_set_pitch_scale(RubberBandState state, double scale)
+void
+RubberBandStretcher::setPitchScale(double scale)
 {
-    state->m_impl->setPitchScale(scale);
+    m_d->setPitchScale(scale);
 }
 
-double rubberband_get_time_ratio(const RubberBandState state) 
+double
+RubberBandStretcher::getTimeRatio() const
 {
-    return state->m_impl->getTimeRatio();
+    return m_d->getTimeRatio();
 }
 
-double rubberband_get_pitch_scale(const RubberBandState state)
+double
+RubberBandStretcher::getPitchScale() const
 {
-    return state->m_impl->getPitchScale();
+    return m_d->getPitchScale();
 }
 
-unsigned int rubberband_get_latency(const RubberBandState state) 
+size_t
+RubberBandStretcher::getLatency() const
 {
-    return state->m_impl->getLatency();
+    return m_d->getLatency();
 }
 
-void rubberband_set_transients_option(RubberBandState state, RubberBandOptions options)
+void
+RubberBandStretcher::setTransientsOption(Options options) 
 {
-    state->m_impl->setTransientsOption(options);
+    m_d->setTransientsOption(options);
 }
 
-void rubberband_set_phase_option(RubberBandState state, RubberBandOptions options)
+void
+RubberBandStretcher::setPhaseOption(Options options) 
 {
-    state->m_impl->setPhaseOption(options);
+    m_d->setPhaseOption(options);
 }
 
-void rubberband_set_formant_option(RubberBandState state, RubberBandOptions options)
+void
+RubberBandStretcher::setFormantOption(Options options)
 {
-    state->m_impl->setFormantOption(options);
+    m_d->setFormantOption(options);
 }
 
-void rubberband_set_pitch_option(RubberBandState state, RubberBandOptions options)
+void
+RubberBandStretcher::setPitchOption(Options options)
 {
-    state->m_impl->setPitchOption(options);
+    m_d->setPitchOption(options);
 }
 
-void rubberband_set_expected_input_duration(RubberBandState state, unsigned int samples)
+void
+RubberBandStretcher::setExpectedInputDuration(size_t samples) 
 {
-    state->m_impl->setExpectedInputDuration(samples);
+    m_d->setExpectedInputDuration(samples);
 }
 
-unsigned int rubberband_get_samples_required(const RubberBandState state)
+void
+RubberBandStretcher::setMaxProcessSize(size_t samples)
 {
-    return state->m_impl->getSamplesRequired();
+    m_d->setMaxProcessSize(samples);
 }
 
-void rubberband_set_max_process_size(RubberBandState state, unsigned int samples)
+size_t
+RubberBandStretcher::getSamplesRequired() const
 {
-    state->m_impl->setMaxProcessSize(samples);
+    return m_d->getSamplesRequired();
 }
 
-void rubberband_study(RubberBandState state, const float *const *input, unsigned int samples, int final)
+void
+RubberBandStretcher::study(const float *const *input, size_t samples,
+                           bool final)
 {
-    state->m_impl->study(input, samples, final != 0);
+    m_d->study(input, samples, final);
 }
 
-void rubberband_process(RubberBandState state, const float *const *input, unsigned int samples, int final)
+void
+RubberBandStretcher::process(const float *const *input, size_t samples,
+                             bool final)
 {
-    state->m_impl->process(input, samples, final != 0);
+    m_d->process(input, samples, final);
 }
 
-int rubberband_available(const RubberBandState state)
+int
+RubberBandStretcher::available() const
 {
-    return state->m_impl->available();
+    return m_d->available();
 }
 
-unsigned int rubberband_retrieve(const RubberBandState state, float *const *output, unsigned int samples)
+size_t
+RubberBandStretcher::retrieve(float *const *output, size_t samples) const
 {
-    return state->m_impl->retrieve(output, samples);
+    return m_d->retrieve(output, samples);
 }
 
-unsigned int rubberband_get_channel_count(const RubberBandState state)
+float
+RubberBandStretcher::getFrequencyCutoff(int n) const
 {
-    return state->m_impl->getChannelCount();
+    return m_d->getFrequencyCutoff(n);
 }
 
-void rubberband_calculate_stretch(RubberBandState state)
+void
+RubberBandStretcher::setFrequencyCutoff(int n, float f) 
 {
-    state->m_impl->calculateStretch();
+    m_d->setFrequencyCutoff(n, f);
 }
 
-void rubberband_set_debug_level(RubberBandState state, int level)
+size_t
+RubberBandStretcher::getInputIncrement() const
 {
-    state->m_impl->setDebugLevel(level);
+    return m_d->getInputIncrement();
 }
 
-void rubberband_set_default_debug_level(int level)
+std::vector<int>
+RubberBandStretcher::getOutputIncrements() const
 {
-    RubberBand::StretcherImpl::setDefaultDebugLevel(level);
+    return m_d->getOutputIncrements();
 }
+
+std::vector<float>
+RubberBandStretcher::getPhaseResetCurve() const
+{
+    return m_d->getPhaseResetCurve();
+}
+
+std::vector<int>
+RubberBandStretcher::getExactTimePoints() const
+{
+    return m_d->getExactTimePoints();
+}
+
+size_t
+RubberBandStretcher::getChannelCount() const
+{
+    return m_d->getChannelCount();
+}
+
+void
+RubberBandStretcher::calculateStretch()
+{
+    m_d->calculateStretch();
+}
+
+void
+RubberBandStretcher::setDebugLevel(int level)
+{
+    m_d->setDebugLevel(level);
+}
+
+void
+RubberBandStretcher::setDefaultDebugLevel(int level)
+{
+    Impl::setDefaultDebugLevel(level);
+}
+
+}
+

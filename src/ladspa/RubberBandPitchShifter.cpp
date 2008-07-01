@@ -213,7 +213,9 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_prevRatio(1.0),
     m_currentCrispness(-1),
     m_currentFormant(false),
-    m_extraLatency(8192), //!!! this should be at least the maximum possible displacement from linear at input rates, divided by the pitch scale factor.  It could be very large
+//    m_extraLatency(8192), //!!! this should be at least the maximum possible displacement from linear at input rates, divided by the pitch scale factor.  It could be very large
+//    m_extraLatency(512), //!!! this should be at least the maximum possible displacement from linear at input rates, divided by the pitch scale factor.  It could be very large
+    m_extraLatency(128), //!!! this should be at least the maximum possible displacement from linear at input rates, divided by the pitch scale factor.  It could be very large
     m_stretcher(new RubberBandStretcher
                 (sampleRate, channels,
                  RubberBandStretcher::OptionProcessRealTime)),
@@ -228,6 +230,16 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
         m_outputBuffer[c]->zero(m_extraLatency);
         //!!! size must be at least max process size:
         m_scratch[c] = new float[16384];//!!!
+        for (int i = 0; i < 16384; ++i) {
+            m_scratch[c][i] = 0.f;
+        }
+    }
+    int reqd = m_stretcher->getSamplesRequired();
+    m_stretcher->process(m_scratch, reqd, false);
+    int avail = m_stretcher->available();
+    std::cerr << "construction: reqd = " << reqd <<  ", available = " << avail << std::endl;
+    if (avail > 0) {
+        m_stretcher->retrieve(m_scratch, avail);
     }
 }
 
@@ -353,6 +365,8 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
 {
 //    std::cerr << "RubberBandPitchShifter::runImpl(" << insamples << ")" << std::endl;
 
+    static int incount = 0, outcount = 0;
+
     updateRatio();
     if (m_ratio != m_prevRatio) {
         m_stretcher->setPitchScale(m_ratio);
@@ -387,12 +401,14 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
         }
         m_stretcher->process(ptrs, inchunk, false);
         processed += inchunk;
+        incount += inchunk; //!!!
 
         int avail = m_stretcher->available();
         int writable = m_outputBuffer[0]->getWriteSpace();
         int outchunk = std::min(avail, writable);
         size_t actual = m_stretcher->retrieve(m_scratch, outchunk);
         outTotal += actual;
+        outcount += actual;
 
 //        std::cout << ", avail: " << avail << ", outchunk = " << outchunk;
 //        if (actual != outchunk) std::cout << " (" << actual << ")";
@@ -408,6 +424,8 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
         }
     }
 
+    std::cout << "in: " << incount << ", out: " << outcount << ", loss: " << incount - outcount << std::endl;
+    
 //    std::cout << "processed = " << processed << " in, " << outTotal << " out" << ", fill = " << m_outputBuffer[0]->getReadSpace() << " of " << m_outputBuffer[0]->getSize() << std::endl;
     
     for (size_t c = 0; c < m_channels; ++c) {

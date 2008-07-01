@@ -12,17 +12,28 @@
     COPYING included with this distribution for more information.
 */
 
-#ifndef _RUBBERBAND_H_
-#define _RUBBERBAND_H_
+#ifndef _RUBBERBAND_C_API_H_
+#define _RUBBERBAND_C_API_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
     
+/**
+ * This is a C-linkage interface to the Rubber Band time stretcher.
+ * 
+ * This is a wrapper interface: the primary interface is in C++ and is
+ * defined and documented in RubberBandStretcher.h.  The library
+ * itself is implemented in C++, and requires C++ standard library
+ * support even when using the C-linkage API.
+ *
+ * Please see RubberBandStretcher.h for documentation.
+ *
+ * If you are writing to the C++ API, do not include this header.
+ */
+
 enum RubberBandOption {
 
-    //!!! sort out this duplication
-    
     RubberBandOptionProcessOffline   = 0x00000000,
     RubberBandOptionProcessRealTime  = 0x00000001,
 
@@ -59,7 +70,7 @@ typedef struct RubberBandState_ *RubberBandState;
 
 extern RubberBandState rubberband_new(unsigned int sampleRate,
                                       unsigned int channels,
-                                      RubberBandOptions options, //!!! sort out RubberBand namespacing
+                                      RubberBandOptions options,
                                       double initialTimeRatio,
                                       double initialPitchScale);
 

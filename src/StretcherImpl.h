@@ -31,14 +31,12 @@ namespace RubberBand
 class AudioCurve;
 class StretchCalculator;
 
-class StretcherImpl
+class RubberBandStretcher::Impl
 {
 public:
-    typedef RubberBandStretcher::Options Options;
-
-    StretcherImpl(size_t sampleRate, size_t channels, Options options,
-                  double initialTimeRatio, double initialPitchScale);
-    ~StretcherImpl();
+    Impl(size_t sampleRate, size_t channels, Options options,
+         double initialTimeRatio, double initialPitchScale);
+    ~Impl();
     
     void reset();
     void setTimeRatio(double ratio);
@@ -149,12 +147,12 @@ protected:
     class ProcessThread : public Thread
     {
     public:
-        ProcessThread(StretcherImpl *s, size_t c);
+        ProcessThread(Impl *s, size_t c);
         void run();
         void signalDataAvailable();
         void abandon();
     private:
-        StretcherImpl *m_s;
+        Impl *m_s;
         size_t m_channel;
         Condition m_dataAvailable;
         bool m_abandoning;

@@ -12,12 +12,15 @@ LADSPA_PLUGIN_LIBS	:= $(LIBRARY_LIBS)
 MKDIR			:= mkdir
 AR			:= ar
 
-DYNAMIC_LDFLAGS		:= -shared -Wl,-Bsymbolic
 DYNAMIC_EXTENSION	:= .so
+DYNAMIC_FULL_VERSION	:= .2.0.0
+DYNAMIC_ABI_VERSION	:= .2
+DYNAMIC_LIBNAME		:= librubberband$(DYNAMIC_EXTENSION)
+DYNAMIC_LDFLAGS		:= -shared -Wl,-Bsymbolic -Wl,-soname=$(DYNAMIC_LIBNAME)$(DYNAMIC_ABI_VERSION)
 
 PROGRAM_TARGET 		:= bin/rubberband
 STATIC_TARGET  		:= lib/librubberband.a
-DYNAMIC_TARGET 		:= lib/librubberband$(DYNAMIC_EXTENSION)
+DYNAMIC_TARGET 		:= lib/$(DYNAMIC_LIBNAME)
 VAMP_TARGET    		:= lib/vamp-rubberband$(DYNAMIC_EXTENSION)
 LADSPA_TARGET  		:= lib/ladspa-rubberband$(DYNAMIC_EXTENSION)
 
@@ -26,6 +29,7 @@ INSTALL_INCDIR		:= @prefix@/include/rubberband
 INSTALL_LIBDIR		:= @prefix@/lib
 INSTALL_VAMPDIR		:= @prefix@/lib/vamp
 INSTALL_LADSPADIR	:= @prefix@/lib/ladspa
+INSTALL_LRDFDIR		:= @prefix@/share/ladspa/rdf
 INSTALL_PKGDIR		:= @prefix@/lib/pkgconfig
 
 all:	bin lib $(PROGRAM_TARGET) $(STATIC_TARGET) $(DYNAMIC_TARGET) $(VAMP_TARGET) $(LADSPA_TARGET)
@@ -38,7 +42,7 @@ vamp:		$(VAMP_TARGET)
 ladspa:		$(LADSPA_TARGET)
 
 PUBLIC_INCLUDES := \
-	rubberband/rubberband.h \
+	rubberband/rubberband-c.h \
 	rubberband/RubberBandStretcher.h
 
 LIBRARY_INCLUDES := \
@@ -67,6 +71,7 @@ LIBRARY_SOURCES := \
 	src/PercussiveAudioCurve.cpp \
 	src/Profiler.cpp \
 	src/Resampler.cpp \
+	src/rubberband-c.cpp \
 	src/RubberBandStretcher.cpp \
 	src/SpectralDifferenceAudioCurve.cpp \
 	src/StretchCalculator.cpp \
@@ -102,7 +107,7 @@ VAMP_OBJECTS    := $(VAMP_SOURCES:.cpp=.o)
 LADSPA_OBJECTS  := $(LADSPA_SOURCES:.cpp=.o)
 
 $(PROGRAM_TARGET):	$(LIBRARY_OBJECTS) $(PROGRAM_OBJECTS)
-	$(CXX) -o $@ $^ $(PROGRAM_LIBS) $(PROGRAM_LIBS) $(LDFLAGS)
+	$(CXX) -o $@ $^ $(PROGRAM_LIBS) $(LDFLAGS)
 
 $(STATIC_TARGET):	$(LIBRARY_OBJECTS)
 	$(AR) rsc $@ $^
@@ -122,22 +127,28 @@ lib:
 	$(MKDIR) $@
 
 install:	all
-	$(MKDIR) -p $(INSTALL_BINDIR)
-	$(MKDIR) -p $(INSTALL_INCDIR)
-	$(MKDIR) -p $(INSTALL_LIBDIR)
-	$(MKDIR) -p $(INSTALL_VAMPDIR)
-	$(MKDIR) -p $(INSTALL_LADSPADIR)
-	$(MKDIR) -p $(INSTALL_PKGDIR)
-	cp $(PROGRAM_TARGET) $(INSTALL_BINDIR)
-	cp $(PUBLIC_INCLUDES) $(INSTALL_INCDIR)
-	cp $(STATIC_TARGET) $(INSTALL_LIBDIR)
-	cp $(DYNAMIC_TARGET) $(INSTALL_LIBDIR)
-	cp $(VAMP_TARGET) $(INSTALL_VAMPDIR)
-	cp src/vamp/vamp-rubberband.cat $(INSTALL_VAMPDIR)
-	cp $(LADSPA_TARGET) $(INSTALL_LADSPADIR)
-	cp src/ladspa/ladspa-rubberband.cat $(INSTALL_LADSPADIR)
+	$(MKDIR) -p $(DESTDIR)$(INSTALL_BINDIR)
+	$(MKDIR) -p $(DESTDIR)$(INSTALL_INCDIR)
+	$(MKDIR) -p $(DESTDIR)$(INSTALL_LIBDIR)
+	$(MKDIR) -p $(DESTDIR)$(INSTALL_VAMPDIR)
+	$(MKDIR) -p $(DESTDIR)$(INSTALL_LADSPADIR)
+	$(MKDIR) -p $(DESTDIR)$(INSTALL_LRDFDIR)
+	$(MKDIR) -p $(DESTDIR)$(INSTALL_PKGDIR)
+	cp $(PROGRAM_TARGET) $(DESTDIR)$(INSTALL_BINDIR)
+	cp $(PUBLIC_INCLUDES) $(DESTDIR)$(INSTALL_INCDIR)
+	cp $(STATIC_TARGET) $(DESTDIR)$(INSTALL_LIBDIR)
+	rm -f $(DESTDIR)$(INSTALL_LIBDIR)/$(DYNAMIC_LIBNAME)$(DYNAMIC_ABI_VERSION)
+	rm -f $(DESTDIR)$(INSTALL_LIBDIR)/$(DYNAMIC_LIBNAME)
+	cp $(DYNAMIC_TARGET) $(DESTDIR)$(INSTALL_LIBDIR)/$(DYNAMIC_LIBNAME)$(DYNAMIC_FULL_VERSION)
+	test -n "$(DYNAMIC_FULL_VERSION)" && ln -s $(DYNAMIC_LIBNAME)$(DYNAMIC_FULL_VERSION) $(DESTDIR)$(INSTALL_LIBDIR)/$(DYNAMIC_LIBNAME)$(DYNAMIC_ABI_VERSION)
+	test -n "$(DYNAMIC_FULL_VERSION)" && ln -s $(DYNAMIC_LIBNAME)$(DYNAMIC_FULL_VERSION) $(DESTDIR)$(INSTALL_LIBDIR)/$(DYNAMIC_LIBNAME)
+	cp $(VAMP_TARGET) $(DESTDIR)$(INSTALL_VAMPDIR)
+	cp src/vamp/vamp-rubberband.cat $(DESTDIR)$(INSTALL_VAMPDIR)
+	cp $(LADSPA_TARGET) $(DESTDIR)$(INSTALL_LADSPADIR)
+	cp src/ladspa/ladspa-rubberband.cat $(DESTDIR)$(INSTALL_LADSPADIR)
+	cp src/ladspa/ladspa-rubberband.rdf $(DESTDIR)$(INSTALL_LRDFDIR)
 	sed "s,%PREFIX%,@prefix@," rubberband.pc.in \
-	  > $(INSTALL_PKGDIR)/rubberband.pc
+	  > $(DESTDIR)$(INSTALL_PKGDIR)/rubberband.pc
 
 clean:
 	rm -f $(LIBRARY_OBJECTS) $(PROGRAM_OBJECTS) $(LADSPA_OBJECTS) $(VAMP_OBJECTS)
@@ -153,7 +164,7 @@ src/ConstantAudioCurve.o: src/sysutils.h
 src/FFT.o: src/FFT.h src/sysutils.h src/Thread.h src/Profiler.h
 src/HighFrequencyAudioCurve.o: src/HighFrequencyAudioCurve.h src/AudioCurve.h
 src/HighFrequencyAudioCurve.o: src/sysutils.h src/Window.h
-src/main.o: rubberband/RubberBandStretcher.h rubberband/rubberband.h
+src/main.o: rubberband/RubberBandStretcher.h rubberband/rubberband-c.h
 src/main.o: src/sysutils.h src/Profiler.h
 src/PercussiveAudioCurve.o: src/PercussiveAudioCurve.h src/AudioCurve.h
 src/PercussiveAudioCurve.o: src/sysutils.h
@@ -163,7 +174,7 @@ src/RingBuffer.o: src/RingBuffer.h src/Scavenger.h src/Thread.h
 src/RingBuffer.o: src/sysutils.h src/Profiler.h
 src/RubberBandStretcher.o: src/StretcherImpl.h
 src/RubberBandStretcher.o: rubberband/RubberBandStretcher.h
-src/RubberBandStretcher.o: rubberband/rubberband.h src/Window.h
+src/RubberBandStretcher.o: rubberband/rubberband-c.h src/Window.h
 src/RubberBandStretcher.o: src/sysutils.h src/Thread.h src/RingBuffer.h
 src/RubberBandStretcher.o: src/Scavenger.h src/Profiler.h src/FFT.h
 src/SpectralDifferenceAudioCurve.o: src/SpectralDifferenceAudioCurve.h
@@ -172,12 +183,12 @@ src/SpectralDifferenceAudioCurve.o: src/Window.h
 src/StretchCalculator.o: src/StretchCalculator.h src/sysutils.h
 src/StretcherChannelData.o: src/StretcherChannelData.h src/StretcherImpl.h
 src/StretcherChannelData.o: rubberband/RubberBandStretcher.h
-src/StretcherChannelData.o: rubberband/rubberband.h src/Window.h
+src/StretcherChannelData.o: rubberband/rubberband-c.h src/Window.h
 src/StretcherChannelData.o: src/sysutils.h src/Thread.h src/RingBuffer.h
 src/StretcherChannelData.o: src/Scavenger.h src/Profiler.h src/FFT.h
 src/StretcherChannelData.o: src/Resampler.h
 src/StretcherImpl.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
-src/StretcherImpl.o: rubberband/rubberband.h src/Window.h src/sysutils.h
+src/StretcherImpl.o: rubberband/rubberband-c.h src/Window.h src/sysutils.h
 src/StretcherImpl.o: src/Thread.h src/RingBuffer.h src/Scavenger.h
 src/StretcherImpl.o: src/Profiler.h src/FFT.h src/PercussiveAudioCurve.h
 src/StretcherImpl.o: src/AudioCurve.h src/HighFrequencyAudioCurve.h
@@ -185,7 +196,7 @@ src/StretcherImpl.o: src/SpectralDifferenceAudioCurve.h
 src/StretcherImpl.o: src/ConstantAudioCurve.h src/StretchCalculator.h
 src/StretcherImpl.o: src/StretcherChannelData.h src/Resampler.h
 src/StretcherProcess.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
-src/StretcherProcess.o: rubberband/rubberband.h src/Window.h
+src/StretcherProcess.o: rubberband/rubberband-c.h src/Window.h
 src/StretcherProcess.o: src/sysutils.h src/Thread.h src/RingBuffer.h
 src/StretcherProcess.o: src/Scavenger.h src/Profiler.h src/FFT.h
 src/StretcherProcess.o: src/PercussiveAudioCurve.h src/AudioCurve.h
@@ -195,7 +206,7 @@ src/StretcherProcess.o: src/StretcherChannelData.h src/Resampler.h
 src/sysutils.o: src/sysutils.h
 src/Thread.o: src/Thread.h
 src/Window.o: src/Window.h src/sysutils.h
-rubberband/RubberBandStretcher.o: rubberband/rubberband.h
+rubberband/RubberBandStretcher.o: rubberband/rubberband-c.h
 src/AudioCurve.o: src/sysutils.h
 src/ConstantAudioCurve.o: src/AudioCurve.h src/sysutils.h
 src/FFT.o: src/sysutils.h
@@ -209,13 +220,14 @@ src/SpectralDifferenceAudioCurve.o: src/AudioCurve.h src/sysutils.h
 src/SpectralDifferenceAudioCurve.o: src/Window.h
 src/StretcherChannelData.o: src/StretcherImpl.h
 src/StretcherChannelData.o: rubberband/RubberBandStretcher.h
-src/StretcherChannelData.o: rubberband/rubberband.h src/Window.h
+src/StretcherChannelData.o: rubberband/rubberband-c.h src/Window.h
 src/StretcherChannelData.o: src/sysutils.h src/Thread.h src/RingBuffer.h
 src/StretcherChannelData.o: src/Scavenger.h src/Profiler.h src/FFT.h
 src/StretcherImpl.o: rubberband/RubberBandStretcher.h
-src/StretcherImpl.o: rubberband/rubberband.h src/Window.h src/sysutils.h
+src/StretcherImpl.o: rubberband/rubberband-c.h src/Window.h src/sysutils.h
 src/StretcherImpl.o: src/Thread.h src/RingBuffer.h src/Scavenger.h
 src/StretcherImpl.o: src/Profiler.h src/FFT.h
+src/rubberband-c.o: rubberband/RubberBandStretcher.h rubberband/rubberband-c.h
 src/Window.o: src/sysutils.h
 src/ladspa/libmain.o: src/ladspa/RubberBandPitchShifter.h 
 src/ladspa/libmain.o: src/RingBuffer.h src/Scavenger.h src/Thread.h
@@ -225,16 +237,16 @@ src/ladspa/RubberBandPitchShifter.o: src/RingBuffer.h
 src/ladspa/RubberBandPitchShifter.o: src/Scavenger.h src/Thread.h
 src/ladspa/RubberBandPitchShifter.o: src/sysutils.h src/Profiler.h
 src/ladspa/RubberBandPitchShifter.o: rubberband/RubberBandStretcher.h
-src/ladspa/RubberBandPitchShifter.o: rubberband/rubberband.h
+src/ladspa/RubberBandPitchShifter.o: rubberband/rubberband-c.h
 src/vamp/libmain.o: src/vamp/RubberBandVampPlugin.h
 src/vamp/libmain.o: rubberband/RubberBandStretcher.h
-src/vamp/libmain.o: rubberband/rubberband.h
+src/vamp/libmain.o: rubberband/rubberband-c.h
 src/vamp/RubberBandVampPlugin.o: src/vamp/RubberBandVampPlugin.h
 src/vamp/RubberBandVampPlugin.o: rubberband/RubberBandStretcher.h
-src/vamp/RubberBandVampPlugin.o: rubberband/rubberband.h
+src/vamp/RubberBandVampPlugin.o: rubberband/rubberband-c.h
 src/vamp/RubberBandVampPlugin.o: src/StretchCalculator.h
 src/ladspa/RubberBandPitchShifter.o: src/RingBuffer.h
 src/ladspa/RubberBandPitchShifter.o: src/Scavenger.h src/Thread.h
 src/ladspa/RubberBandPitchShifter.o: src/sysutils.h src/Profiler.h
 src/vamp/RubberBandVampPlugin.o: rubberband/RubberBandStretcher.h
-src/vamp/RubberBandVampPlugin.o: rubberband/rubberband.h
+src/vamp/RubberBandVampPlugin.o: rubberband/rubberband-c.h
