@@ -92,7 +92,11 @@ D_SRC::D_SRC(Resampler::Quality quality, int channels, int maxBufferSize,
                     SRC_SINC_FASTEST,
                     channels, &err);
 
-    //!!! check err, throw
+    if (err) {
+        std::cerr << "Resampler::Resampler: failed to create libsamplerate resampler: " 
+                  << src_strerror(err) << std::endl;
+        throw Resampler::ImplementationError; //!!! of course, need to catch this!
+    }
 
     if (maxBufferSize > 0 && m_channels > 1) {
         //!!! alignment?
@@ -153,7 +157,11 @@ D_SRC::resample(const float *const R__ *const R__ in,
 
     int err = src_process(m_src, &data);
 
-    //!!! check err, respond appropriately
+    if (err) {
+        std::cerr << "Resampler::process: libsamplerate error: "
+                  << src_strerror(err) << std::endl;
+        throw Resampler::ImplementationError; //!!! of course, need to catch this!
+    }
 
     if (m_channels > 1) {
         for (int i = 0; i < data.output_frames_gen; ++i) {

@@ -839,16 +839,21 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
 
     const int sz = m_windowSize;
     const int hs = m_windowSize/2;
+    const double denom = sz;
 
-    cd.fft->inverseCepstral(mag, dblbuf);
     
-    double denom = sz;
+    cd.fft->inverseCepstral(mag, dblbuf);
+
     for (int i = 0; i < sz; ++i) {
         dblbuf[i] /= denom;
     }
 
     //!!! calculate this value -- the divisor should be the highest fundamental frequency we expect to find, plus a bit
     const int cutoff = m_sampleRate / 700;
+//    const int cutoff = 1000;
+//    const int cutoff = 20;
+
+//    cerr <<"cutoff = "<< cutoff << ", m_sampleRate/cutoff = " << m_sampleRate/cutoff << ", m_sampleRate/700 = " << m_sampleRate/700 << endl;
 
     dblbuf[0] /= 2;
     dblbuf[cutoff-1] /= 2;
@@ -858,6 +863,7 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
     }
 
     cd.fft->forward(dblbuf, envelope, 0);
+
 
     for (int i = 0; i <= hs; ++i) {
         envelope[i] = exp(envelope[i]);
@@ -887,6 +893,7 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
 
     for (int i = 0; i <= hs; ++i) {
         mag[i] *= envelope[i];
+//        mag[i] = envelope[i];
     }
 
     cd.unchanged = false;

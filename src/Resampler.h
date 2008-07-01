@@ -27,6 +27,7 @@ class Resampler
 {
 public:
     enum Quality { Best, FastestTolerable, Fastest };
+    enum Exception { ImplementationError };
 
     /**
      * Construct a resampler with the given quality level and channel

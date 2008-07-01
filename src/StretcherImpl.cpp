@@ -982,7 +982,7 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
 
     bool allConsumed = false;
 
-    map<size_t, size_t> consumed;
+    size_t *consumed = (size_t *)alloca(m_channels * sizeof(size_t));
     for (size_t c = 0; c < m_channels; ++c) {
         consumed[c] = 0;
     }
