@@ -34,33 +34,34 @@ extern "C" {
 
 enum RubberBandOption {
 
-    RubberBandOptionProcessOffline   = 0x00000000,
-    RubberBandOptionProcessRealTime  = 0x00000001,
+    RubberBandOptionProcessOffline       = 0x00000000,
+    RubberBandOptionProcessRealTime      = 0x00000001,
 
-    RubberBandOptionStretchElastic   = 0x00000000,
-    RubberBandOptionStretchPrecise   = 0x00000010,
+    RubberBandOptionStretchElastic       = 0x00000000,
+    RubberBandOptionStretchPrecise       = 0x00000010,
     
-    RubberBandOptionTransientsCrisp  = 0x00000000,
-    RubberBandOptionTransientsMixed  = 0x00000100,
-    RubberBandOptionTransientsSmooth = 0x00000200,
+    RubberBandOptionTransientsCrisp      = 0x00000000,
+    RubberBandOptionTransientsMixed      = 0x00000100,
+    RubberBandOptionTransientsSmooth     = 0x00000200,
 
-    RubberBandOptionPhaseAdaptive    = 0x00000000,
-    RubberBandOptionPhasePeakLocked  = 0x00001000,
-    RubberBandOptionPhaseIndependent = 0x00002000,
+    RubberBandOptionPhaseAdaptive        = 0x00000000,
+    RubberBandOptionPhasePeakLocked      = 0x00001000,
+    RubberBandOptionPhaseIndependent     = 0x00002000,
     
-    RubberBandOptionThreadingAuto    = 0x00000000,
-    RubberBandOptionThreadingNever   = 0x00010000,
-    RubberBandOptionThreadingAlways  = 0x00020000,
+    RubberBandOptionThreadingAuto        = 0x00000000,
+    RubberBandOptionThreadingNever       = 0x00010000,
+    RubberBandOptionThreadingAlways      = 0x00020000,
 
-    RubberBandOptionWindowStandard   = 0x00000000,
-    RubberBandOptionWindowShort      = 0x00100000,
-    RubberBandOptionWindowLong       = 0x00200000,
+    RubberBandOptionWindowStandard       = 0x00000000,
+    RubberBandOptionWindowShort          = 0x00100000,
+    RubberBandOptionWindowLong           = 0x00200000,
 
-    RubberBandOptionFormantShifted   = 0x00000000,
-    RubberBandOptionFormantPreserved = 0x01000000,
+    RubberBandOptionFormantShifted       = 0x00000000,
+    RubberBandOptionFormantPreserved     = 0x01000000,
 
-    RubberBandOptionPitchHighQuality = 0x00000000,
-    RubberBandOptionPitchHighSpeed   = 0x02000000
+    RubberBandOptionPitchHighQuality     = 0x00000000,
+    RubberBandOptionPitchHighSpeed       = 0x02000000,
+    RubberBandOptionPitchHighConsistency = 0x04000000
 };
 
 typedef int RubberBandOptions;

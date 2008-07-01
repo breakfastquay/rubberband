@@ -524,7 +524,9 @@ RubberBandStretcher::Impl::configure()
         m_studyFFT->initFloat();
     }
 
-    if (m_pitchScale != 1.0 || m_realtime) {
+    if (m_pitchScale != 1.0 ||
+        (m_options & OptionPitchHighConsistency) ||
+        m_realtime) {
 
         for (size_t c = 0; c < m_channels; ++c) {
 
@@ -708,7 +710,9 @@ RubberBandStretcher::Impl::setPitchOption(Options options)
 
     Options prior = m_options;
 
-    int mask = (OptionPitchHighQuality | OptionPitchHighSpeed);
+    int mask = (OptionPitchHighQuality |
+                OptionPitchHighSpeed |
+                OptionPitchHighConsistency);
     m_options &= ~mask;
     options &= mask;
     m_options |= options;
@@ -989,8 +993,6 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
 
     while (!allConsumed) {
 
-//        cerr << "process looping" << endl;
-
 //#ifndef NO_THREADING
 //        if (m_threaded) {
 //            pthread_mutex_lock(&m_inputProcessedMutex);
@@ -1052,6 +1054,9 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
             }
 */
         }
+
+        if (!allConsumed) cerr << "process looping" << endl;
+
     }
     
 //    cerr << "process returning" << endl;

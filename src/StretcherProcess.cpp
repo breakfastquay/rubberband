@@ -110,6 +110,8 @@ RubberBandStretcher::Impl::resampleBeforeStretching() const
 
     if (m_options & OptionPitchHighQuality) {
         return (m_pitchScale < 1.0); // better sound
+    } else if (m_options & OptionPitchHighConsistency) {
+        return false;
     } else {
         return (m_pitchScale > 1.0); // better performance
     }
@@ -144,6 +146,8 @@ RubberBandStretcher::Impl::consumeChannel(size_t c, const float *input,
             cd.setResampleBufSize(reqSize);
         }
 
+
+//        std::cerr << "resampling on INPUT" << std::endl;
 
         toWrite = cd.resampler->resample(&input,
                                          &cd.resamplebuf,
@@ -1009,7 +1013,9 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
 
     bool resampledAlready = resampleBeforeStretching();
 
-    if (!resampledAlready && m_pitchScale != 1.0 && cd.resampler) {
+    if (!resampledAlready &&
+        (m_pitchScale != 1.0 || m_options & OptionPitchHighConsistency) &&
+        cd.resampler) {
 
         size_t reqSize = int(ceil(si / m_pitchScale));
         if (reqSize > cd.resamplebufSize) {
@@ -1024,6 +1030,8 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
         }
 
 
+//        std::cerr << "resampling on OUTPUT" << std::endl;
+        
         size_t outframes = cd.resampler->resample(&cd.accumulator,
                                                   &cd.resamplebuf,
                                                   si,

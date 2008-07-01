@@ -182,44 +182,52 @@ public:
      *   \li \c OptionPitchHighQuality - Use the highest quality
      *   method for pitch shifting.  This method has a CPU cost
      *   approximately proportional to the required frequency shift.
+
+     *   \li \c OptionPitchHighConsistency - Use the method that gives
+     *   greatest consistency when used to create small variations in
+     *   pitch around the 1.0-ratio level.  Unlike the previous two
+     *   options, this avoids discontinuities when moving across the
+     *   1.0 pitch scale in real-time; it also consumes more CPU than
+     *   the others in the case where the pitch scale is exactly 1.0.
      */
     
     enum Option {
 
-        OptionProcessOffline   = 0x00000000,
-        OptionProcessRealTime  = 0x00000001,
+        OptionProcessOffline       = 0x00000000,
+        OptionProcessRealTime      = 0x00000001,
 
-        OptionStretchElastic   = 0x00000000,
-        OptionStretchPrecise   = 0x00000010,
+        OptionStretchElastic       = 0x00000000,
+        OptionStretchPrecise       = 0x00000010,
     
-        OptionTransientsCrisp  = 0x00000000,
-        OptionTransientsMixed  = 0x00000100,
-        OptionTransientsSmooth = 0x00000200,
+        OptionTransientsCrisp      = 0x00000000,
+        OptionTransientsMixed      = 0x00000100,
+        OptionTransientsSmooth     = 0x00000200,
 
-        OptionPhaseAdaptive    = 0x00000000,
-        OptionPhasePeakLocked  = 0x00001000,
-        OptionPhaseIndependent = 0x00002000,
+        OptionPhaseAdaptive        = 0x00000000,
+        OptionPhasePeakLocked      = 0x00001000,
+        OptionPhaseIndependent     = 0x00002000,
     
-        OptionThreadingAuto    = 0x00000000,
-        OptionThreadingNever   = 0x00010000,
-        OptionThreadingAlways  = 0x00020000,
+        OptionThreadingAuto        = 0x00000000,
+        OptionThreadingNever       = 0x00010000,
+        OptionThreadingAlways      = 0x00020000,
 
-        OptionWindowStandard   = 0x00000000,
-        OptionWindowShort      = 0x00100000,
-        OptionWindowLong       = 0x00200000,
+        OptionWindowStandard       = 0x00000000,
+        OptionWindowShort          = 0x00100000,
+        OptionWindowLong           = 0x00200000,
 
-        OptionFormantShifted   = 0x00000000,
-        OptionFormantPreserved = 0x01000000,
+        OptionFormantShifted       = 0x00000000,
+        OptionFormantPreserved     = 0x01000000,
 
-        OptionPitchHighSpeed   = 0x00000000,
-        OptionPitchHighQuality = 0x02000000
+        OptionPitchHighSpeed       = 0x00000000,
+        OptionPitchHighQuality     = 0x02000000,
+        OptionPitchHighConsistency = 0x04000000
     };
 
     typedef int Options;
 
     enum PresetOption {
-        DefaultOptions         = 0x00000000,
-        PercussiveOptions      = 0x00102000
+        DefaultOptions             = 0x00000000,
+        PercussiveOptions          = 0x00102000
     };
 
     /**
