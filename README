@@ -142,6 +142,13 @@ class, called RubberBandStretcher in the RubberBand namespace.  You
 should #include <rubberband/RubberBandStretcher.h> to use this class.
 There is extensive documentation in the class header.
 
+A header with C language bindings is also provided in
+<rubberband/rubberband-c.h>.  This is a wrapper around the C++
+implementation, and as the implementation is the same, it also
+requires linkage against the C++ standard libraries.  It is not yet
+documented separately from the C++ header.  You should include only
+one of the two headers, not both.
+
 The source code for the command-line utility (src/main.cpp) provides a
 good example of how to use Rubber Band in offline mode; the LADSPA
 pitch shifter plugin (src/ladspa/RubberBandPitchShifter.cpp) may be
