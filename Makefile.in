@@ -55,6 +55,7 @@ LIBRARY_INCLUDES := \
 	src/Resampler.h \
 	src/RingBuffer.h \
 	src/Scavenger.h \
+	src/SilentAudioCurve.h \
 	src/SpectralDifferenceAudioCurve.h \
 	src/StretchCalculator.h \
 	src/StretcherImpl.h \
@@ -73,6 +74,7 @@ LIBRARY_SOURCES := \
 	src/Resampler.cpp \
 	src/rubberband-c.cpp \
 	src/RubberBandStretcher.cpp \
+	src/SilentAudioCurve.cpp \
 	src/SpectralDifferenceAudioCurve.cpp \
 	src/StretchCalculator.cpp \
 	src/StretcherImpl.cpp \

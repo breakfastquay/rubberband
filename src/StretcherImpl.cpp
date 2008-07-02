@@ -16,6 +16,7 @@
 #include "PercussiveAudioCurve.h"
 #include "HighFrequencyAudioCurve.h"
 #include "SpectralDifferenceAudioCurve.h"
+#include "SilentAudioCurve.h"
 #include "ConstantAudioCurve.h"
 #include "StretchCalculator.h"
 #include "StretcherChannelData.h"
@@ -72,6 +73,7 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_studyFFT(0),
     m_spaceAvailable("space"),
     m_inputDuration(0),
+    m_silentHistory(0),
     m_lastProcessOutputIncrements(16),
     m_lastProcessPhaseResetDf(16),
     m_phaseResetAudioCurve(0),
@@ -163,6 +165,7 @@ RubberBandStretcher::Impl::~Impl()
 
     delete m_phaseResetAudioCurve;
     delete m_stretchAudioCurve;
+    delete m_silentAudioCurve;
     delete m_stretchCalculator;
     delete m_studyFFT;
 
@@ -196,7 +199,9 @@ RubberBandStretcher::Impl::reset()
     m_mode = JustCreated;
     if (m_phaseResetAudioCurve) m_phaseResetAudioCurve->reset();
     if (m_stretchAudioCurve) m_stretchAudioCurve->reset();
+    if (m_silentAudioCurve) m_silentAudioCurve->reset();
     m_inputDuration = 0;
+    m_silentHistory = 0;
 
     if (m_threaded) m_threadSetMutex.unlock();
 
@@ -361,8 +366,8 @@ RubberBandStretcher::Impl::calculateSizes()
                 outputIncrement /= 2;
                 inputIncrement = int(outputIncrement / r);
             }
-			size_t minwin = roundUp(lrint(outputIncrement * windowIncrRatio));
-			if (windowSize < minwin) windowSize = minwin;
+            size_t minwin = roundUp(lrint(outputIncrement * windowIncrRatio));
+            if (windowSize < minwin) windowSize = minwin;
 
             if (rsb) {
 //                cerr << "adjusting window size from " << windowSize;
@@ -546,12 +551,17 @@ RubberBandStretcher::Impl::configure()
         }
     }
     
-    delete m_phaseResetAudioCurve;
-    m_phaseResetAudioCurve = new PercussiveAudioCurve(m_sampleRate,
-                                                      m_windowSize);
+    // stretchAudioCurve is unused in RT mode; phaseResetAudioCurve,
+    // silentAudioCurve and stretchCalculator however are used in all
+    // modes
 
-    // stretchAudioCurve unused in RT mode; phaseResetAudioCurve and
-    // stretchCalculator however are used in all modes
+    delete m_phaseResetAudioCurve;
+    m_phaseResetAudioCurve = new PercussiveAudioCurve
+        (m_sampleRate, m_windowSize);
+
+    delete m_silentAudioCurve;
+    m_silentAudioCurve = new SilentAudioCurve
+        (m_sampleRate, m_windowSize);
 
     if (!m_realtime) {
         delete m_stretchAudioCurve;
@@ -602,6 +612,7 @@ RubberBandStretcher::Impl::reconfigure()
             calculateStretch();
             m_phaseResetDf.clear();
             m_stretchDf.clear();
+            m_silence.clear();
             m_inputDuration = 0;
         }
         configure();
@@ -782,8 +793,8 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
             consumed += writable;
         }
 
-	while ((inbuf.getReadSpace() >= m_windowSize) ||
-               (final && (inbuf.getReadSpace() >= m_windowSize/2))) {
+	while ((inbuf.getReadSpace() >= int(m_windowSize)) ||
+               (final && (inbuf.getReadSpace() >= int(m_windowSize/2)))) {
 
 	    // We know we have at least m_windowSize samples available
 	    // in m_inbuf.  We need to peek m_windowSize of them for
@@ -810,6 +821,11 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
 
             df = m_stretchAudioCurve->process(cd.fltbuf, m_increment);
             m_stretchDf.push_back(df);
+
+            df = m_silentAudioCurve->process(cd.fltbuf, m_increment);
+            bool silent = (df > 0.f);
+            if (silent) cerr << "silence found at " << m_inputDuration << endl;
+            m_silence.push_back(silent);
 
 //            cout << df << endl;
 
@@ -891,6 +907,20 @@ RubberBandStretcher::Impl::calculateStretch()
          m_inputDuration,
          m_phaseResetDf,
          m_stretchDf);
+
+    int history = 0;
+    for (size_t i = 0; i < increments.size(); ++i) {
+        if (i >= m_silence.size()) break;
+        if (m_silence[i]) ++history;
+        else history = 0;
+        if (history >= (m_windowSize / m_increment) && increments[i] >= 0) {
+            increments[i] = -increments[i];
+//            if (m_debugLevel > 1) {
+                std::cerr << "phase reset on silence (silent history == "
+                          << history << ")" << std::endl;
+//            }
+        }
+    }
 
     if (m_outputIncrements.empty()) m_outputIncrements = increments;
     else {
@@ -1055,7 +1085,7 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
 */
         }
 
-        if (!allConsumed) cerr << "process looping" << endl;
+//        if (!allConsumed) cerr << "process looping" << endl;
 
     }
     

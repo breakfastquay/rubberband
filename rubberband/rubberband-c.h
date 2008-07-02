@@ -19,6 +19,9 @@
 extern "C" {
 #endif
     
+#define RUBBERBAND_API_MAJOR_VERSION 2
+#define RUBBERBAND_API_MINOR_VERSION 0
+
 /**
  * This is a C-linkage interface to the Rubber Band time stretcher.
  * 

@@ -147,8 +147,6 @@ RubberBandStretcher::Impl::consumeChannel(size_t c, const float *input,
         }
 
 
-//        std::cerr << "resampling on INPUT" << std::endl;
-
         toWrite = cd.resampler->resample(&input,
                                          &cd.resamplebuf,
                                          samples,
@@ -445,10 +443,12 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
     // be apparent.
 
     float df = 0.f;
+    bool silent = false;
 
     if (m_channels == 1) {
 
         df = m_phaseResetAudioCurve->process(cd.mag, m_increment);
+        silent = (m_silentAudioCurve->process(cd.mag, m_increment) > 0.f);
 
     } else {
 
@@ -464,7 +464,8 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
         }
     
         df = m_phaseResetAudioCurve->process(tmp, m_increment);
-	}
+        silent = (m_silentAudioCurve->process(tmp, m_increment) > 0.f);
+    }
 
     int incr = m_stretchCalculator->calculateSingle
             (getEffectiveRatio(), df, m_increment);
@@ -499,6 +500,17 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
     }
 
     cd.prevIncrement = shiftIncrementRtn;
+
+    if (silent) ++m_silentHistory;
+    else m_silentHistory = 0;
+
+    if (m_silentHistory >= (m_windowSize / m_increment) && !phaseReset) {
+        phaseReset = true;
+        if (m_debugLevel > 1) {
+            std::cerr << "calculateIncrements: phase reset on silence (silent history == "
+                      << m_silentHistory << ")" << std::endl;
+        }
+    }
 }
 
 bool
@@ -852,12 +864,9 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
         dblbuf[i] /= denom;
     }
 
-    //!!! calculate this value -- the divisor should be the highest fundamental frequency we expect to find, plus a bit
     const int cutoff = m_sampleRate / 700;
-//    const int cutoff = 1000;
-//    const int cutoff = 20;
 
-//    cerr <<"cutoff = "<< cutoff << ", m_sampleRate/cutoff = " << m_sampleRate/cutoff << ", m_sampleRate/700 = " << m_sampleRate/700 << endl;
+//    cerr <<"cutoff = "<< cutoff << ", m_sampleRate/cutoff = " << m_sampleRate/cutoff << endl;
 
     dblbuf[0] /= 2;
     dblbuf[cutoff-1] /= 2;
@@ -880,7 +889,7 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
         // scaling up, we want a new envelope that is lower by the pitch factor
         for (int target = 0; target <= hs; ++target) {
             int source = lrint(target * m_pitchScale);
-            if (source > m_windowSize) {
+            if (source > int(m_windowSize)) {
                 envelope[target] = 0.0;
             } else {
                 envelope[target] = envelope[source];
@@ -897,7 +906,6 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
 
     for (int i = 0; i <= hs; ++i) {
         mag[i] *= envelope[i];
-//        mag[i] = envelope[i];
     }
 
     cd.unchanged = false;
@@ -957,10 +965,8 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
 
         // our ffts produced unscaled results
         for (i = 0; i < sz; ++i) {
-            fltbuf[i] = fltbuf[i] / float(sz * cd.oversample);
+            fltbuf[i] = fltbuf[i] / denom;
         }
-//    } else {
-//        cerr << "unchanged on channel " << channel << endl;
     }
 
     m_window->cut(fltbuf);
@@ -1030,8 +1036,6 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
         }
 
 
-//        std::cerr << "resampling on OUTPUT" << std::endl;
-        
         size_t outframes = cd.resampler->resample(&cd.accumulator,
                                                   &cd.resamplebuf,
                                                   si,

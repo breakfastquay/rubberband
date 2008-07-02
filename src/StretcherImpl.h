@@ -166,6 +166,8 @@ protected:
     size_t m_inputDuration;
     std::vector<float> m_phaseResetDf;
     std::vector<float> m_stretchDf;
+    std::vector<bool> m_silence;
+    int m_silentHistory;
 
     class ChannelData; 
     std::vector<ChannelData *> m_channelData;
@@ -177,6 +179,7 @@ protected:
 
     AudioCurve *m_phaseResetAudioCurve;
     AudioCurve *m_stretchAudioCurve;
+    AudioCurve *m_silentAudioCurve;
     StretchCalculator *m_stretchCalculator;
 
     float m_freq0;
