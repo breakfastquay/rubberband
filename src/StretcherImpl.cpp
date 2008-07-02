@@ -824,7 +824,9 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
 
             df = m_silentAudioCurve->process(cd.fltbuf, m_increment);
             bool silent = (df > 0.f);
-            if (silent) cerr << "silence found at " << m_inputDuration << endl;
+            if (silent && m_debugLevel > 1) {
+                cerr << "silence found at " << m_inputDuration << endl;
+            }
             m_silence.push_back(silent);
 
 //            cout << df << endl;
@@ -915,10 +917,10 @@ RubberBandStretcher::Impl::calculateStretch()
         else history = 0;
         if (history >= (m_windowSize / m_increment) && increments[i] >= 0) {
             increments[i] = -increments[i];
-//            if (m_debugLevel > 1) {
+            if (m_debugLevel > 1) {
                 std::cerr << "phase reset on silence (silent history == "
                           << history << ")" << std::endl;
-//            }
+            }
         }
     }
 
