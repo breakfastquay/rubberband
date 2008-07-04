@@ -39,11 +39,12 @@ protected:
 	CentsPort        = 3,
         CrispnessPort    = 4,
 	FormantPort      = 5,
-	InputPort1       = 6,
-        OutputPort1      = 7,
+	FastPort         = 6,
+	InputPort1       = 7,
+        OutputPort1      = 8,
         PortCountMono    = OutputPort1 + 1,
-        InputPort2       = 8,
-        OutputPort2      = 9,
+        InputPort2       = 9,
+        OutputPort2      = 10,
         PortCountStereo  = OutputPort2 + 1
     };
 
@@ -73,6 +74,7 @@ protected:
     void updateRatio();
     void updateCrispness();
     void updateFormant();
+    void updateFast();
 
     float *m_input[2];
     float *m_output[2];
@@ -82,10 +84,12 @@ protected:
     float *m_octaves;
     float *m_crispness;
     float *m_formant;
+    float *m_fast;
     double m_ratio;
     double m_prevRatio;
     int m_currentCrispness;
     bool m_currentFormant;
+    bool m_currentFast;
 
     size_t m_blockSize;
     size_t m_reserve;

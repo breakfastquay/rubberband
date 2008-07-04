@@ -1,7 +1,5 @@
 
 CXX		:= @CXX@
-#CXXFLAGS	:= -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @Vamp_CFLAGS@ -Irubberband -Isrc $(OPTFLAGS)
-OPTFLAGS	:= -O3 -ffast-math -ftree-vectorize -ftree-vect-loop-version -march=pentium4 -msse -msse2
 CXXFLAGS	:= -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @Vamp_CFLAGS@ -Irubberband -Isrc $(OPTFLAGS)
 CFLAGS		:= @CFLAGS@ $(OPTFLAGS)
 LDFLAGS		:= @LDFLAGS@ -lpthread $(LDFLAGS)
@@ -19,6 +17,8 @@ DYNAMIC_FULL_VERSION	:= .2.0.0
 DYNAMIC_ABI_VERSION	:= .2
 DYNAMIC_LIBNAME		:= librubberband$(DYNAMIC_EXTENSION)
 DYNAMIC_LDFLAGS		:= -shared -Wl,-Bsymbolic -Wl,-soname=$(DYNAMIC_LIBNAME)$(DYNAMIC_ABI_VERSION)
+VAMP_LDFLAGS		:= -shared -Wl,-Bsymbolic -Wl,--version-script=src/vamp/vamp-plugin.map
+LADSPA_LDFLAGS		:= -shared -Wl,-Bsymbolic -Wl,--version-script=src/ladspa/ladspa-plugin.map
 
 PROGRAM_TARGET 		:= bin/rubberband
 STATIC_TARGET  		:= lib/librubberband.a
@@ -120,10 +120,10 @@ $(DYNAMIC_TARGET):	$(LIBRARY_OBJECTS)
 	$(CXX) $(DYNAMIC_LDFLAGS) $^ -o $@ $(LIBRARY_LIBS) $(LDFLAGS)
 
 $(VAMP_TARGET):		$(LIBRARY_OBJECTS) $(VAMP_OBJECTS)
-	$(CXX) $(DYNAMIC_LDFLAGS) -o $@ $^ $(VAMP_PLUGIN_LIBS) $(LDFLAGS)
+	$(CXX) $(VAMP_LDFLAGS) -o $@ $^ $(VAMP_PLUGIN_LIBS) $(LDFLAGS)
 
 $(LADSPA_TARGET):	$(LIBRARY_OBJECTS) $(LADSPA_OBJECTS)
-	$(CXX) $(DYNAMIC_LDFLAGS) -o $@ $^ $(LADSPA_PLUGIN_LIBS) $(LDFLAGS)
+	$(CXX) $(LADSPA_LDFLAGS) -o $@ $^ $(LADSPA_PLUGIN_LIBS) $(LDFLAGS)
 
 bin:
 	$(MKDIR) $@

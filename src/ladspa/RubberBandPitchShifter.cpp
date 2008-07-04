@@ -29,7 +29,8 @@ RubberBandPitchShifter::portNamesMono[PortCountMono] =
     "Semitones",
     "Octaves",
     "Crispness",
-    "Formant Preservation",
+    "Formant Preserving",
+    "Fast",
     "Input",
     "Output"
 };
@@ -42,7 +43,8 @@ RubberBandPitchShifter::portNamesStereo[PortCountStereo] =
     "Semitones",
     "Octaves",
     "Crispness",
-    "Formant Preservation",
+    "Formant Preserving",
+    "Fast",
     "Input L",
     "Output L",
     "Input R",
@@ -58,6 +60,7 @@ RubberBandPitchShifter::portsMono[PortCountMono] =
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
+    LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_AUDIO,
     LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO
 };
@@ -66,6 +69,7 @@ const LADSPA_PortDescriptor
 RubberBandPitchShifter::portsStereo[PortCountStereo] =
 {
     LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL,
+    LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
@@ -105,6 +109,11 @@ RubberBandPitchShifter::hintsMono[PortCountMono] =
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_TOGGLED,
        0.0, 1.0 },
+    { LADSPA_HINT_DEFAULT_0 |           // fast
+      LADSPA_HINT_BOUNDED_BELOW |
+      LADSPA_HINT_BOUNDED_ABOVE |
+      LADSPA_HINT_TOGGLED,
+       0.0, 1.0 },
     { 0, 0, 0 },
     { 0, 0, 0 }
 };
@@ -133,6 +142,11 @@ RubberBandPitchShifter::hintsStereo[PortCountStereo] =
       LADSPA_HINT_INTEGER,
        0.0, 3.0 },
     { LADSPA_HINT_DEFAULT_0 |           // formant preserving
+      LADSPA_HINT_BOUNDED_BELOW |
+      LADSPA_HINT_BOUNDED_ABOVE |
+      LADSPA_HINT_TOGGLED,
+       0.0, 1.0 },
+    { LADSPA_HINT_DEFAULT_0 |           // fast
       LADSPA_HINT_BOUNDED_BELOW |
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_TOGGLED,
@@ -209,10 +223,12 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_octaves(0),
     m_crispness(0),
     m_formant(0),
+    m_fast(0),
     m_ratio(1.0),
     m_prevRatio(1.0),
     m_currentCrispness(-1),
     m_currentFormant(false),
+    m_currentFast(false),
     m_blockSize(1024),
     m_reserve(1024),
     m_stretcher(new RubberBandStretcher
@@ -271,11 +287,18 @@ RubberBandPitchShifter::connectPort(LADSPA_Handle handle,
 	&shifter->m_octaves,
         &shifter->m_crispness,
 	&shifter->m_formant,
+	&shifter->m_fast,
     	&shifter->m_input[0],
 	&shifter->m_output[0],
 	&shifter->m_input[1],
 	&shifter->m_output[1]
     };
+
+    if (shifter->m_channels == 1) {
+        if (port >= PortCountMono) return;
+    } else {
+        if (port >= PortCountStereo) return;
+    }
 
     *ports[port] = (float *)location;
 
@@ -300,7 +323,7 @@ RubberBandPitchShifter::activateImpl()
     m_stretcher->reset();
     m_stretcher->setPitchScale(m_ratio);
 
-    for (int c = 0; c < m_channels; ++c) {
+    for (size_t c = 0; c < m_channels; ++c) {
         m_outputBuffer[c]->reset();
         m_outputBuffer[c]->zero(m_reserve);
     }
@@ -380,6 +403,23 @@ RubberBandPitchShifter::updateFormant()
 }
 
 void
+RubberBandPitchShifter::updateFast()
+{
+    if (!m_fast) return;
+
+    bool f = (*m_fast > 0.5f);
+    if (f == m_currentFast) return;
+    
+    RubberBandStretcher *s = m_stretcher;
+    
+    s->setPitchOption(f ?
+                      RubberBandStretcher::OptionPitchHighSpeed :
+                      RubberBandStretcher::OptionPitchHighConsistency);
+
+    m_currentFast = f;
+}
+
+void
 RubberBandPitchShifter::runImpl(unsigned long insamples)
 {
     unsigned long offset = 0;
@@ -391,7 +431,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
     while (offset < insamples) {
 
         unsigned long block = (unsigned long)m_blockSize;
-        if (block > insamples) block = insamples;
+        if (block + offset > insamples) block = insamples - offset;
 
         runImpl(block, offset);
 
@@ -419,6 +459,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
 
     updateCrispness();
     updateFormant();
+    updateFast();
 
     const int samples = insamples;
     int processed = 0;
@@ -426,9 +467,14 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
 
     float *ptrs[2];
 
-    if (m_outputBuffer[0]->getReadSpace() < m_reserve) {
+    int rs = m_outputBuffer[0]->getReadSpace();
+    if (rs < int(m_reserve)) {
+//        std::cerr << "temporary expansion (have " << rs << ", want "
+//                  << m_reserve << ")" << std::endl;
         m_stretcher->setTimeRatio(1.1); // fill up temporarily
-    } else if (m_outputBuffer[0]->getReadSpace() > 8192) {
+    } else if (rs > 8192) {
+//        std::cerr << "temporary reduction (have " << rs << ", want " 
+//                  << m_reserve << ")" << std::endl;
         m_stretcher->setTimeRatio(0.9); // reduce temporarily
     } else {
         m_stretcher->setTimeRatio(1.0);
