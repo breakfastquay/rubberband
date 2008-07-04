@@ -1042,7 +1042,6 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
                                                   1.0 / m_pitchScale,
                                                   last);
 
-
         writeOutput(*cd.outbuf, cd.resamplebuf,
                     outframes, cd.outCount, theoreticalOut);
 

@@ -195,6 +195,9 @@ StretchCalculator::calculateSingle(double ratio,
 
     m_prevDf = df;
 
+    bool ratioChanged = (ratio != m_prevRatio);
+    m_prevRatio = ratio;
+
     if (isTransient && m_transientAmnesty == 0) {
         if (m_debugLevel > 1) {
             std::cerr << "StretchCalculator::calculateSingle: transient"
@@ -210,9 +213,8 @@ StretchCalculator::calculateSingle(double ratio,
         return -int(increment);
     }
 
-    if (m_prevRatio != ratio) {
+    if (ratioChanged) {
         m_recovery = m_divergence / ((m_sampleRate / 10.0) / increment);
-        m_prevRatio = ratio;
     }
 
     if (m_transientAmnesty > 0) --m_transientAmnesty;

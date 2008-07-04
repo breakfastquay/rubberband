@@ -236,9 +236,27 @@ RubberBandStretcher::Impl::setPitchScale(double fs)
     }
 
     if (fs == m_pitchScale) return;
+
+    bool was1 = (m_pitchScale == 1.f);
+    bool rbs = resampleBeforeStretching();
+
     m_pitchScale = fs;
 
     reconfigure();
+
+    if (!(m_options & OptionPitchHighConsistency) &&
+        (was1 || resampleBeforeStretching() != rbs) &&
+        m_pitchScale != 1.f) {
+
+        cerr << "reset resampler" << endl;
+
+        // resampling mode has changed
+        for (int c = 0; c < m_channels; ++c) {
+            if (m_channelData[c]->resampler) {
+                m_channelData[c]->resampler->reset();
+            }
+        }
+    }
 }
 
 double

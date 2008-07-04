@@ -65,6 +65,7 @@ protected:
     SRC_STATE *m_src;
     float *m_iin;
     float *m_iout;
+    float m_lastRatio;
     int m_channels;
     int m_iinsize;
     int m_ioutsize;
@@ -76,6 +77,7 @@ D_SRC::D_SRC(Resampler::Quality quality, int channels, int maxBufferSize,
     m_src(0),
     m_iin(0),
     m_iout(0),
+    m_lastRatio(1.f),
     m_channels(channels),
     m_iinsize(0),
     m_ioutsize(0),
@@ -105,6 +107,8 @@ D_SRC::D_SRC(Resampler::Quality quality, int channels, int maxBufferSize,
         m_iin = (float *)malloc(m_iinsize * sizeof(float));
         m_iout = (float *)malloc(m_ioutsize * sizeof(float));
     }
+
+    reset();
 }
 
 D_SRC::~D_SRC()
@@ -170,6 +174,8 @@ D_SRC::resample(const float *const R__ *const R__ in,
             }
         }
     }
+
+    m_lastRatio = ratio;
 
     return data.output_frames_gen;
 }

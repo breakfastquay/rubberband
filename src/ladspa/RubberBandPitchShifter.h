@@ -67,7 +67,9 @@ protected:
     static void deactivate(LADSPA_Handle);
     static void cleanup(LADSPA_Handle);
 
+    void activateImpl();
     void runImpl(unsigned long);
+    void runImpl(unsigned long, unsigned long offset);
     void updateRatio();
     void updateCrispness();
     void updateFormant();
@@ -85,7 +87,8 @@ protected:
     int m_currentCrispness;
     bool m_currentFormant;
 
-    size_t m_extraLatency;
+    size_t m_blockSize;
+    size_t m_reserve;
 
     RubberBand::RubberBandStretcher *m_stretcher;
     RubberBand::RingBuffer<float> *m_outputBuffer[2];
