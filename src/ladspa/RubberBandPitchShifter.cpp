@@ -30,7 +30,7 @@ RubberBandPitchShifter::portNamesMono[PortCountMono] =
     "Octaves",
     "Crispness",
     "Formant Preserving",
-    "Fast",
+    "Faster",
     "Input",
     "Output"
 };
@@ -44,7 +44,7 @@ RubberBandPitchShifter::portNamesStereo[PortCountStereo] =
     "Octaves",
     "Crispness",
     "Formant Preserving",
-    "Fast",
+    "Faster",
     "Input L",
     "Output L",
     "Input R",
