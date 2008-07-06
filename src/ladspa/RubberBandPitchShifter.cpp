@@ -21,6 +21,11 @@
 
 using namespace RubberBand;
 
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::min;
+
 const char *const
 RubberBandPitchShifter::portNamesMono[PortCountMono] =
 {
@@ -231,6 +236,7 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_currentFast(false),
     m_blockSize(1024),
     m_reserve(1024),
+    m_minfill(0),
     m_stretcher(new RubberBandStretcher
                 (sampleRate, channels,
                  RubberBandStretcher::OptionProcessRealTime |
@@ -328,13 +334,17 @@ RubberBandPitchShifter::activateImpl()
         m_outputBuffer[c]->zero(m_reserve);
     }
 
+    m_minfill = 0;
+
     // prime stretcher
-    int reqd = m_stretcher->getSamplesRequired();
-    m_stretcher->process(m_scratch, reqd, false);
-    int avail = m_stretcher->available();
-    if (avail > 0) {
-        m_stretcher->retrieve(m_scratch, avail);
-    }
+//    for (int i = 0; i < 8; ++i) {
+//        int reqd = m_stretcher->getSamplesRequired();
+//        m_stretcher->process(m_scratch, reqd, false);
+//        int avail = m_stretcher->available();
+//        if (avail > 0) {
+//            m_stretcher->retrieve(m_scratch, avail);
+//        }
+//    }
 }
 
 void
@@ -442,7 +452,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
 void
 RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
 {
-//    std::cerr << "RubberBandPitchShifter::runImpl(" << insamples << ")" << std::endl;
+//    cerr << "RubberBandPitchShifter::runImpl(" << insamples << ")" << endl;
 
 //    static int incount = 0, outcount = 0;
 
@@ -454,7 +464,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
 
     if (m_latency) {
         *m_latency = float(m_stretcher->getLatency() + m_reserve);
-//        std::cerr << "latency = " << *m_latency << std::endl;
+//        cerr << "latency = " << *m_latency << endl;
     }
 
     updateCrispness();
@@ -468,13 +478,11 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
     float *ptrs[2];
 
     int rs = m_outputBuffer[0]->getReadSpace();
-    if (rs < int(m_reserve)) {
-//        std::cerr << "temporary expansion (have " << rs << ", want "
-//                  << m_reserve << ")" << std::endl;
+    if (rs < int(m_minfill)) {
+//        cerr << "temporary expansion (have " << rs << ", want " << m_reserve << ")" << endl;
         m_stretcher->setTimeRatio(1.1); // fill up temporarily
     } else if (rs > 8192) {
-//        std::cerr << "temporary reduction (have " << rs << ", want " 
-//                  << m_reserve << ")" << std::endl;
+//        cerr << "temporary reduction (have " << rs << ", want " << m_reserve << ")" << endl;
         m_stretcher->setTimeRatio(0.9); // reduce temporarily
     } else {
         m_stretcher->setTimeRatio(1.0);
@@ -487,7 +495,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
         // and we don't need to call setMaxProcessSize
 
         int toCauseProcessing = m_stretcher->getSamplesRequired();
-        int inchunk = std::min(samples - processed, toCauseProcessing);
+        int inchunk = min(samples - processed, toCauseProcessing);
         for (size_t c = 0; c < m_channels; ++c) {
             ptrs[c] = &(m_input[c][offset + processed]);
         }
@@ -496,22 +504,22 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
 
         int avail = m_stretcher->available();
         int writable = m_outputBuffer[0]->getWriteSpace();
-        int outchunk = std::min(avail, writable);
+        int outchunk = min(avail, writable);
         size_t actual = m_stretcher->retrieve(m_scratch, outchunk);
         outTotal += actual;
 
 //        incount += inchunk;
 //        outcount += actual;
 
-//        std::cout << "avail: " << avail << ", outchunk = " << outchunk;
-//        if (actual != outchunk) std::cout << " (" << actual << ")";
-//        std::cout << std::endl;
+//        cout << "avail: " << avail << ", outchunk = " << outchunk;
+//        if (actual != outchunk) cout << " (" << actual << ")";
+//        cout << endl;
 
         outchunk = actual;
 
         for (size_t c = 0; c < m_channels; ++c) {
             if (int(m_outputBuffer[c]->getWriteSpace()) < outchunk) {
-                std::cerr << "RubberBandPitchShifter::runImpl: buffer overrun: chunk = " << outchunk << ", space = " << m_outputBuffer[c]->getWriteSpace() << std::endl;
+                cerr << "RubberBandPitchShifter::runImpl: buffer overrun: chunk = " << outchunk << ", space = " << m_outputBuffer[c]->getWriteSpace() << endl;
             }                
             m_outputBuffer[c]->write(m_scratch[c], outchunk);
         }
@@ -520,10 +528,15 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
     for (size_t c = 0; c < m_channels; ++c) {
         int toRead = m_outputBuffer[c]->getReadSpace();
         if (toRead < samples && c == 0) {
-            std::cerr << "RubberBandPitchShifter::runImpl: buffer underrun: required = " << samples << ", available = " << toRead << std::endl;
+            cerr << "RubberBandPitchShifter::runImpl: buffer underrun: required = " << samples << ", available = " << toRead << endl;
         }
-        int chunk = std::min(toRead, samples);
+        int chunk = min(toRead, samples);
         m_outputBuffer[c]->read(&(m_output[c][offset]), chunk);
+    }
+
+    if (m_minfill == 0) {
+        m_minfill = m_outputBuffer[0]->getReadSpace();
+//        cerr << "minfill = " << m_minfill << endl;
     }
 }
 

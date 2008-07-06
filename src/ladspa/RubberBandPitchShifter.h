@@ -93,6 +93,7 @@ protected:
 
     size_t m_blockSize;
     size_t m_reserve;
+    size_t m_minfill;
 
     RubberBand::RubberBandStretcher *m_stretcher;
     RubberBand::RingBuffer<float> *m_outputBuffer[2];
