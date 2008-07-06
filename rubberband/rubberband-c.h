@@ -18,7 +18,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
+
+#define RUBBERBAND_VERSION "1.2.0-gpl"    
 #define RUBBERBAND_API_MAJOR_VERSION 2
 #define RUBBERBAND_API_MINOR_VERSION 0
 
