@@ -249,7 +249,7 @@ RubberBandStretcher::Impl::setPitchScale(double fs)
         m_pitchScale != 1.f) {
         
         // resampling mode has changed
-        for (int c = 0; c < m_channels; ++c) {
+        for (int c = 0; c < int(m_channels); ++c) {
             if (m_channelData[c]->resampler) {
                 m_channelData[c]->resampler->reset();
             }
@@ -932,7 +932,7 @@ RubberBandStretcher::Impl::calculateStretch()
         if (i >= m_silence.size()) break;
         if (m_silence[i]) ++history;
         else history = 0;
-        if (history >= (m_windowSize / m_increment) && increments[i] >= 0) {
+        if (history >= int(m_windowSize / m_increment) && increments[i] >= 0) {
             increments[i] = -increments[i];
             if (m_debugLevel > 1) {
                 std::cerr << "phase reset on silence (silent history == "

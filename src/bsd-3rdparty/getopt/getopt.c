@@ -31,19 +31,9 @@
  * SUCH DAMAGE.
  */
 
-/*#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)getopt.c	8.3 (Berkeley) 4/27/95";
-#endif /* LIBC_SCCS and not lint
-#include <sys/cdefs.h>
-//__FBSDID("$FreeBSD: src/lib/libc/stdlib/getopt.c,v 1.6 2002/03/29 22:43:42 markm Exp $");
-
-#include "namespace.h"*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-/*#include "un-namespace.h"*/
-
-/*#include "libc_private.h"*/
 
 int	opterr = 1,		/* if error message should be printed */
 	optind = 1,		/* index into parent argv vector */

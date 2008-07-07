@@ -22,7 +22,7 @@
 #include <cstring>
 #include "sysutils.h"
 
-#ifdef _WIN32
+#ifdef __MSVC__
 #include "bsd-3rdparty/getopt/getopt.h"
 #else
 #include <getopt.h>
@@ -78,6 +78,7 @@ int main(int argc, char **argv)
     bool hqpitch = false;
     bool softening = true;
     bool formant = false;
+    bool crispchanged = false;
     int crispness = -1;
     bool help = false;
     bool version = false;
@@ -138,11 +139,11 @@ int main(int argc, char **argv)
 	case 'F': formant = true; break;
         case '0': threading = 1; break;
         case '@': threading = 2; break;
-        case '1': transients = NoTransients; break;
-        case '2': peaklock = false; break;
-        case '3': longwin = true; break;
-        case '4': shortwin = true; break;
-        case '8': transients = BandLimitedTransients; break;
+        case '1': transients = NoTransients; crispchanged = true; break;
+        case '2': peaklock = false; crispchanged = true; break;
+        case '3': longwin = true; crispchanged = true; break;
+        case '4': shortwin = true; crispchanged = true; break;
+        case '8': transients = BandLimitedTransients; crispchanged = true; break;
         case '9': softening = false; break;
         case '%': hqpitch = true; break;
         case 'c': crispness = atoi(optarg); break;
@@ -213,6 +214,11 @@ int main(int argc, char **argv)
         cerr << "  -c 5   equivalent to --no-peaklock --window-short (may be suitable for drums)" << endl;
         cerr << endl;
 	return 2;
+    }
+
+    if (crispness >= 0 && crispchanged) {
+        cerr << "WARNING: Both crispness option and transients, peaklock or window options" << endl;
+        cerr << "         provided -- crispness will override these other options" << endl;
     }
 
     switch (crispness) {

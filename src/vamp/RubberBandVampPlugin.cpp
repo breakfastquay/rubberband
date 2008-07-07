@@ -15,12 +15,9 @@
 #include "RubberBandVampPlugin.h"
 
 #include "StretchCalculator.h"
+#include "sysutils.h"
 
 #include <cmath>
-
-#ifdef _WIN32
-#include "bsd-3rdparty/float_cast/float_cast.h"
-#endif
 
 using std::string;
 using std::vector;

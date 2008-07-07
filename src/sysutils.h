@@ -15,8 +15,25 @@
 #ifndef _RUBBERBAND_SYSINFO_H_
 #define _RUBBERBAND_SYSINFO_H_
 
-#ifdef _WIN32
+#ifdef __MSVC__
 #include "bsd-3rdparty/float_cast/float_cast.h"
+#define R__ __restrict
+#endif
+
+#ifdef __GNUC__
+#define R__ __restrict__
+#endif
+
+#ifndef R__
+#define R__
+#endif
+
+#ifdef __MINGW32__
+#include <malloc.h>
+#endif
+
+#ifdef __MSVC__
+#define alloca _alloca
 #endif
 
 namespace RubberBand {
@@ -25,18 +42,10 @@ extern bool system_is_multiprocessor();
 
 #ifdef _WIN32
 
-#define R__ __restrict
-
 struct timeval { long tv_sec; long tv_usec; };
 int gettimeofday(struct timeval *p, void *tz);
 
 void usleep(unsigned long);
-
-#define alloca _alloca
-
-#else
-
-#define R__ __restrict__
 
 #endif
 

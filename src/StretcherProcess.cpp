@@ -504,11 +504,11 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
     if (silent) ++m_silentHistory;
     else m_silentHistory = 0;
 
-    if (m_silentHistory >= (m_windowSize / m_increment) && !phaseReset) {
+    if (m_silentHistory >= int(m_windowSize / m_increment) && !phaseReset) {
         phaseReset = true;
         if (m_debugLevel > 1) {
-            std::cerr << "calculateIncrements: phase reset on silence (silent history == "
-                      << m_silentHistory << ")" << std::endl;
+            cerr << "calculateIncrements: phase reset on silence (silent history == "
+                 << m_silentHistory << ")" << endl;
         }
     }
 }
@@ -1067,7 +1067,7 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
         windowAccumulator[i] = 0.0f;
     }
     
-    if (cd.accumulatorFill > si) {
+    if (int(cd.accumulatorFill) > si) {
         cd.accumulatorFill -= si;
     } else {
         cd.accumulatorFill = 0;
