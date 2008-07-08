@@ -695,9 +695,9 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
     double distance = 0.0;
     const double maxdist = 8.0;
 
-    const int lookback = -1;
+    const int lookback = 1;
 
-    for (int i = 0; i <= count; i -= lookback) {
+    for (int i = count; i >= 0; i -= lookback) {
 
         bool resetThis = phaseReset;
         
