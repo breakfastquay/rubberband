@@ -697,6 +697,8 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
 
     const int lookback = 1;
 
+    double distacc = 0.0;
+
     for (int i = count; i >= 0; i -= lookback) {
 
         bool resetThis = phaseReset;
@@ -748,9 +750,11 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
             if (inherit) {
                 double inherited =
                     cd.unwrappedPhase[i + lookback] - cd.prevPhase[i + lookback];
-                advance = ((advance * distance) + (inherited * (mi - distance)))
-                    / mi;
+                advance = ((advance * distance) +
+                           (inherited * (maxdist - distance)))
+                    / maxdist;
                 outphase = p + advance;
+                distacc += distance;
                 distance += 1.0;
             } else {
                 outphase = cd.unwrappedPhase[i] + advance;
@@ -768,6 +772,10 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
         cd.prevPhase[i] = p;
         cd.phase[i] = outphase;
         cd.unwrappedPhase[i] = outphase;
+    }
+
+    if (m_debugLevel > 1) {
+        cerr << "mean inheritance distance = " << distacc / count << endl;
     }
 
     if (fullReset) unchanged = true;

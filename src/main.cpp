@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     bool realtime = false;
     bool precise = false;
     int threading = 0;
-    bool peaklock = true;
+    bool lamination = true;
     bool longwin = false;
     bool shortwin = false;
     bool hqpitch = false;
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
             { "formant",       0, 0, 'F' },
             { "no-threads",    0, 0, '0' },
             { "no-transients", 0, 0, '1' },
-            { "no-peaklock",   0, 0, '2' },
+            { "no-lamination", 0, 0, '2' },
             { "window-long",   0, 0, '3' },
             { "window-short",  0, 0, '4' },
             { "bl-transients", 0, 0, '8' },
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
         case '0': threading = 1; break;
         case '@': threading = 2; break;
         case '1': transients = NoTransients; crispchanged = true; break;
-        case '2': peaklock = false; crispchanged = true; break;
+        case '2': lamination = false; crispchanged = true; break;
         case '3': longwin = true; crispchanged = true; break;
         case '4': shortwin = true; crispchanged = true; break;
         case '8': transients = BandLimitedTransients; crispchanged = true; break;
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
         cerr << "         --threads        Assume multi-CPU even if only one CPU is identified" << endl;
         cerr << "         --no-transients  Disable phase resynchronisation at transients" << endl;
         cerr << "         --bl-transients  Band-limit phase resync to extreme frequencies" << endl;
-        cerr << "         --no-peaklock    Disable phase locking to peak frequencies" << endl;
+        cerr << "         --no-lamination  Disable phase lamination" << endl;
         cerr << "         --window-long    Use longer processing window (actual size may vary)" << endl;
         cerr << "         --window-short   Use shorter processing window" << endl;
         cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
@@ -202,29 +202,29 @@ int main(int argc, char **argv)
         cerr << "  -h,    --help           Show this help" << endl;
         cerr << endl;
         cerr << "\"Crispness\" levels:" << endl;
-        cerr << "  -c 0   equivalent to --no-transients --no-peaklock --window-long" << endl;
-        cerr << "  -c 1   equivalent to --no-transients --no-peaklock" << endl;
+        cerr << "  -c 0   equivalent to --no-transients --no-lamination --window-long" << endl;
+        cerr << "  -c 1   equivalent to --no-transients --no-lamination" << endl;
         cerr << "  -c 2   equivalent to --no-transients" << endl;
         cerr << "  -c 3   equivalent to --bl-transients" << endl;
         cerr << "  -c 4   default processing options" << endl;
-        cerr << "  -c 5   equivalent to --no-peaklock --window-short (may be suitable for drums)" << endl;
+        cerr << "  -c 5   equivalent to --no-lamination --window-short (may be good for drums)" << endl;
         cerr << endl;
 	return 2;
     }
 
     if (crispness >= 0 && crispchanged) {
-        cerr << "WARNING: Both crispness option and transients, peaklock or window options" << endl;
+        cerr << "WARNING: Both crispness option and transients, lamination or window options" << endl;
         cerr << "         provided -- crispness will override these other options" << endl;
     }
 
     switch (crispness) {
     case -1: crispness = 4; break;
-    case 0: transients = NoTransients; peaklock = false; longwin = true; shortwin = false; break;
-    case 1: transients = NoTransients; peaklock = false; longwin = false; shortwin = false; break;
-    case 2: transients = NoTransients; peaklock = true; longwin = false; shortwin = false; break;
-    case 3: transients = BandLimitedTransients; peaklock = true; longwin = false; shortwin = false; break;
-    case 4: transients = Transients; peaklock = true; longwin = false; shortwin = false; break;
-    case 5: transients = Transients; peaklock = false; longwin = false; shortwin = true; break;
+    case 0: transients = NoTransients; lamination = false; longwin = true; shortwin = false; break;
+    case 1: transients = NoTransients; lamination = false; longwin = false; shortwin = false; break;
+    case 2: transients = NoTransients; lamination = true; longwin = false; shortwin = false; break;
+    case 3: transients = BandLimitedTransients; lamination = true; longwin = false; shortwin = false; break;
+    case 4: transients = Transients; lamination = true; longwin = false; shortwin = false; break;
+    case 5: transients = Transients; lamination = false; longwin = false; shortwin = true; break;
     };
 
     if (!quiet) {
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
     RubberBandStretcher::Options options = 0;
     if (realtime)    options |= RubberBandStretcher::OptionProcessRealTime;
     if (precise)     options |= RubberBandStretcher::OptionStretchPrecise;
-    if (!peaklock)   options |= RubberBandStretcher::OptionPhaseIndependent;
+    if (!lamination) options |= RubberBandStretcher::OptionPhaseIndependent;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;
     if (formant)     options |= RubberBandStretcher::OptionFormantPreserved;

@@ -19,10 +19,10 @@ Attractive features
   * High quality results suitable for musical use
 
     Rubber Band is a phase-vocoder-based frequency domain time
-    stretcher with partial phase locking to peak frequencies and phase
-    resynchronisation at noisy transients.  It is suitable for most
-    musical uses with its default settings, and has a range of options
-    for fine tuning.
+    stretcher with phase resynchronisation at noisy transients and a
+    phase lamination technique to reduce phasiness.  It is suitable for
+    most musical uses with its default settings, and has a range of
+    options for fine tuning.
 
   * Real-time capable
 
