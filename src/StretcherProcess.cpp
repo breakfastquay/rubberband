@@ -333,7 +333,7 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         
         // We need to peek m_windowSize samples for processing, and
         // then skip m_increment to advance the read pointer.
-        
+
         modifyChunk(c, phaseIncrement, phaseReset);
         synthesiseChunk(c); // reads from cd.mag, cd.phase
 
@@ -643,7 +643,8 @@ static inline double mod(double x, double y) { return x - (y * floor(x / y)); }
 static inline double princarg(double a) { return mod(a + M_PI, -2.0 * M_PI) + M_PI; }
 
 void
-RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
+RubberBandStretcher::Impl::modifyChunk(size_t channel,
+                                       size_t outputIncrement,
                                        bool phaseReset)
 {
     Profiler profiler("RubberBandStretcher::Impl::modifyChunk");
@@ -654,184 +655,120 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
         cerr << "phase reset: leaving phases unmodified" << endl;
     }
 
-    int pfp = 0;
-    double rate = m_sampleRate;
-
-    int sz = m_windowSize;
-
-    int count = (sz * cd.oversample) / 2;
+    const double rate = m_sampleRate;
+    const int sz = m_windowSize;
+    const int count = (sz * cd.oversample) / 2;
 
     bool unchanged = cd.unchanged && (outputIncrement == m_increment);
     bool fullReset = phaseReset;
+    bool laminar = !(m_options & OptionPhaseIndependent);
+    bool bandlimited = (m_options & OptionTransientsMixed);
+    int bandlow = lrint((150 * sz * cd.oversample) / rate);
+    int bandhigh = lrint((1000 * sz * cd.oversample) / rate);
 
-    if (!(m_options & OptionPhaseIndependent)) {
+    float freq0 = m_freq0;
+    float freq1 = m_freq1;
+    float freq2 = m_freq2;
 
-        cd.freqPeak[0] = 0;
-
-        float freq0 = m_freq0;
-        float freq1 = m_freq1;
-        float freq2 = m_freq2;
-
-        // As the stretch ratio increases, so the frequency thresholds
-        // for phase lamination should increase.  Beyond a ratio of
-        // about 1.5, the threshold should be about 1200Hz; beyond a
-        // ratio of 2, we probably want no lamination to happen at all
-        // by default.  This calculation aims for more or less that.
-        // We only do this if the phase option is OptionPhaseAdaptive
-        // (the default), i.e. not Independent or PeakLocked.
-
-        if (!(m_options & OptionPhasePeakLocked)) {
-            float r = getEffectiveRatio();
-            if (r > 1) {
-                float rf0 = 600 + (600 * ((r-1)*(r-1)*(r-1)*2));
-                float f1ratio = freq1 / freq0;
-                float f2ratio = freq2 / freq0;
-                freq0 = std::max(freq0, rf0);
-                freq1 = freq0 * f1ratio;
-                freq2 = freq0 * f2ratio;
-            }
+    if (laminar) {
+        float r = getEffectiveRatio();
+        if (r > 1) {
+            float rf0 = 600 + (600 * ((r-1)*(r-1)*(r-1)*2));
+            float f1ratio = freq1 / freq0;
+            float f2ratio = freq2 / freq0;
+            freq0 = std::max(freq0, rf0);
+            freq1 = freq0 * f1ratio;
+            freq2 = freq0 * f2ratio;
         }
-
-        int limit0 = lrint((freq0 * sz * cd.oversample) / rate);
-        int limit1 = lrint((freq1 * sz * cd.oversample) / rate);
-        int limit2 = lrint((freq2 * sz * cd.oversample) / rate);
-
-        int range = 0;
-
-        if (limit1 < limit0) limit1 = limit0;
-        if (limit2 < limit1) limit2 = limit1;
-    
-//        cerr << "limit0 = " << limit0 << " limit1 = " << limit1 << " limit2 = " << limit2 << endl;
-
-        int peakCount = 0;
-
-        for (int i = 0; i <= count; ++i) {
-
-            double mag = cd.mag[i];
-            bool isPeak = true;
-
-            for (int j = 1; j <= range; ++j) {
-
-                if (mag < cd.mag[i-j]) {
-                    isPeak = false;
-                    break;
-                }
-
-                if (mag < cd.mag[i+j]) {
-                    isPeak = false;
-                    break;
-                }
-            }        
-
-            if (isPeak) {
-
-                // i is a peak bin.
-
-                // The previous peak bin was at pfp; make freqPeak entries
-                // from pfp to half-way between pfp and i point at pfp, and
-                // those from the half-way mark to i point at i.
-            
-                int halfway = (pfp + i) / 2;
-                if (halfway == pfp) halfway = pfp + 1;
-
-                for (int j = pfp + 1; j < halfway; ++j) {
-                    cd.freqPeak[j] = pfp;
-                }
-                for (int j = halfway; j <= i; ++j) {
-                    cd.freqPeak[j] = i;
-                }
-
-                pfp = i;
-
-                ++peakCount;
-            }
-
-            if (i == limit0) range = 1;
-            if (i == limit1) range = 2;
-            if (i >= limit2) {
-                range = 3;
-                if (i + range + 1 > count) range = count - i - 1;
-            }
-        }
-
-//        cerr << "peakCount = " << peakCount << endl;
-        
-        cd.freqPeak[count-1] = count-1;
-        cd.freqPeak[count] = count;
     }
 
-    Profiler profiler2("RubberBandStretcher::Impl::modifyChunk part 2");
+    int limit0 = lrint((freq0 * sz * cd.oversample) / rate);
+    int limit1 = lrint((freq1 * sz * cd.oversample) / rate);
+    int limit2 = lrint((freq2 * sz * cd.oversample) / rate);
 
-    double peakInPhase = 0.0;
-    double peakOutPhase = 0.0;
-    int p = -1, pp = -1;
+    if (limit1 < limit0) limit1 = limit0;
+    if (limit2 < limit1) limit2 = limit1;
+    
+    double prevInstability = 0.0;
+    double prevDirection = 0.0;
 
+    double distance = 0.0;
+    const double maxdist = 8.0;
 
-    for (int i = 0; i <= count; ++i) {
-        
-        if (m_options & OptionPhaseIndependent) {
-            p = i;
-            pp = i-1;
-        } else {
-            p = cd.freqPeak[i];
-            if (i > 0) pp = cd.freqPeak[i-1];
-        }
+    const int lookback = -1;
+
+    for (int i = 0; i <= count; i -= lookback) {
 
         bool resetThis = phaseReset;
         
-        if (m_options & OptionTransientsMixed) {
-            int low = lrint((150 * sz * cd.oversample) / rate);
-            int high = lrint((1000 * sz * cd.oversample) / rate);
+        if (bandlimited) {
             if (resetThis) {
-                if (i > low && i < high) {
+                if (i > bandlow && i < bandhigh) {
                     resetThis = false;
                     fullReset = false;
                 }
             }
         }
 
+        double p = cd.phase[i];
+        double perr = 0.0;
+        double outphase = p;
+
+        double mi = maxdist;
+        if (i <= limit0) mi = 0.0;
+        else if (i <= limit1) mi = 1.0;
+        else if (i <= limit2) mi = 3.0;
+
         if (!resetThis) {
 
-            if (i == 0 || p != pp) {
-	
+            double omega = (2 * M_PI * m_increment * i) / (sz * cd.oversample);
 
-                double omega = (2 * M_PI * m_increment * p) /
-                    (sz * cd.oversample);
-                double expectedPhase = cd.prevPhase[p] + omega;
-                double phaseError = princarg(cd.phase[p] - expectedPhase);
-                double phaseIncrement = (omega + phaseError) / m_increment;
-            
-                double unwrappedPhase = cd.unwrappedPhase[p] +
-                    outputIncrement * phaseIncrement;
+            double pp = cd.prevPhase[i];
+            double ep = pp + omega;
+            perr = princarg(p - ep);
 
-                cd.prevPhase[p] = cd.phase[p];
-                cd.phase[p] = unwrappedPhase;
-                cd.unwrappedPhase[p] = unwrappedPhase;
+            double instability = fabs(perr - cd.prevError[i]);
+            bool direction = (perr > cd.prevError[i]);
 
-                peakInPhase = cd.prevPhase[p];
-                peakOutPhase = unwrappedPhase;
+            bool inherit = false;
 
+            if (laminar) {
+                if (distance >= mi) {
+                    inherit = false;
+                } else if (bandlimited && (i == bandhigh || i == bandlow)) {
+                    inherit = false;
+                } else if (instability > prevInstability &&
+                           direction == prevDirection) {
+                    inherit = true;
+                }
             }
 
-            if (i != p) {
+            double advance = outputIncrement * ((omega + perr) / m_increment);
 
-//                cd.phase[i] = atan2(cd.imag[i], cd.real[i]);//!!!
-
-                double diffToPeak = peakInPhase - cd.phase[i];
-                double unwrappedPhase = peakOutPhase - diffToPeak;
-                
-                cd.prevPhase[i] = cd.phase[i];
-                cd.phase[i] = unwrappedPhase;
-                cd.unwrappedPhase[i] = unwrappedPhase;
+            if (inherit) {
+                double inherited =
+                    cd.unwrappedPhase[i + lookback] - cd.prevPhase[i + lookback];
+                advance = ((advance * distance) + (inherited * (mi - distance)))
+                    / mi;
+                outphase = p + advance;
+                distance += 1.0;
+            } else {
+                outphase = cd.unwrappedPhase[i] + advance;
+                distance = 0.0;
             }
+
+            prevInstability = instability;
+            prevDirection = direction;
 
         } else {
-            // resetThis == true
-            cd.prevPhase[i] = cd.phase[i];
-            cd.unwrappedPhase[i] = cd.phase[i];
+            distance = 0.0;
         }
-    }
 
+        cd.prevError[i] = perr;
+        cd.prevPhase[i] = p;
+        cd.phase[i] = outphase;
+        cd.unwrappedPhase[i] = outphase;
+    }
 
     if (fullReset) unchanged = true;
     cd.unchanged = unchanged;
@@ -839,7 +776,7 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel, size_t outputIncrement,
     if (unchanged && m_debugLevel > 1) {
         cerr << "frame unchanged on channel " << channel << endl;
     }
-}
+}    
 
 
 void

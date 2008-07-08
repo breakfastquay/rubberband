@@ -110,21 +110,15 @@ public:
      * during non-transient segments.  These options may be changed at
      * any time.
      *
-     *   \li \c OptionPhaseAdaptive - Lock the adjustments of phase
-     *   for frequencies close to peak frequencies to those of the
-     *   peak, but reduce the degree of locking as the stretch ratio
-     *   gets longer.  This, the default setting, should give a good
-     *   balance between clarity and smoothness in most situations.
+     *   \li \c OptionPhaseLaminar - Adjust phases when stretching in
+     *   such a way as to try to retain the continuity of phase
+     *   relationships between adjacent frequency bins whose phases
+     *   are behaving in similar ways.  This, the default setting,
+     *   should give good results in most situations.
      *
-     *   \li \c OptionPhasePeakLocked - Lock the adjustments of phase
-     *   for frequencies close to peak frequencies to those of the
-     *   peak.  This should give a clear result in situations with
-     *   relatively low stretch ratios, but a relatively metallic
-     *   sound at longer stretches.
-     *
-     *   \li \c OptionPhaseIndependent - Do not lock phase adjustments
-     *   to peak frequencies.  This usually results in a softer,
-     *   phasier sound.
+     *   \li \c OptionPhaseIndependent - Adjust the phase in each
+     *   frequency bin independently from its neighbours.  This
+     *   usually results in a slightly softer, phasier sound.
      *
      * 5. Flags prefixed \c OptionThreading control the threading
      * model of the stretcher.  These options may not be changed after
@@ -207,8 +201,7 @@ public:
         OptionTransientsMixed      = 0x00000100,
         OptionTransientsSmooth     = 0x00000200,
 
-        OptionPhaseAdaptive        = 0x00000000,
-        OptionPhasePeakLocked      = 0x00001000,
+        OptionPhaseLaminar         = 0x00000000,
         OptionPhaseIndependent     = 0x00002000,
     
         OptionThreadingAuto        = 0x00000000,

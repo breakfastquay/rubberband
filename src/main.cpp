@@ -76,7 +76,6 @@ int main(int argc, char **argv)
     bool longwin = false;
     bool shortwin = false;
     bool hqpitch = false;
-    bool softening = true;
     bool formant = false;
     bool crispchanged = false;
     int crispness = -1;
@@ -115,7 +114,6 @@ int main(int argc, char **argv)
             { "window-long",   0, 0, '3' },
             { "window-short",  0, 0, '4' },
             { "bl-transients", 0, 0, '8' },
-            { "no-softening",  0, 0, '9' },
             { "pitch-hq",      0, 0, '%' },
             { "threads",       0, 0, '@' },
             { "quiet",         0, 0, 'q' },
@@ -144,7 +142,6 @@ int main(int argc, char **argv)
         case '3': longwin = true; crispchanged = true; break;
         case '4': shortwin = true; crispchanged = true; break;
         case '8': transients = BandLimitedTransients; crispchanged = true; break;
-        case '9': softening = false; break;
         case '%': hqpitch = true; break;
         case 'c': crispness = atoi(optarg); break;
         case 'q': quiet = true; break;
@@ -193,7 +190,6 @@ int main(int argc, char **argv)
         cerr << "         --no-transients  Disable phase resynchronisation at transients" << endl;
         cerr << "         --bl-transients  Band-limit phase resync to extreme frequencies" << endl;
         cerr << "         --no-peaklock    Disable phase locking to peak frequencies" << endl;
-        cerr << "         --no-softening   Disable large-ratio softening of phase locking" << endl;
         cerr << "         --window-long    Use longer processing window (actual size may vary)" << endl;
         cerr << "         --window-short   Use shorter processing window" << endl;
         cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
@@ -290,7 +286,6 @@ int main(int argc, char **argv)
     if (realtime)    options |= RubberBandStretcher::OptionProcessRealTime;
     if (precise)     options |= RubberBandStretcher::OptionStretchPrecise;
     if (!peaklock)   options |= RubberBandStretcher::OptionPhaseIndependent;
-    if (!softening)  options |= RubberBandStretcher::OptionPhasePeakLocked;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;
     if (formant)     options |= RubberBandStretcher::OptionFormantPreserved;

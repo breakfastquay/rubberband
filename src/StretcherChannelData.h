@@ -91,6 +91,7 @@ public:
     double *phase;
 
     double *prevPhase;
+    double *prevError;
     double *unwrappedPhase;
 
 

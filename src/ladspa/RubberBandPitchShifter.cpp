@@ -379,15 +379,15 @@ RubberBandPitchShifter::updateCrispness()
         s->setTransientsOption(RubberBandStretcher::OptionTransientsSmooth);
         break;
     case 1:
-        s->setPhaseOption(RubberBandStretcher::OptionPhaseAdaptive);
+        s->setPhaseOption(RubberBandStretcher::OptionPhaseLaminar);
         s->setTransientsOption(RubberBandStretcher::OptionTransientsSmooth);
         break;
     case 2:
-        s->setPhaseOption(RubberBandStretcher::OptionPhaseAdaptive);
+        s->setPhaseOption(RubberBandStretcher::OptionPhaseLaminar);
         s->setTransientsOption(RubberBandStretcher::OptionTransientsMixed);
         break;
     case 3:
-        s->setPhaseOption(RubberBandStretcher::OptionPhaseAdaptive);
+        s->setPhaseOption(RubberBandStretcher::OptionPhaseLaminar);
         s->setTransientsOption(RubberBandStretcher::OptionTransientsCrisp);
         break;
     }

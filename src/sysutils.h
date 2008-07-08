@@ -49,6 +49,14 @@ void usleep(unsigned long);
 
 #endif
 
+extern float *allocFloat(int);    
+extern float *allocFloat(float *, int);
+extern void freeFloat(float *);
+
+extern double *allocDouble(int);    
+extern double *allocDouble(double *, int);
+extern void freeDouble(double *);
+
 }
 
 #endif

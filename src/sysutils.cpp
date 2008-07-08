@@ -27,6 +27,7 @@
 
 #include <iostream>
 
+
 namespace RubberBand {
 
 bool
@@ -100,6 +101,50 @@ void usleep(unsigned long usec)
 }
 
 #endif
+
+
+float *allocFloat(float *ptr, int count)
+{
+    if (ptr) free((void *)ptr);
+    void *allocated;
+    if (!posix_memalign(&allocated, 16, count * sizeof(float))) {
+        allocated = malloc(count * sizeof(float));
+    }
+    for (int i = 0; i < count; ++i) ((float *)allocated)[i] = 0.f;
+    return (float *)allocated;
+}
+
+float *allocFloat(int count)
+{
+    return allocFloat(0, count);
+}
+
+void freeFloat(float *ptr)
+{
+    if (ptr) free(ptr);
+}
+      
+double *allocDouble(double *ptr, int count)
+{
+    if (ptr) free((void *)ptr);
+    void *allocated;
+    if (!posix_memalign(&allocated, 16, count * sizeof(double))) {
+        allocated = malloc(count * sizeof(double));
+    }
+    for (int i = 0; i < count; ++i) ((double *)allocated)[i] = 0.f;
+    return (double *)allocated;
+}
+
+double *allocDouble(int count)
+{
+    return allocDouble(0, count);
+}
+
+void freeDouble(double *ptr)
+{
+    if (ptr) free(ptr);
+}
+ 
 
 }
 

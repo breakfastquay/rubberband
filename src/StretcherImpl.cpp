@@ -713,7 +713,7 @@ RubberBandStretcher::Impl::setTransientsOption(Options options)
 void
 RubberBandStretcher::Impl::setPhaseOption(Options options)
 {
-    int mask = (OptionPhaseAdaptive | OptionPhasePeakLocked | OptionPhaseIndependent);
+    int mask = (OptionPhaseLaminar | OptionPhaseIndependent);
     m_options &= ~mask;
     options &= mask;
     m_options |= options;

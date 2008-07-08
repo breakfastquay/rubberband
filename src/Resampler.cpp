@@ -101,11 +101,10 @@ D_SRC::D_SRC(Resampler::Quality quality, int channels, int maxBufferSize,
     }
 
     if (maxBufferSize > 0 && m_channels > 1) {
-        //!!! alignment?
         m_iinsize = maxBufferSize * m_channels;
         m_ioutsize = maxBufferSize * m_channels * 2;
-        m_iin = (float *)malloc(m_iinsize * sizeof(float));
-        m_iout = (float *)malloc(m_ioutsize * sizeof(float));
+        m_iin = allocFloat(m_iinsize);
+        m_iout = allocFloat(m_ioutsize);
     }
 
     reset();
@@ -138,12 +137,10 @@ D_SRC::resample(const float *const R__ *const R__ in,
         data.data_out = *out;
     } else {
         if (incount * m_channels > m_iinsize) {
-            m_iinsize = incount * m_channels;
-            m_iin = (float *)realloc(m_iin, m_iinsize * sizeof(float));
+            m_iin = allocFloat(m_iin, m_iinsize);
         }
         if (outcount * m_channels > m_ioutsize) {
-            m_ioutsize = outcount * m_channels;
-            m_iout = (float *)realloc(m_iout, m_ioutsize * sizeof(float));
+            m_iout = allocFloat(m_iout, m_ioutsize);
         }
         for (int i = 0; i < incount; ++i) {
             for (int c = 0; c < m_channels; ++c) {

@@ -48,8 +48,7 @@ enum RubberBandOption {
     RubberBandOptionTransientsMixed      = 0x00000100,
     RubberBandOptionTransientsSmooth     = 0x00000200,
 
-    RubberBandOptionPhaseAdaptive        = 0x00000000,
-    RubberBandOptionPhasePeakLocked      = 0x00001000,
+    RubberBandOptionPhaseLaminar         = 0x00000000,
     RubberBandOptionPhaseIndependent     = 0x00002000,
     
     RubberBandOptionThreadingAuto        = 0x00000000,

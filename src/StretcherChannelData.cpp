@@ -19,7 +19,7 @@
 
 namespace RubberBand 
 {
-
+      
 RubberBandStretcher::Impl::ChannelData::ChannelData(size_t windowSize,
                                                     int overSample,
                                                     size_t outbufSize) :
@@ -64,18 +64,19 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &window
     inbuf = new RingBuffer<float>(maxSize);
     outbuf = new RingBuffer<float>(outbufSize);
 
-    mag = new double[realSize];
-    phase = new double[realSize];
-    prevPhase = new double[realSize];
-    unwrappedPhase = new double[realSize];
+    mag = allocDouble(realSize);
+    phase = allocDouble(realSize);
+    prevPhase = allocDouble(realSize);
+    prevError = allocDouble(realSize);
+    unwrappedPhase = allocDouble(realSize);
+    envelope = allocDouble(realSize);
+
     freqPeak = new size_t[realSize];
-    envelope = new double[realSize];
 
-    fltbuf = new float[maxSize];
+    fltbuf = allocFloat(maxSize);
 
-    accumulator = new float[maxSize];
-    windowAccumulator = new float[maxSize];
-
+    accumulator = allocFloat(maxSize);
+    windowAccumulator = allocFloat(maxSize);
 
     for (std::set<size_t>::const_iterator i = windowSizes.begin();
          i != windowSizes.end(); ++i) {
@@ -97,22 +98,11 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &window
     reset();
 
     for (size_t i = 0; i < realSize; ++i) {
-        mag[i] = 0.0;
-        phase[i] = 0.0;
-        prevPhase[i] = 0.0;
-        unwrappedPhase[i] = 0.0;
         freqPeak[i] = 0;
-	envelope[i] = 0.0;
     }
 
     for (size_t i = 0; i < initialWindowSize * oversample; ++i) {
         dblbuf[i] = 0.0;
-    }
-
-    for (size_t i = 0; i < maxSize; ++i) {
-        accumulator[i] = 0.f;
-        windowAccumulator[i] = 0.f;
-        fltbuf[i] = 0.f;
     }
 }
 
@@ -151,6 +141,7 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
             mag[i] = 0.0;
             phase[i] = 0.0;
             prevPhase[i] = 0.0;
+            prevError[i] = 0.0;
             unwrappedPhase[i] = 0.0;
             freqPeak[i] = 0;
         }
@@ -171,54 +162,42 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
 
     // We don't want to preserve data in these arrays
 
-    delete[] mag;
-    delete[] phase;
-    delete[] prevPhase;
-    delete[] unwrappedPhase;
+    mag = allocDouble(mag, realSize);
+    phase = allocDouble(phase, realSize);
+    prevPhase = allocDouble(prevPhase, realSize);
+    prevError = allocDouble(prevError, realSize);
+    unwrappedPhase = allocDouble(unwrappedPhase, realSize);
+    envelope = allocDouble(envelope, realSize);
+
     delete[] freqPeak;
-    delete[] envelope;
-
-    mag = new double[realSize];
-    phase = new double[realSize];
-    prevPhase = new double[realSize];
-    unwrappedPhase = new double[realSize];
     freqPeak = new size_t[realSize];
-    envelope = new double[realSize];
 
-    delete[] fltbuf;
-    fltbuf = new float[windowSize];
-
+    fltbuf = allocFloat(fltbuf, windowSize);
 
     // But we do want to preserve data in these
 
-    float *newAcc = new float[windowSize];
+    float *newAcc = allocFloat(windowSize);
+
     for (size_t i = 0; i < oldSize; ++i) newAcc[i] = accumulator[i];
-    delete[] accumulator;
+
+    freeFloat(accumulator);
     accumulator = newAcc;
 
-    newAcc = new float[windowSize];
+    newAcc = allocFloat(windowSize);
+
     for (size_t i = 0; i < oldSize; ++i) newAcc[i] = windowAccumulator[i];
-    delete[] windowAccumulator;
+
+    freeFloat(windowAccumulator);
     windowAccumulator = newAcc;
     
     //!!! and resampler?
 
     for (size_t i = 0; i < realSize; ++i) {
-        mag[i] = 0.0;
-        phase[i] = 0.0;
-        prevPhase[i] = 0.0;
-        unwrappedPhase[i] = 0.0;
         freqPeak[i] = 0;
-        envelope[i] = 0.0;
     }
 
     for (size_t i = 0; i < windowSize; ++i) {
         fltbuf[i] = 0.f;
-    }
-
-    for (size_t i = oldSize; i < windowSize; ++i) {
-        accumulator[i] = 0.f;
-        windowAccumulator[i] = 0.f;
     }
 
     if (ffts.find(windowSize) == ffts.end()) {
@@ -256,15 +235,7 @@ RubberBandStretcher::Impl::ChannelData::setOutbufSize(size_t outbufSize)
 void
 RubberBandStretcher::Impl::ChannelData::setResampleBufSize(size_t sz)
 {
-    if (!resamplebuf) {
-        resamplebuf = new float[sz];
-        resamplebufSize = sz;
-        return;
-    }
-
-    delete[] resamplebuf;
-    resamplebuf = new float[sz];
-    for (size_t i = 0; i < sz; ++i) resamplebuf[i] = 0.f;
+    resamplebuf = allocFloat(resamplebuf, sz);
     resamplebufSize = sz;
 }
 
@@ -272,22 +243,21 @@ RubberBandStretcher::Impl::ChannelData::~ChannelData()
 {
     delete resampler;
 
-    if (resamplebuf) {
-        delete[] resamplebuf;
-    }
+    freeFloat(resamplebuf);
 
     delete inbuf;
     delete outbuf;
 
-    delete[] mag;
-    delete[] phase;
-    delete[] prevPhase;
-    delete[] unwrappedPhase;
+    freeDouble(mag);
+    freeDouble(phase);
+    freeDouble(prevPhase);
+    freeDouble(prevError);
+    freeDouble(unwrappedPhase);
+    freeDouble(envelope);
     delete[] freqPeak;
-    delete[] accumulator;
-    delete[] windowAccumulator;
-    delete[] fltbuf;
-    delete[] envelope;
+    freeFloat(accumulator);
+    freeFloat(windowAccumulator);
+    freeFloat(fltbuf);
 
     for (std::map<size_t, FFT *>::iterator i = ffts.begin();
          i != ffts.end(); ++i) {

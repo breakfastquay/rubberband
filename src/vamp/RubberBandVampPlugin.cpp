@@ -379,7 +379,7 @@ RubberBandVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockS
 
     if (m_d->m_phaseIndependent) 
          options |= RubberBand::RubberBandStretcher::OptionPhaseIndependent;
-    else options |= RubberBand::RubberBandStretcher::OptionPhasePeakLocked;
+    else options |= RubberBand::RubberBandStretcher::OptionPhaseLaminar;
 
     if (m_d->m_windowLength == 0)
          options |= RubberBand::RubberBandStretcher::OptionWindowStandard;
