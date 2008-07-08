@@ -690,7 +690,7 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
     if (limit2 < limit1) limit2 = limit1;
     
     double prevInstability = 0.0;
-    double prevDirection = 0.0;
+    bool prevDirection = false;
 
     double distance = 0.0;
     const double maxdist = 8.0;
