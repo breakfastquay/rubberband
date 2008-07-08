@@ -107,9 +107,10 @@ float *allocFloat(float *ptr, int count)
 {
     if (ptr) free((void *)ptr);
     void *allocated;
-    if (!posix_memalign(&allocated, 16, count * sizeof(float))) {
+#ifndef _WIN32
+    if (!posix_memalign(&allocated, 16, count * sizeof(float)))
         allocated = malloc(count * sizeof(float));
-    }
+#endif
     for (int i = 0; i < count; ++i) ((float *)allocated)[i] = 0.f;
     return (float *)allocated;
 }
@@ -128,9 +129,10 @@ double *allocDouble(double *ptr, int count)
 {
     if (ptr) free((void *)ptr);
     void *allocated;
-    if (!posix_memalign(&allocated, 16, count * sizeof(double))) {
+#ifndef _WIN32
+    if (!posix_memalign(&allocated, 16, count * sizeof(double)))
         allocated = malloc(count * sizeof(double));
-    }
+#endif
     for (int i = 0; i < count; ++i) ((double *)allocated)[i] = 0.f;
     return (double *)allocated;
 }
