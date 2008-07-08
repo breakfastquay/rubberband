@@ -109,8 +109,8 @@ float *allocFloat(float *ptr, int count)
     void *allocated;
 #ifndef _WIN32
     if (!posix_memalign(&allocated, 16, count * sizeof(float)))
-        allocated = malloc(count * sizeof(float));
 #endif
+        allocated = malloc(count * sizeof(float));
     for (int i = 0; i < count; ++i) ((float *)allocated)[i] = 0.f;
     return (float *)allocated;
 }
@@ -131,8 +131,8 @@ double *allocDouble(double *ptr, int count)
     void *allocated;
 #ifndef _WIN32
     if (!posix_memalign(&allocated, 16, count * sizeof(double)))
-        allocated = malloc(count * sizeof(double));
 #endif
+        allocated = malloc(count * sizeof(double));
     for (int i = 0; i < count; ++i) ((double *)allocated)[i] = 0.f;
     return (double *)allocated;
 }
