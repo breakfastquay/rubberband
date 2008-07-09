@@ -26,6 +26,24 @@
  * 
  * The Rubber Band API is contained in the single class
  * RubberBand::RubberBandStretcher.
+ *
+ * Threading notes for real-time applications:
+ * 
+ * Multiple instances of RubberBandStretcher may be created and used
+ * in separate threads concurrently.  However, for any single instance
+ * of RubberBandStretcher, you may not call process() more than once
+ * concurrently, and you may not change the time or pitch ratio while
+ * a process() call is being executed (if the stretcher was created in
+ * "real-time mode"; in "offline mode" you can't change the ratios
+ * during use anyway).
+ * 
+ * So you can run process() in its own thread if you like, but if you
+ * want to change ratios dynamically from a different thread, you will
+ * need some form of mutex in your code.  Changing the time or pitch
+ * ratio is real-time safe except in extreme circumstances, so for
+ * most applications that may change these dynamically it probably
+ * makes most sense to do so from the same thread as calls process(),
+ * even if that is a real-time thread.
  */
 
 namespace RubberBand
