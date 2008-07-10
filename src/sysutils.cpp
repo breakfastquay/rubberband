@@ -130,7 +130,9 @@ double *allocDouble(double *ptr, int count)
     if (ptr) free((void *)ptr);
     void *allocated;
 #ifndef _WIN32
+#ifndef __APPLE__
     if (!posix_memalign(&allocated, 16, count * sizeof(double)))
+#endif
 #endif
         allocated = malloc(count * sizeof(double));
     for (int i = 0; i < count; ++i) ((double *)allocated)[i] = 0.f;
