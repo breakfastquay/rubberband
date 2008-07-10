@@ -25,6 +25,7 @@
 #endif /* !__APPLE__, !_WIN32 */
 #endif /* !_WIN32 */
 
+#include <cstdlib>
 #include <iostream>
 
 
