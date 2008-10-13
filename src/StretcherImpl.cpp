@@ -342,6 +342,19 @@ RubberBandStretcher::Impl::calculateSizes()
     size_t windowSize = m_baseWindowSize;
     size_t outputIncrement;
 
+    if (m_pitchScale <= 0.0) {
+        // This special case is likelier than one might hope, because
+        // of naive initialisations in programs that set it from a
+        // variable
+        std::cerr << "RubberBandStretcher: WARNING: Pitch scale must be greater than zero!\nResetting it from " << m_pitchScale << " to the default of 1.0: no pitch change will occur" << std::endl;
+        m_pitchScale = 1.0;
+    }
+    if (m_timeRatio <= 0.0) {
+        // Likewise
+        std::cerr << "RubberBandStretcher: WARNING: Time ratio must be greater than zero!\nResetting it from " << m_timeRatio << " to the default of 1.0: no time stretch will occur" << std::endl;
+        m_timeRatio = 1.0;
+    }
+
     double r = getEffectiveRatio();
 
     if (m_realtime) {
