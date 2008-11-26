@@ -735,7 +735,7 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
             bool inherit = false;
 
             if (laminar) {
-                if (distance >= mi) {
+                if (distance >= mi || i == count) {
                     inherit = false;
                 } else if (bandlimited && (i == bandhigh || i == bandlow)) {
                     inherit = false;

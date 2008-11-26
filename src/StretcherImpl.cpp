@@ -934,9 +934,18 @@ RubberBandStretcher::Impl::calculateStretch()
 {
     Profiler profiler("RubberBandStretcher::Impl::calculateStretch");
 
+    size_t inputDuration = m_inputDuration;
+
+    if (!m_realtime && m_expectedInputDuration > 0) {
+        if (m_expectedInputDuration != inputDuration) {
+            std::cerr << "RubberBandStretcher: WARNING: Actual study() duration differs from duration set by setExpectedInputDuration (" << m_inputDuration << " vs " << m_expectedInputDuration << ", diff = " << (m_expectedInputDuration - m_inputDuration) << "), using the latter for calculation" << std::endl;
+            inputDuration = m_expectedInputDuration;
+        }
+    }
+
     std::vector<int> increments = m_stretchCalculator->calculate
         (getEffectiveRatio(),
-         m_inputDuration,
+         inputDuration,
          m_phaseResetDf,
          m_stretchDf);
 
