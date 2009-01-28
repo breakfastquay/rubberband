@@ -447,8 +447,8 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
 
     if (m_channels == 1) {
 
-        df = m_phaseResetAudioCurve->process(cd.mag, m_increment);
-        silent = (m_silentAudioCurve->process(cd.mag, m_increment) > 0.f);
+        df = m_phaseResetAudioCurve->processDouble(cd.mag, m_increment);
+        silent = (m_silentAudioCurve->processDouble(cd.mag, m_increment) > 0.f);
 
     } else {
 
@@ -463,8 +463,8 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
             }
         }
     
-        df = m_phaseResetAudioCurve->process(tmp, m_increment);
-        silent = (m_silentAudioCurve->process(tmp, m_increment) > 0.f);
+        df = m_phaseResetAudioCurve->processDouble(tmp, m_increment);
+        silent = (m_silentAudioCurve->processDouble(tmp, m_increment) > 0.f);
     }
 
     int incr = m_stretchCalculator->calculateSingle

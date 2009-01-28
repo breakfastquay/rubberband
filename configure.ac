@@ -33,7 +33,7 @@ if test "x$GCC" = "xyes"; then
   esac
   case " $CXXFLAGS " in
     *[\ \	]-fPIC\ -Wall[\ \	]*) ;;
-    *) CXXFLAGS="$CXXFLAGS -fPIC -Wall" ;;
+    *) CXXFLAGS="$CXXFLAGS -fPIC -Wall -Woverloaded-virtual" ;;
   esac
 fi
 changequote([,])dnl

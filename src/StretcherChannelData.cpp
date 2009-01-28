@@ -281,6 +281,16 @@ RubberBandStretcher::Impl::ChannelData::reset()
 
     if (resampler) resampler->reset();
 
+    size_t size = inbuf->getSize();
+
+    for (size_t i = 0; i < size; ++i) {
+        accumulator[i] = 0.f;
+        windowAccumulator[i] = 0.f;
+    }
+
+    // Avoid dividing opening sample (which will be discarded anyway) by zero
+    windowAccumulator[0] = 1.f;
+    
     accumulatorFill = 0;
     prevIncrement = 0;
     chunkCount = 0;
