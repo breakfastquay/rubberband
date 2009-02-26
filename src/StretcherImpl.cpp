@@ -587,6 +587,7 @@ RubberBandStretcher::Impl::configure()
 
     delete m_phaseResetAudioCurve;
     m_phaseResetAudioCurve = new PercussiveAudioCurve
+//    m_phaseResetAudioCurve = new SpectralDifferenceAudioCurve
         (m_sampleRate, m_windowSize);
 
     delete m_silentAudioCurve;
