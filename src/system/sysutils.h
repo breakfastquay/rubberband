@@ -15,10 +15,6 @@
 #ifndef _RUBBERBAND_SYSUTILS_H_
 #define _RUBBERBAND_SYSUTILS_H_
 
-#ifdef __MSVC__
-#include <float_cast/float_cast.h>
-#define R__ __restrict
-#endif
 
 #ifdef __GNUC__
 #define R__ __restrict__
@@ -32,19 +28,8 @@
 #include <malloc.h>
 #endif
 
-#ifdef __MSVC__
-#define alloca _alloca
-#define getpid _getpid
-#endif
 
-#ifdef __MSVC__
-#define uint8_t unsigned __int8
-#define uint16_t unsigned __int16
-#define uint32_t unsigned __int32
-#define ssize_t long
-#else
 #include <stdint.h>
-#endif
 
 #include <math.h>
 
