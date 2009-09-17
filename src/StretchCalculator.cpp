@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2008 Chris Cannam.
+    Copyright 2007-2009 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -21,7 +21,7 @@
 #include <cassert>
 #include <algorithm>
 
-#include "sysutils.h"
+#include "system/sysutils.h"
 
 namespace RubberBand
 {
@@ -659,7 +659,12 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
     maxDf = 0;
     float adj = 0;
 
-    while (!acceptableSquashRange) {
+    const int acceptableIterations = 10;
+    int iteration = 0;
+ 
+    while (!acceptableSquashRange && iteration < acceptableIterations) {
+
+        ++iteration;
 
         acceptableSquashRange = true;
         calculateDisplacements(df, maxDf, totalDisplacement, maxDisplacement,
@@ -682,21 +687,22 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
         int extremeIncrement = m_increment + lrint((toAllot * maxDisplacement) / totalDisplacement);
         if (ratio < 1.0) {
             if (extremeIncrement > lrint(ceil(m_increment * ratio))) {
-                std::cerr << "ERROR: extreme increment " << extremeIncrement << " > " << m_increment * ratio << " (this should not happen)" << std::endl;
+                std::cerr << "WARNING: extreme increment " << extremeIncrement << " > " << m_increment * ratio << std::endl;
             } else if (extremeIncrement < (m_increment * ratio) / 2) {
                 if (m_debugLevel > 0) {
-                    std::cerr << "WARNING: extreme increment " << extremeIncrement << " < " << (m_increment * ratio) / 2 << std::endl;
+                    std::cerr << "NOTE: extreme increment " << extremeIncrement << " < " << (m_increment * ratio) / 2 << ", adjusting" << std::endl;
                 }
                 acceptableSquashRange = false;
             }
         } else {
             if (extremeIncrement > m_increment * ratio * 2) {
                 if (m_debugLevel > 0) {
-                    std::cerr << "WARNING: extreme increment " << extremeIncrement << " > " << m_increment * ratio * 2 << std::endl;
+                    std::cerr << "NOTE: extreme increment " << extremeIncrement << " > " << m_increment * ratio * 2 << ", adjusting" << std::endl;
+
                 }
                 acceptableSquashRange = false;
             } else if (extremeIncrement < lrint(floor(m_increment * ratio))) {
-                std::cerr << "ERROR: extreme increment " << extremeIncrement << " < " << m_increment * ratio << " (I thought this couldn't happen?)" << std::endl;
+                std::cerr << "WARNING: extreme increment " << extremeIncrement << " < " << m_increment * ratio << std::endl;
             }
         }
 
@@ -706,6 +712,13 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
             // displacements still sum to the total.
             adj += maxDf/10;
         }
+    }
+
+    if (!acceptableSquashRange) {
+        std::cerr << "WARNING: No acceptable displacement adjustment found, using defaults:\nthis region will probably sound bad" << std::endl;
+        adj = 0;
+        calculateDisplacements(df, maxDf, totalDisplacement, maxDisplacement,
+                               adj);
     }
 
     for (size_t i = 0; i < df.size(); ++i) {

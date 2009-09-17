@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2008 Chris Cannam.
+    Copyright 2007-2009 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -15,20 +15,24 @@
 #ifndef _RUBBERBAND_STRETCHERIMPL_H_
 #define _RUBBERBAND_STRETCHERIMPL_H_
 
-#include "RubberBandStretcher.h"
+#include "rubberband/RubberBandStretcher.h"
 
-#include "Window.h"
-#include "Thread.h"
-#include "RingBuffer.h"
-#include "FFT.h"
-#include "sysutils.h"
+#include "dsp/Window.h"
+#include "dsp/FFT.h"
+
+#include "base/RingBuffer.h"
+#include "system/Thread.h"
+#include "system/sysutils.h"
 
 #include <set>
+
+using namespace RubberBand;
+
+namespace RubberBand { class AudioCurveCalculator; }
 
 namespace RubberBand
 {
 
-class AudioCurve;
 class StretchCalculator;
 
 class RubberBandStretcher::Impl
@@ -177,9 +181,9 @@ protected:
     mutable RingBuffer<int> m_lastProcessOutputIncrements;
     mutable RingBuffer<float> m_lastProcessPhaseResetDf;
 
-    AudioCurve *m_phaseResetAudioCurve;
-    AudioCurve *m_stretchAudioCurve;
-    AudioCurve *m_silentAudioCurve;
+    AudioCurveCalculator *m_phaseResetAudioCurve;
+    AudioCurveCalculator *m_stretchAudioCurve;
+    AudioCurveCalculator *m_silentAudioCurve;
     StretchCalculator *m_stretchCalculator;
 
     float m_freq0;

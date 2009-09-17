@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2008 Chris Cannam.
+    Copyright 2007-2009 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -12,8 +12,8 @@
     COPYING included with this distribution for more information.
 */
 
-#include "rubberband-c.h"
-#include "RubberBandStretcher.h"
+#include "rubberband/rubberband-c.h"
+#include "rubberband/RubberBandStretcher.h"
 
 struct RubberBandState_
 {

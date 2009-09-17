@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2008 Chris Cannam.
+    Copyright 2007-2009 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -13,20 +13,29 @@
 */
 
 #include "StretcherImpl.h"
-#include "PercussiveAudioCurve.h"
-#include "HighFrequencyAudioCurve.h"
-#include "SpectralDifferenceAudioCurve.h"
-#include "SilentAudioCurve.h"
-#include "ConstantAudioCurve.h"
+
+#include "dsp/PercussiveAudioCurve.h"
+#include "dsp/HighFrequencyAudioCurve.h"
+#include "dsp/SpectralDifferenceAudioCurve.h"
+#include "dsp/SilentAudioCurve.h"
+#include "dsp/ConstantAudioCurve.h"
+#include "dsp/Resampler.h"
+
 #include "StretchCalculator.h"
 #include "StretcherChannelData.h"
-#include "Resampler.h"
-#include "Profiler.h"
+
+#include "base/Profiler.h"
+
+#ifndef _WIN32
+#include <alloca.h>
+#endif
 
 #include <cassert>
 #include <cmath>
 #include <set>
 #include <map>
+
+using namespace RubberBand;
 
 using std::cerr;
 using std::endl;
@@ -35,7 +44,6 @@ using std::map;
 using std::set;
 using std::max;
 using std::min;
-
 
 namespace RubberBand {
 
@@ -48,7 +56,7 @@ RubberBandStretcher::Impl::m_defaultWindowSize = 2048;
 int
 RubberBandStretcher::Impl::m_defaultDebugLevel = 0;
 
-
+static bool _initialised = false;
 
 RubberBandStretcher::Impl::Impl(size_t sampleRate,
                                 size_t channels,
@@ -85,6 +93,10 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_freq2(12000),
     m_baseWindowSize(m_defaultWindowSize)
 {
+    if (!_initialised) {
+        system_specific_initialise();
+        _initialised = true;
+    }
 
     if (m_debugLevel > 0) {
         cerr << "RubberBandStretcher::Impl::Impl: rate = " << m_sampleRate << ", options = " << options << endl;
@@ -844,15 +856,15 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
 
             m_studyFFT->forwardMagnitude(cd.accumulator, cd.fltbuf);
 
-            float df = m_phaseResetAudioCurve->process(cd.fltbuf, m_increment);
+            float df = m_phaseResetAudioCurve->processFloat(cd.fltbuf, m_increment);
             m_phaseResetDf.push_back(df);
 
 //            cout << m_phaseResetDf.size() << " [" << final << "] -> " << df << " \t: ";
 
-            df = m_stretchAudioCurve->process(cd.fltbuf, m_increment);
+            df = m_stretchAudioCurve->processFloat(cd.fltbuf, m_increment);
             m_stretchDf.push_back(df);
 
-            df = m_silentAudioCurve->process(cd.fltbuf, m_increment);
+            df = m_silentAudioCurve->processFloat(cd.fltbuf, m_increment);
             bool silent = (df > 0.f);
             if (silent && m_debugLevel > 1) {
                 cerr << "silence found at " << m_inputDuration << endl;
@@ -1111,9 +1123,11 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
                  i != m_threadSet.end(); ++i) {
                 (*i)->signalDataAvailable();
             }
+            m_spaceAvailable.lock();
             if (!allConsumed) {
                 m_spaceAvailable.wait(500);
             }
+            m_spaceAvailable.unlock();
 /*
         } else {
             if (!allConsumed) {

@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2008 Chris Cannam.
+    Copyright 2007-2009 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -13,13 +13,21 @@
 */
 
 #include "StretcherImpl.h"
-#include "PercussiveAudioCurve.h"
-#include "HighFrequencyAudioCurve.h"
-#include "ConstantAudioCurve.h"
+
+#include "dsp/PercussiveAudioCurve.h"
+#include "dsp/HighFrequencyAudioCurve.h"
+#include "dsp/ConstantAudioCurve.h"
+
 #include "StretchCalculator.h"
 #include "StretcherChannelData.h"
-#include "Resampler.h"
-#include "Profiler.h"
+
+#include "dsp/Resampler.h"
+#include "base/Profiler.h"
+#include "system/VectorOps.h"
+
+#ifndef _WIN32
+#include <alloca.h>
+#endif
 
 #include <cassert>
 #include <cmath>
@@ -27,6 +35,7 @@
 #include <map>
 #include <deque>
 
+using namespace RubberBand;
 
 using std::cerr;
 using std::endl;
@@ -62,14 +71,17 @@ RubberBandStretcher::Impl::ProcessThread::run()
 
         if (last) break;
 
-        if (any) m_s->m_spaceAvailable.signal();
+        if (any) {
+            m_s->m_spaceAvailable.lock();
+            m_s->m_spaceAvailable.signal();
+            m_s->m_spaceAvailable.unlock();
+        }
 
         m_dataAvailable.lock();
         if (!m_s->testInbufReadSpace(m_channel) && !m_abandoning) {
             m_dataAvailable.wait(50000); // bounded in case of abandonment
-        } else {
-            m_dataAvailable.unlock();
         }
+        m_dataAvailable.unlock();
 
         if (m_abandoning) {
             if (m_s->m_debugLevel > 1) {
@@ -81,7 +93,9 @@ RubberBandStretcher::Impl::ProcessThread::run()
 
     bool any = false, last = false;
     m_s->processChunks(m_channel, any, last);
+    m_s->m_spaceAvailable.lock();
     m_s->m_spaceAvailable.signal();
+    m_s->m_spaceAvailable.unlock();
     
     if (m_s->m_debugLevel > 1) {
         cerr << "thread " << m_channel << " done" << endl;
@@ -91,7 +105,9 @@ RubberBandStretcher::Impl::ProcessThread::run()
 void
 RubberBandStretcher::Impl::ProcessThread::signalDataAvailable()
 {
+    m_dataAvailable.lock();
     m_dataAvailable.signal();
+    m_dataAvailable.unlock();
 }
 
 void
@@ -454,13 +470,9 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
 
         double *tmp = (double *)alloca(hs * sizeof(double));
 
-        for (int i = 0; i < hs; ++i) {
-            tmp[i] = 0.0;
-        }
+        v_zero(tmp, hs);
         for (size_t c = 0; c < m_channels; ++c) {
-            for (int i = 0; i < hs; ++i) {
-                tmp[i] += m_channelData[c]->mag[i];
-            }
+            v_add(tmp, m_channelData[c]->mag, hs);
         }
     
         df = m_phaseResetAudioCurve->processDouble(tmp, m_increment);
@@ -630,17 +642,12 @@ RubberBandStretcher::Impl::analyseChunk(size_t channel)
             dblbuf[i + bufsiz/2] = tmp;
         }
     } else {
-        for (i = 0; i < hs; ++i) {
-            dblbuf[i] = fltbuf[i + hs];
-            dblbuf[i + hs] = fltbuf[i];
-        }
+        v_convert(dblbuf, fltbuf + hs, hs);
+        v_convert(dblbuf + hs, fltbuf, hs);
     }
 
     cd.fft->forwardPolar(dblbuf, cd.mag, cd.phase);
 }
-
-static inline double mod(double x, double y) { return x - (y * floor(x / y)); }
-static inline double princarg(double a) { return mod(a + M_PI, -2.0 * M_PI) + M_PI; }
 
 void
 RubberBandStretcher::Impl::modifyChunk(size_t channel,
@@ -800,14 +807,11 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
 
     const int sz = m_windowSize;
     const int hs = m_windowSize/2;
-    const double denom = sz;
-
+    const double factor = 1.0 / sz;
     
     cd.fft->inverseCepstral(mag, dblbuf);
 
-    for (int i = 0; i < sz; ++i) {
-        dblbuf[i] /= denom;
-    }
+    v_scale(dblbuf, factor, sz);
 
     const int cutoff = m_sampleRate / 700;
 
@@ -822,13 +826,8 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
 
     cd.fft->forward(dblbuf, envelope, 0);
 
-
-    for (int i = 0; i <= hs; ++i) {
-        envelope[i] = exp(envelope[i]);
-    }
-    for (int i = 0; i <= hs; ++i) {
-        mag[i] /= envelope[i];
-    }
+    v_exp(envelope, hs + 1);
+    v_divide(mag, envelope, hs + 1);
 
     if (m_pitchScale > 1.0) {
         // scaling up, we want a new envelope that is lower by the pitch factor
@@ -849,9 +848,7 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
         }
     }
 
-    for (int i = 0; i <= hs; ++i) {
-        mag[i] *= envelope[i];
-    }
+    v_multiply(mag, envelope, hs+1);
 
     cd.unchanged = false;
 }
@@ -898,36 +895,23 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
                 fltbuf[i] = float(dblbuf[i + offset]);
             }
         } else {
-            for (i = 0; i < hs; ++i) {
-                fltbuf[i] = float(dblbuf[i + hs]);
-            }
-            for (i = 0; i < hs; ++i) {
-                fltbuf[i + hs] = float(dblbuf[i]);
-            }
+            v_convert(fltbuf, dblbuf + hs, hs);
+            v_convert(fltbuf + hs, dblbuf, hs);
         }
-
-        float denom = float(sz * cd.oversample);
 
         // our ffts produced unscaled results
-        for (i = 0; i < sz; ++i) {
-            fltbuf[i] = fltbuf[i] / denom;
-        }
+        float factor = 1.f / float(sz * cd.oversample);
+        v_scale(fltbuf, factor, sz);
     }
 
     m_window->cut(fltbuf);
 
-    for (i = 0; i < sz; ++i) {
-        accumulator[i] += fltbuf[i];
-    }
+    v_add(accumulator, fltbuf, sz);
 
     cd.accumulatorFill = m_windowSize;
 
     float fixed = m_window->getArea() * 1.5f;
-
-    for (i = 0; i < sz; ++i) {
-        float val = m_window->getValue(i);
-        windowAccumulator[i] += val * fixed;
-    }
+    m_window->add(windowAccumulator, fixed);
 }
 
 void
@@ -949,11 +933,7 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
         cerr << "writeChunk(" << channel << ", " << shiftIncrement << ", " << last << ")" << endl;
     }
 
-    for (i = 0; i < si; ++i) {
-        if (windowAccumulator[i] > 0.f) {
-            accumulator[i] /= windowAccumulator[i];
-        }
-    }
+    v_divide(accumulator, windowAccumulator, si);
 
     // for exact sample scaling (probably not meaningful if we
     // were running in RT mode)
@@ -995,22 +975,12 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
         writeOutput(*cd.outbuf, accumulator,
                     si, cd.outCount, theoreticalOut);
     }
+
+    v_move(accumulator, accumulator + si, sz - si);
+    v_zero(accumulator + sz - si, si);
     
-    for (i = 0; i < sz - si; ++i) {
-        accumulator[i] = accumulator[i + si];
-    }
-    
-    for (i = sz - si; i < sz; ++i) {
-        accumulator[i] = 0.0f;
-    }
-    
-    for (i = 0; i < sz - si; ++i) {
-        windowAccumulator[i] = windowAccumulator[i + si];
-    }
-    
-    for (i = sz - si; i < sz; ++i) {
-        windowAccumulator[i] = 0.0f;
-    }
+    v_move(windowAccumulator, windowAccumulator + si, sz - si);
+    v_zero(windowAccumulator + sz - si, si);
     
     if (int(cd.accumulatorFill) > si) {
         cd.accumulatorFill -= si;
