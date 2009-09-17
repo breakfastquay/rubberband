@@ -26,14 +26,9 @@ namespace RubberBand {
 // in the same order as memcpy and friends, i.e. target vector first.
 // This is the reverse order from the IPP functions.
 
-// The aim here is to write the basic loops in such a way as to be
+// The ideal here is to write the basic loops in such a way as to be
 // auto-vectorizable by a sensible compiler (definitely gcc-4.3 on
-// Linux, ideally also gcc-4.0 on OS/X), but also include calls to
-// vector library implementations as alternatives (since not every
-// platform will be using a sensible compiler, it isn't always
-// possible to achieve the aim of writing loops in an
-// auto-vectorizable manner, and some functions are more
-// sophisticated).
+// Linux, ideally also gcc-4.0 on OS/X).
 
 template<typename T>
 inline void v_zero(T *const R__ ptr,
