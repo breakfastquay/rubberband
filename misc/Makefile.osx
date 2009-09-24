@@ -1,7 +1,7 @@
 
 CXX		:= g++
-CXXFLAGS	:= -isysroot /Developer/SDKs/MacOSX10.4u.sdk -O3 -arch i386 -arch ppc -msse -msse2 -ffast-math -ftree-vectorize -I../include -I../vamp-plugin-sdk -Irubberband -Isrc
-LDFLAGS		:= -L../lib -L../vamp-plugin-sdk/vamp-sdk
+CXXFLAGS	:= -DHAVE_FFTW3 -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG -isysroot /Developer/SDKs/MacOSX10.4u.sdk -O3 -arch i386 -arch ppc -msse -msse2 -ffast-math -ftree-vectorize -I../include -I../vamp-plugin-sdk -I/usr/local/include -Irubberband -I. -Isrc
+LDFLAGS		:= -L../lib -L/usr/local/lib -L../vamp-plugin-sdk/vamp-sdk
 
 LIBRARY_LIBS		:= -lsamplerate -lfftw3 -lpthread -lm
 PROGRAM_LIBS		:= -lsndfile $(LIBRARY_LIBS)
