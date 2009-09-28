@@ -80,6 +80,7 @@ inline float princargf(float a) { return modf(a + (float)M_PI, -2.f * (float)M_P
 #else
 
 #include <sys/mman.h>
+#include <stdio.h>
 #include <dlfcn.h>
 
 #define MLOCK(a,b)   ::mlock((char *)(a),(b))
