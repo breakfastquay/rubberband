@@ -12,32 +12,52 @@
     COPYING included with this distribution for more information.
 */
 
-#ifndef _PERCUSSIVE_AUDIO_CURVE_H_
-#define _PERCUSSIVE_AUDIO_CURVE_H_
+#ifndef _COMPOUND_AUDIO_CURVE_H_
+#define _COMPOUND_AUDIO_CURVE_H_
 
 #include "AudioCurveCalculator.h"
+#include "PercussiveAudioCurve.h"
+#include "HighFrequencyAudioCurve.h"
+#include "SampleFilter.h"
 
 namespace RubberBand
 {
 
-class PercussiveAudioCurve : public AudioCurveCalculator
+class CompoundAudioCurve : public AudioCurveCalculator
 {
 public:
-    PercussiveAudioCurve(Parameters parameters);
+    CompoundAudioCurve(Parameters parameters);
 
-    virtual ~PercussiveAudioCurve();
+    virtual ~CompoundAudioCurve();
 
+    enum Type {
+        PercussiveDetector,
+        CompoundDetector,
+        SoftDetector
+    };
+    virtual void setType(Type);
+    
     virtual void setWindowSize(int newSize);
 
     virtual float processFloat(const float *R__ mag, int increment);
     virtual double processDouble(const double *R__ mag, int increment);
 
-
     virtual void reset();
-    virtual const char *getUnit() const { return "bin/total"; }
 
 protected:
-    double *R__ m_prevMag;
+    PercussiveAudioCurve m_percussive;
+    HighFrequencyAudioCurve m_hf;
+
+    SampleFilter<double> *m_hfFilter;
+    SampleFilter<double> *m_hfDerivFilter;
+
+    Type m_type;
+
+    double m_lastHf;
+    double m_lastResult;
+    int m_risingCount;
+
+    double processFiltering(double percussive, double hf);
 };
 
 }

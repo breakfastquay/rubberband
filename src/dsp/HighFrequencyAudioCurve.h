@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -23,15 +23,14 @@ namespace RubberBand
 class HighFrequencyAudioCurve : public AudioCurveCalculator
 {
 public:
-    HighFrequencyAudioCurve(size_t sampleRate, size_t windowSize);
+    HighFrequencyAudioCurve(Parameters parameters);
 
     virtual ~HighFrequencyAudioCurve();
 
-    virtual void setWindowSize(size_t newSize);
-
-    virtual float processFloat(const float *R__ mag, size_t increment);
-    virtual double processDouble(const double *R__ mag, size_t increment);
+    virtual float processFloat(const float *R__ mag, int increment);
+    virtual double processDouble(const double *R__ mag, int increment);
     virtual void reset();
+    virtual const char *getUnit() const { return "Vbin"; }
 };
 
 }

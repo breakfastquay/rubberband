@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -39,6 +39,12 @@ public:
                          int incount,
                          float ratio,
                          bool final) = 0;
+    
+    virtual int resampleInterleaved(const float *const R__ in, 
+                                    float *const R__ out,
+                                    int incount,
+                                    float ratio,
+                                    bool final) = 0;
 
     virtual int getChannelCount() const = 0;
 
@@ -61,6 +67,12 @@ public:
                  int incount,
                  float ratio,
                  bool final);
+
+    int resampleInterleaved(const float *const R__ in,
+                            float *const R__ out,
+                            int incount,
+                            float ratio,
+                            bool final = false);
 
     int getChannelCount() const { return m_channels; }
 
@@ -145,11 +157,7 @@ D_SRC::resample(const float *const R__ *const R__ in,
             m_iout = reallocate<float>(m_iout, m_ioutsize, outcount * m_channels);
             m_ioutsize = outcount * m_channels;
         }
-        for (int i = 0; i < incount; ++i) {
-            for (int c = 0; c < m_channels; ++c) {
-                m_iin[i * m_channels + c] = in[c][i];
-            }
-        }
+        v_interleave(m_iin, in, m_channels, incount);
         data.data_in = m_iin;
         data.data_out = m_iout;
     }
@@ -168,11 +176,39 @@ D_SRC::resample(const float *const R__ *const R__ in,
     }
 
     if (m_channels > 1) {
-        for (int i = 0; i < data.output_frames_gen; ++i) {
-            for (int c = 0; c < m_channels; ++c) {
-                out[c][i] = m_iout[i * m_channels + c];
-            }
-        }
+        v_deinterleave(out, m_iout, m_channels, data.output_frames_gen);
+    }
+
+    m_lastRatio = ratio;
+
+    return data.output_frames_gen;
+}
+
+int
+D_SRC::resampleInterleaved(const float *const R__ in,
+                           float *const R__ out,
+                           int incount,
+                           float ratio,
+                           bool final)
+{
+    SRC_DATA data;
+
+    int outcount = lrintf(ceilf(incount * ratio));
+
+    data.data_in = const_cast<float *>(in);
+    data.data_out = out;
+
+    data.input_frames = incount;
+    data.output_frames = outcount;
+    data.src_ratio = ratio;
+    data.end_of_input = (final ? 1 : 0);
+
+    int err = src_process(m_src, &data);
+
+    if (err) {
+        std::cerr << "Resampler::process: libsamplerate error: "
+                  << src_strerror(err) << std::endl;
+        throw Resampler::ImplementationError; //!!! of course, need to catch this!
     }
 
     m_lastRatio = ratio;
@@ -250,6 +286,15 @@ Resampler::resample(const float *const R__ *const R__ in,
 {
     Profiler profiler("Resampler::resample");
     return d->resample(in, out, incount, ratio, final);
+}
+
+int 
+Resampler::resampleInterleaved(const float *const R__ in,
+                               float *const R__ out,
+                               int incount, float ratio, bool final)
+{
+    Profiler profiler("Resampler::resample");
+    return d->resampleInterleaved(in, out, incount, ratio, final);
 }
 
 int

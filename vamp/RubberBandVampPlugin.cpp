@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -300,7 +300,7 @@ RubberBandVampPlugin::getParameterDescriptors() const
     d.isQuantized = true;
     d.quantizeStep = 1;
     d.valueNames.clear();
-    d.valueNames.push_back("Peak Locked");
+    d.valueNames.push_back("Laminar");
     d.valueNames.push_back("Independent");
     list.push_back(d);
 
@@ -405,8 +405,6 @@ RubberBandVampPlugin::initialise(size_t channels, size_t stepSize, size_t blockS
 void
 RubberBandVampPlugin::reset()
 {
-//    delete m_stretcher;  //!!! or just if (m_stretcher) m_stretcher->reset();
-//    m_stretcher = new RubberBand::RubberBandStretcher(lrintf(m_inputSampleRate), channels);
     if (m_d->m_stretcher) m_d->m_stretcher->reset();
 }
 
@@ -455,9 +453,7 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
 
     int rate = m_sampleRate;
 
-    RubberBand::StretchCalculator sc(rate,
-                                     m_stretcher->getInputIncrement(),
-                                     true);
+    RubberBand::StretchCalculator sc(rate, m_stretcher->getInputIncrement(), true);
 
     size_t inputIncrement = m_stretcher->getInputIncrement();
     std::vector<int> outputIncrements = m_stretcher->getOutputIncrements();

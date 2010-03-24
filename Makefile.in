@@ -56,13 +56,15 @@ LIBRARY_INCLUDES := \
 	src/base/RingBuffer.h \
 	src/base/Scavenger.h \
 	src/dsp/AudioCurveCalculator.h \
+	src/dsp/CompoundAudioCurve.h \
+	src/dsp/ConstantAudioCurve.h \
+	src/dsp/HighFrequencyAudioCurve.h \
+	src/dsp/PercussiveAudioCurve.h \
+	src/dsp/SilentAudioCurve.h \
 	src/dsp/SpectralDifferenceAudioCurve.h \
 	src/dsp/Resampler.h \
-	src/dsp/HighFrequencyAudioCurve.h \
-	src/dsp/SilentAudioCurve.h \
 	src/dsp/FFT.h \
-	src/dsp/PercussiveAudioCurve.h \
-	src/dsp/ConstantAudioCurve.h \
+	src/dsp/MovingMedian.h \
 	src/dsp/Window.h \
 	src/system/Allocators.h \
 	src/system/Thread.h \
@@ -76,6 +78,7 @@ LIBRARY_SOURCES := \
 	src/StretchCalculator.cpp \
 	src/base/Profiler.cpp \
 	src/dsp/AudioCurveCalculator.cpp \
+	src/dsp/CompoundAudioCurve.cpp \
 	src/dsp/SpectralDifferenceAudioCurve.cpp \
 	src/dsp/HighFrequencyAudioCurve.cpp \
 	src/dsp/SilentAudioCurve.cpp \

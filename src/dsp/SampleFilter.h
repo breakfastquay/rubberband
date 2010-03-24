@@ -12,15 +12,39 @@
     COPYING included with this distribution for more information.
 */
 
-#include "Allocators.h"
+#ifndef _SAMPLE_FILTER_H_
+#define _SAMPLE_FILTER_H_
 
+#include <cassert>
 
-#include <iostream>
-using std::cerr;
-using std::endl;
+namespace RubberBand
+{
 
-namespace RubberBand {
+template <typename T>
+class SampleFilter
+{
+public:
+    SampleFilter(int size) : m_size(size) {
+	assert(m_size > 0);
+    }
 
+    virtual ~SampleFilter() { }
+
+    int getSize() const { return m_size; }
+
+    virtual void push(T) = 0;
+    virtual T get() const = 0;
+    virtual void reset() = 0;
+
+protected:
+    const int m_size;
+
+private:
+    SampleFilter(const SampleFilter &);
+    SampleFilter &operator=(const SampleFilter &);
+};
 
 }
+
+#endif
 

@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -20,12 +20,13 @@
 namespace RubberBand
 {
 
-SpectralDifferenceAudioCurve::SpectralDifferenceAudioCurve(size_t sampleRate, size_t windowSize) :
-    AudioCurveCalculator(sampleRate, windowSize)
+
+SpectralDifferenceAudioCurve::SpectralDifferenceAudioCurve(Parameters parameters) :
+    AudioCurveCalculator(parameters)
 {
-    m_mag = allocate<double>(m_windowSize/2 + 1);
-    m_tmpbuf = allocate<double>(m_windowSize/2 + 1);
-    v_zero(m_mag, m_windowSize/2 + 1);
+    m_mag = allocate<double>(m_lastPerceivedBin + 1);
+    m_tmpbuf = allocate<double>(m_lastPerceivedBin + 1);
+    v_zero(m_mag, m_lastPerceivedBin + 1);
 }
 
 SpectralDifferenceAudioCurve::~SpectralDifferenceAudioCurve()
@@ -37,26 +38,26 @@ SpectralDifferenceAudioCurve::~SpectralDifferenceAudioCurve()
 void
 SpectralDifferenceAudioCurve::reset()
 {
-    v_zero(m_mag, m_windowSize/2 + 1);
+    v_zero(m_mag, m_lastPerceivedBin + 1);
 }
 
 void
-SpectralDifferenceAudioCurve::setWindowSize(size_t newSize)
+SpectralDifferenceAudioCurve::setWindowSize(int newSize)
 {
     deallocate(m_tmpbuf);
     deallocate(m_mag);
-    m_windowSize = newSize;
-    m_mag = allocate<double>(m_windowSize/2 + 1);
-    m_tmpbuf = allocate<double>(m_windowSize/2 + 1);
+    AudioCurveCalculator::setWindowSize(newSize);
+    m_mag = allocate<double>(m_lastPerceivedBin + 1);
+    m_tmpbuf = allocate<double>(m_lastPerceivedBin + 1);
     reset();
 }
 
 float
-SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, size_t increment)
+SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, int increment)
 {
     double result = 0.0;
 
-    const int hs1 = m_windowSize/2 + 1;
+    const int hs1 = m_lastPerceivedBin + 1;
 
     v_convert(m_tmpbuf, mag, hs1);
     v_square(m_tmpbuf, hs1);
@@ -73,11 +74,11 @@ SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, size_t incremen
 }
 
 double
-SpectralDifferenceAudioCurve::processDouble(const double *R__ mag, size_t increment)
+SpectralDifferenceAudioCurve::processDouble(const double *R__ mag, int increment)
 {
     double result = 0.0;
 
-    const int hs1 = m_windowSize/2 + 1;
+    const int hs1 = m_lastPerceivedBin + 1;
 
     v_convert(m_tmpbuf, mag, hs1);
     v_square(m_tmpbuf, hs1);

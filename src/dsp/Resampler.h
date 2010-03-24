@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -37,11 +37,28 @@ public:
               int debugLevel = 0);
     ~Resampler();
 
+    /**
+     * Resample the given multi-channel buffers, where incount is the
+     * number of frames in the input buffers.  Returns the number of
+     * frames written to the output buffers.
+     */
     int resample(const float *const R__ *const R__ in,
                  float *const R__ *const R__ out,
                  int incount,
                  float ratio,
                  bool final = false);
+
+    /**
+     * Resample the given interleaved buffer, where incount is the
+     * number of frames in the input buffer (i.e. it has incount *
+     * getChannelCount() samples).  Returns the number of frames
+     * written to the output buffer.
+     */
+    int resampleInterleaved(const float *const R__ in,
+                            float *const R__ out,
+                            int incount,
+                            float ratio,
+                            bool final = false);
 
     int getChannelCount() const;
 

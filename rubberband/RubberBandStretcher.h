@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -15,11 +15,12 @@
 #ifndef _RUBBERBANDSTRETCHER_H_
 #define _RUBBERBANDSTRETCHER_H_
     
-#define RUBBERBAND_VERSION "1.4.0-gpl"
+#define RUBBERBAND_VERSION "1.5.0-gpl"
 #define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 1
+#define RUBBERBAND_API_MINOR_VERSION 3
 
 #include <vector>
+#include <map>
 
 /**
  * @mainpage RubberBand
@@ -123,7 +124,25 @@ public:
      *   but may be less clear than with either of the other
      *   transients flags.
      *
-     * 4. Flags prefixed \c OptionPhase control the adjustment of
+     * 4. Flags prefixed \c OptionDetector control the type of
+     * transient detector used.  These options may be changed
+     * after construction when running in real-time mode, but not when
+     * running in offline mode.
+     *
+     *   \li \c OptionDetectorCompound - Use a general-purpose
+     *   transient detector which is likely to be good for most
+     *   situations.
+     *
+     *   \li \c OptionDetectorPercussive - Detect percussive
+     *   transients.  Note that this was the default and only option
+     *   in Rubber Band versions prior to 1.5.
+     *
+     *   \li \c OptionDetectorSoft - Use an onset detector with less
+     *   of a bias toward percussive transients.  This may give better
+     *   results with certain material (e.g. relatively monophonic
+     *   piano music).
+     *
+     * 5. Flags prefixed \c OptionPhase control the adjustment of
      * component frequency phases from one analysis window to the next
      * during non-transient segments.  These options may be changed at
      * any time.
@@ -138,7 +157,7 @@ public:
      *   frequency bin independently from its neighbours.  This
      *   usually results in a slightly softer, phasier sound.
      *
-     * 5. Flags prefixed \c OptionThreading control the threading
+     * 6. Flags prefixed \c OptionThreading control the threading
      * model of the stretcher.  These options may not be changed after
      * construction.
      *
@@ -154,7 +173,7 @@ public:
      *   situation where \c OptionThreadingAuto would do so, except omit
      *   the check for multiple CPUs and instead assume it to be true.
      *
-     * 6. Flags prefixed \c OptionWindow control the window size for
+     * 7. Flags prefixed \c OptionWindow control the window size for
      * FFT processing.  The window size actually used will depend on
      * many factors, but it can be influenced.  These options may not
      * be changed after construction.
@@ -172,7 +191,7 @@ public:
      *   likely to result in a smoother sound at the expense of
      *   clarity and timing.
      *
-     * 7. Flags prefixed \c OptionFormant control the handling of
+     * 8. Flags prefixed \c OptionFormant control the handling of
      * formant shape (spectral envelope) when pitch-shifting.  These
      * options may be changed at any time.
      *
@@ -185,7 +204,7 @@ public:
      *   note frequency without so substantially affecting the
      *   perceived pitch profile of the voice or instrument.
      *
-     * 8. Flags prefixed \c OptionPitch control the method used for
+     * 9. Flags prefixed \c OptionPitch control the method used for
      * pitch shifting.  These options may be changed at any time.
      * They are only effective in realtime mode; in offline mode, the
      * pitch-shift method is fixed.
@@ -218,6 +237,10 @@ public:
         OptionTransientsCrisp      = 0x00000000,
         OptionTransientsMixed      = 0x00000100,
         OptionTransientsSmooth     = 0x00000200,
+
+        OptionDetectorCompound     = 0x00000000,
+        OptionDetectorPercussive   = 0x00000400,
+        OptionDetectorSoft         = 0x00000800,
 
         OptionPhaseLaminar         = 0x00000000,
         OptionPhaseIndependent     = 0x00002000,
@@ -349,6 +372,14 @@ public:
     void setTransientsOption(Options options);
 
     /**
+     * Change an OptionDetector configuration setting.  This may be
+     * called at any time in RealTime mode.  It may not be called in
+     * Offline mode (for which the detector option is fixed on
+     * construction).
+     */
+    void setDetectorOption(Options options);
+
+    /**
      * Change an OptionPhase configuration setting.  This may be
      * called at any time in any mode.
      *
@@ -416,6 +447,32 @@ public:
      */
     void setMaxProcessSize(size_t samples);
 
+    /**
+     * Provide a set of mappings from "before" to "after" sample
+     * numbers so as to enforce a particular stretch profile.  The
+     * argument is a map from audio sample frame number in the source
+     * material, to the corresponding sample frame number in the
+     * stretched output.  The mapping should be for key frames only,
+     * with a "reasonable" gap between mapped samples.
+     *
+     * This function cannot be used in RealTime mode.
+     *
+     * This function may not be called after the first call to
+     * process().  It should be called after the time and pitch ratios
+     * have been set; the results of changing the time and pitch
+     * ratios after calling this function are undefined.  Calling
+     * reset() will clear this mapping.
+     *
+     * The key frame map only affects points within the material; it
+     * does not determine the overall stretch ratio (that is, the
+     * ratio between the output material's duration and the source
+     * material's duration).  You need to provide this ratio
+     * separately to setTimeRatio(), otherwise the results may be
+     * truncated or extended in unexpected ways regardless of the
+     * extent of the frame numbers found in the key frame map.
+     */
+    void setKeyFrameMap(const std::map<size_t, size_t> &);
+    
     /**
      * Provide a block of "samples" sample frames for the stretcher to
      * study and calculate a stretch profile from.

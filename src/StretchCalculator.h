@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -18,6 +18,7 @@
 #include <sys/types.h>
 
 #include <vector>
+#include <map>
 
 namespace RubberBand
 {
@@ -29,15 +30,24 @@ public:
     virtual ~StretchCalculator();
 
     /**
+     * Provide a set of mappings from "before" to "after" sample
+     * numbers so as to enforce a particular stretch profile.  This
+     * must be called before calculate().  The argument is a map from
+     * audio sample frame number in the source material to the
+     * corresponding sample frame number in the stretched output.
+     */
+    void setKeyFrameMap(const std::map<size_t, size_t> &mapping);
+    
+    /**
      * Calculate phase increments for a region of audio, given the
      * overall target stretch ratio, input duration in audio samples,
      * and the audio curves to use for identifying phase lock points
      * (lockAudioCurve) and for allocating stretches to relatively
      * less prominent points (stretchAudioCurve).
      */
-    virtual std::vector<int> calculate(double ratio, size_t inputDuration,
-                                       const std::vector<float> &lockAudioCurve,
-                                       const std::vector<float> &stretchAudioCurve);
+    std::vector<int> calculate(double ratio, size_t inputDuration,
+                               const std::vector<float> &lockAudioCurve,
+                               const std::vector<float> &stretchAudioCurve);
 
     /**
      * Calculate the phase increment for a single audio block, given
@@ -49,8 +59,8 @@ public:
      * If increment is non-zero, use it for the input increment for
      * this block in preference to m_increment.
      */
-    virtual int calculateSingle(double ratio, float curveValue,
-                                size_t increment = 0);
+    int calculateSingle(double ratio, float curveValue,
+                        size_t increment = 0);
 
     void setUseHardPeaks(bool use) { m_useHardPeaks = use; }
 
@@ -62,12 +72,15 @@ public:
         size_t chunk;
         bool hard;
     };
-    std::vector<Peak> getLastCalculatedPeaks() const { return m_lastPeaks; }
+    std::vector<Peak> getLastCalculatedPeaks() const { return m_peaks; }
 
     std::vector<float> smoothDF(const std::vector<float> &df);
 
 protected:
     std::vector<Peak> findPeaks(const std::vector<float> &audioCurve);
+
+    void mapPeaks(std::vector<Peak> &peaks, std::vector<size_t> &targets,
+                  size_t outputDuration, size_t totalCount);
 
     std::vector<int> distributeRegion(const std::vector<float> &regionCurve,
                                       size_t outputDuration, float ratio,
@@ -89,8 +102,9 @@ protected:
     int m_transientAmnesty; // only in RT mode; handled differently offline
     int m_debugLevel;
     bool m_useHardPeaks;
-    
-    std::vector<Peak> m_lastPeaks;
+
+    std::map<size_t, size_t> m_keyFrameMap;
+    std::vector<Peak> m_peaks;
 };
 
 }

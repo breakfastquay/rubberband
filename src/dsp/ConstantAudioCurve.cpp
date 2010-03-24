@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -17,8 +17,9 @@
 namespace RubberBand
 {
 
-ConstantAudioCurve::ConstantAudioCurve(size_t sampleRate, size_t windowSize) :
-    AudioCurveCalculator(sampleRate, windowSize)
+
+ConstantAudioCurve::ConstantAudioCurve(Parameters parameters) :
+    AudioCurveCalculator(parameters)
 {
 }
 
@@ -31,20 +32,14 @@ ConstantAudioCurve::reset()
 {
 }
 
-void
-ConstantAudioCurve::setWindowSize(size_t newSize)
-{
-    m_windowSize = newSize;
-}
-
 float
-ConstantAudioCurve::processFloat(const float *R__, size_t)
+ConstantAudioCurve::processFloat(const float *R__, int)
 {
     return 1.f;
 }
 
 double
-ConstantAudioCurve::processDouble(const double *R__, size_t)
+ConstantAudioCurve::processDouble(const double *R__, int)
 {
     return 1.0;
 }

@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -14,17 +14,49 @@
 
 #include "AudioCurveCalculator.h"
 
+#include <iostream>
+
 namespace RubberBand
 {
 
-AudioCurveCalculator::AudioCurveCalculator(size_t sampleRate, size_t windowSize) :
-    m_sampleRate(sampleRate),
-    m_windowSize(windowSize)
+static const int MaxPerceivedFreq = 16000;
+
+AudioCurveCalculator::AudioCurveCalculator(Parameters parameters) :
+    m_sampleRate(parameters.sampleRate),
+    m_windowSize(parameters.windowSize)
 {
+    recalculateLastPerceivedBin();
 }
 
 AudioCurveCalculator::~AudioCurveCalculator()
 {
+}
+
+void
+AudioCurveCalculator::setSampleRate(int newRate)
+{
+    m_sampleRate = newRate;
+    recalculateLastPerceivedBin();
+}
+
+void
+AudioCurveCalculator::setWindowSize(int newSize)
+{
+    m_windowSize = newSize;
+    recalculateLastPerceivedBin();
+}
+
+void
+AudioCurveCalculator::recalculateLastPerceivedBin()
+{
+    if (m_sampleRate == 0) {
+        m_lastPerceivedBin = 0;
+        return;
+    }
+    m_lastPerceivedBin = ((MaxPerceivedFreq * m_windowSize) / m_sampleRate);
+    if (m_lastPerceivedBin > m_windowSize/2) {
+        m_lastPerceivedBin = m_windowSize/2;
+    }
 }
 
 

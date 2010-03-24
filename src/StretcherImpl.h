@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -19,6 +19,7 @@
 
 #include "dsp/Window.h"
 #include "dsp/FFT.h"
+#include "dsp/CompoundAudioCurve.h"
 
 #include "base/RingBuffer.h"
 #include "system/Thread.h"
@@ -28,11 +29,10 @@
 
 using namespace RubberBand;
 
-namespace RubberBand { class AudioCurveCalculator; }
-
 namespace RubberBand
 {
 
+class AudioCurveCalculator;
 class StretchCalculator;
 
 class RubberBandStretcher::Impl
@@ -52,12 +52,14 @@ public:
     size_t getLatency() const;
 
     void setTransientsOption(Options);
+    void setDetectorOption(Options);
     void setPhaseOption(Options);
     void setFormantOption(Options);
     void setPitchOption(Options);
 
     void setExpectedInputDuration(size_t samples);
     void setMaxProcessSize(size_t samples);
+    void setKeyFrameMap(const std::map<size_t, size_t> &);
 
     size_t getSamplesRequired() const;
 
@@ -168,6 +170,7 @@ protected:
     
 
     size_t m_inputDuration;
+    CompoundAudioCurve::Type m_detectorType;
     std::vector<float> m_phaseResetDf;
     std::vector<float> m_stretchDf;
     std::vector<bool> m_silence;
@@ -180,8 +183,9 @@ protected:
 
     mutable RingBuffer<int> m_lastProcessOutputIncrements;
     mutable RingBuffer<float> m_lastProcessPhaseResetDf;
+    Scavenger<RingBuffer<float> > m_emergencyScavenger;
 
-    AudioCurveCalculator *m_phaseResetAudioCurve;
+    CompoundAudioCurve *m_phaseResetAudioCurve;
     AudioCurveCalculator *m_stretchAudioCurve;
     AudioCurveCalculator *m_silentAudioCurve;
     StretchCalculator *m_stretchCalculator;

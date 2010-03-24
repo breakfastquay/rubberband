@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -18,12 +18,13 @@
 #include "system/VectorOps.h"
 
 #include <cmath>
-
+#include <iostream>
 namespace RubberBand
 {
 
-PercussiveAudioCurve::PercussiveAudioCurve(size_t sampleRate, size_t windowSize) :
-    AudioCurveCalculator(sampleRate, windowSize)
+
+PercussiveAudioCurve::PercussiveAudioCurve(Parameters parameters) :
+    AudioCurveCalculator(parameters)
 {
     m_prevMag = allocate_and_zero<double>(m_windowSize/2 + 1);
 }
@@ -40,26 +41,29 @@ PercussiveAudioCurve::reset()
 }
 
 void
-PercussiveAudioCurve::setWindowSize(size_t newSize)
+PercussiveAudioCurve::setWindowSize(int newSize)
 {
     m_prevMag = reallocate(m_prevMag, m_windowSize, newSize);
-    m_windowSize = newSize;
+    AudioCurveCalculator::setWindowSize(newSize);
     reset();
 }
 
 float
-PercussiveAudioCurve::processFloat(const float *R__ mag, size_t increment)
+PercussiveAudioCurve::processFloat(const float *R__ mag, int increment)
 {
     static float threshold = powf(10.f, 0.15f); // 3dB rise in square of magnitude
     static float zeroThresh = powf(10.f, -8);
 
-    size_t count = 0;
-    size_t nonZeroCount = 0;
+    int count = 0;
+    int nonZeroCount = 0;
 
-    const int sz = m_windowSize / 2;
+    const int sz = m_lastPerceivedBin;
 
     for (int n = 1; n <= sz; ++n) {
-        bool above = ((mag[n] / m_prevMag[n]) >= threshold);
+        float v = 0.f;
+        if (m_prevMag[n] > zeroThresh) v = mag[n] / m_prevMag[n];
+        else if (mag[n] > zeroThresh) v = threshold;
+        bool above = (v >= threshold);
         if (above) ++count;
         if (mag[n] > zeroThresh) ++nonZeroCount;
     }
@@ -71,18 +75,21 @@ PercussiveAudioCurve::processFloat(const float *R__ mag, size_t increment)
 }
 
 double
-PercussiveAudioCurve::processDouble(const double *R__ mag, size_t increment)
+PercussiveAudioCurve::processDouble(const double *R__ mag, int increment)
 {
     static double threshold = powf(10., 0.15); // 3dB rise in square of magnitude
     static double zeroThresh = powf(10., -8);
 
-    size_t count = 0;
-    size_t nonZeroCount = 0;
+    int count = 0;
+    int nonZeroCount = 0;
 
-    const int sz = m_windowSize / 2;
+    const int sz = m_lastPerceivedBin;
 
     for (int n = 1; n <= sz; ++n) {
-        bool above = ((mag[n] / m_prevMag[n]) >= threshold);
+        double v = 0.0;
+        if (m_prevMag[n] > zeroThresh) v = mag[n] / m_prevMag[n];
+        else if (mag[n] > zeroThresh) v = threshold;
+        bool above = (v >= threshold);
         if (above) ++count;
         if (mag[n] > zeroThresh) ++nonZeroCount;
     }

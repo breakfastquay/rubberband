@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -75,6 +75,12 @@ RubberBandStretcher::setTransientsOption(Options options)
 }
 
 void
+RubberBandStretcher::setDetectorOption(Options options) 
+{
+    m_d->setDetectorOption(options);
+}
+
+void
 RubberBandStretcher::setPhaseOption(Options options) 
 {
     m_d->setPhaseOption(options);
@@ -102,6 +108,12 @@ void
 RubberBandStretcher::setMaxProcessSize(size_t samples)
 {
     m_d->setMaxProcessSize(samples);
+}
+
+void
+RubberBandStretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
+{
+    m_d->setKeyFrameMap(mapping);
 }
 
 size_t

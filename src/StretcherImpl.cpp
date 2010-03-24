@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -19,6 +19,7 @@
 #include "dsp/SpectralDifferenceAudioCurve.h"
 #include "dsp/SilentAudioCurve.h"
 #include "dsp/ConstantAudioCurve.h"
+#include "dsp/CompoundAudioCurve.h"
 #include "dsp/Resampler.h"
 
 #include "StretchCalculator.h"
@@ -81,9 +82,11 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_studyFFT(0),
     m_spaceAvailable("space"),
     m_inputDuration(0),
+    m_detectorType(CompoundAudioCurve::CompoundDetector),
     m_silentHistory(0),
     m_lastProcessOutputIncrements(16),
     m_lastProcessPhaseResetDf(16),
+    m_emergencyScavenger(10, 4),
     m_phaseResetAudioCurve(0),
     m_stretchAudioCurve(0),
     m_silentAudioCurve(0),
@@ -105,7 +108,7 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     // Window size will vary according to the audio sample rate, but
     // we don't let it drop below the 48k default
     m_rateMultiple = float(m_sampleRate) / 48000.f;
-    if (m_rateMultiple < 1.f) m_rateMultiple = 1.f;
+//    if (m_rateMultiple < 1.f) m_rateMultiple = 1.f;
     m_baseWindowSize = roundUp(int(m_defaultWindowSize * m_rateMultiple));
 
     if ((options & OptionWindowShort) || (options & OptionWindowLong)) {
@@ -205,6 +208,12 @@ RubberBandStretcher::Impl::reset()
         m_threadSet.clear();
     }
 
+    m_emergencyScavenger.scavenge();
+
+    if (m_stretchCalculator) {
+        m_stretchCalculator->setKeyFrameMap(std::map<size_t, size_t>());
+    }
+
     for (size_t c = 0; c < m_channels; ++c) {
         m_channelData[c]->reset();
     }
@@ -297,6 +306,24 @@ RubberBandStretcher::Impl::setMaxProcessSize(size_t samples)
     m_maxProcessSize = samples;
 
     reconfigure();
+}
+
+void
+RubberBandStretcher::Impl::setKeyFrameMap(const std::map<size_t, size_t> &
+                                          mapping)
+{
+    if (m_realtime) {
+        cerr << "RubberBandStretcher::Impl::setKeyFrameMap: Cannot specify key frame map in RT mode" << endl;
+        return;
+    }
+    if (m_mode == Processing) {
+        cerr << "RubberBandStretcher::Impl::setKeyFrameMap: Cannot specify key frame map after process() has begun" << endl;
+        return;
+    }
+
+    if (m_stretchCalculator) {
+        m_stretchCalculator->setKeyFrameMap(mapping);
+    }
 }
 
 float
@@ -399,7 +426,7 @@ RubberBandStretcher::Impl::calculateSizes()
             float windowIncrRatio = 4.5;
             if (r == 1.0) windowIncrRatio = 4;
             else if (rsb) windowIncrRatio = 4.5;
-            else windowIncrRatio = 6;
+            else windowIncrRatio = 8;
 
             outputIncrement = int(windowSize / windowIncrRatio);
             inputIncrement = int(outputIncrement / r);
@@ -598,21 +625,22 @@ RubberBandStretcher::Impl::configure()
     // modes
 
     delete m_phaseResetAudioCurve;
-    m_phaseResetAudioCurve = new PercussiveAudioCurve
-        (m_sampleRate, m_windowSize);
+    m_phaseResetAudioCurve = new CompoundAudioCurve
+        (CompoundAudioCurve::Parameters(m_sampleRate, m_windowSize));
+    m_phaseResetAudioCurve->setType(m_detectorType);
 
     delete m_silentAudioCurve;
     m_silentAudioCurve = new SilentAudioCurve
-        (m_sampleRate, m_windowSize);
+        (SilentAudioCurve::Parameters(m_sampleRate, m_windowSize));
 
     if (!m_realtime) {
         delete m_stretchAudioCurve;
         if (!(m_options & OptionStretchPrecise)) {
             m_stretchAudioCurve = new SpectralDifferenceAudioCurve
-                (m_sampleRate, m_windowSize);
+                (SpectralDifferenceAudioCurve::Parameters(m_sampleRate, m_windowSize));
         } else {
             m_stretchAudioCurve = new ConstantAudioCurve
-                (m_sampleRate, m_windowSize);
+                (ConstantAudioCurve::Parameters(m_sampleRate, m_windowSize));
         }
     }
 
@@ -733,6 +761,30 @@ RubberBandStretcher::Impl::setTransientsOption(Options options)
 
     m_stretchCalculator->setUseHardPeaks
         (!(m_options & OptionTransientsSmooth));
+}
+
+void
+RubberBandStretcher::Impl::setDetectorOption(Options options)
+{
+    if (!m_realtime) {
+        cerr << "RubberBandStretcher::Impl::setDetectorOption: Not permissible in non-realtime mode" << endl;
+        return;
+    }
+    int mask = (OptionDetectorPercussive | OptionDetectorCompound | OptionDetectorSoft);
+    m_options &= ~mask;
+    options &= mask;
+    m_options |= options;
+
+    CompoundAudioCurve::Type dt = CompoundAudioCurve::CompoundDetector;
+    if (m_options & OptionDetectorPercussive) dt = CompoundAudioCurve::PercussiveDetector;
+    else if (m_options & OptionDetectorSoft) dt = CompoundAudioCurve::SoftDetector;
+    
+    if (dt == m_detectorType) return;
+    m_detectorType = dt;
+
+    if (m_phaseResetAudioCurve) {
+        m_phaseResetAudioCurve->setType(m_detectorType);
+    }
 }
 
 void
@@ -954,6 +1006,17 @@ RubberBandStretcher::Impl::calculateStretch()
             inputDuration = m_expectedInputDuration;
         }
     }
+
+    double prdm = 0, sdm = 0;
+    if (!m_phaseResetDf.empty()) {
+        for (int i = 0; i < m_phaseResetDf.size(); ++i) prdm += m_phaseResetDf[i];
+        prdm /= m_phaseResetDf.size();
+    }
+    if (!m_stretchDf.empty()) {
+        for (int i = 0; i < m_stretchDf.size(); ++i) sdm += m_stretchDf[i];
+        sdm /= m_stretchDf.size();
+    }
+//    std::cerr << "phase reset df mean = " << prdm << ", stretch df mean = " << sdm << std::endl;
 
     std::vector<int> increments = m_stretchCalculator->calculate
         (getEffectiveRatio(),

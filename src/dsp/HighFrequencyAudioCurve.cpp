@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -17,8 +17,9 @@
 namespace RubberBand
 {
 
-HighFrequencyAudioCurve::HighFrequencyAudioCurve(size_t sampleRate, size_t windowSize) :
-    AudioCurveCalculator(sampleRate, windowSize)
+
+HighFrequencyAudioCurve::HighFrequencyAudioCurve(Parameters parameters) :
+    AudioCurveCalculator(parameters)
 {
 }
 
@@ -31,18 +32,12 @@ HighFrequencyAudioCurve::reset()
 {
 }
 
-void
-HighFrequencyAudioCurve::setWindowSize(size_t newSize)
-{
-    m_windowSize = newSize;
-}
-
 float
-HighFrequencyAudioCurve::processFloat(const float *R__ mag, size_t increment)
+HighFrequencyAudioCurve::processFloat(const float *R__ mag, int increment)
 {
     float result = 0.0;
 
-    const int sz = m_windowSize / 2;
+    const int sz = m_lastPerceivedBin;
 
     for (int n = 0; n <= sz; ++n) {
         result = result + mag[n] * n;
@@ -52,11 +47,11 @@ HighFrequencyAudioCurve::processFloat(const float *R__ mag, size_t increment)
 }
 
 double
-HighFrequencyAudioCurve::processDouble(const double *R__ mag, size_t increment)
+HighFrequencyAudioCurve::processDouble(const double *R__ mag, int increment)
 {
     float result = 0.0;
 
-    const int sz = m_windowSize / 2;
+    const int sz = m_lastPerceivedBin;
 
     for (int n = 0; n <= sz; ++n) {
         result = result + mag[n] * n;

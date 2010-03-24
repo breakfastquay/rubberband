@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -80,8 +80,8 @@ inline float princargf(float a) { return modf(a + (float)M_PI, -2.f * (float)M_P
 #else
 
 #include <sys/mman.h>
-#include <stdio.h>
 #include <dlfcn.h>
+#include <stdio.h>
 
 #define MLOCK(a,b)   ::mlock((char *)(a),(b))
 #define MUNLOCK(a,b) (::munlock((char *)(a),(b)) ? (::perror("munlock failed"), 0) : 0)

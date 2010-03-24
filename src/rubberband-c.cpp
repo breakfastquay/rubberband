@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -74,6 +74,11 @@ void rubberband_set_transients_option(RubberBandState state, RubberBandOptions o
     state->m_s->setTransientsOption(options);
 }
 
+void rubberband_set_detector_option(RubberBandState state, RubberBandOptions options)
+{
+    state->m_s->setDetectorOption(options);
+}
+
 void rubberband_set_phase_option(RubberBandState state, RubberBandOptions options)
 {
     state->m_s->setPhaseOption(options);
@@ -102,6 +107,15 @@ unsigned int rubberband_get_samples_required(const RubberBandState state)
 void rubberband_set_max_process_size(RubberBandState state, unsigned int samples)
 {
     state->m_s->setMaxProcessSize(samples);
+}
+
+void rubberband_set_key_frame_map(RubberBandState state, unsigned int keyframecount, unsigned int *from, unsigned int *to)
+{
+    std::map<size_t, size_t> kfm;
+    for (unsigned int i = 0; i < keyframecount; ++i) {
+        kfm[from[i]] = to[i];
+    }
+    state->m_s->setKeyFrameMap(kfm);
 }
 
 void rubberband_study(RubberBandState state, const float *const *input, unsigned int samples, int final)

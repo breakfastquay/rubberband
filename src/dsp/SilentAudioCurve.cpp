@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -19,8 +19,9 @@
 namespace RubberBand
 {
 
-SilentAudioCurve::SilentAudioCurve(size_t sampleRate, size_t windowSize) :
-    AudioCurveCalculator(sampleRate, windowSize)
+
+SilentAudioCurve::SilentAudioCurve(Parameters parameters) :
+    AudioCurveCalculator(parameters)
 {
 }
 
@@ -33,16 +34,10 @@ SilentAudioCurve::reset()
 {
 }
 
-void
-SilentAudioCurve::setWindowSize(size_t newSize)
-{
-    m_windowSize = newSize;
-}
-
 float
-SilentAudioCurve::processFloat(const float *R__ mag, size_t)
+SilentAudioCurve::processFloat(const float *R__ mag, int)
 {
-    const int hs = m_windowSize / 2;
+    const int hs = m_lastPerceivedBin;
     static float threshold = powf(10.f, -6);
 
     for (int i = 0; i <= hs; ++i) {
@@ -53,9 +48,9 @@ SilentAudioCurve::processFloat(const float *R__ mag, size_t)
 }
 
 double
-SilentAudioCurve::processDouble(const double *R__ mag, size_t)
+SilentAudioCurve::processDouble(const double *R__ mag, int)
 {
-    const int hs = m_windowSize / 2;
+    const int hs = m_lastPerceivedBin;
     static double threshold = pow(10.0, -6);
 
     for (int i = 0; i <= hs; ++i) {

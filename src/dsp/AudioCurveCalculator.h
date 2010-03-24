@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -26,27 +26,50 @@ namespace RubberBand
 class AudioCurveCalculator
 {
 public:
-    AudioCurveCalculator(size_t sampleRate, size_t windowSize);
+    struct Parameters {
+        Parameters(int _sampleRate, int _windowSize) :
+            sampleRate(_sampleRate),
+            windowSize(_windowSize)
+        { }
+        int sampleRate;
+        int windowSize;
+    };
+
+    AudioCurveCalculator(Parameters parameters);
     virtual ~AudioCurveCalculator();
 
-    size_t getSampleRate() const { return m_sampleRate; }
-    size_t getWindowSize() const { return m_windowSize; }
+    int getSampleRate() const { return m_sampleRate; }
+    int getWindowSize() const { return m_windowSize; }
 
-    virtual void setWindowSize(size_t newSize) = 0;
+    virtual void setSampleRate(int newRate);
+    virtual void setWindowSize(int newSize);
+
+    Parameters getParameters() const {
+        return Parameters(m_sampleRate, m_windowSize);
+    }
+    void setParameters(Parameters p) {
+        setSampleRate(p.sampleRate);
+        setWindowSize(p.windowSize);
+    }
 
     // You may not mix calls to the various process functions on a
     // given instance
 
 
-    virtual float processFloat(const float *R__ mag, size_t increment) = 0;
-    virtual double processDouble(const double *R__ mag, size_t increment) = 0;
+    virtual float processFloat(const float *R__ mag, int increment) = 0;
+    virtual double processDouble(const double *R__ mag, int increment) = 0;
 
     virtual void reset() = 0;
 
+    virtual const char *getUnit() const { return ""; }
+
 protected:
-    size_t m_sampleRate;
-    size_t m_windowSize;
+    int m_sampleRate;
+    int m_windowSize;
+    int m_lastPerceivedBin;
+    void recalculateLastPerceivedBin();
 };
+
 
 }
 

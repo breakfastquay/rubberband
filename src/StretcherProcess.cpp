@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -198,6 +198,8 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
     // buffer for channel c.  This requires that the increments have
     // already been calculated.
 
+    // This is the normal process method in offline mode.
+
     ChannelData &cd = *m_channelData[c];
 
     last = false;
@@ -216,14 +218,36 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
             size_t got = cd.inbuf->peek(cd.fltbuf, m_windowSize);
             assert(got == m_windowSize || cd.inputSize >= 0);
             cd.inbuf->skip(m_increment);
-            analyseChunk(c);
         }
 
         bool phaseReset = false;
         size_t phaseIncrement, shiftIncrement;
         getIncrements(c, phaseIncrement, shiftIncrement, phaseReset);
 
-        last = processChunkForChannel(c, phaseIncrement, shiftIncrement, phaseReset);
+        if (shiftIncrement <= m_windowSize) {
+            analyseChunk(c);
+            last = processChunkForChannel
+                (c, phaseIncrement, shiftIncrement, phaseReset);
+        } else {
+            size_t bit = m_windowSize/4;
+            if (m_debugLevel > 1) {
+                cerr << "channel " << c << " breaking down overlong increment " << shiftIncrement << " into " << bit << "-size bits" << endl;
+            }
+            analyseChunk(c);
+            float *tmp = (float *)alloca(m_windowSize * sizeof(float));
+            v_copy(tmp, cd.fltbuf, m_windowSize);
+            for (size_t i = 0; i < shiftIncrement; i += bit) {
+                v_copy(cd.fltbuf, tmp, m_windowSize);
+                size_t thisIncrement = bit;
+                if (i + thisIncrement > shiftIncrement) {
+                    thisIncrement = shiftIncrement - i;
+                }
+                last = processChunkForChannel
+                    (c, phaseIncrement + i, thisIncrement, phaseReset);
+                phaseReset = false;
+            }
+        }
+
         cd.chunkCount++;
         if (m_debugLevel > 2) {
             cerr << "channel " << c << ": last = " << last << ", chunkCount = " << cd.chunkCount << endl;
@@ -239,6 +263,8 @@ RubberBandStretcher::Impl::processOneChunk()
     // Process a single chunk for all channels, provided there is
     // enough data on each channel for at least one chunk.  This is
     // able to calculate increments as it goes along.
+
+    // This is the normal process method in RT mode.
 
     for (size_t c = 0; c < m_channels; ++c) {
         if (!testInbufReadSpace(c)) return false;
@@ -383,29 +409,31 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         }
     }
         
-    if (m_threaded) {
+    int required = shiftIncrement;
 
-        int required = shiftIncrement;
-
-        if (m_pitchScale != 1.0) {
-            required = int(required / m_pitchScale) + 1;
-        }
-        
-        if (cd.outbuf->getWriteSpace() < required) {
-            if (m_debugLevel > 0) {
-                cerr << "Buffer overrun on output for channel " << c << endl;
-            }
-
-            //!!! The only correct thing we can do here is resize the
-            // buffer.  We can't wait for the client thread to read
-            // some data out from the buffer so as to make more space,
-            // because the client thread is probably stuck in a
-            // process() call waiting for us to stow away enough input
-            // increments to allow the process() call to complete.
-
-        }
+    if (m_pitchScale != 1.0) {
+        required = int(required / m_pitchScale) + 1;
     }
-    
+
+    int ws = cd.outbuf->getWriteSpace();
+    if (ws < required) {
+        if (m_debugLevel > 0) {
+            cerr << "Buffer overrun on output for channel " << c << endl;
+        }
+
+        // The only correct thing we can do here is resize the buffer.
+        // We can't wait for the client thread to read some data out
+        // from the buffer so as to make more space, because the
+        // client thread (if we are threaded at all) is probably stuck
+        // in a process() call waiting for us to stow away enough
+        // input increments to allow the process() call to complete.
+        // This is an unhappy situation.
+
+        RingBuffer<float> *oldbuf = cd.outbuf;
+        cd.outbuf = oldbuf->resized(oldbuf->getSize() + (required - ws));
+        m_emergencyScavenger.claim(oldbuf);
+    }
+
     writeChunk(c, shiftIncrement, last);
     return last;
 }
@@ -589,12 +617,12 @@ RubberBandStretcher::Impl::getIncrements(size_t channel,
     if (shiftIncrement < 0) {
         shiftIncrement = -shiftIncrement;
     }
-    
+    /*
     if (shiftIncrement >= int(m_windowSize)) {
         cerr << "*** ERROR: RubberBandStretcher::Impl::processChunks: shiftIncrement " << shiftIncrement << " >= windowSize " << m_windowSize << " at " << cd.chunkCount << " (of " << m_outputIncrements.size() << ")" << endl;
         shiftIncrement = m_windowSize;
     }
-
+    */
     phaseIncrementRtn = phaseIncrement;
     shiftIncrementRtn = shiftIncrement;
     if (cd.chunkCount == 0) phaseReset = true; // don't mess with the first chunk
@@ -781,7 +809,7 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
         cd.unwrappedPhase[i] = outphase;
     }
 
-    if (m_debugLevel > 1) {
+    if (m_debugLevel > 2) {
         cerr << "mean inheritance distance = " << distacc / count << endl;
     }
 

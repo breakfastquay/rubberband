@@ -4,7 +4,7 @@ Rubber Band
 
 An audio time-stretching and pitch-shifting library and utility program.
 
-Copyright 2008-2009 Chris Cannam, cannam@all-day-breakfast.com.
+Copyright 2007-2010 Chris Cannam, cannam@all-day-breakfast.com.
 
 Distributed under the GNU General Public License.
 
@@ -131,7 +131,7 @@ shifts it up in pitch by one octave, and writes the output to output.wav.
 
 Several further options are available: run "rubberband -h" for help.
 In particular, different types of music may benefit from different
-"crispness" options (-c <n> where <n> is from 0 to 5).
+"crispness" options (-c <n> where <n> is from 0 to 6).
 
 
 Using the Rubber Band library

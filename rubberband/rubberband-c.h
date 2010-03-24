@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -19,9 +19,9 @@
 extern "C" {
 #endif
 
-#define RUBBERBAND_VERSION "1.4.0-gpl"
+#define RUBBERBAND_VERSION "1.5.0-gpl"
 #define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 1
+#define RUBBERBAND_API_MINOR_VERSION 3
 
 /**
  * This is a C-linkage interface to the Rubber Band time stretcher.
@@ -47,6 +47,10 @@ enum RubberBandOption {
     RubberBandOptionTransientsCrisp      = 0x00000000,
     RubberBandOptionTransientsMixed      = 0x00000100,
     RubberBandOptionTransientsSmooth     = 0x00000200,
+
+    RubberBandOptionDetectorCompound     = 0x00000000,
+    RubberBandOptionDetectorPercussive   = 0x00000400,
+    RubberBandOptionDetectorSoft         = 0x00000800,
 
     RubberBandOptionPhaseLaminar         = 0x00000000,
     RubberBandOptionPhaseIndependent     = 0x00002000,
@@ -91,6 +95,7 @@ extern double rubberband_get_pitch_scale(const RubberBandState);
 extern unsigned int rubberband_get_latency(const RubberBandState);
 
 extern void rubberband_set_transients_option(RubberBandState, RubberBandOptions options);
+extern void rubberband_set_detector_option(RubberBandState, RubberBandOptions options);
 extern void rubberband_set_phase_option(RubberBandState, RubberBandOptions options);
 extern void rubberband_set_formant_option(RubberBandState, RubberBandOptions options);
 extern void rubberband_set_pitch_option(RubberBandState, RubberBandOptions options);
@@ -100,6 +105,7 @@ extern void rubberband_set_expected_input_duration(RubberBandState, unsigned int
 extern unsigned int rubberband_get_samples_required(const RubberBandState);
 
 extern void rubberband_set_max_process_size(RubberBandState, unsigned int samples);
+extern void rubberband_set_key_frame_map(RubberBandState, unsigned int keyframecount, unsigned int *from, unsigned int *to);
 
 extern void rubberband_study(RubberBandState, const float *const *input, unsigned int samples, int final);
 extern void rubberband_process(RubberBandState, const float *const *input, unsigned int samples, int final);

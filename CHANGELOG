@@ -1,4 +1,20 @@
 
+Changed in Rubber Band v1.5
+
+ * Add a more reliable transient detection mode, and make the mode
+   selectable using OptionDetectorXXX flags -- the new method is
+   the default
+ * Band-limit transient detectors to avoid being distracted by
+   inaudible garbage
+ * Add a key-frame mapping facility for variable stretch ratio
+   management during offline stretches
+
+The library is binary compatible with version 1.4 for forward
+compatibility (a function and an enum have been added, but no existing
+entry points have changed).  Code written to use 1.5 is not
+necessarily compatible with 1.4.
+
+
 Changes in Rubber Band v1.4 
 
  * Fix a hang when faced with some very peculiar stretch factors
@@ -20,7 +36,7 @@ The library is binary compatible with version 1.2.
 
 Changes in Rubber Band v1.2
 
- * Added an initial "formant preservation" option when pitch shifting
+ * Add an initial "formant preservation" option when pitch shifting
  * Real-time pitch shifting now uses a faster method by default, with
    less variation in CPU usage
  * The code is more amenable to compiler auto-vectorization (through

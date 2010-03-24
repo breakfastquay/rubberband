@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -45,6 +45,21 @@ StretchCalculator::~StretchCalculator()
 {
 }
 
+void
+StretchCalculator::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
+{
+    m_keyFrameMap = mapping;
+
+    // Ensure we always have a 0 -> 0 mapping. If there's nothing in
+    // the map at all, don't need to worry about this (empty map is
+    // handled separately anyway)
+    if (!m_keyFrameMap.empty()) {
+        if (m_keyFrameMap.find(0) == m_keyFrameMap.end()) {
+            m_keyFrameMap[0] = 0;
+        }
+    }
+}
+
 std::vector<int>
 StretchCalculator::calculate(double ratio, size_t inputDuration,
                              const std::vector<float> &phaseResetDf,
@@ -52,11 +67,9 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 {
     assert(phaseResetDf.size() == stretchDf.size());
     
-    m_lastPeaks = findPeaks(phaseResetDf);
-    std::vector<Peak> &peaks = m_lastPeaks;
-    size_t totalCount = phaseResetDf.size();
+    m_peaks = findPeaks(phaseResetDf);
 
-    std::vector<int> increments;
+    size_t totalCount = phaseResetDf.size();
 
     size_t outputDuration = lrint(inputDuration * ratio);
 
@@ -68,14 +81,13 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 
     if (m_debugLevel > 0) {
         std::cerr << " (rounded up to " << outputDuration << ")";
-        std::cerr << ", df size " << phaseResetDf.size() << std::endl;
+        std::cerr << ", df size " << phaseResetDf.size() << ", increment "
+                  << m_increment << std::endl;
     }
 
-    std::vector<size_t> fixedAudioChunks;
-    for (size_t i = 0; i < peaks.size(); ++i) {
-        fixedAudioChunks.push_back
-            (lrint((double(peaks[i].chunk) * outputDuration) / totalCount));
-    }
+    std::vector<Peak> peaks; // peak position (in chunks) and hardness
+    std::vector<size_t> targets; // targets for mapping peaks (in samples)
+    mapPeaks(peaks, targets, outputDuration, totalCount);
 
     if (m_debugLevel > 1) {
         std::cerr << "have " << peaks.size() << " fixed positions" << std::endl;
@@ -93,6 +105,8 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 
     size_t regionTotalChunks = 0;
 
+    std::vector<int> increments;
+
     for (size_t i = 0; i <= peaks.size(); ++i) {
         
         size_t regionStart, regionStartChunk, regionEnd, regionEndChunk;
@@ -103,17 +117,23 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
             regionStart = 0;
         } else {
             regionStartChunk = peaks[i-1].chunk;
-            regionStart = fixedAudioChunks[i-1];
+            regionStart = targets[i-1];
             phaseReset = peaks[i-1].hard;
         }
 
         if (i == peaks.size()) {
+//            std::cerr << "note: i (=" << i << ") == peaks.size(); regionEndChunk " << regionEndChunk << " -> " << totalCount << ", regionEnd " << regionEnd << " -> " << outputDuration << std::endl;
             regionEndChunk = totalCount;
             regionEnd = outputDuration;
         } else {
             regionEndChunk = peaks[i].chunk;
-            regionEnd = fixedAudioChunks[i];
+            regionEnd = targets[i];
         }
+
+        if (regionStartChunk > totalCount) regionStartChunk = totalCount;
+        if (regionStart > outputDuration) regionStart = outputDuration;
+        if (regionEndChunk > totalCount) regionEndChunk = totalCount;
+        if (regionEnd > outputDuration) regionEnd = outputDuration;
         
         size_t regionDuration = regionEnd - regionStart;
         regionTotalChunks += regionDuration;
@@ -125,7 +145,7 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
         }
 
         if (m_debugLevel > 1) {
-            std::cerr << "distributeRegion from " << regionStartChunk << " to " << regionEndChunk << " (chunks " << regionStart << " to " << regionEnd << ")" << std::endl;
+            std::cerr << "distributeRegion from " << regionStartChunk << " to " << regionEndChunk << " (samples " << regionStart << " to " << regionEnd << ")" << std::endl;
         }
 
         dfRegion = smoothDF(dfRegion);
@@ -149,7 +169,7 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
         }
 
         if (totalForRegion != regionDuration) {
-            std::cerr << "*** WARNING: distributeRegion returned wrong duration " << totalForRegion << ", expected " << regionDuration << std::endl;
+            std::cerr << "*** ERROR: distributeRegion returned wrong duration " << totalForRegion << ", expected " << regionDuration << std::endl;
         }
 
         totalOutput += totalForRegion;
@@ -162,6 +182,131 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 
     return increments;
 }
+
+void
+StretchCalculator::mapPeaks(std::vector<Peak> &peaks,
+                            std::vector<size_t> &targets,
+                            size_t outputDuration,
+                            size_t totalCount)
+{
+    // outputDuration is in audio samples; totalCount is in chunks
+
+    if (m_keyFrameMap.empty()) {
+        // "normal" behaviour -- fixed points are strictly in
+        // proportion
+        peaks = m_peaks;
+        for (size_t i = 0; i < peaks.size(); ++i) {
+            targets.push_back
+                (lrint((double(peaks[i].chunk) * outputDuration) / totalCount));
+        }
+        return;
+    }
+
+    // We have been given a set of source -> target sample frames in
+    // m_keyFrameMap.  We want to ensure that (to the nearest chunk) these
+    // are followed exactly, and any fixed points that we calculated
+    // ourselves are interpolated in linear proportion in between.
+
+    size_t peakidx = 0;
+    std::map<size_t, size_t>::const_iterator mi = m_keyFrameMap.begin();
+
+    // NB we know for certain we have a mapping from 0 -> 0 (or at
+    // least, some mapping for source sample 0) because that is
+    // enforced in setLockPoints above.  However, we aren't guaranteed
+    // to have a mapping for the total duration -- we will usually
+    // need to assume it maps to the normal duration * ratio sample
+
+    while (mi != m_keyFrameMap.end()) {
+
+//        std::cerr << "mi->first is " << mi->first << ", second is " << mi->second <<std::endl;
+
+        // The map we've been given is from sample to sample, but
+        // we can only map from chunk to sample.  We should perhaps
+        // adjust the target sample to compensate for the discrepancy
+        // between the chunk position and the exact requested source
+        // sample.  But we aren't doing that yet.
+
+        size_t sourceStartChunk = mi->first / m_increment;
+        size_t sourceEndChunk = totalCount;
+
+        size_t targetStartSample = mi->second;
+        size_t targetEndSample = outputDuration;
+
+        ++mi;
+        if (mi != m_keyFrameMap.end()) {
+            sourceEndChunk = mi->first / m_increment;
+            targetEndSample = mi->second;
+        }
+
+        if (sourceStartChunk >= totalCount ||
+            sourceStartChunk >= sourceEndChunk ||
+            targetStartSample >= outputDuration ||
+            targetStartSample >= targetEndSample) {
+            std::cerr << "NOTE: ignoring mapping from chunk " << sourceStartChunk << " to sample " << targetStartSample << "\n(source or target chunk exceeds total count, or end is not later than start)" << std::endl;
+            continue;
+        }
+        
+        // one peak and target for the mapping, then one for each of
+        // the computed peaks that appear before the following mapping
+
+        Peak p;
+        p.chunk = sourceStartChunk;
+        p.hard = false; // mappings are in time only, not phase reset points
+        peaks.push_back(p);
+        targets.push_back(targetStartSample);
+
+        if (m_debugLevel > 1) {
+            std::cerr << "mapped chunk " << sourceStartChunk << " (frame " << sourceStartChunk * m_increment << ") -> " << targetStartSample << std::endl;
+        }
+
+        while (peakidx < m_peaks.size()) {
+
+            size_t pchunk = m_peaks[peakidx].chunk;
+
+            if (pchunk < sourceStartChunk) {
+                // shouldn't happen, should have been dealt with
+                // already -- but no harm in ignoring it explicitly
+                ++peakidx;
+                continue;
+            }
+            if (pchunk == sourceStartChunk) {
+                // convert that last peak to a hard one, after all
+                peaks[peaks.size()-1].hard = true;
+                ++peakidx;
+                continue;
+            }
+            if (pchunk >= sourceEndChunk) {
+                // leave the rest for after the next mapping
+                break;
+            }
+            p.chunk = pchunk;
+            p.hard = m_peaks[peakidx].hard;
+
+            double proportion =
+                double(pchunk - sourceStartChunk) /
+                double(sourceEndChunk - sourceStartChunk);
+            
+            size_t target =
+                targetStartSample +
+                lrint(proportion *
+                      (targetEndSample - targetStartSample));
+
+            if (target <= targets[targets.size()-1] + m_increment) {
+                // peaks will become too close together afterwards, ignore
+                ++peakidx;
+                continue;
+            }
+
+            if (m_debugLevel > 1) {
+                std::cerr << "  peak chunk " << pchunk << " (frame " << pchunk * m_increment << ") -> " << target << std::endl;
+            }
+
+            peaks.push_back(p);
+            targets.push_back(target);
+            ++peakidx;
+        }
+    }
+}    
 
 int
 StretchCalculator::calculateSingle(double ratio,
@@ -182,7 +327,7 @@ StretchCalculator::calculateSingle(double ratio,
     // works well in common situations.
 
     float transientThreshold = 0.35f;
-    if (ratio > 1) transientThreshold = 0.25f;
+//    if (ratio > 1) transientThreshold = 0.25f;
 
     if (m_useHardPeaks && df > m_prevDf * 1.1f && df > transientThreshold) {
         isTransient = true;
@@ -200,8 +345,7 @@ StretchCalculator::calculateSingle(double ratio,
 
     if (isTransient && m_transientAmnesty == 0) {
         if (m_debugLevel > 1) {
-            std::cerr << "StretchCalculator::calculateSingle: transient"
-                      << std::endl;
+            std::cerr << "StretchCalculator::calculateSingle: transient (df " << df << ", threshold " << transientThreshold << ")" << std::endl;
         }
         m_divergence += increment - (increment * ratio);
 
@@ -626,7 +770,7 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
     long toAllot = long(duration) - long(m_increment * df.size());
     
     if (m_debugLevel > 1) {
-        std::cerr << "region of " << df.size() << " chunks, output duration " << duration << ", toAllot " << toAllot << std::endl;
+        std::cerr << "region of " << df.size() << " chunks, output duration " << duration << ", increment " << m_increment << ", toAllot " << toAllot << std::endl;
     }
 
     size_t totalIncrement = 0;
@@ -651,22 +795,24 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
 
     // then we need to adjust and accommodate
     
-    bool acceptableSquashRange = false;
-
     double totalDisplacement = 0;
     double maxDisplacement = 0; // min displacement will be 0 by definition
 
     maxDf = 0;
     float adj = 0;
 
+    bool tooShort = true, tooLong = true;
     const int acceptableIterations = 10;
     int iteration = 0;
- 
-    while (!acceptableSquashRange && iteration < acceptableIterations) {
+    int prevExtreme = 0;
+    bool better = false;
+
+    while ((tooLong || tooShort) && iteration < acceptableIterations) {
 
         ++iteration;
 
-        acceptableSquashRange = true;
+        tooLong = false;
+        tooShort = false;
         calculateDisplacements(df, maxDf, totalDisplacement, maxDisplacement,
                                adj);
 
@@ -678,35 +824,61 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
 // Not usually a problem, in fact
 //            std::cerr << "WARNING: totalDisplacement == 0 (duration " << duration << ", " << df.size() << " values in df)" << std::endl;
             if (!df.empty() && adj == 0) {
-                acceptableSquashRange = false;
+                tooLong = true; tooShort = true;
                 adj = 1;
             }
             continue;
         }
 
-        int extremeIncrement = m_increment + lrint((toAllot * maxDisplacement) / totalDisplacement);
-        if (ratio < 1.0) {
-            if (extremeIncrement > lrint(ceil(m_increment * ratio))) {
-                std::cerr << "WARNING: extreme increment " << extremeIncrement << " > " << m_increment * ratio << std::endl;
-            } else if (extremeIncrement < (m_increment * ratio) / 2) {
-                if (m_debugLevel > 0) {
-                    std::cerr << "NOTE: extreme increment " << extremeIncrement << " < " << (m_increment * ratio) / 2 << ", adjusting" << std::endl;
-                }
-                acceptableSquashRange = false;
-            }
-        } else {
-            if (extremeIncrement > m_increment * ratio * 2) {
-                if (m_debugLevel > 0) {
-                    std::cerr << "NOTE: extreme increment " << extremeIncrement << " > " << m_increment * ratio * 2 << ", adjusting" << std::endl;
+        int extremeIncrement = m_increment +
+            lrint((toAllot * maxDisplacement) / totalDisplacement);
 
+        if (extremeIncrement < 0) {
+            if (m_debugLevel > 0) {
+                std::cerr << "NOTE: extreme increment " << extremeIncrement << " < 0, adjusting" << std::endl;
+            }
+            tooShort = true;
+        } else {
+            if (ratio < 1.0) {
+                if (extremeIncrement > lrint(ceil(m_increment * ratio))) {
+                    std::cerr << "WARNING: extreme increment "
+                              << extremeIncrement << " > "
+                              << m_increment * ratio << std::endl;
+                } else if (extremeIncrement < (m_increment * ratio) / 2) {
+                    if (m_debugLevel > 0) {
+                        std::cerr << "NOTE: extreme increment "
+                                  << extremeIncrement << " < " 
+                                  << (m_increment * ratio) / 2
+                                  << ", adjusting" << std::endl;
+                    }
+                    tooShort = true;
+                    if (iteration > 0) {
+                        better = (extremeIncrement > prevExtreme);
+                    }
+                    prevExtreme = extremeIncrement;
                 }
-                acceptableSquashRange = false;
-            } else if (extremeIncrement < lrint(floor(m_increment * ratio))) {
-                std::cerr << "WARNING: extreme increment " << extremeIncrement << " < " << m_increment * ratio << std::endl;
+            } else {
+                if (extremeIncrement > m_increment * ratio * 2) {
+                    if (m_debugLevel > 0) {
+                        std::cerr << "NOTE: extreme increment "
+                                  << extremeIncrement << " > "
+                                  << m_increment * ratio * 2
+                                  << ", adjusting" << std::endl;
+                    }
+                    tooLong = true;
+                    if (iteration > 0) {
+                        better = (extremeIncrement < prevExtreme);
+                    }
+                    prevExtreme = extremeIncrement;
+                } else if (extremeIncrement < lrint(floor(m_increment * ratio))) {
+                    std::cerr << "WARNING: extreme increment "
+                              << extremeIncrement << " < "
+                              << m_increment * ratio << std::endl;
+                }
             }
         }
 
-        if (!acceptableSquashRange) {
+        if (tooLong || tooShort) {
             // Need to make maxDisplacement smaller as a proportion of
             // the total displacement, yet ensure that the
             // displacements still sum to the total.
@@ -714,9 +886,24 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
         }
     }
 
-    if (!acceptableSquashRange) {
-        std::cerr << "WARNING: No acceptable displacement adjustment found, using defaults:\nthis region will probably sound bad" << std::endl;
-        adj = 0;
+    if (tooLong) {
+        if (better) {
+            // we were iterating in the right direction, so
+            // leave things as they are (and undo that last tweak)
+            std::cerr << "WARNING: No acceptable displacement adjustment found, using latest values:\nthis region could sound bad" << std::endl;
+            adj -= maxDf/10;
+        } else {
+            std::cerr << "WARNING: No acceptable displacement adjustment found, using defaults:\nthis region could sound bad" << std::endl;
+            adj = 1;
+            calculateDisplacements(df, maxDf, totalDisplacement, maxDisplacement,
+                                   adj);
+        }
+    } else if (tooShort) {
+        std::cerr << "WARNING: No acceptable displacement adjustment found, using flat distribution:\nthis region could sound bad" << std::endl;
+        adj = 1;
+        for (size_t i = 0; i < df.size(); ++i) {
+            df[i] = 1.f;
+        }
         calculateDisplacements(df, maxDf, totalDisplacement, maxDisplacement,
                                adj);
     }
@@ -728,6 +915,9 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
         else displacement += adj;
 
         if (i == 0 && phaseReset) {
+            if (m_debugLevel > 2) {
+                std::cerr << "Phase reset at first chunk" << std::endl;
+            }
             if (df.size() == 1) {
                 increments.push_back(duration);
                 totalIncrement += duration;
@@ -749,19 +939,23 @@ StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
 
         int increment = m_increment + allotment;
 
-        if (increment <= 0) {
+        if (increment < 0) {
             // this is a serious problem, the allocation is quite
             // wrong if it allows increment to diverge so far from the
-            // input increment
+            // input increment (though it can happen legitimately if
+            // asked to squash very violently)
             std::cerr << "*** WARNING: increment " << increment << " <= 0, rounding to zero" << std::endl;
+
+            toAllot += m_increment;
             increment = 0;
-            allotment = increment - m_increment;
+
+        } else {
+            toAllot -= allotment;
         }
 
         increments.push_back(increment);
         totalIncrement += increment;
 
-        toAllot -= allotment;
         totalDisplacement -= displacement;
 
         if (m_debugLevel > 2) {

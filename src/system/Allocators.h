@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -134,13 +134,32 @@ T **reallocate_channels(T **ptr,
     try {
         newptr = allocate_channels<T>(channels, count);
     } catch (std::bad_alloc) {
-        if (ptr) deallocate_channels<T>(ptr);
+        if (ptr) deallocate_channels<T>(ptr, channels);
         throw;
     }
     if (oldcount && ptr) {
         v_copy_channels(newptr, ptr, channels, oldcount < count ? oldcount : count);
     } 
-    if (ptr) deallocate_channels<T>(ptr);
+    if (ptr) deallocate_channels<T>(ptr, channels);
+    return newptr;
+}
+	
+template <typename T>
+T **reallocate_and_zero_extend_channels(T **ptr,
+                                        size_t oldchannels, size_t oldcount,
+                                        size_t channels, size_t count)
+{
+    T **newptr = 0;
+    try {
+        newptr = allocate_and_zero_channels<T>(channels, count);
+    } catch (std::bad_alloc) {
+        if (ptr) deallocate_channels<T>(ptr, channels);
+        throw;
+    }
+    if (oldcount && ptr) {
+        v_copy_channels(newptr, ptr, channels, oldcount < count ? oldcount : count);
+    } 
+    if (ptr) deallocate_channels<T>(ptr, channels);
     return newptr;
 }
 

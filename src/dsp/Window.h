@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2009 Chris Cannam.
+    Copyright 2007-2010 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -153,7 +153,7 @@ void Window<T>::encache()
     m_cache = mult;
 
     m_area = 0;
-    for (int i = 0; i < n; ++i) {
+    for (i = 0; i < n; ++i) {
         m_area += m_cache[i];
     }
     m_area /= n;
