@@ -247,7 +247,7 @@ public:
         if (!home) return;
 
         char fn[256];
-        snprintf(fn, 256, "%s/%s.%c", home, ".turbot.wisdom", type);
+        snprintf(fn, 256, "%s/%s.%c", home, ".rubberband.wisdom", type);
 
         FILE *f = fopen(fn, save ? "wb" : "rb");
         if (!f) return;

@@ -32,9 +32,6 @@ CompoundAudioCurve::CompoundAudioCurve(Parameters parameters) :
     m_lastResult(0.0),
     m_risingCount(0)
 {
-    std::cerr << "CompoundAudioCurve::CompoundAudioCurve: window " 
-              << parameters.windowSize << ", rate " << parameters.sampleRate
-              << std::endl;
 }
 
 CompoundAudioCurve::~CompoundAudioCurve()
@@ -46,7 +43,6 @@ CompoundAudioCurve::~CompoundAudioCurve()
 void
 CompoundAudioCurve::setType(Type type)
 {
-    std::cerr << "CompoundAudioCurve::setType to " << type << std::endl;
     m_type = type;
 }
 
