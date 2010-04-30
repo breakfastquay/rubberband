@@ -26,6 +26,8 @@
 #endif
 
 
+
+
 #ifdef USE_KISSFFT
 #include "kissfft/kiss_fftr.h"
 #endif
@@ -77,6 +79,8 @@ public:
 };    
 
 namespace FFTs {
+
+
 
 
 
@@ -1271,6 +1275,26 @@ FFT::FFT(int size, int debugLevel)
         break;
 
     case 4:
+        std::cerr << "FFT::FFT(" << size << "): WARNING: Selected implemention not available" << std::endl;
+#ifdef USE_BUILTIN_FFT
+        d = new FFTs::D_Cross(size);
+#else
+        std::cerr << "FFT::FFT(" << size << "): ERROR: Fallback implementation not available!" << std::endl;
+        abort();
+#endif
+        break;
+
+    case 5:
+        std::cerr << "FFT::FFT(" << size << "): WARNING: Selected implemention not available" << std::endl;
+#ifdef USE_BUILTIN_FFT
+        d = new FFTs::D_Cross(size);
+#else
+        std::cerr << "FFT::FFT(" << size << "): ERROR: Fallback implementation not available!" << std::endl;
+        abort();
+#endif
+        break;
+
+    case 6:
         std::cerr << "FFT::FFT(" << size << "): WARNING: Selected implemention not available" << std::endl;
 #ifdef USE_BUILTIN_FFT
         d = new FFTs::D_Cross(size);

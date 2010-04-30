@@ -111,11 +111,7 @@ double
 CompoundAudioCurve::processFiltering(double percussive, double hf)
 {
     if (m_type == PercussiveDetector) {
-        if (percussive > 0.35) {
-            return 1.0;
-        } else {
-            return 0.0;
-        }
+        return percussive;
     }
 
     double rv = 0.f;
@@ -138,15 +134,16 @@ CompoundAudioCurve::processFiltering(double percussive, double hf)
         result = hfDeriv - hfDerivFiltered;
     }
 
-    if (m_type != SoftDetector && percussive > 0.35 && hfExcess > 0.0) {
-        rv = 1.0;
+    if (result < m_lastResult) {
+        if (m_risingCount > 3 && m_lastResult > 0) rv = 0.5;
         m_risingCount = 0;
     } else {
-        if (result < m_lastResult) {
-            if (m_risingCount > 3 && m_lastResult > 0) rv = 0.5;
-            m_risingCount = 0;
-        } else {
-            m_risingCount ++;
+        m_risingCount ++;
+    }
+
+    if (m_type == CompoundDetector) {
+        if (percussive > 0.35 && percussive > rv) {
+            rv = percussive;
         }
     }
 
