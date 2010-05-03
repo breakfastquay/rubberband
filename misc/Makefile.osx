@@ -1,9 +1,9 @@
 
 CXX		:= g++
-CXXFLAGS	:= -DHAVE_FFTW3 -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG -isysroot /Developer/SDKs/MacOSX10.4u.sdk -O3 -arch i386 -arch ppc -msse -msse2 -ffast-math -ftree-vectorize -I../include -I../vamp-plugin-sdk -I/usr/local/include -Irubberband -I. -Isrc
-LDFLAGS		:= -L../lib -L/usr/local/lib -L../vamp-plugin-sdk/vamp-sdk
+CXXFLAGS	:= -DHAVE_FFTW3 -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk -O3 -arch i386 -arch ppc -msse -msse2 -ffast-math -ftree-vectorize -I../include -I../vamp-plugin-sdk -I/usr/local/include -Irubberband -I. -Isrc
+LDFLAGS		:= -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc -L../lib -L/usr/local/lib -L../vamp-plugin-sdk/vamp-sdk
 
-LIBRARY_LIBS		:= -lsamplerate -lfftw3 -lpthread -lm
+LIBRARY_LIBS		:= -lsamplerate -lfftw3 -lfftw3f -lpthread -lm
 PROGRAM_LIBS		:= -lsndfile $(LIBRARY_LIBS)
 VAMP_PLUGIN_LIBS	:= -lvamp-sdk $(LIBRARY_LIBS)
 LADSPA_PLUGIN_LIBS	:= $(LIBRARY_LIBS)
@@ -35,6 +35,7 @@ LIBRARY_INCLUDES := \
 	src/base/RingBuffer.h \
 	src/base/Scavenger.h \
 	src/dsp/AudioCurveCalculator.h \
+	src/dsp/CompoundAudioCurve.h \
 	src/dsp/SpectralDifferenceAudioCurve.h \
 	src/dsp/Resampler.h \
 	src/dsp/HighFrequencyAudioCurve.h \
@@ -55,6 +56,7 @@ LIBRARY_SOURCES := \
 	src/StretchCalculator.cpp \
 	src/base/Profiler.cpp \
 	src/dsp/AudioCurveCalculator.cpp \
+	src/dsp/CompoundAudioCurve.cpp \
 	src/dsp/SpectralDifferenceAudioCurve.cpp \
 	src/dsp/HighFrequencyAudioCurve.cpp \
 	src/dsp/SilentAudioCurve.cpp \
