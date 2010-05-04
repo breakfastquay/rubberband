@@ -45,6 +45,10 @@ extern void system_specific_application_initialise();
 struct timeval { long tv_sec; long tv_usec; };
 void gettimeofday(struct timeval *p, void *tz);
 
+#endif
+
+#ifdef __MSVC__
+
 void usleep(unsigned long);
 
 #endif

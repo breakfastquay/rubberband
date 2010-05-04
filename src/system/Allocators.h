@@ -45,7 +45,7 @@ T *allocate(size_t count)
         ptr = malloc(count * sizeof(T));
     }
 #else
-#ifdef _WIN32
+#ifdef __MSVC__
     ptr = _aligned_malloc(count * sizeof(T), 16);
 #else
     // Note that malloc always aligns to 16 byte boundaries on OS/X,
@@ -70,7 +70,7 @@ T *allocate_and_zero(size_t count)
 template <typename T>
 void deallocate(T *ptr)
 {
-#ifdef _WIN32
+#ifdef __MSVC__
     if (ptr) _aligned_free((void *)ptr);
 #else
     if (ptr) free((void *)ptr);

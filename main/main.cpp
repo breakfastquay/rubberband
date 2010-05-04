@@ -41,6 +41,9 @@ using namespace RubberBand;
 
 #ifdef _WIN32
 using RubberBand::gettimeofday;
+#endif
+
+#ifdef __MSVC__
 using RubberBand::usleep;
 #endif
 
