@@ -52,7 +52,7 @@ const size_t
 RubberBandStretcher::Impl::m_defaultIncrement = 256;
 
 const size_t
-RubberBandStretcher::Impl::m_defaultWindowSize = 2048;
+RubberBandStretcher::Impl::m_defaultFftSize = 2048;
 
 int
 RubberBandStretcher::Impl::m_defaultDebugLevel = 0;
@@ -68,17 +68,20 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_channels(channels),
     m_timeRatio(initialTimeRatio),
     m_pitchScale(initialPitchScale),
-    m_windowSize(m_defaultWindowSize),
+    m_fftSize(m_defaultFftSize),
+    m_aWindowSize(m_defaultFftSize),
+    m_sWindowSize(m_defaultFftSize),
     m_increment(m_defaultIncrement),
-    m_outbufSize(m_defaultWindowSize * 2),
-    m_maxProcessSize(m_defaultWindowSize),
+    m_outbufSize(m_defaultFftSize * 2),
+    m_maxProcessSize(m_defaultFftSize),
     m_expectedInputDuration(0),
     m_threaded(false),
     m_realtime(false),
     m_options(options),
     m_debugLevel(m_defaultDebugLevel),
     m_mode(JustCreated),
-    m_window(0),
+    m_awindow(0),
+    m_swindow(0),
     m_studyFFT(0),
     m_spaceAvailable("space"),
     m_inputDuration(0),
@@ -94,7 +97,7 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_freq0(600),
     m_freq1(1200),
     m_freq2(12000),
-    m_baseWindowSize(m_defaultWindowSize)
+    m_baseFftSize(m_defaultFftSize)
 {
     if (!_initialised) {
         system_specific_initialise();
@@ -109,25 +112,27 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     // we don't let it drop below the 48k default
     m_rateMultiple = float(m_sampleRate) / 48000.f;
 //    if (m_rateMultiple < 1.f) m_rateMultiple = 1.f;
-    m_baseWindowSize = roundUp(int(m_defaultWindowSize * m_rateMultiple));
+    m_baseFftSize = roundUp(int(m_defaultFftSize * m_rateMultiple));
 
     if ((options & OptionWindowShort) || (options & OptionWindowLong)) {
         if ((options & OptionWindowShort) && (options & OptionWindowLong)) {
             cerr << "RubberBandStretcher::Impl::Impl: Cannot specify OptionWindowLong and OptionWindowShort together; falling back to OptionWindowStandard" << endl;
         } else if (options & OptionWindowShort) {
-            m_baseWindowSize = m_baseWindowSize / 2;
+            m_baseFftSize = m_baseFftSize / 2;
             if (m_debugLevel > 0) {
-                cerr << "setting baseWindowSize to " << m_baseWindowSize << endl;
+                cerr << "setting baseFftSize to " << m_baseFftSize << endl;
             }
         } else if (options & OptionWindowLong) {
-            m_baseWindowSize = m_baseWindowSize * 2;
+            m_baseFftSize = m_baseFftSize * 2;
             if (m_debugLevel > 0) {
-                cerr << "setting baseWindowSize to " << m_baseWindowSize << endl;
+                cerr << "setting baseFftSize to " << m_baseFftSize << endl;
             }
         }
-        m_windowSize = m_baseWindowSize;
-        m_outbufSize = m_baseWindowSize * 2;
-        m_maxProcessSize = m_baseWindowSize;
+        m_fftSize = m_baseFftSize;
+        m_aWindowSize = m_baseFftSize;
+        m_sWindowSize = m_baseFftSize;
+        m_outbufSize = m_sWindowSize * 2;
+        m_maxProcessSize = m_aWindowSize;
     }
 
     if (m_options & OptionProcessRealTime) {
@@ -378,7 +383,7 @@ void
 RubberBandStretcher::Impl::calculateSizes()
 {
     size_t inputIncrement = m_defaultIncrement;
-    size_t windowSize = m_baseWindowSize;
+    size_t windowSize = m_baseFftSize;
     size_t outputIncrement;
 
     if (m_pitchScale <= 0.0) {
@@ -413,7 +418,7 @@ RubberBandStretcher::Impl::calculateSizes()
             if (outputIncrement < m_defaultIncrement / 4) {
                 if (outputIncrement < 1) outputIncrement = 1;
                 while (outputIncrement < m_defaultIncrement / 4 &&
-                       windowSize < m_baseWindowSize * 4) {
+                       windowSize < m_baseFftSize * 4) {
                     outputIncrement *= 2;
                     inputIncrement = lrint(ceil(outputIncrement / r));
                     windowSize = roundUp(lrint(ceil(inputIncrement * windowIncrRatio)));
@@ -483,9 +488,11 @@ RubberBandStretcher::Impl::calculateSizes()
     }
 
     // windowSize can be almost anything, but it can't be greater than
-    // 4 * m_baseWindowSize unless ratio is less than 1/1024.
+    // 4 * m_baseFftSize unless ratio is less than 1/1024.
 
-    m_windowSize = windowSize;
+    m_fftSize = windowSize;
+    m_aWindowSize = windowSize;
+    m_sWindowSize = windowSize;
     m_increment = inputIncrement;
 
     // When squashing, the greatest theoretically possible output
@@ -497,18 +504,18 @@ RubberBandStretcher::Impl::calculateSizes()
 
     if (m_debugLevel > 0) {
         cerr << "configure: effective ratio = " << getEffectiveRatio() << endl;
-        cerr << "configure: window size = " << m_windowSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
+        cerr << "configure: analysis window size = " << m_aWindowSize << ", synthesis window size = " << m_sWindowSize << ", fft size = " << m_fftSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
     }
 
-    if (m_windowSize > m_maxProcessSize) {
-        m_maxProcessSize = m_windowSize;
+    if (std::max(m_aWindowSize, m_sWindowSize) > m_maxProcessSize) {
+        m_maxProcessSize = std::max(m_aWindowSize, m_sWindowSize);
     }
 
     m_outbufSize =
         size_t
         (ceil(max
               (m_maxProcessSize / m_pitchScale,
-               m_windowSize * 2 * (m_timeRatio > 1.f ? m_timeRatio : 1.f))));
+               m_sWindowSize * 2 * (m_timeRatio > 1.f ? m_timeRatio : 1.f))));
 
     if (m_realtime) {
         // This headroom is so as to try to avoid reallocation when
@@ -535,16 +542,22 @@ RubberBandStretcher::Impl::configure()
 //    std::cerr << "configure[" << this << "]: realtime = " << m_realtime << ", pitch scale = "
 //              << m_pitchScale << ", channels = " << m_channels << std::endl;
 
-    size_t prevWindowSize = m_windowSize;
+    size_t prevFftSize = m_fftSize;
+    size_t prevAWindowSize = m_aWindowSize;
+    size_t prevSWindowSize = m_sWindowSize;
     size_t prevOutbufSize = m_outbufSize;
     if (m_windows.empty()) {
-        prevWindowSize = 0;
+        prevFftSize = 0;
+        prevAWindowSize = 0;
+        prevSWindowSize = 0;
         prevOutbufSize = 0;
     }
 
     calculateSizes();
 
-    bool windowSizeChanged = (prevWindowSize != m_windowSize);
+    bool fftSizeChanged = (prevFftSize != m_fftSize);
+    bool windowSizeChanged = ((prevAWindowSize != m_aWindowSize) ||
+                              (prevSWindowSize != m_sWindowSize));
     bool outbufSizeChanged = (prevOutbufSize != m_outbufSize);
 
     // This function may be called at any time in non-RT mode, after a
@@ -557,12 +570,14 @@ RubberBandStretcher::Impl::configure()
 
     set<size_t> windowSizes;
     if (m_realtime) {
-        windowSizes.insert(m_baseWindowSize);
-        windowSizes.insert(m_baseWindowSize / 2);
-        windowSizes.insert(m_baseWindowSize * 2);
-//        windowSizes.insert(m_baseWindowSize * 4);
+        windowSizes.insert(m_baseFftSize);
+        windowSizes.insert(m_baseFftSize / 2);
+        windowSizes.insert(m_baseFftSize * 2);
+//        windowSizes.insert(m_baseFftSize * 4);
     }
-    windowSizes.insert(m_windowSize);
+    windowSizes.insert(m_fftSize);
+    windowSizes.insert(m_aWindowSize);
+    windowSizes.insert(m_sWindowSize);
 
     if (windowSizeChanged) {
 
@@ -572,10 +587,11 @@ RubberBandStretcher::Impl::configure()
                 m_windows[*i] = new Window<float>(HanningWindow, *i);
             }
         }
-        m_window = m_windows[m_windowSize];
+        m_awindow = m_windows[m_aWindowSize];
+        m_swindow = m_windows[m_sWindowSize];
 
         if (m_debugLevel > 0) {
-            cerr << "Window area: " << m_window->getArea() << "; synthesis window area: " << m_window->getArea() << endl;
+            cerr << "Window area: " << m_awindow->getArea() << "; synthesis window area: " << m_swindow->getArea() << endl;
         }
     }
 
@@ -588,13 +604,16 @@ RubberBandStretcher::Impl::configure()
 
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData.push_back
-                (new ChannelData(windowSizes, 1, m_windowSize, m_outbufSize));
+                (new ChannelData(windowSizes,
+                                 std::max(m_aWindowSize, m_sWindowSize),
+                                 m_fftSize,
+                                 m_outbufSize));
         }
     }
 
-    if (!m_realtime && windowSizeChanged) {
+    if (!m_realtime && fftSizeChanged) {
         delete m_studyFFT;
-        m_studyFFT = new FFT(m_windowSize, m_debugLevel);
+        m_studyFFT = new FFT(m_fftSize, m_debugLevel);
         m_studyFFT->initFloat();
     }
 
@@ -626,21 +645,21 @@ RubberBandStretcher::Impl::configure()
 
     delete m_phaseResetAudioCurve;
     m_phaseResetAudioCurve = new CompoundAudioCurve
-        (CompoundAudioCurve::Parameters(m_sampleRate, m_windowSize));
+        (CompoundAudioCurve::Parameters(m_sampleRate, m_fftSize));
     m_phaseResetAudioCurve->setType(m_detectorType);
 
     delete m_silentAudioCurve;
     m_silentAudioCurve = new SilentAudioCurve
-        (SilentAudioCurve::Parameters(m_sampleRate, m_windowSize));
+        (SilentAudioCurve::Parameters(m_sampleRate, m_fftSize));
 
     if (!m_realtime) {
         delete m_stretchAudioCurve;
         if (!(m_options & OptionStretchPrecise)) {
             m_stretchAudioCurve = new SpectralDifferenceAudioCurve
-                (SpectralDifferenceAudioCurve::Parameters(m_sampleRate, m_windowSize));
+                (SpectralDifferenceAudioCurve::Parameters(m_sampleRate, m_fftSize));
         } else {
             m_stretchAudioCurve = new ConstantAudioCurve
-                (ConstantAudioCurve::Parameters(m_sampleRate, m_windowSize));
+                (ConstantAudioCurve::Parameters(m_sampleRate, m_fftSize));
         }
     }
 
@@ -666,7 +685,7 @@ RubberBandStretcher::Impl::configure()
     if (!m_realtime) {
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData[c]->reset();
-            m_channelData[c]->inbuf->zero(m_windowSize/2);
+            m_channelData[c]->inbuf->zero(m_aWindowSize/2);
         }
     }
 }
@@ -688,7 +707,9 @@ RubberBandStretcher::Impl::reconfigure()
         configure();
     }
 
-    size_t prevWindowSize = m_windowSize;
+    size_t prevFftSize = m_fftSize;
+    size_t prevAWindowSize = m_aWindowSize;
+    size_t prevSWindowSize = m_sWindowSize;
     size_t prevOutbufSize = m_outbufSize;
 
     calculateSizes();
@@ -698,18 +719,29 @@ RubberBandStretcher::Impl::reconfigure()
     // where not all of the things we need were correctly created when
     // we first configured (for whatever reason).  This is intended to
     // be "effectively" realtime safe.  The same goes for
-    // ChannelData::setOutbufSize and setWindowSize.
+    // ChannelData::setOutbufSize and setSizes.
 
-    if (m_windowSize != prevWindowSize) {
+    if (m_aWindowSize != prevAWindowSize ||
+        m_sWindowSize != prevSWindowSize) {
 
-        if (m_windows.find(m_windowSize) == m_windows.end()) {
-            std::cerr << "WARNING: reconfigure(): window allocation (size " << m_windowSize << ") required in RT mode" << std::endl;
-            m_windows[m_windowSize] = new Window<float>(HanningWindow, m_windowSize);
+        if (m_windows.find(m_aWindowSize) == m_windows.end()) {
+            std::cerr << "WARNING: reconfigure(): window allocation (size " << m_aWindowSize << ") required in RT mode" << std::endl;
+            m_windows[m_aWindowSize] = new Window<float>
+                (HanningWindow, m_aWindowSize);
         }
-        m_window = m_windows[m_windowSize];
+
+        if (m_windows.find(m_sWindowSize) == m_windows.end()) {
+            std::cerr << "WARNING: reconfigure(): window allocation (size " << m_sWindowSize << ") required in RT mode" << std::endl;
+            m_windows[m_sWindowSize] = new Window<float>
+                (HanningWindow, m_sWindowSize);
+        }
+
+        m_awindow = m_windows[m_aWindowSize];
+        m_swindow = m_windows[m_sWindowSize];
 
         for (size_t c = 0; c < m_channels; ++c) {
-            m_channelData[c]->setWindowSize(m_windowSize);
+            m_channelData[c]->setSizes(std::max(m_aWindowSize, m_sWindowSize),
+                                       m_fftSize);
         }
     }
 
@@ -727,7 +759,7 @@ RubberBandStretcher::Impl::reconfigure()
             std::cerr << "WARNING: reconfigure(): resampler construction required in RT mode" << std::endl;
 
             m_channelData[c]->resampler =
-                new Resampler(Resampler::FastestTolerable, 1, m_windowSize,
+                new Resampler(Resampler::FastestTolerable, 1, m_sWindowSize,
                               m_debugLevel);
 
             m_channelData[c]->setResampleBufSize
@@ -735,8 +767,8 @@ RubberBandStretcher::Impl::reconfigure()
         }
     }
 
-    if (m_windowSize != prevWindowSize) {
-        m_phaseResetAudioCurve->setWindowSize(m_windowSize);
+    if (m_fftSize != prevFftSize) {
+        m_phaseResetAudioCurve->setFftSize(m_fftSize);
     }
 }
 
@@ -744,7 +776,7 @@ size_t
 RubberBandStretcher::Impl::getLatency() const
 {
     if (!m_realtime) return 0;
-    return int((m_windowSize/2) / m_pitchScale + 1);
+    return int((m_aWindowSize/2) / m_pitchScale + 1);
 }
 
 void
@@ -887,21 +919,24 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
             consumed += writable;
         }
 
-	while ((inbuf.getReadSpace() >= int(m_windowSize)) ||
-               (final && (inbuf.getReadSpace() >= int(m_windowSize/2)))) {
+	while ((inbuf.getReadSpace() >= int(m_aWindowSize)) ||
+               (final && (inbuf.getReadSpace() >= int(m_aWindowSize/2)))) {
 
-	    // We know we have at least m_windowSize samples available
-	    // in m_inbuf.  We need to peek m_windowSize of them for
-	    // processing, and then skip m_increment to advance the
-	    // read pointer.
+	    // We know we have at least m_aWindowSize samples
+	    // available in m_inbuf.  We need to peek m_aWindowSize of
+	    // them for processing, and then skip m_increment to
+	    // advance the read pointer.
 
             // cd.accumulator is not otherwise used during studying,
             // so we can use it as a temporary buffer here
 
-            size_t got = inbuf.peek(cd.accumulator, m_windowSize);
-            assert(final || got == m_windowSize);
+            size_t got = inbuf.peek(cd.accumulator, m_aWindowSize);
+            assert(final || got == m_aWindowSize);
 
-            m_window->cut(cd.accumulator);
+            m_awindow->cut(cd.accumulator);
+
+            //!!! insert appropriate cunning here if m_aWindowSize !=
+            //!!! m_fftSize
 
             // We don't need the fftshift for studying, as we're only
             // interested in magnitude
@@ -925,12 +960,12 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
 
 //            cout << df << endl;
 
-            // We have augmented the input by m_windowSize/2 so
-            // that the first chunk is centred on the first audio
-            // sample.  We want to ensure that m_inputDuration
-            // contains the exact input duration without including
-            // this extra bit.  We just add up all the increments
-            // here, and deduct the extra afterwards.
+            // We have augmented the input by m_aWindowSize/2 so that
+            // the first chunk is centred on the first audio sample.
+            // We want to ensure that m_inputDuration contains the
+            // exact input duration without including this extra bit.
+            // We just add up all the increments here, and deduct the
+            // extra afterwards.
 
             m_inputDuration += m_increment;
 //                cerr << "incr input duration by increment: " << m_increment << " -> " << m_inputDuration << endl;
@@ -943,8 +978,8 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
         m_inputDuration += rs;
 //        cerr << "incr input duration by read space: " << rs << " -> " << m_inputDuration << endl;
 
-        if (m_inputDuration > m_windowSize/2) { // deducting the extra
-            m_inputDuration -= m_windowSize/2;
+        if (m_inputDuration > m_aWindowSize/2) { // deducting the extra
+            m_inputDuration -= m_aWindowSize/2;
         }
     }
 
@@ -1029,7 +1064,7 @@ RubberBandStretcher::Impl::calculateStretch()
         if (i >= m_silence.size()) break;
         if (m_silence[i]) ++history;
         else history = 0;
-        if (history >= int(m_windowSize / m_increment) && increments[i] >= 0) {
+        if (history >= int(m_aWindowSize / m_increment) && increments[i] >= 0) {
             increments[i] = -increments[i];
             if (m_debugLevel > 1) {
                 std::cerr << "phase reset on silence (silent history == "
@@ -1073,16 +1108,16 @@ RubberBandStretcher::Impl::getSamplesRequired() const
 
         // See notes in testInbufReadSpace 
 
-        if (rs < m_windowSize && !cd.draining) {
+        if (rs < m_aWindowSize && !cd.draining) {
             
             if (cd.inputSize == -1) {
-                reqdHere = m_windowSize - rs;
+                reqdHere = m_aWindowSize - rs;
                 if (reqdHere > reqd) reqd = reqdHere;
                 continue;
             }
         
             if (rs == 0) {
-                reqdHere = m_windowSize;
+                reqdHere = m_aWindowSize;
                 if (reqdHere > reqd) reqd = reqdHere;
                 continue;
             }
@@ -1110,7 +1145,7 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
 
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData[c]->reset();
-            m_channelData[c]->inbuf->zero(m_windowSize/2);
+            m_channelData[c]->inbuf->zero(m_aWindowSize/2);
         }
 
         if (m_threaded) {

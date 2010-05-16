@@ -47,11 +47,6 @@ void gettimeofday(struct timeval *p, void *tz);
 
 #endif
 
-#ifdef __MSVC__
-
-void usleep(unsigned long);
-
-#endif
 
 enum ProcessStatus { ProcessRunning, ProcessNotRunning, UnknownProcessStatus };
 extern ProcessStatus GetProcessStatus(int pid);

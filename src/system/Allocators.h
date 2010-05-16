@@ -45,14 +45,10 @@ T *allocate(size_t count)
         ptr = malloc(count * sizeof(T));
     }
 #else
-#ifdef __MSVC__
-    ptr = _aligned_malloc(count * sizeof(T), 16);
-#else
     // Note that malloc always aligns to 16 byte boundaries on OS/X,
     // so we don't need posix_memalign there (which is fortunate,
     // since it doesn't exist)
     ptr = malloc(count * sizeof(T));
-#endif
 #endif
     if (!ptr) throw(std::bad_alloc());
     return (T *)ptr;
@@ -70,11 +66,7 @@ T *allocate_and_zero(size_t count)
 template <typename T>
 void deallocate(T *ptr)
 {
-#ifdef __MSVC__
-    if (ptr) _aligned_free((void *)ptr);
-#else
     if (ptr) free((void *)ptr);
-#endif
 }
 
 	

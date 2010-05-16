@@ -27,29 +27,29 @@ class AudioCurveCalculator
 {
 public:
     struct Parameters {
-        Parameters(int _sampleRate, int _windowSize) :
+        Parameters(int _sampleRate, int _fftSize) :
             sampleRate(_sampleRate),
-            windowSize(_windowSize)
+            fftSize(_fftSize)
         { }
         int sampleRate;
-        int windowSize;
+        int fftSize;
     };
 
     AudioCurveCalculator(Parameters parameters);
     virtual ~AudioCurveCalculator();
 
     int getSampleRate() const { return m_sampleRate; }
-    int getWindowSize() const { return m_windowSize; }
+    int getFftSize() const { return m_fftSize; }
 
     virtual void setSampleRate(int newRate);
-    virtual void setWindowSize(int newSize);
+    virtual void setFftSize(int newSize);
 
     Parameters getParameters() const {
-        return Parameters(m_sampleRate, m_windowSize);
+        return Parameters(m_sampleRate, m_fftSize);
     }
     void setParameters(Parameters p) {
         setSampleRate(p.sampleRate);
-        setWindowSize(p.windowSize);
+        setFftSize(p.fftSize);
     }
 
     // You may not mix calls to the various process functions on a
@@ -65,7 +65,7 @@ public:
 
 protected:
     int m_sampleRate;
-    int m_windowSize;
+    int m_fftSize;
     int m_lastPerceivedBin;
     void recalculateLastPerceivedBin();
 };

@@ -123,7 +123,11 @@ protected:
     double m_timeRatio;
     double m_pitchScale;
 
-    size_t m_windowSize;
+    // n.b. either m_fftSize is an integer multiple of m_windowSize,
+    // or vice versa
+    size_t m_fftSize;
+    size_t m_aWindowSize; //!!! or use m_awindow->getSize() throughout?
+    size_t m_sWindowSize; //!!! or use m_swindow->getSize() throughout?
     size_t m_increment;
     size_t m_outbufSize;
 
@@ -145,7 +149,8 @@ protected:
     ProcessMode m_mode;
 
     std::map<size_t, Window<float> *> m_windows;
-    Window<float> *m_window;
+    Window<float> *m_awindow;
+    Window<float> *m_swindow;
     FFT *m_studyFFT;
 
     Condition m_spaceAvailable;
@@ -194,7 +199,7 @@ protected:
     float m_freq1;
     float m_freq2;
 
-    size_t m_baseWindowSize;
+    size_t m_baseFftSize;
     float m_rateMultiple;
 
     void writeOutput(RingBuffer<float> &to, float *from,
@@ -202,7 +207,7 @@ protected:
 
     static int m_defaultDebugLevel;
     static const size_t m_defaultIncrement;
-    static const size_t m_defaultWindowSize;
+    static const size_t m_defaultFftSize;
 };
 
 }

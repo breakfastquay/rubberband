@@ -23,7 +23,7 @@ static const int MaxPerceivedFreq = 16000;
 
 AudioCurveCalculator::AudioCurveCalculator(Parameters parameters) :
     m_sampleRate(parameters.sampleRate),
-    m_windowSize(parameters.windowSize)
+    m_fftSize(parameters.fftSize)
 {
     recalculateLastPerceivedBin();
 }
@@ -40,9 +40,9 @@ AudioCurveCalculator::setSampleRate(int newRate)
 }
 
 void
-AudioCurveCalculator::setWindowSize(int newSize)
+AudioCurveCalculator::setFftSize(int newSize)
 {
-    m_windowSize = newSize;
+    m_fftSize = newSize;
     recalculateLastPerceivedBin();
 }
 
@@ -53,9 +53,9 @@ AudioCurveCalculator::recalculateLastPerceivedBin()
         m_lastPerceivedBin = 0;
         return;
     }
-    m_lastPerceivedBin = ((MaxPerceivedFreq * m_windowSize) / m_sampleRate);
-    if (m_lastPerceivedBin > m_windowSize/2) {
-        m_lastPerceivedBin = m_windowSize/2;
+    m_lastPerceivedBin = ((MaxPerceivedFreq * m_fftSize) / m_sampleRate);
+    if (m_lastPerceivedBin > m_fftSize/2) {
+        m_lastPerceivedBin = m_fftSize/2;
     }
 }
 

@@ -26,7 +26,7 @@ namespace RubberBand
 PercussiveAudioCurve::PercussiveAudioCurve(Parameters parameters) :
     AudioCurveCalculator(parameters)
 {
-    m_prevMag = allocate_and_zero<double>(m_windowSize/2 + 1);
+    m_prevMag = allocate_and_zero<double>(m_fftSize/2 + 1);
 }
 
 PercussiveAudioCurve::~PercussiveAudioCurve()
@@ -37,14 +37,14 @@ PercussiveAudioCurve::~PercussiveAudioCurve()
 void
 PercussiveAudioCurve::reset()
 {
-    v_zero(m_prevMag, m_windowSize/2 + 1);
+    v_zero(m_prevMag, m_fftSize/2 + 1);
 }
 
 void
-PercussiveAudioCurve::setWindowSize(int newSize)
+PercussiveAudioCurve::setFftSize(int newSize)
 {
-    m_prevMag = reallocate(m_prevMag, m_windowSize, newSize);
-    AudioCurveCalculator::setWindowSize(newSize);
+    m_prevMag = reallocate(m_prevMag, m_fftSize, newSize);
+    AudioCurveCalculator::setFftSize(newSize);
     reset();
 }
 

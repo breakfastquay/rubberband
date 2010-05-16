@@ -58,11 +58,11 @@ CompoundAudioCurve::reset()
 }
 
 void
-CompoundAudioCurve::setWindowSize(int newSize)
+CompoundAudioCurve::setFftSize(int newSize)
 {
-    m_percussive.setWindowSize(newSize);
-    m_hf.setWindowSize(newSize);
-    m_windowSize = newSize;
+    m_percussive.setFftSize(newSize);
+    m_hf.setFftSize(newSize);
+    m_fftSize = newSize;
     m_lastHf = 0.0;
     m_lastResult = 0.0;
 }

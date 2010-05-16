@@ -37,7 +37,7 @@ public:
     };
     virtual void setType(Type);
     
-    virtual void setWindowSize(int newSize);
+    virtual void setFftSize(int newSize);
 
     virtual float processFloat(const float *R__ mag, int increment);
     virtual double processDouble(const double *R__ mag, int increment);

@@ -42,11 +42,11 @@ SpectralDifferenceAudioCurve::reset()
 }
 
 void
-SpectralDifferenceAudioCurve::setWindowSize(int newSize)
+SpectralDifferenceAudioCurve::setFftSize(int newSize)
 {
     deallocate(m_tmpbuf);
     deallocate(m_mag);
-    AudioCurveCalculator::setWindowSize(newSize);
+    AudioCurveCalculator::setFftSize(newSize);
     m_mag = allocate<double>(m_lastPerceivedBin + 1);
     m_tmpbuf = allocate<double>(m_lastPerceivedBin + 1);
     reset();

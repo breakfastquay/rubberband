@@ -215,8 +215,8 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
         any = true;
 
         if (!cd.draining) {
-            size_t got = cd.inbuf->peek(cd.fltbuf, m_windowSize);
-            assert(got == m_windowSize || cd.inputSize >= 0);
+            size_t got = cd.inbuf->peek(cd.fltbuf, m_aWindowSize);
+            assert(got == m_aWindowSize || cd.inputSize >= 0);
             cd.inbuf->skip(m_increment);
         }
 
@@ -224,20 +224,20 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
         size_t phaseIncrement, shiftIncrement;
         getIncrements(c, phaseIncrement, shiftIncrement, phaseReset);
 
-        if (shiftIncrement <= m_windowSize) {
+        if (shiftIncrement <= m_aWindowSize) {
             analyseChunk(c);
             last = processChunkForChannel
                 (c, phaseIncrement, shiftIncrement, phaseReset);
         } else {
-            size_t bit = m_windowSize/4;
+            size_t bit = m_aWindowSize/4;
             if (m_debugLevel > 1) {
                 cerr << "channel " << c << " breaking down overlong increment " << shiftIncrement << " into " << bit << "-size bits" << endl;
             }
             analyseChunk(c);
-            float *tmp = (float *)alloca(m_windowSize * sizeof(float));
-            v_copy(tmp, cd.fltbuf, m_windowSize);
+            float *tmp = (float *)alloca(m_aWindowSize * sizeof(float));
+            v_copy(tmp, cd.fltbuf, m_aWindowSize);
             for (size_t i = 0; i < shiftIncrement; i += bit) {
-                v_copy(cd.fltbuf, tmp, m_windowSize);
+                v_copy(cd.fltbuf, tmp, m_aWindowSize);
                 size_t thisIncrement = bit;
                 if (i + thisIncrement > shiftIncrement) {
                     thisIncrement = shiftIncrement - i;
@@ -270,8 +270,8 @@ RubberBandStretcher::Impl::processOneChunk()
         if (!testInbufReadSpace(c)) return false;
         ChannelData &cd = *m_channelData[c];
         if (!cd.draining) {
-            size_t got = cd.inbuf->peek(cd.fltbuf, m_windowSize);
-            assert(got == m_windowSize || cd.inputSize >= 0);
+            size_t got = cd.inbuf->peek(cd.fltbuf, m_aWindowSize);
+            assert(got == m_aWindowSize || cd.inputSize >= 0);
             cd.inbuf->skip(m_increment);
             analyseChunk(c);
         }
@@ -302,7 +302,7 @@ RubberBandStretcher::Impl::testInbufReadSpace(size_t c)
 
     size_t rs = inbuf.getReadSpace();
 
-    if (rs < m_windowSize && !cd.draining) {
+    if (rs < m_aWindowSize && !cd.draining) {
             
         if (cd.inputSize == -1) {
 
@@ -328,7 +328,7 @@ RubberBandStretcher::Impl::testInbufReadSpace(size_t c)
             }
             return false;
 
-        } else if (rs < m_windowSize/2) {
+        } else if (rs < m_aWindowSize/2) {
 
             if (m_debugLevel > 1) {
                 cerr << "read space = " << rs << ", setting draining true" << endl;
@@ -356,7 +356,7 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
 
     if (phaseReset && (m_debugLevel > 1)) {
         cerr << "processChunkForChannel: phase reset found, incrs "
-                  << phaseIncrement << ":" << shiftIncrement << endl;
+             << phaseIncrement << ":" << shiftIncrement << endl;
     }
 
     ChannelData &cd = *m_channelData[c];
@@ -368,12 +368,12 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         // to write from the existing accumulator into the output.
         
         // We know we have enough samples available in m_inbuf --
-        // this is usually m_windowSize, but we know that if fewer
+        // this is usually m_aWindowSize, but we know that if fewer
         // are available, it's OK to use zeroes for the rest
         // (which the ring buffer will provide) because we've
         // reached the true end of the data.
         
-        // We need to peek m_windowSize samples for processing, and
+        // We need to peek m_aWindowSize samples for processing, and
         // then skip m_increment to advance the read pointer.
 
         modifyChunk(c, phaseIncrement, phaseReset);
@@ -474,7 +474,7 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
         }
     }
 
-    const int hs = m_windowSize/2 + 1;
+    const int hs = m_fftSize/2 + 1;
 
     // Normally we would mix down the time-domain signal and apply a
     // single FFT, or else mix down the Cartesian form of the
@@ -544,7 +544,7 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
     if (silent) ++m_silentHistory;
     else m_silentHistory = 0;
 
-    if (m_silentHistory >= int(m_windowSize / m_increment) && !phaseReset) {
+    if (m_silentHistory >= int(m_aWindowSize / m_increment) && !phaseReset) {
         phaseReset = true;
         if (m_debugLevel > 1) {
             cerr << "calculateIncrements: phase reset on silence (silent history == "
@@ -641,37 +641,24 @@ RubberBandStretcher::Impl::analyseChunk(size_t channel)
     double *const R__ dblbuf = cd.dblbuf;
     float *const R__ fltbuf = cd.fltbuf;
 
-    int sz = m_windowSize;
-    int hs = m_windowSize/2;
+    int sz = m_fftSize;
+    int hs = sz / 2;
 
-    // cd.fltbuf is known to contain m_windowSize samples
+    // cd.fltbuf is known to contain m_aWindowSize samples
 
-    m_window->cut(fltbuf);
+    m_awindow->cut(fltbuf);
 
-    if (cd.oversample > 1) {
-
-        int bufsiz = sz * cd.oversample;
-        int offset = (bufsiz - sz) / 2;
-
-        // eek
-
-        for (i = 0; i < offset; ++i) {
-            dblbuf[i] = 0.0;
-        }
-        for (i = 0; i < offset; ++i) {
-            dblbuf[bufsiz - i - 1] = 0.0;
-        }
-        for (i = 0; i < sz; ++i) {
-            dblbuf[offset + i] = fltbuf[i];
-        }
-        for (i = 0; i < bufsiz / 2; ++i) {
-            double tmp = dblbuf[i];
-            dblbuf[i] = dblbuf[i + bufsiz/2];
-            dblbuf[i + bufsiz/2] = tmp;
-        }
-    } else {
+    if (m_aWindowSize == m_fftSize) {
         v_convert(dblbuf, fltbuf + hs, hs);
         v_convert(dblbuf + hs, fltbuf, hs);
+    } else {
+        v_zero(dblbuf, sz);
+        int j = sz - m_aWindowSize/2;
+        while (j < 0) j += sz;
+        for (int i = 0; i < m_aWindowSize; ++i) {
+            dblbuf[j] += fltbuf[i];
+            if (++j == sz) j = 0;
+        }
     }
 
     cd.fft->forwardPolar(dblbuf, cd.mag, cd.phase);
@@ -691,15 +678,14 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
     }
 
     const double rate = m_sampleRate;
-    const int sz = m_windowSize;
-    const int count = (sz * cd.oversample) / 2;
+    const int count = m_fftSize / 2;
 
     bool unchanged = cd.unchanged && (outputIncrement == m_increment);
     bool fullReset = phaseReset;
     bool laminar = !(m_options & OptionPhaseIndependent);
     bool bandlimited = (m_options & OptionTransientsMixed);
-    int bandlow = lrint((150 * sz * cd.oversample) / rate);
-    int bandhigh = lrint((1000 * sz * cd.oversample) / rate);
+    int bandlow = lrint((150 * m_fftSize) / rate);
+    int bandhigh = lrint((1000 * m_fftSize) / rate);
 
     float freq0 = m_freq0;
     float freq1 = m_freq1;
@@ -717,9 +703,9 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
         }
     }
 
-    int limit0 = lrint((freq0 * sz * cd.oversample) / rate);
-    int limit1 = lrint((freq1 * sz * cd.oversample) / rate);
-    int limit2 = lrint((freq2 * sz * cd.oversample) / rate);
+    int limit0 = lrint((freq0 * m_fftSize) / rate);
+    int limit1 = lrint((freq1 * m_fftSize) / rate);
+    int limit2 = lrint((freq2 * m_fftSize) / rate);
 
     if (limit1 < limit0) limit1 = limit0;
     if (limit2 < limit1) limit2 = limit1;
@@ -758,7 +744,7 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
 
         if (!resetThis) {
 
-            double omega = (2 * M_PI * m_increment * i) / (sz * cd.oversample);
+            double omega = (2 * M_PI * m_increment * i) / (m_fftSize);
 
             double pp = cd.prevPhase[i];
             double ep = pp + omega;
@@ -833,8 +819,8 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
     double *const R__ envelope = cd.envelope;
     double *const R__ dblbuf = cd.dblbuf;
 
-    const int sz = m_windowSize;
-    const int hs = m_windowSize/2;
+    const int sz = m_fftSize;
+    const int hs = sz / 2;
     const double factor = 1.0 / sz;
     
     cd.fft->inverseCepstral(mag, dblbuf);
@@ -861,7 +847,7 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
         // scaling up, we want a new envelope that is lower by the pitch factor
         for (int target = 0; target <= hs; ++target) {
             int source = lrint(target * m_pitchScale);
-            if (source > int(m_windowSize)) {
+            if (source > sz) {
                 envelope[target] = 0.0;
             } else {
                 envelope[target] = envelope[source];
@@ -899,47 +885,40 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
     float *const R__ accumulator = cd.accumulator;
     float *const R__ windowAccumulator = cd.windowAccumulator;
     
-    int sz = m_windowSize;
-    int hs = m_windowSize/2;
+    int sz = m_fftSize;
+    int hs = sz / 2;
     int i;
-
 
     if (!cd.unchanged) {
 
         cd.fft->inversePolar(cd.mag, cd.phase, cd.dblbuf);
 
-        if (cd.oversample > 1) {
+        // our ffts produced unscaled results
+        float factor = 1.0 / m_fftSize;
+        v_scale(dblbuf, factor, sz);
 
-            int bufsiz = sz * cd.oversample;
-            int hbs = hs * cd.oversample;
-            int offset = (bufsiz - sz) / 2;
-
-            for (i = 0; i < hbs; ++i) {
-                double tmp = dblbuf[i];
-                dblbuf[i] = dblbuf[i + hbs];
-                dblbuf[i + hbs] = tmp;
-            }
-            for (i = 0; i < sz; ++i) {
-                fltbuf[i] = float(dblbuf[i + offset]);
-            }
-        } else {
+        if (m_sWindowSize == m_fftSize) {
             v_convert(fltbuf, dblbuf + hs, hs);
             v_convert(fltbuf + hs, dblbuf, hs);
+        } else {
+            v_zero(fltbuf, m_sWindowSize);
+            int j = sz - m_sWindowSize/2;
+            while (j < 0) j += sz;
+            for (int i = 0; i < m_sWindowSize; ++i) {
+                fltbuf[i] += dblbuf[j];
+                if (++j == sz) j = 0;
+            }
         }
-
-        // our ffts produced unscaled results
-        float factor = 1.f / float(sz * cd.oversample);
-        v_scale(fltbuf, factor, sz);
     }
 
-    m_window->cut(fltbuf);
+    m_swindow->cut(fltbuf);
 
-    v_add(accumulator, fltbuf, sz);
+    v_add(accumulator, fltbuf, m_sWindowSize);
 
-    cd.accumulatorFill = m_windowSize;
+    cd.accumulatorFill = m_sWindowSize;
 
-    float fixed = m_window->getArea() * 1.5f;
-    m_window->add(windowAccumulator, fixed);
+    float fixed = m_swindow->getArea() * 1.5f;
+    m_swindow->add(windowAccumulator, fixed);
 }
 
 void
@@ -952,7 +931,7 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
     float *const R__ accumulator = cd.accumulator;
     float *const R__ windowAccumulator = cd.windowAccumulator;
 
-    const int sz = m_windowSize;
+    const int sz = m_sWindowSize;
     const int si = shiftIncrement;
 
     int i;
@@ -1035,7 +1014,7 @@ RubberBandStretcher::Impl::writeOutput(RingBuffer<float> &to, float *from, size_
 
     size_t startSkip = 0;
     if (!m_realtime) {
-        startSkip = lrintf((m_windowSize/2) / m_pitchScale);
+        startSkip = lrintf((m_sWindowSize/2) / m_pitchScale);
     }
 
     if (outCount > startSkip) {

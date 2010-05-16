@@ -22,41 +22,39 @@ namespace RubberBand
 {
       
 RubberBandStretcher::Impl::ChannelData::ChannelData(size_t windowSize,
-                                                    int overSample,
-                                                    size_t outbufSize) :
-    oversample(overSample)
+                                                    size_t fftSize,
+                                                    size_t outbufSize)
 {
     std::set<size_t> s;
-    construct(s, windowSize, outbufSize);
+    construct(s, windowSize, fftSize, outbufSize);
 }
 
-RubberBandStretcher::Impl::ChannelData::ChannelData(const std::set<size_t> &windowSizes,
-                                                    int overSample,
+RubberBandStretcher::Impl::ChannelData::ChannelData(const std::set<size_t> &sizes,
                                                     size_t initialWindowSize,
-                                                    size_t outbufSize) :
-    oversample(overSample)
+                                                    size_t initialFftSize,
+                                                    size_t outbufSize)
 {
-    construct(windowSizes, initialWindowSize, outbufSize);
+    construct(sizes, initialWindowSize, initialFftSize, outbufSize);
 }
 
 void
-RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &windowSizes,
+RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &sizes,
                                                   size_t initialWindowSize,
+                                                  size_t initialFftSize,
                                                   size_t outbufSize)
 {
     size_t maxSize = initialWindowSize;
+    if (initialFftSize > maxSize) maxSize = initialFftSize;
 
-    if (!windowSizes.empty()) {
-        // std::set is ordered by value
-        std::set<size_t>::const_iterator i = windowSizes.end();
-        maxSize = *--i;
-    }
-    if (windowSizes.find(initialWindowSize) == windowSizes.end()) {
-        if (initialWindowSize > maxSize) maxSize = initialWindowSize;
+    // std::set is ordered by value
+    std::set<size_t>::const_iterator i = sizes.end();
+    if (i != sizes.begin()) {
+        --i;
+        if (*i > maxSize) maxSize = *i;
     }
 
-    // max size of the real "half" of freq data
-    size_t realSize = (maxSize * oversample)/2 + 1;
+    // max possible size of the real "half" of freq data
+    size_t realSize = maxSize / 2 + 1;
 
 //    std::cerr << "ChannelData::construct([" << windowSizes.size() << "], " << maxSize << ", " << outbufSize << ")" << std::endl;
     
@@ -79,16 +77,12 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &window
     accumulator = allocate<float>(maxSize);
     windowAccumulator = allocate<float>(maxSize);
 
-    for (std::set<size_t>::const_iterator i = windowSizes.begin();
-         i != windowSizes.end(); ++i) {
-        ffts[*i] = new FFT(*i * oversample);
+    for (std::set<size_t>::const_iterator i = sizes.begin();
+         i != sizes.end(); ++i) {
+        ffts[*i] = new FFT(*i);
         ffts[*i]->initDouble();
     }
-    if (windowSizes.find(initialWindowSize) == windowSizes.end()) {
-        ffts[initialWindowSize] = new FFT(initialWindowSize * oversample);
-        ffts[initialWindowSize]->initDouble();
-    }
-    fft = ffts[initialWindowSize];
+    fft = ffts[initialFftSize];
 
     dblbuf = fft->getDoubleTimeBuffer();
 
@@ -102,7 +96,7 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &window
         freqPeak[i] = 0;
     }
 
-    for (size_t i = 0; i < initialWindowSize * oversample; ++i) {
+    for (size_t i = 0; i < initialFftSize; ++i) {
         dblbuf[i] = 0.0;
     }
 
@@ -115,15 +109,16 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &window
     windowAccumulator[0] = 1.f;
 }
 
+
 void
-RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
+RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,
+                                                 size_t fftSize)
 {
-    size_t oldSize = inbuf->getSize();
-    size_t realSize = (windowSize * oversample) / 2 + 1;
+    size_t maxSize = std::max(windowSize, fftSize);
+    size_t realSize = maxSize / 2 + 1;
+    size_t oldMax = inbuf->getSize();
 
-//    std::cerr << "ChannelData::setWindowSize(" << windowSize << ") [from " << oldSize << "]" << std::endl;
-
-    if (oldSize >= windowSize) { //!!! shurely >= realSize?
+    if (oldMax >= maxSize) {
 
         // no need to reallocate buffers, just reselect fft
 
@@ -131,18 +126,18 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
         //process thread, can we?  we need to zero the mag/phase
         //buffers without interference
 
-        if (ffts.find(windowSize) == ffts.end()) {
+        if (ffts.find(fftSize) == ffts.end()) {
             //!!! this also requires a lock, but it shouldn't occur in
             //RT mode with proper initialisation
-            ffts[windowSize] = new FFT(windowSize * oversample);
-            ffts[windowSize]->initDouble();
+            ffts[fftSize] = new FFT(fftSize);
+            ffts[fftSize]->initDouble();
         }
         
-        fft = ffts[windowSize];
+        fft = ffts[fftSize];
 
         dblbuf = fft->getDoubleTimeBuffer();
 
-        for (size_t i = 0; i < windowSize * oversample; ++i) {
+        for (size_t i = 0; i < maxSize; ++i) {
             dblbuf[i] = 0.0;
         }
 
@@ -165,37 +160,37 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
     //is unavailable (since this should never normally be the case in
     //general use in RT mode)
 
-    RingBuffer<float> *newbuf = inbuf->resized(windowSize);
+    RingBuffer<float> *newbuf = inbuf->resized(maxSize);
     delete inbuf;
     inbuf = newbuf;
 
     // We don't want to preserve data in these arrays
 
-    mag = reallocate<double>(mag, oldSize, realSize);
-    phase = reallocate<double>(phase, oldSize, realSize);
-    prevPhase = reallocate<double>(prevPhase, oldSize, realSize);
-    prevError = reallocate<double>(prevError, oldSize, realSize);
-    unwrappedPhase = reallocate<double>(unwrappedPhase, oldSize, realSize);
-    envelope = reallocate<double>(envelope, oldSize, realSize);
+    mag = reallocate<double>(mag, oldMax, realSize);
+    phase = reallocate<double>(phase, oldMax, realSize);
+    prevPhase = reallocate<double>(prevPhase, oldMax, realSize);
+    prevError = reallocate<double>(prevError, oldMax, realSize);
+    unwrappedPhase = reallocate<double>(unwrappedPhase, oldMax, realSize);
+    envelope = reallocate<double>(envelope, oldMax, realSize);
 
     delete[] freqPeak;
     freqPeak = new size_t[realSize];
 
     deallocate(fltbuf);
-    fltbuf = allocate<float>(windowSize);
+    fltbuf = allocate<float>(maxSize);
 
     // But we do want to preserve data in these
 
-    float *newAcc = allocate<float>(windowSize);
+    float *newAcc = allocate<float>(maxSize);
 
-    v_copy(newAcc, accumulator, oldSize);
+    v_copy(newAcc, accumulator, oldMax);
 
     deallocate(accumulator);
     accumulator = newAcc;
 
-    newAcc = allocate<float>(windowSize);
+    newAcc = allocate<float>(maxSize);
 
-    v_copy(newAcc, windowAccumulator, oldSize);
+    v_copy(newAcc, windowAccumulator, oldMax);
 
     deallocate(windowAccumulator);
     windowAccumulator = newAcc;
@@ -206,20 +201,20 @@ RubberBandStretcher::Impl::ChannelData::setWindowSize(size_t windowSize)
         freqPeak[i] = 0;
     }
 
-    for (size_t i = 0; i < windowSize; ++i) {
+    for (size_t i = 0; i < maxSize; ++i) {
         fltbuf[i] = 0.f;
     }
 
-    if (ffts.find(windowSize) == ffts.end()) {
-        ffts[windowSize] = new FFT(windowSize * oversample);
-        ffts[windowSize]->initDouble();
+    if (ffts.find(fftSize) == ffts.end()) {
+        ffts[fftSize] = new FFT(fftSize);
+        ffts[fftSize]->initDouble();
     }
     
-    fft = ffts[windowSize];
+    fft = ffts[fftSize];
 
     dblbuf = fft->getDoubleTimeBuffer();
 
-    for (size_t i = 0; i < windowSize * oversample; ++i) {
+    for (size_t i = 0; i < fftSize; ++i) {
         dblbuf[i] = 0.0;
     }
 }

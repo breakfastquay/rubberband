@@ -27,7 +27,7 @@
  * 
  * The Rubber Band API is contained in the single class
  * RubberBand::RubberBandStretcher.
- *
+ * 
  * Threading notes for real-time applications:
  * 
  * Multiple instances of RubberBandStretcher may be created and used

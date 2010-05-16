@@ -32,31 +32,36 @@ public:
     /**
      * Construct a ChannelData structure.
      *
-     * The window size passed in here is the size for the FFT
-     * calculation, and most of the buffer sizes also depend on
-     * it.  In practice it is always a power of two and except for
-     * very extreme stretches is always either 1024, 2048 or 4096.
+     * The sizes passed in here are for the time-domain analysis
+     * window and FFT calculation, and most of the buffer sizes also
+     * depend on them.  In practice they are always powers of two, the
+     * window and FFT sizes are either equal or generally in a 2:1
+     * relationship either way, and except for very extreme stretches
+     * the FFT size is either 1024, 2048 or 4096.
      *
      * The outbuf size depends on other factors as well, including
      * the pitch scale factor and any maximum processing block
      * size specified by the user of the code.
      */
-    ChannelData(size_t windowSize, int overSample, size_t outbufSize);
+    ChannelData(size_t windowSize,
+                size_t fftSize,
+                size_t outbufSize);
 
     /**
-     * Construct a ChannelData structure that can process at
-     * different FFT sizes without requiring reallocation when the
-     * size changes.  The size can subsequently be changed with a
-     * call to setWindowSize.  Reallocation will only be necessary
-     * if setWindowSize is called with a value not equal to one of
-     * those passed in to the constructor.
+     * Construct a ChannelData structure that can process at different
+     * FFT sizes without requiring reallocation when the size changes.
+     * The sizes can subsequently be changed with a call to setSizes.
+     * Reallocation will only be necessary if setSizes is called with
+     * values not equal to any of those passed in to the constructor.
      *
      * The outbufSize should be the maximum possible outbufSize to
      * avoid reallocation, which will happen if setOutbufSize is
      * called subsequently.
      */
-    ChannelData(const std::set<size_t> &windowSizes,
-                int overSample, size_t initialWindowSize, size_t outbufSize);
+    ChannelData(const std::set<size_t> &sizes,
+                size_t initialWindowSize,
+                size_t initialFftSize,
+                size_t outbufSize);
     ~ChannelData();
 
     /**
@@ -65,12 +70,12 @@ public:
     void reset();
 
     /**
-     * Set the FFT and buffer sizes from the given processing
-     * window size.  If this ChannelData was constructed with a set
-     * of window sizes and the given window size here was among
-     * them, no reallocation will be required.
+     * Set the FFT, analysis window, and buffer sizes.  If this
+     * ChannelData was constructed with a set of sizes and the given
+     * window and FFT sizes here were among them, no reallocation will
+     * be required.
      */
-    void setWindowSize(size_t windowSize);
+    void setSizes(size_t windowSize, size_t fftSizes);
 
     /**
      * Set the outbufSize for the channel data.  Reallocation will
@@ -93,7 +98,6 @@ public:
     double *prevPhase;
     double *prevError;
     double *unwrappedPhase;
-
 
     size_t *freqPeak;
 
@@ -123,11 +127,10 @@ public:
     float *resamplebuf;
     size_t resamplebufSize;
 
-    int oversample;
-
 private:
-    void construct(const std::set<size_t> &windowSizes,
-                   size_t initialWindowSize, size_t outbufSize);
+    void construct(const std::set<size_t> &sizes,
+                   size_t initialWindowSize, size_t initialFftSize,
+                   size_t outbufSize);
 };        
 
 }
