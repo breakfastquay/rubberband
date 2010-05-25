@@ -641,25 +641,16 @@ RubberBandStretcher::Impl::analyseChunk(size_t channel)
     double *const R__ dblbuf = cd.dblbuf;
     float *const R__ fltbuf = cd.fltbuf;
 
-    int sz = m_fftSize;
-    int hs = sz / 2;
+//!!!    int sz = m_fftSize;
+//    int hs = sz / 2;
 
     // cd.fltbuf is known to contain m_aWindowSize samples
 
-    m_awindow->cut(fltbuf);
-
-    if (m_aWindowSize == m_fftSize) {
-        v_convert(dblbuf, fltbuf + hs, hs);
-        v_convert(dblbuf + hs, fltbuf, hs);
-    } else {
-        v_zero(dblbuf, sz);
-        int j = sz - m_aWindowSize/2;
-        while (j < 0) j += sz;
-        for (int i = 0; i < m_aWindowSize; ++i) {
-            dblbuf[j] += fltbuf[i];
-            if (++j == sz) j = 0;
-        }
+    if (m_aWindowSize > m_fftSize) {
+        m_asinc->cut(fltbuf);
     }
+
+    cutShiftAndFold(dblbuf, m_fftSize, fltbuf, m_awindow);
 
     cd.fft->forwardPolar(dblbuf, cd.mag, cd.phase);
 }
@@ -902,12 +893,25 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
             v_convert(fltbuf + hs, dblbuf, hs);
         } else {
             v_zero(fltbuf, m_sWindowSize);
+#ifdef PARP
+//!!! centre fft frame (effectively only if swindowsize == fftsize, else discontinuities)
+            const int count = std::min(m_fftSize, m_sWindowSize);
+            int i = m_sWindowSize/2 - count/2;
+            int j = m_fftSize - count/2;
+            for (int k = 0; k < count; ++k) {
+                fltbuf[i] += dblbuf[j];
+                if (i++ == m_sWindowSize) i = 0;
+                if (j++ == m_fftSize) j = 0;
+            }
+#else
+//!!! unwrap
             int j = sz - m_sWindowSize/2;
             while (j < 0) j += sz;
             for (int i = 0; i < m_sWindowSize; ++i) {
                 fltbuf[i] += dblbuf[j];
                 if (++j == sz) j = 0;
             }
+#endif
         }
     }
 
@@ -917,8 +921,37 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
 
     cd.accumulatorFill = m_sWindowSize;
 
-    float fixed = m_swindow->getArea() * 1.5f;
-    m_swindow->add(windowAccumulator, fixed);
+/*
+    std::cerr << "Note: synthesis window area = " << m_swindow->getArea()
+              << ", analysis window area = " << m_awindow->getArea()
+              << ", analysis sinc area = " << m_asinc->getArea()
+              << std::endl;
+*/
+
+    //!!!
+
+    float *tmp = (float *)alloca(m_sWindowSize * sizeof(float));
+    v_set(tmp, 1.f, m_sWindowSize);
+
+//!!!    m_awindow->cut(tmp); //!!! if (m_aWindowSize == m_sWindowSize)
+    m_swindow->cut(tmp);
+/*
+    if (m_aWindowSize != m_fftSize) {
+        if (m_aWindowSize == m_sWindowSize) {
+            m_asinc->cut(tmp);
+        } else {
+            int sourceIndex = m_aWindowSize/2 - m_sWindowSize/2;
+            for (int i = 0; i < m_sWindowSize; ++i) {
+                if (sourceIndex >= 0 && sourceIndex < m_aWindowSize) {
+                    tmp[i] *= m_asinc->getValue(sourceIndex);
+                }
+                ++sourceIndex;
+            }
+        }
+    }
+*/
+    v_add(windowAccumulator, tmp, m_sWindowSize);
+
 }
 
 void

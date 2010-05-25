@@ -22,6 +22,7 @@
 
 #include "system/sysutils.h"
 #include "system/VectorOps.h"
+#include "system/Allocators.h"
 
 namespace RubberBand {
 
@@ -86,10 +87,10 @@ protected:
 template <typename T>
 void Window<T>::encache()
 {
-    int n = int(m_size);
-    T *mult = new T[n];
+    const int n = m_size;
+    T *mult = allocate<T>(n);
+    v_set(mult, T(1.0), n);
     int i;
-    for (i = 0; i < n; ++i) mult[i] = 1.0;
 
     switch (m_type) {
 		

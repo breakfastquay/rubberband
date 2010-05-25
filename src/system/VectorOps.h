@@ -52,6 +52,16 @@ inline void v_zero_channels(T *const R__ *const R__ ptr,
 }
 
 template<typename T>
+inline void v_set(T *const R__ ptr,
+                  const T value,
+                  const int count)
+{
+    for (int i = 0; i < count; ++i) {
+        ptr[i] = value;
+    }
+}
+
+template<typename T>
 inline void v_copy(T *const R__ dst,
                    const T *const R__ src,
                    const int count)

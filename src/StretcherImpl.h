@@ -18,6 +18,7 @@
 #include "rubberband/RubberBandStretcher.h"
 
 #include "dsp/Window.h"
+#include "dsp/SincWindow.h"
 #include "dsp/FFT.h"
 #include "dsp/CompoundAudioCurve.h"
 
@@ -118,6 +119,27 @@ protected:
     
     size_t roundUp(size_t value); // to next power of two
 
+    template <typename T>
+    void cutShiftAndFold(T *target, int targetSize,
+                         float *src, // destructive to src
+                         Window<float> *window) {
+        window->cut(src);
+        const int windowSize = window->getSize();
+        const int hs = targetSize / 2;
+        if (windowSize == targetSize) {
+            v_convert(target, src + hs, hs);
+            v_convert(target + hs, src, hs);
+        } else {
+            v_zero(target, targetSize);
+            int j = targetSize - windowSize/2;
+            while (j < 0) j += targetSize;
+            for (int i = 0; i < windowSize; ++i) {
+                target[j] += src[i];
+                if (++j == targetSize) j = 0;
+            }
+        }
+    }
+
     bool resampleBeforeStretching() const;
     
     double m_timeRatio;
@@ -149,7 +171,9 @@ protected:
     ProcessMode m_mode;
 
     std::map<size_t, Window<float> *> m_windows;
+    std::map<size_t, SincWindow<float> *> m_sincs;
     Window<float> *m_awindow;
+    SincWindow<float> *m_asinc;
     Window<float> *m_swindow;
     FFT *m_studyFFT;
 

@@ -81,6 +81,7 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_debugLevel(m_defaultDebugLevel),
     m_mode(JustCreated),
     m_awindow(0),
+    m_asinc(0),
     m_swindow(0),
     m_studyFFT(0),
     m_spaceAvailable("space"),
@@ -192,6 +193,10 @@ RubberBandStretcher::Impl::~Impl()
 
     for (map<size_t, Window<float> *>::iterator i = m_windows.begin();
          i != m_windows.end(); ++i) {
+        delete i->second;
+    }
+    for (map<size_t, SincWindow<float> *>::iterator i = m_sincs.begin();
+         i != m_sincs.end(); ++i) {
         delete i->second;
     }
 }
@@ -487,7 +492,7 @@ RubberBandStretcher::Impl::calculateSizes()
         }
     }
 
-    // windowSize can be almost anything, but it can't be greater than
+    // m_fftSize can be almost anything, but it can't be greater than
     // 4 * m_baseFftSize unless ratio is less than 1/1024.
 
     m_fftSize = windowSize;
@@ -515,7 +520,7 @@ RubberBandStretcher::Impl::calculateSizes()
         size_t
         (ceil(max
               (m_maxProcessSize / m_pitchScale,
-               m_sWindowSize * 2 * (m_timeRatio > 1.f ? m_timeRatio : 1.f))));
+               m_maxProcessSize * 2 * (m_timeRatio > 1.f ? m_timeRatio : 1.f))));
 
     if (m_realtime) {
         // This headroom is so as to try to avoid reallocation when
@@ -586,8 +591,12 @@ RubberBandStretcher::Impl::configure()
             if (m_windows.find(*i) == m_windows.end()) {
                 m_windows[*i] = new Window<float>(HanningWindow, *i);
             }
+            if (m_sincs.find(*i) == m_sincs.end()) {
+                m_sincs[*i] = new SincWindow<float>(*i, *i);
+            }
         }
         m_awindow = m_windows[m_aWindowSize];
+        m_asinc = m_sincs[m_aWindowSize];
         m_swindow = m_windows[m_sWindowSize];
 
         if (m_debugLevel > 0) {
@@ -728,15 +737,20 @@ RubberBandStretcher::Impl::reconfigure()
             std::cerr << "WARNING: reconfigure(): window allocation (size " << m_aWindowSize << ") required in RT mode" << std::endl;
             m_windows[m_aWindowSize] = new Window<float>
                 (HanningWindow, m_aWindowSize);
+            m_sincs[m_aWindowSize] = new SincWindow<float>
+                (m_aWindowSize, m_aWindowSize);
         }
 
         if (m_windows.find(m_sWindowSize) == m_windows.end()) {
             std::cerr << "WARNING: reconfigure(): window allocation (size " << m_sWindowSize << ") required in RT mode" << std::endl;
             m_windows[m_sWindowSize] = new Window<float>
                 (HanningWindow, m_sWindowSize);
+            m_sincs[m_sWindowSize] = new SincWindow<float>
+                (m_sWindowSize, m_sWindowSize);
         }
 
         m_awindow = m_windows[m_aWindowSize];
+        m_asinc = m_sincs[m_aWindowSize];
         m_swindow = m_windows[m_sWindowSize];
 
         for (size_t c = 0; c < m_channels; ++c) {
@@ -933,13 +947,36 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
             size_t got = inbuf.peek(cd.accumulator, m_aWindowSize);
             assert(final || got == m_aWindowSize);
 
-            m_awindow->cut(cd.accumulator);
+            if (m_aWindowSize == m_fftSize) {
 
-            //!!! insert appropriate cunning here if m_aWindowSize !=
-            //!!! m_fftSize
+                // We don't need the fftshift for studying, as we're
+                // only interested in magnitude.
 
-            // We don't need the fftshift for studying, as we're only
-            // interested in magnitude
+                m_awindow->cut(cd.accumulator);
+
+            } else {
+
+                // If we need to fold (i.e. if the window size is
+                // greater than the fft size so we are doing a
+                // time-aliased presum fft) or zero-pad, then we might
+                // as well use our standard function for it.  This
+                // means we retain the m_asinc cut if folding as well,
+                // which is good for consistency with real-time mode.
+                // We get fftshift as well, which we don't want, but
+                // the penalty is nominal.
+
+                // Note that we can't do this in-place.  Pity
+
+                float *tmp = (float *)alloca
+                    (std::max(m_fftSize, m_aWindowSize) * sizeof(float));
+
+                if (m_aWindowSize > m_fftSize) {
+                    m_asinc->cut(cd.accumulator);
+                }
+
+                cutShiftAndFold(tmp, m_fftSize, cd.accumulator, m_awindow);
+                v_copy(cd.accumulator, tmp, m_fftSize);
+            }
 
             m_studyFFT->forwardMagnitude(cd.accumulator, cd.fltbuf);
 
