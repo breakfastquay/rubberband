@@ -104,6 +104,8 @@ public:
     float *accumulator;
     size_t accumulatorFill;
     float *windowAccumulator;
+    float *interpolator; // only used when time-domain smoothing is on
+    int interpolatorScale;
 
     float *fltbuf;
     double *dblbuf; // owned by FFT object, only used for time domain FFT i/o

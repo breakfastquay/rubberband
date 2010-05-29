@@ -76,6 +76,8 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &sizes,
 
     accumulator = allocate<float>(maxSize);
     windowAccumulator = allocate<float>(maxSize);
+    interpolator = allocate<float>(maxSize);
+    interpolatorScale = 0;
 
     for (std::set<size_t>::const_iterator i = sizes.begin();
          i != sizes.end(); ++i) {
@@ -194,6 +196,8 @@ RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,
 
     deallocate(windowAccumulator);
     windowAccumulator = newAcc;
+
+    interpolatorScale = 0;
     
     //!!! and resampler?
 
@@ -294,6 +298,7 @@ RubberBandStretcher::Impl::ChannelData::reset()
     inCount = 0;
     inputSize = -1;
     outCount = 0;
+    interpolatorScale = 0;
     unchanged = true;
     draining = false;
     outputComplete = false;

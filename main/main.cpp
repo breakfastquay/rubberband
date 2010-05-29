@@ -83,6 +83,7 @@ int main(int argc, char **argv)
     bool lamination = true;
     bool longwin = false;
     bool shortwin = false;
+    bool smoothing = false;
     bool hqpitch = false;
     bool formant = false;
     bool crispchanged = false;
@@ -132,6 +133,7 @@ int main(int argc, char **argv)
             { "bl-transients", 0, 0, '8' },
             { "detector-perc", 0, 0, '5' },
             { "detector-soft", 0, 0, '6' },
+            { "smoothing",     0, 0, '9' },
             { "pitch-hq",      0, 0, '%' },
             { "threads",       0, 0, '@' },
             { "quiet",         0, 0, 'q' },
@@ -165,6 +167,7 @@ int main(int argc, char **argv)
         case '5': detector = PercussiveDetector; crispchanged = true; break;
         case '6': detector = SoftDetector; crispchanged = true; break;
         case '8': transients = BandLimitedTransients; crispchanged = true; break;
+        case '9': smoothing = true; crispchanged = true; break;
         case '%': hqpitch = true; break;
         case 'c': crispness = atoi(optarg); break;
         case 'q': quiet = true; break;
@@ -223,6 +226,7 @@ int main(int argc, char **argv)
         cerr << "         --no-lamination  Disable phase lamination" << endl;
         cerr << "         --window-long    Use longer processing window (actual size may vary)" << endl;
         cerr << "         --window-short   Use shorter processing window" << endl;
+        cerr << "         --smoothing      Apply window presum and time-domain smoothing" << endl;
         cerr << "         --detector-perc  Use percussive transient detector (as in pre-1.5)" << endl;
         cerr << "         --detector-soft  Use soft transient detector" << endl;
         cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
@@ -362,6 +366,7 @@ int main(int argc, char **argv)
     if (!lamination) options |= RubberBandStretcher::OptionPhaseIndependent;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;
+    if (smoothing)   options |= RubberBandStretcher::OptionSmoothingOn;
     if (formant)     options |= RubberBandStretcher::OptionFormantPreserved;
     if (hqpitch)     options |= RubberBandStretcher::OptionPitchHighQuality;
 

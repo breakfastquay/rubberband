@@ -31,25 +31,44 @@ class SincWindow
 {
 public:
     /**
-     * Construct a sinc windower which produces a window of the given
-     * size containing the values of sinc(x) with x=0 at the centre,
-     * such that the distance from -pi to pi (the point at which the
-     * sinc function first crosses zero, for negative and positive
+     * Construct a sinc windower which produces a window of size n
+     * containing the values of sinc(x) with x=0 at index n/2, such
+     * that the distance from -pi to pi (the point at which the sinc
+     * function first crosses zero, for negative and positive
      * arguments respectively) is p samples.
      */
-    SincWindow(int size, int p) : m_size(size), m_p(p) { encache(); }
-    SincWindow(const SincWindow &w) : m_size(w.m_size), m_p(w.m_p) { encache(); }
+    SincWindow(int n, int p) : m_size(n), m_p(p), m_cache(0) {
+        encache();
+    }
+    SincWindow(const SincWindow &w) : m_size(w.m_size), m_p(w.m_p), m_cache(0) {
+        encache();
+    }
     SincWindow &operator=(const SincWindow &w) {
 	if (&w == this) return *this;
 	m_size = w.m_size;
 	m_p = w.m_p;
+        m_cache = 0;
 	encache();
 	return *this;
     }
-    virtual ~SincWindow() { delete[] m_cache; }
+    virtual ~SincWindow() {
+        deallocate(m_cache);
+    }
+
+    /**
+     * Regenerate the sinc window with the same size, but a new scale
+     * (the p value is interpreted as for the argument of the same
+     * name to the constructor).  If p is unchanged from the previous
+     * value, do nothing (quickly).
+     */
+    inline void rewrite(int p) {
+        if (m_p == p) return;
+        m_p = p;
+        encache();
+    }
     
-    inline void cut(T *const R__ block) const {
-        v_multiply(block, m_cache, m_size);
+    inline void cut(T *const R__ dst) const {
+        v_multiply(dst, m_cache, m_size);
     }
 
     inline void cut(const T *const R__ src, T *const R__ dst) const {
@@ -66,41 +85,61 @@ public:
     inline int getSize() const { return m_size; }
     inline int getP() const { return m_p; }
 
+    /**
+     * Write a sinc window of size n with scale p (the p value is
+     * interpreted as for the argument of the same name to the
+     * constructor).
+     */
+    static
+    void write(T *const R__ dst, const int n, const int p) {
+        const int half = n/2;
+        writeHalf(dst, n, p);
+        int target = half - 1;
+        for (int i = half + 1; i < n; ++i) {
+            dst[target--] = dst[i];
+        }
+        const T twopi = 2. * M_PI;
+        T arg = T(half) * twopi / p;
+        dst[0] = sin(arg) / arg;
+    }
+
 protected:
     int m_size;
     int m_p;
     T *R__ m_cache;
     T m_area;
+
+    /**
+     * Write the positive half (i.e. n/2 to n-1) of a sinc window of
+     * size n with scale p (the p value is interpreted as for the
+     * argument of the same name to the constructor). The negative
+     * half (indices 0 to n/2-1) of dst is left unchanged.
+     */
+    static
+    void writeHalf(T *const R__ dst, const int n, const int p) {
+        const int half = n/2;
+        const T twopi = 2. * M_PI;
+        dst[half] = T(1.0);
+        for (int i = 1; i < half; ++i) {
+            T arg = T(i) * twopi / p;
+            dst[half+i] = sin(arg) / arg;
+        }
+    }
     
-    void encache();
-};
+    void encache() {
+        if (!m_cache) {
+            m_cache = allocate<T>(m_size);
+        }
 
-template <typename T>
-void SincWindow<T>::encache()
-{
-    const int n = m_size;
-    T *mult = allocate<T>(n);
-    v_set(mult, T(1.0), n);
-    int i;
-
-    for (i = 0; i < n; ++i) {
-	T extent = T(n)/2.;
-	T arg = (T(i) - extent) * (2. * M_PI) / m_p;
-	if (arg != 0.) {
-	    mult[i] *= sin(arg) / arg;
-	}
-    }
+        write(m_cache, m_size, m_p);
 	
-    m_cache = mult;
-
-    m_area = 0;
-    for (i = 0; i < n; ++i) {
-	std::cout << i << ":" << m_cache[i] << " ";
-        m_area += m_cache[i];
+        m_area = 0;
+        for (int i = 0; i < m_size; ++i) {
+            m_area += m_cache[i];
+        }
+        m_area /= m_size;
     }
-    std::cout << std::endl;
-    m_area /= n;
-}
+};
 
 }
 

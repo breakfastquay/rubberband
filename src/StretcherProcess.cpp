@@ -377,7 +377,7 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         // then skip m_increment to advance the read pointer.
 
         modifyChunk(c, phaseIncrement, phaseReset);
-        synthesiseChunk(c); // reads from cd.mag, cd.phase
+        synthesiseChunk(c, shiftIncrement); // reads from cd.mag, cd.phase
 
         if (m_debugLevel > 2) {
             if (phaseReset) {
@@ -647,7 +647,7 @@ RubberBandStretcher::Impl::analyseChunk(size_t channel)
     // cd.fltbuf is known to contain m_aWindowSize samples
 
     if (m_aWindowSize > m_fftSize) {
-        m_asinc->cut(fltbuf);
+        m_afilter->cut(fltbuf);
     }
 
     cutShiftAndFold(dblbuf, m_fftSize, fltbuf, m_awindow);
@@ -859,7 +859,8 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
 }
 
 void
-RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
+RubberBandStretcher::Impl::synthesiseChunk(size_t channel,
+                                           size_t shiftIncrement)
 {
     Profiler profiler("RubberBandStretcher::Impl::synthesiseChunk");
 
@@ -876,8 +877,11 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
     float *const R__ accumulator = cd.accumulator;
     float *const R__ windowAccumulator = cd.windowAccumulator;
     
-    int sz = m_fftSize;
-    int hs = sz / 2;
+    const int fsz = m_fftSize;
+    const int hs = fsz / 2;
+
+    const int wsz = m_sWindowSize;
+    
     int i;
 
     if (!cd.unchanged) {
@@ -885,73 +889,40 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel)
         cd.fft->inversePolar(cd.mag, cd.phase, cd.dblbuf);
 
         // our ffts produced unscaled results
-        float factor = 1.0 / m_fftSize;
-        v_scale(dblbuf, factor, sz);
+        float factor = 1.f / fsz;
+        v_scale(dblbuf, factor, fsz);
 
-        if (m_sWindowSize == m_fftSize) {
+        if (wsz == fsz) {
             v_convert(fltbuf, dblbuf + hs, hs);
             v_convert(fltbuf + hs, dblbuf, hs);
         } else {
-            v_zero(fltbuf, m_sWindowSize);
-#ifdef PARP
-//!!! centre fft frame (effectively only if swindowsize == fftsize, else discontinuities)
-            const int count = std::min(m_fftSize, m_sWindowSize);
-            int i = m_sWindowSize/2 - count/2;
-            int j = m_fftSize - count/2;
-            for (int k = 0; k < count; ++k) {
+            v_zero(fltbuf, wsz);
+            int j = fsz - wsz/2;
+            while (j < 0) j += fsz;
+            for (int i = 0; i < wsz; ++i) {
                 fltbuf[i] += dblbuf[j];
-                if (i++ == m_sWindowSize) i = 0;
-                if (j++ == m_fftSize) j = 0;
+                if (++j == fsz) j = 0;
             }
-#else
-//!!! unwrap
-            int j = sz - m_sWindowSize/2;
-            while (j < 0) j += sz;
-            for (int i = 0; i < m_sWindowSize; ++i) {
-                fltbuf[i] += dblbuf[j];
-                if (++j == sz) j = 0;
-            }
-#endif
         }
+    }
+
+    if (wsz > fsz) {
+        float *tmp = (float *)alloca(wsz * sizeof(float));
+        int p = shiftIncrement * 2;
+        if (cd.interpolatorScale != p) {
+            SincWindow<float>::write(cd.interpolator, wsz, p);
+        }
+        v_multiply(fltbuf, cd.interpolator, wsz);
+        v_copy(tmp, cd.interpolator, wsz);
+        m_swindow->cut(tmp);
+        v_add(windowAccumulator, tmp, wsz);
+    } else {
+        m_swindow->add(windowAccumulator, m_awindow->getArea() * 1.5f);
     }
 
     m_swindow->cut(fltbuf);
-
-    v_add(accumulator, fltbuf, m_sWindowSize);
-
-    cd.accumulatorFill = m_sWindowSize;
-
-/*
-    std::cerr << "Note: synthesis window area = " << m_swindow->getArea()
-              << ", analysis window area = " << m_awindow->getArea()
-              << ", analysis sinc area = " << m_asinc->getArea()
-              << std::endl;
-*/
-
-    //!!!
-
-    float *tmp = (float *)alloca(m_sWindowSize * sizeof(float));
-    v_set(tmp, 1.f, m_sWindowSize);
-
-//!!!    m_awindow->cut(tmp); //!!! if (m_aWindowSize == m_sWindowSize)
-    m_swindow->cut(tmp);
-/*
-    if (m_aWindowSize != m_fftSize) {
-        if (m_aWindowSize == m_sWindowSize) {
-            m_asinc->cut(tmp);
-        } else {
-            int sourceIndex = m_aWindowSize/2 - m_sWindowSize/2;
-            for (int i = 0; i < m_sWindowSize; ++i) {
-                if (sourceIndex >= 0 && sourceIndex < m_aWindowSize) {
-                    tmp[i] *= m_asinc->getValue(sourceIndex);
-                }
-                ++sourceIndex;
-            }
-        }
-    }
-*/
-    v_add(windowAccumulator, tmp, m_sWindowSize);
-
+    v_add(accumulator, fltbuf, wsz);
+    cd.accumulatorFill = wsz;
 }
 
 void

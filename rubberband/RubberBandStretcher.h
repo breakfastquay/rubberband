@@ -191,7 +191,18 @@ public:
      *   likely to result in a smoother sound at the expense of
      *   clarity and timing.
      *
-     * 8. Flags prefixed \c OptionFormant control the handling of
+     * 8. Flags prefixed \c OptionSmoothing control the use of
+     * window-presum FFT and time-domain smoothing.  These options may
+     * not be changed after construction.
+     *
+     *   \li \c OptionSmoothingOff - Do not use time-domain smoothing.
+     *
+     *   \li \c OptionSmoothingOn - Use time-domain smoothing.
+     *   This will result in a softer sound, but it may be
+     *   appropriate for longer stretches of some instruments and
+     *   can mix well with OptionWindowShort.
+     *
+     * 9. Flags prefixed \c OptionFormant control the handling of
      * formant shape (spectral envelope) when pitch-shifting.  These
      * options may be changed at any time.
      *
@@ -204,7 +215,7 @@ public:
      *   note frequency without so substantially affecting the
      *   perceived pitch profile of the voice or instrument.
      *
-     * 9. Flags prefixed \c OptionPitch control the method used for
+     * 10. Flags prefixed \c OptionPitch control the method used for
      * pitch shifting.  These options may be changed at any time.
      * They are only effective in realtime mode; in offline mode, the
      * pitch-shift method is fixed.
@@ -252,6 +263,9 @@ public:
         OptionWindowStandard       = 0x00000000,
         OptionWindowShort          = 0x00100000,
         OptionWindowLong           = 0x00200000,
+
+        OptionSmoothingOff         = 0x00000000,
+        OptionSmoothingOn          = 0x00800000,
 
         OptionFormantShifted       = 0x00000000,
         OptionFormantPreserved     = 0x01000000,

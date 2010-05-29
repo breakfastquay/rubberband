@@ -108,7 +108,7 @@ protected:
     void analyseChunk(size_t channel);
     void modifyChunk(size_t channel, size_t outputIncrement, bool phaseReset);
     void formantShiftChunk(size_t channel);
-    void synthesiseChunk(size_t channel);
+    void synthesiseChunk(size_t channel, size_t shiftIncrement);
     void writeChunk(size_t channel, size_t shiftIncrement, bool last);
 
     void calculateSizes();
@@ -173,7 +173,7 @@ protected:
     std::map<size_t, Window<float> *> m_windows;
     std::map<size_t, SincWindow<float> *> m_sincs;
     Window<float> *m_awindow;
-    SincWindow<float> *m_asinc;
+    SincWindow<float> *m_afilter;
     Window<float> *m_swindow;
     FFT *m_studyFFT;
 

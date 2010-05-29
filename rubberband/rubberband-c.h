@@ -63,6 +63,9 @@ enum RubberBandOption {
     RubberBandOptionWindowShort          = 0x00100000,
     RubberBandOptionWindowLong           = 0x00200000,
 
+    RubberBandOptionSmoothingOff         = 0x00000000,
+    RubberBandOptionSmoothingOn          = 0x00800000,
+
     RubberBandOptionFormantShifted       = 0x00000000,
     RubberBandOptionFormantPreserved     = 0x01000000,
 

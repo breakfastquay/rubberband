@@ -81,7 +81,7 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_debugLevel(m_defaultDebugLevel),
     m_mode(JustCreated),
     m_awindow(0),
-    m_asinc(0),
+    m_afilter(0),
     m_swindow(0),
     m_studyFFT(0),
     m_spaceAvailable("space"),
@@ -496,8 +496,15 @@ RubberBandStretcher::Impl::calculateSizes()
     // 4 * m_baseFftSize unless ratio is less than 1/1024.
 
     m_fftSize = windowSize;
-    m_aWindowSize = windowSize;
-    m_sWindowSize = windowSize;
+    
+    if (m_options & OptionSmoothingOn) {
+        m_aWindowSize = windowSize * 2;
+        m_sWindowSize = windowSize * 2;
+    } else {
+        m_aWindowSize = windowSize;
+        m_sWindowSize = windowSize;
+    }
+
     m_increment = inputIncrement;
 
     // When squashing, the greatest theoretically possible output
@@ -596,7 +603,7 @@ RubberBandStretcher::Impl::configure()
             }
         }
         m_awindow = m_windows[m_aWindowSize];
-        m_asinc = m_sincs[m_aWindowSize];
+        m_afilter = m_sincs[m_aWindowSize];
         m_swindow = m_windows[m_sWindowSize];
 
         if (m_debugLevel > 0) {
@@ -750,7 +757,7 @@ RubberBandStretcher::Impl::reconfigure()
         }
 
         m_awindow = m_windows[m_aWindowSize];
-        m_asinc = m_sincs[m_aWindowSize];
+        m_afilter = m_sincs[m_aWindowSize];
         m_swindow = m_windows[m_sWindowSize];
 
         for (size_t c = 0; c < m_channels; ++c) {
@@ -960,7 +967,7 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
                 // greater than the fft size so we are doing a
                 // time-aliased presum fft) or zero-pad, then we might
                 // as well use our standard function for it.  This
-                // means we retain the m_asinc cut if folding as well,
+                // means we retain the m_afilter cut if folding as well,
                 // which is good for consistency with real-time mode.
                 // We get fftshift as well, which we don't want, but
                 // the penalty is nominal.
@@ -971,7 +978,7 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
                     (std::max(m_fftSize, m_aWindowSize) * sizeof(float));
 
                 if (m_aWindowSize > m_fftSize) {
-                    m_asinc->cut(cd.accumulator);
+                    m_afilter->cut(cd.accumulator);
                 }
 
                 cutShiftAndFold(tmp, m_fftSize, cd.accumulator, m_awindow);
