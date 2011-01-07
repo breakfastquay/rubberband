@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -59,18 +59,22 @@ public:
     virtual void initDouble() = 0;
 
     virtual void forward(const double *R__ realIn, double *R__ realOut, double *R__ imagOut) = 0;
+    virtual void forwardInterleaved(const double *R__ realIn, double *R__ complexOut) = 0;
     virtual void forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut) = 0;
     virtual void forwardMagnitude(const double *R__ realIn, double *R__ magOut) = 0;
 
     virtual void forward(const float *R__ realIn, float *R__ realOut, float *R__ imagOut) = 0;
+    virtual void forwardInterleaved(const float *R__ realIn, float *R__ complexOut) = 0;
     virtual void forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut) = 0;
     virtual void forwardMagnitude(const float *R__ realIn, float *R__ magOut) = 0;
 
     virtual void inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ realOut) = 0;
+    virtual void inverseInterleaved(const double *R__ complexIn, double *R__ realOut) = 0;
     virtual void inversePolar(const double *R__ magIn, const double *R__ phaseIn, double *R__ realOut) = 0;
     virtual void inverseCepstral(const double *R__ magIn, double *R__ cepOut) = 0;
 
     virtual void inverse(const float *R__ realIn, const float *R__ imagIn, float *R__ realOut) = 0;
+    virtual void inverseInterleaved(const float *R__ complexIn, float *R__ realOut) = 0;
     virtual void inversePolar(const float *R__ magIn, const float *R__ phaseIn, float *R__ realOut) = 0;
     virtual void inverseCepstral(const float *R__ magIn, float *R__ cepOut) = 0;
 
@@ -162,10 +166,9 @@ public:
 
     ~D_FFTW() {
         if (m_fplanf) {
+            m_commonMutex.lock();
             bool save = false;
-            m_extantMutex.lock();
             if (m_extantf > 0 && --m_extantf == 0) save = true;
-            m_extantMutex.unlock();
 #ifndef FFTW_DOUBLE_ONLY
             if (save) saveWisdom('f');
 #endif
@@ -176,12 +179,12 @@ public:
 #ifdef FFTW_DOUBLE_ONLY
             if (m_frb) fftw_free(m_frb);
 #endif
+            m_commonMutex.unlock();
         }
         if (m_dplanf) {
+            m_commonMutex.lock();
             bool save = false;
-            m_extantMutex.lock();
             if (m_extantd > 0 && --m_extantd == 0) save = true;
-            m_extantMutex.unlock();
 #ifndef FFTW_FLOAT_ONLY
             if (save) saveWisdom('d');
 #endif
@@ -192,15 +195,15 @@ public:
 #ifdef FFTW_FLOAT_ONLY
             if (m_drb) fftwf_free(m_drb);
 #endif
+            m_commonMutex.unlock();
         }
     }
 
     void initFloat() {
         if (m_fplanf) return;
         bool load = false;
-        m_extantMutex.lock();
+        m_commonMutex.lock();
         if (m_extantf++ == 0) load = true;
-        m_extantMutex.unlock();
 #ifdef FFTW_DOUBLE_ONLY
         if (load) loadWisdom('d');
 #else
@@ -213,14 +216,14 @@ public:
             (m_size, m_fbuf, m_fpacked, FFTW_MEASURE);
         m_fplani = fftwf_plan_dft_c2r_1d
             (m_size, m_fpacked, m_fbuf, FFTW_MEASURE);
+        m_commonMutex.unlock();
     }
 
     void initDouble() {
         if (m_dplanf) return;
         bool load = false;
-        m_extantMutex.lock();
+        m_commonMutex.lock();
         if (m_extantd++ == 0) load = true;
-        m_extantMutex.unlock();
 #ifdef FFTW_FLOAT_ONLY
         if (load) loadWisdom('f');
 #else
@@ -233,6 +236,7 @@ public:
             (m_size, m_dbuf, m_dpacked, FFTW_MEASURE);
         m_dplani = fftw_plan_dft_c2r_1d
             (m_size, m_dpacked, m_dbuf, FFTW_MEASURE);
+        m_commonMutex.unlock();
     }
 
     void loadWisdom(char type) { wisdom(false, type); }
@@ -361,6 +365,20 @@ public:
         unpackDouble(realOut, imagOut);
     }
 
+    void forwardInterleaved(const double *R__ realIn, double *R__ complexOut) {
+        if (!m_dplanf) initDouble();
+        const int sz = m_size;
+        fft_double_type *const R__ dbuf = m_dbuf;
+#ifndef FFTW_FLOAT_ONLY
+        if (realIn != dbuf) 
+#endif
+            for (int i = 0; i < sz; ++i) {
+                dbuf[i] = realIn[i];
+            }
+        fftw_execute(m_dplanf);
+        v_convert(complexOut, (fft_double_type *)m_dpacked, sz + 2);
+    }
+
     void forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut) {
         if (!m_dplanf) initDouble();
         fft_double_type *const R__ dbuf = m_dbuf;
@@ -414,6 +432,20 @@ public:
         unpackFloat(realOut, imagOut);
     }
 
+    void forwardInterleaved(const float *R__ realIn, float *R__ complexOut) {
+        if (!m_fplanf) initFloat();
+        fft_float_type *const R__ fbuf = m_fbuf;
+        const int sz = m_size;
+#ifndef FFTW_DOUBLE_ONLY
+        if (realIn != fbuf)
+#endif
+            for (int i = 0; i < sz; ++i) {
+                fbuf[i] = realIn[i];
+            }
+        fftwf_execute(m_fplanf);
+        v_convert(complexOut, (fft_float_type *)m_fpacked, sz + 2);
+    }
+
     void forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut) {
         if (!m_fplanf) initFloat();
         fft_float_type *const R__ fbuf = m_fbuf;
@@ -456,6 +488,20 @@ public:
     void inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ realOut) {
         if (!m_dplanf) initDouble();
         packDouble(realIn, imagIn);
+        fftw_execute(m_dplani);
+        const int sz = m_size;
+        fft_double_type *const R__ dbuf = m_dbuf;
+#ifndef FFTW_FLOAT_ONLY
+        if (realOut != dbuf) 
+#endif
+            for (int i = 0; i < sz; ++i) {
+                realOut[i] = dbuf[i];
+            }
+    }
+
+    void inverseInterleaved(const double *R__ complexIn, double *R__ realOut) {
+        if (!m_dplanf) initDouble();
+        v_copy((double *)m_dpacked, complexIn, m_size + 2);
         fftw_execute(m_dplani);
         const int sz = m_size;
         fft_double_type *const R__ dbuf = m_dbuf;
@@ -512,6 +558,20 @@ public:
     void inverse(const float *R__ realIn, const float *R__ imagIn, float *R__ realOut) {
         if (!m_fplanf) initFloat();
         packFloat(realIn, imagIn);
+        fftwf_execute(m_fplani);
+        const int sz = m_size;
+        fft_float_type *const R__ fbuf = m_fbuf;
+#ifndef FFTW_DOUBLE_ONLY
+        if (realOut != fbuf)
+#endif
+            for (int i = 0; i < sz; ++i) {
+                realOut[i] = fbuf[i];
+            }
+    }
+
+    void inverseInterleaved(const float *R__ complexIn, float *R__ realOut) {
+        if (!m_fplanf) initFloat();
+        v_copy((float *)m_fpacked, complexIn, m_size + 2);
         fftwf_execute(m_fplani);
         const int sz = m_size;
         fft_float_type *const R__ fbuf = m_fbuf;
@@ -607,7 +667,7 @@ private:
     const int m_size;
     static int m_extantf;
     static int m_extantd;
-    static Mutex m_extantMutex;
+    static Mutex m_commonMutex;
 };
 
 int
@@ -617,7 +677,7 @@ int
 D_FFTW::m_extantd = 0;
 
 Mutex
-D_FFTW::m_extantMutex;
+D_FFTW::m_commonMutex;
 
 #endif /* HAVE_FFTW3 */
 
@@ -720,12 +780,16 @@ public:
 
     void forward(const double *R__ realIn, double *R__ realOut, double *R__ imagOut) {
 
-        for (int i = 0; i < m_size; ++i) {
-            m_fbuf[i] = float(realIn[i]);
-        }
-
+        v_convert(m_fbuf, realIn, m_size);
         kiss_fftr(m_fplanf, m_fbuf, m_fpacked);
         unpackDouble(realOut, imagOut);
+    }
+
+    void forwardInterleaved(const double *R__ realIn, double *R__ complexOut) {
+
+        v_convert(m_fbuf, realIn, m_size);
+        kiss_fftr(m_fplanf, m_fbuf, m_fpacked);
+        v_convert(complexOut, (float *)m_fpacked, m_size + 2);
     }
 
     void forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut) {
@@ -770,6 +834,11 @@ public:
         unpackFloat(realOut, imagOut);
     }
 
+    void forwardInterleaved(const float *R__ realIn, float *R__ complexOut) {
+
+        kiss_fftr(m_fplanf, realIn, (kiss_fft_cpx *)complexOut);
+    }
+
     void forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut) {
 
         kiss_fftr(m_fplanf, realIn, m_fpacked);
@@ -801,6 +870,17 @@ public:
     void inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ realOut) {
 
         packDouble(realIn, imagIn);
+
+        kiss_fftri(m_fplani, m_fpacked, m_fbuf);
+
+        for (int i = 0; i < m_size; ++i) {
+            realOut[i] = m_fbuf[i];
+        }
+    }
+
+    void inverseInterleaved(const double *R__ complexIn, double *R__ realOut) {
+
+        v_convert((float *)m_fpacked, complexIn, m_size + 2);
 
         kiss_fftri(m_fplani, m_fpacked, m_fbuf);
 
@@ -844,6 +924,12 @@ public:
     void inverse(const float *R__ realIn, const float *R__ imagIn, float *R__ realOut) {
 
         packFloat(realIn, imagIn);
+        kiss_fftri(m_fplani, m_fpacked, realOut);
+    }
+
+    void inverseInterleaved(const float *R__ complexIn, float *R__ realOut) {
+
+        v_copy((float *)m_fpacked, complexIn, m_size + 2);
         kiss_fftri(m_fplani, m_fpacked, realOut);
     }
 
@@ -952,6 +1038,13 @@ public:
         }
     }
 
+    void forwardInterleaved(const double *R__ realIn, double *R__ complexOut) {
+        basefft(false, realIn, 0, m_c, m_d);
+        const int hs = m_size/2;
+        for (int i = 0; i <= hs; ++i) complexOut[i*2] = m_c[i];
+        for (int i = 0; i <= hs; ++i) complexOut[i*2+1] = m_d[i];
+    }
+
     void forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut) {
         basefft(false, realIn, 0, m_c, m_d);
         const int hs = m_size/2;
@@ -979,6 +1072,14 @@ public:
         }
     }
 
+    void forwardInterleaved(const float *R__ realIn, float *R__ complexOut) {
+        for (int i = 0; i < m_size; ++i) m_a[i] = realIn[i];
+        basefft(false, m_a, 0, m_c, m_d);
+        const int hs = m_size/2;
+        for (int i = 0; i <= hs; ++i) complexOut[i*2] = m_c[i];
+        for (int i = 0; i <= hs; ++i) complexOut[i*2+1] = m_d[i];
+    }
+
     void forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut) {
         for (int i = 0; i < m_size; ++i) m_a[i] = realIn[i];
         basefft(false, m_a, 0, m_c, m_d);
@@ -1003,6 +1104,21 @@ public:
         for (int i = 0; i <= hs; ++i) {
             double real = realIn[i];
             double imag = imagIn[i];
+            m_a[i] = real;
+            m_b[i] = imag;
+            if (i > 0) {
+                m_a[m_size-i] = real;
+                m_b[m_size-i] = -imag;
+            }
+        }
+        basefft(true, m_a, m_b, realOut, m_d);
+    }
+
+    void inverseInterleaved(const double *R__ complexIn, double *R__ realOut) {
+        const int hs = m_size/2;
+        for (int i = 0; i <= hs; ++i) {
+            double real = complexIn[i*2];
+            double imag = complexIn[i*2+1];
             m_a[i] = real;
             m_b[i] = imag;
             if (i > 0) {
@@ -1047,6 +1163,22 @@ public:
         for (int i = 0; i <= hs; ++i) {
             float real = realIn[i];
             float imag = imagIn[i];
+            m_a[i] = real;
+            m_b[i] = imag;
+            if (i > 0) {
+                m_a[m_size-i] = real;
+                m_b[m_size-i] = -imag;
+            }
+        }
+        basefft(true, m_a, m_b, m_c, m_d);
+        for (int i = 0; i < m_size; ++i) realOut[i] = m_c[i];
+    }
+
+    void inverseInterleaved(const float *R__ complexIn, float *R__ realOut) {
+        const int hs = m_size/2;
+        for (int i = 0; i <= hs; ++i) {
+            float real = complexIn[i*2];
+            float imag = complexIn[i*2+1];
             m_a[i] = real;
             m_b[i] = imag;
             if (i > 0) {
@@ -1328,6 +1460,12 @@ FFT::forward(const double *R__ realIn, double *R__ realOut, double *R__ imagOut)
 }
 
 void
+FFT::forwardInterleaved(const double *R__ realIn, double *R__ complexOut)
+{
+    d->forwardInterleaved(realIn, complexOut);
+}
+
+void
 FFT::forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut)
 {
     d->forwardPolar(realIn, magOut, phaseOut);
@@ -1343,6 +1481,12 @@ void
 FFT::forward(const float *R__ realIn, float *R__ realOut, float *R__ imagOut)
 {
     d->forward(realIn, realOut, imagOut);
+}
+
+void
+FFT::forwardInterleaved(const float *R__ realIn, float *R__ complexOut)
+{
+    d->forwardInterleaved(realIn, complexOut);
 }
 
 void
@@ -1364,6 +1508,12 @@ FFT::inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ rea
 }
 
 void
+FFT::inverseInterleaved(const double *R__ complexIn, double *R__ realOut)
+{
+    d->inverseInterleaved(complexIn, realOut);
+}
+
+void
 FFT::inversePolar(const double *R__ magIn, const double *R__ phaseIn, double *R__ realOut)
 {
     d->inversePolar(magIn, phaseIn, realOut);
@@ -1379,6 +1529,12 @@ void
 FFT::inverse(const float *R__ realIn, const float *R__ imagIn, float *R__ realOut)
 {
     d->inverse(realIn, imagIn, realOut);
+}
+
+void
+FFT::inverseInterleaved(const float *R__ complexIn, float *R__ realOut)
+{
+    d->inverseInterleaved(complexIn, realOut);
 }
 
 void

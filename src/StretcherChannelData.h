@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -92,12 +92,12 @@ public:
     RingBuffer<float> *inbuf;
     RingBuffer<float> *outbuf;
 
-    double *mag;
-    double *phase;
+    process_t *mag;
+    process_t *phase;
 
-    double *prevPhase;
-    double *prevError;
-    double *unwrappedPhase;
+    process_t *prevPhase;
+    process_t *prevError;
+    process_t *unwrappedPhase;
 
     size_t *freqPeak;
 
@@ -108,8 +108,8 @@ public:
     int interpolatorScale;
 
     float *fltbuf;
-    double *dblbuf; // owned by FFT object, only used for time domain FFT i/o
-    double *envelope; // for cepstral formant shift
+    process_t *dblbuf; // owned by FFT object, only used for time domain FFT i/o
+    process_t *envelope; // for cepstral formant shift
     bool unchanged;
 
     size_t prevIncrement; // only used in RT mode

@@ -1,0 +1,13 @@
+syntax: glob
+Makefile
+autom4te*
+bin/*
+lib/*
+*.a
+*.so
+*.o
+*.orig
+*.log
+*.bak
+config.status
+

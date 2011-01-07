@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     double frequencyshift = 1.0;
     int debug = 0;
     bool realtime = false;
-    bool precise = false;
+    bool precise = true;
     int threading = 0;
     bool lamination = true;
     bool longwin = false;
@@ -123,6 +123,7 @@ int main(int argc, char **argv)
             { "crispness",     1, 0, 'c' },
             { "debug",         1, 0, 'd' },
             { "realtime",      0, 0, 'R' },
+            { "loose",         0, 0, 'L' },
             { "precise",       0, 0, 'P' },
             { "formant",       0, 0, 'F' },
             { "no-threads",    0, 0, '0' },
@@ -142,7 +143,7 @@ int main(int argc, char **argv)
         };
 
         c = getopt_long(argc, argv,
-                        "t:p:d:RPFc:f:T:D:qhVM:",
+                        "t:p:d:RLPFc:f:T:D:qhVM:",
                         longOpts, &optionIndex);
         if (c == -1) break;
 
@@ -156,6 +157,7 @@ int main(int argc, char **argv)
         case 'f': frequencyshift = atof(optarg); haveRatio = true; break;
         case 'd': debug = atoi(optarg); break;
         case 'R': realtime = true; break;
+        case 'L': precise = false; break;
         case 'P': precise = true; break;
 	case 'F': formant = true; break;
         case '0': threading = 1; break;
@@ -185,7 +187,7 @@ int main(int argc, char **argv)
         cerr << endl;
 	cerr << "Rubber Band" << endl;
         cerr << "An audio time-stretching and pitch-shifting library and utility program." << endl;
-	cerr << "Copyright 2010 Chris Cannam.  Distributed under the GNU General Public License." << endl;
+	cerr << "Copyright 2011 Chris Cannam.  Distributed under the GNU General Public License." << endl;
         cerr << endl;
 	cerr << "   Usage: " << argv[0] << " [options] <infile.wav> <outfile.wav>" << endl;
         cerr << endl;
@@ -217,8 +219,9 @@ int main(int argc, char **argv)
         cerr << "crispness parameter are intended to provide the best sounding set of options" << endl;
         cerr << "for most situations.  The default is to use none of these options." << endl;
         cerr << endl;
-        cerr << "  -P,    --precise        Aim for minimal time distortion (implied by -R)" << endl;
-        cerr << "  -R,    --realtime       Select realtime mode (implies -P --no-threads)" << endl;
+        cerr << "  -L,    --loose          Relax timing in hope of better transient preservation" << endl;
+        cerr << "  -P,    --precise        Ignored: The opposite of -L, this is default from 1.6" << endl;
+        cerr << "  -R,    --realtime       Select realtime mode (implies --no-threads)" << endl;
         cerr << "         --no-threads     No extra threads regardless of CPU and channel count" << endl;
         cerr << "         --threads        Assume multi-CPU even if only one CPU is identified" << endl;
         cerr << "         --no-transients  Disable phase resynchronisation at transients" << endl;

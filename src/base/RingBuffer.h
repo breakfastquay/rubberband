@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -103,8 +103,13 @@ public:
      * Read n samples from the buffer, for reader R.  If fewer than n
      * are available, the remainder will be zeroed out.  Returns the
      * number of samples actually read.
+     *
+     * This is a template function, taking an argument S for the target
+     * sample type, which is permitted to differ from T if the two
+     * types are compatible for assignment.
      */
-    int read(T *const R__ destination, int n, int R = 0);
+    template <typename S>
+    int read(S *const R__ destination, int n, int R = 0);
 
     /**
      * Read n samples from the buffer, for reader R, adding them to
@@ -152,8 +157,13 @@ public:
      * Write n samples to the buffer.  If insufficient space is
      * available, not all samples may actually be written.  Returns
      * the number of samples actually written.
+     *
+     * This is a template function, taking an argument S for the source
+     * sample type, which is permitted to differ from T if the two
+     * types are compatible for assignment.
      */
-    int write(const T *const R__ source, int n);
+    template <typename S>
+    int write(const S *const R__ source, int n);
 
     /**
      * Write n zero-value samples to the buffer.  If insufficient
@@ -341,8 +351,9 @@ RingBuffer<T, N>::getWriteSpace() const
 }
 
 template <typename T, int N>
+template <typename S>
 int
-RingBuffer<T, N>::read(T *const R__ destination, int n, int R)
+RingBuffer<T, N>::read(S *const R__ destination, int n, int R)
 {
 #ifdef DEBUG_RINGBUFFER
     std::cerr << "RingBuffer<T," << N << ">[" << this << "]::read(dest, " << n << ", " << R << ")" << std::endl;
@@ -355,7 +366,7 @@ RingBuffer<T, N>::read(T *const R__ destination, int n, int R)
 		  << std::endl;
 #endif
         for (int i = available; i < n; ++i) {
-            destination[i] = 0;
+            destination[i] = S(0);
         }
 	n = available;
     }
@@ -366,10 +377,10 @@ RingBuffer<T, N>::read(T *const R__ destination, int n, int R)
     T *const R__ bufbase = m_buffer + reader;
 
     if (here >= n) {
-        v_copy(destination, bufbase, n);
+        v_convert<T, S>(destination, bufbase, n);
     } else {
-        v_copy(destination, bufbase, here);
-        v_copy(destination + here, m_buffer, n - here);
+        v_convert<T, S>(destination, bufbase, here);
+        v_convert<T, S>(destination + here, m_buffer, n - here);
     }
 
     reader += n;
@@ -522,8 +533,9 @@ RingBuffer<T, N>::skip(int n, int R)
 }
 
 template <typename T, int N>
+template <typename S>
 int
-RingBuffer<T, N>::write(const T *const R__ source, int n)
+RingBuffer<T, N>::write(const S *const R__ source, int n)
 {
 #ifdef DEBUG_RINGBUFFER
     std::cerr << "RingBuffer<T," << N << ">[" << this << "]::write(" << n << ")" << std::endl;
@@ -544,10 +556,10 @@ RingBuffer<T, N>::write(const T *const R__ source, int n)
     T *const R__ bufbase = m_buffer + writer;
 
     if (here >= n) {
-        v_copy(bufbase, source, n);
+        v_convert<S, T>(bufbase, source, n);
     } else {
-        v_copy(bufbase, source, here);
-        v_copy(m_buffer, source + here, n - here);
+        v_convert<S, T>(bufbase, source, here);
+        v_convert<S, T>(m_buffer, source + here, n - here);
     }
 
     writer += n;

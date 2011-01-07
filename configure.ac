@@ -1,5 +1,5 @@
 
-AC_INIT(RubberBand, 1.2, cannam@all-day-breakfast.com)
+AC_INIT(RubberBand, 1.6, cannam@all-day-breakfast.com)
 
 AC_CONFIG_SRCDIR(src/StretcherImpl.h)
 AC_PROG_CXX

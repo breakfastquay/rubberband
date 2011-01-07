@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -63,30 +63,38 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &sizes,
     inbuf = new RingBuffer<float>(maxSize);
     outbuf = new RingBuffer<float>(outbufSize);
 
-    mag = allocate<double>(realSize);
-    phase = allocate<double>(realSize);
-    prevPhase = allocate<double>(realSize);
-    prevError = allocate<double>(realSize);
-    unwrappedPhase = allocate<double>(realSize);
-    envelope = allocate<double>(realSize);
+    mag = allocate_and_zero<process_t>(realSize);
+    phase = allocate_and_zero<process_t>(realSize);
+    prevPhase = allocate_and_zero<process_t>(realSize);
+    prevError = allocate_and_zero<process_t>(realSize);
+    unwrappedPhase = allocate_and_zero<process_t>(realSize);
+    envelope = allocate_and_zero<process_t>(realSize);
 
     freqPeak = new size_t[realSize];
 
-    fltbuf = allocate<float>(maxSize);
+    fltbuf = allocate_and_zero<float>(maxSize);
 
-    accumulator = allocate<float>(maxSize);
-    windowAccumulator = allocate<float>(maxSize);
-    interpolator = allocate<float>(maxSize);
+    accumulator = allocate_and_zero<float>(maxSize);
+    windowAccumulator = allocate_and_zero<float>(maxSize);
+    interpolator = allocate_and_zero<float>(maxSize);
     interpolatorScale = 0;
 
     for (std::set<size_t>::const_iterator i = sizes.begin();
          i != sizes.end(); ++i) {
         ffts[*i] = new FFT(*i);
-        ffts[*i]->initDouble();
+        if (sizeof(process_t) == sizeof(double)) {
+            ffts[*i]->initDouble();
+        } else {
+            ffts[*i]->initFloat();
+        }
     }
     fft = ffts[initialFftSize];
 
-    dblbuf = fft->getDoubleTimeBuffer();
+    if (sizeof(process_t) == sizeof(double)) {
+        dblbuf = (process_t *)fft->getDoubleTimeBuffer();
+    } else {
+        dblbuf = (process_t *)fft->getFloatTimeBuffer();
+    }
 
     resampler = 0;
     resamplebuf = 0;
@@ -132,25 +140,29 @@ RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,
             //!!! this also requires a lock, but it shouldn't occur in
             //RT mode with proper initialisation
             ffts[fftSize] = new FFT(fftSize);
-            ffts[fftSize]->initDouble();
+            if (sizeof(process_t) == sizeof(double)) {
+                ffts[fftSize]->initDouble();
+            } else {
+                ffts[fftSize]->initFloat();
+            }
         }
         
         fft = ffts[fftSize];
 
-        dblbuf = fft->getDoubleTimeBuffer();
-
-        for (size_t i = 0; i < maxSize; ++i) {
-            dblbuf[i] = 0.0;
+        if (sizeof(process_t) == sizeof(double)) {
+            dblbuf = (process_t *)fft->getDoubleTimeBuffer();
+        } else {
+            dblbuf = (process_t *)fft->getFloatTimeBuffer();
         }
 
-        for (size_t i = 0; i < realSize; ++i) {
-            mag[i] = 0.0;
-            phase[i] = 0.0;
-            prevPhase[i] = 0.0;
-            prevError[i] = 0.0;
-            unwrappedPhase[i] = 0.0;
-            freqPeak[i] = 0;
-        }
+        v_zero(dblbuf, maxSize);
+
+        v_zero(mag, realSize);
+        v_zero(phase, realSize);
+        v_zero(prevPhase, realSize);
+        v_zero(prevError, realSize);
+        v_zero(unwrappedPhase, realSize);
+        v_zero(freqPeak, realSize);
 
         return;
     }
@@ -168,29 +180,29 @@ RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,
 
     // We don't want to preserve data in these arrays
 
-    mag = reallocate<double>(mag, oldMax, realSize);
-    phase = reallocate<double>(phase, oldMax, realSize);
-    prevPhase = reallocate<double>(prevPhase, oldMax, realSize);
-    prevError = reallocate<double>(prevError, oldMax, realSize);
-    unwrappedPhase = reallocate<double>(unwrappedPhase, oldMax, realSize);
-    envelope = reallocate<double>(envelope, oldMax, realSize);
+    mag = reallocate_and_zero<process_t>(mag, oldMax, realSize);
+    phase = reallocate_and_zero<process_t>(phase, oldMax, realSize);
+    prevPhase = reallocate_and_zero<process_t>(prevPhase, oldMax, realSize);
+    prevError = reallocate_and_zero<process_t>(prevError, oldMax, realSize);
+    unwrappedPhase = reallocate_and_zero<process_t>(unwrappedPhase, oldMax, realSize);
+    envelope = reallocate_and_zero<process_t>(envelope, oldMax, realSize);
 
     delete[] freqPeak;
     freqPeak = new size_t[realSize];
 
     deallocate(fltbuf);
-    fltbuf = allocate<float>(maxSize);
+    fltbuf = allocate_and_zero<float>(maxSize);
 
     // But we do want to preserve data in these
 
-    float *newAcc = allocate<float>(maxSize);
+    float *newAcc = allocate_and_zero<float>(maxSize);
 
     v_copy(newAcc, accumulator, oldMax);
 
     deallocate(accumulator);
     accumulator = newAcc;
 
-    newAcc = allocate<float>(maxSize);
+    newAcc = allocate_and_zero<float>(maxSize);
 
     v_copy(newAcc, windowAccumulator, oldMax);
 
@@ -201,26 +213,24 @@ RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,
     
     //!!! and resampler?
 
-    for (size_t i = 0; i < realSize; ++i) {
-        freqPeak[i] = 0;
-    }
-
-    for (size_t i = 0; i < maxSize; ++i) {
-        fltbuf[i] = 0.f;
-    }
-
     if (ffts.find(fftSize) == ffts.end()) {
         ffts[fftSize] = new FFT(fftSize);
-        ffts[fftSize]->initDouble();
+        if (sizeof(process_t) == sizeof(double)) {
+            ffts[fftSize]->initDouble();
+        } else {
+            ffts[fftSize]->initFloat();
+        }
     }
     
     fft = ffts[fftSize];
 
-    dblbuf = fft->getDoubleTimeBuffer();
-
-    for (size_t i = 0; i < fftSize; ++i) {
-        dblbuf[i] = 0.0;
+    if (sizeof(process_t) == sizeof(double)) {
+        dblbuf = (process_t *)fft->getDoubleTimeBuffer();
+    } else {
+        dblbuf = (process_t *)fft->getFloatTimeBuffer();
     }
+
+    v_zero(dblbuf, fftSize);
 }
 
 void
@@ -244,7 +254,7 @@ RubberBandStretcher::Impl::ChannelData::setOutbufSize(size_t outbufSize)
 void
 RubberBandStretcher::Impl::ChannelData::setResampleBufSize(size_t sz)
 {
-    resamplebuf = reallocate<float>(resamplebuf, resamplebufSize, sz);
+    resamplebuf = reallocate_and_zero<float>(resamplebuf, resamplebufSize, sz);
     resamplebufSize = sz;
 }
 

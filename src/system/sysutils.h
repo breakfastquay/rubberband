@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -26,6 +26,8 @@
 
 #ifdef __MINGW32__
 #include <malloc.h>
+#else
+#include <alloca.h>
 #endif
 
 

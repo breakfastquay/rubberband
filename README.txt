@@ -4,7 +4,7 @@ Rubber Band
 
 An audio time-stretching and pitch-shifting library and utility program.
 
-Copyright 2007-2010 Chris Cannam, cannam@all-day-breakfast.com.
+Copyright 2007-2010 Chris Cannam, chris.cannam@breakfastquay.com.
 
 Distributed under the GNU General Public License.
 
@@ -94,8 +94,7 @@ Rubber Band is supplied with build scripts that have been tested on
 Linux platforms.  It is also possible to build Rubber Band on other
 platforms, including both POSIX platforms such as OS/X and non-POSIX
 platforms such as Win32.  There are some example Makefiles in the misc
-directory, but if you're using a proprietary platform and you get
-stuck I'm afraid you're on your own, unless you want to pay us...
+directory.
 
 To build Rubber Band you will also need libsndfile, libsamplerate,
 FFTW3, the Vamp plugin SDK, the LADSPA plugin header, the pthread
@@ -149,10 +148,10 @@ requires linkage against the C++ standard libraries.  It is not yet
 documented separately from the C++ header.  You should include only
 one of the two headers, not both.
 
-The source code for the command-line utility (src/main.cpp) provides a
-good example of how to use Rubber Band in offline mode; the LADSPA
-pitch shifter plugin (src/ladspa/RubberBandPitchShifter.cpp) may be
-used as an example of Rubber Band in real-time mode.
+The source code for the command-line utility (main/main.cpp) provides
+a good example of how to use Rubber Band in offline mode; the LADSPA
+pitch shifter plugin (ladspa/RubberBandPitchShifter.cpp) may be used
+as an example of Rubber Band in real-time mode.
 
 IMPORTANT: Please ensure you have read and understood the licensing
 terms for Rubber Band before using it in another application.  This

@@ -1,6 +1,6 @@
 
 CXX		:= @CXX@
-CXXFLAGS	:= -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @Vamp_CFLAGS@ -Irubberband -I. -Isrc $(OPTFLAGS)
+CXXFLAGS	:= -DHAVE_LIBSAMPLERATE -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @Vamp_CFLAGS@ -Irubberband -I. -Isrc $(OPTFLAGS)
 CFLAGS		:= @CFLAGS@ $(OPTFLAGS)
 LDFLAGS		:= @LDFLAGS@ -lpthread $(LDFLAGS)
 
@@ -176,45 +176,52 @@ depend:
 src/rubberband-c.o: rubberband/rubberband-c.h
 src/rubberband-c.o: rubberband/RubberBandStretcher.h
 src/RubberBandStretcher.o: src/StretcherImpl.h
-src/RubberBandStretcher.o: rubberband/RubberBandStretcher.h src/dsp/Window.h src/dsp/SincWindow.h
-src/RubberBandStretcher.o: src/dsp/FFT.h src/base/RingBuffer.h
+src/RubberBandStretcher.o: rubberband/RubberBandStretcher.h src/dsp/Window.h
+src/RubberBandStretcher.o: src/dsp/SincWindow.h src/dsp/FFT.h
+src/RubberBandStretcher.o: src/dsp/CompoundAudioCurve.h
+src/RubberBandStretcher.o: src/dsp/AudioCurveCalculator.h
+src/RubberBandStretcher.o: src/dsp/PercussiveAudioCurve.h
+src/RubberBandStretcher.o: src/dsp/HighFrequencyAudioCurve.h
+src/RubberBandStretcher.o: src/dsp/SampleFilter.h src/base/RingBuffer.h
 src/RubberBandStretcher.o: src/base/Scavenger.h src/system/Thread.h
-src/RubberBandStretcher.o: src/system/Thread.h src/system/sysutils.h
+src/RubberBandStretcher.o: src/system/sysutils.h
 src/StretcherProcess.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
-src/StretcherProcess.o: src/dsp/Window.h src/dsp/SincWindow.h src/dsp/FFT.h src/base/RingBuffer.h
-src/StretcherProcess.o: src/base/Scavenger.h src/system/Thread.h
-src/StretcherProcess.o: src/system/Thread.h src/system/sysutils.h
-src/StretcherProcess.o: src/dsp/PercussiveAudioCurve.h
+src/StretcherProcess.o: src/dsp/Window.h src/dsp/SincWindow.h src/dsp/FFT.h
+src/StretcherProcess.o: src/dsp/CompoundAudioCurve.h
 src/StretcherProcess.o: src/dsp/AudioCurveCalculator.h
+src/StretcherProcess.o: src/dsp/PercussiveAudioCurve.h
+src/StretcherProcess.o: src/dsp/HighFrequencyAudioCurve.h
+src/StretcherProcess.o: src/dsp/SampleFilter.h src/base/RingBuffer.h
+src/StretcherProcess.o: src/base/Scavenger.h src/system/Thread.h
+src/StretcherProcess.o: src/system/sysutils.h src/dsp/PercussiveAudioCurve.h
 src/StretcherProcess.o: src/dsp/HighFrequencyAudioCurve.h
 src/StretcherProcess.o: src/dsp/ConstantAudioCurve.h src/StretchCalculator.h
 src/StretcherProcess.o: src/StretcherChannelData.h src/dsp/Resampler.h
 src/StretcherProcess.o: src/base/Profiler.h src/system/VectorOps.h
 src/StretcherProcess.o: src/system/sysutils.h
 src/StretchCalculator.o: src/StretchCalculator.h src/system/sysutils.h
-src/system/Thread.o: src/system/Thread.h
 src/base/Profiler.o: src/base/Profiler.h src/system/sysutils.h
 src/dsp/AudioCurveCalculator.o: src/dsp/AudioCurveCalculator.h
-src/dsp/AudioCurveCalculator.o: src/system/sysutils.h
+src/dsp/CompoundAudioCurve.o: src/dsp/CompoundAudioCurve.h
+src/dsp/CompoundAudioCurve.o: src/dsp/AudioCurveCalculator.h
+src/dsp/CompoundAudioCurve.o: src/dsp/PercussiveAudioCurve.h
+src/dsp/CompoundAudioCurve.o: src/dsp/HighFrequencyAudioCurve.h
+src/dsp/CompoundAudioCurve.o: src/dsp/SampleFilter.h src/dsp/MovingMedian.h
 src/dsp/SpectralDifferenceAudioCurve.o: src/dsp/SpectralDifferenceAudioCurve.h
 src/dsp/SpectralDifferenceAudioCurve.o: src/dsp/AudioCurveCalculator.h
+src/dsp/SpectralDifferenceAudioCurve.o: src/dsp/Window.h
 src/dsp/SpectralDifferenceAudioCurve.o: src/system/sysutils.h
-src/dsp/SpectralDifferenceAudioCurve.o: src/dsp/Window.h src/dsp/SincWindow.h
 src/dsp/SpectralDifferenceAudioCurve.o: src/system/VectorOps.h
 src/dsp/SpectralDifferenceAudioCurve.o: src/system/sysutils.h
 src/dsp/HighFrequencyAudioCurve.o: src/dsp/HighFrequencyAudioCurve.h
 src/dsp/HighFrequencyAudioCurve.o: src/dsp/AudioCurveCalculator.h
-src/dsp/HighFrequencyAudioCurve.o: src/system/sysutils.h
 src/dsp/SilentAudioCurve.o: src/dsp/SilentAudioCurve.h
 src/dsp/SilentAudioCurve.o: src/dsp/AudioCurveCalculator.h
-src/dsp/SilentAudioCurve.o: src/system/sysutils.h
 src/dsp/ConstantAudioCurve.o: src/dsp/ConstantAudioCurve.h
 src/dsp/ConstantAudioCurve.o: src/dsp/AudioCurveCalculator.h
-src/dsp/ConstantAudioCurve.o: src/system/sysutils.h
 src/dsp/PercussiveAudioCurve.o: src/dsp/PercussiveAudioCurve.h
 src/dsp/PercussiveAudioCurve.o: src/dsp/AudioCurveCalculator.h
-src/dsp/PercussiveAudioCurve.o: src/system/sysutils.h src/system/VectorOps.h
-src/dsp/PercussiveAudioCurve.o: src/system/sysutils.h
+src/dsp/PercussiveAudioCurve.o: src/system/VectorOps.h src/system/sysutils.h
 src/dsp/Resampler.o: src/dsp/Resampler.h src/system/sysutils.h
 src/dsp/Resampler.o: src/base/Profiler.h
 src/dsp/FFT.o: src/dsp/FFT.h src/system/sysutils.h src/system/Thread.h
@@ -223,20 +230,30 @@ src/dsp/FFT.o: src/system/sysutils.h
 src/system/Allocators.o: src/system/Allocators.h src/system/VectorOps.h
 src/system/Allocators.o: src/system/sysutils.h
 src/system/sysutils.o: src/system/sysutils.h
+src/system/Thread.o: src/system/Thread.h
 src/StretcherChannelData.o: src/StretcherChannelData.h src/StretcherImpl.h
-src/StretcherChannelData.o: rubberband/RubberBandStretcher.h src/dsp/Window.h src/dsp/SincWindow.h
-src/StretcherChannelData.o: src/dsp/FFT.h src/base/RingBuffer.h
+src/StretcherChannelData.o: rubberband/RubberBandStretcher.h src/dsp/Window.h
+src/StretcherChannelData.o: src/dsp/SincWindow.h src/dsp/FFT.h
+src/StretcherChannelData.o: src/dsp/CompoundAudioCurve.h
+src/StretcherChannelData.o: src/dsp/AudioCurveCalculator.h
+src/StretcherChannelData.o: src/dsp/PercussiveAudioCurve.h
+src/StretcherChannelData.o: src/dsp/HighFrequencyAudioCurve.h
+src/StretcherChannelData.o: src/dsp/SampleFilter.h src/base/RingBuffer.h
 src/StretcherChannelData.o: src/base/Scavenger.h src/system/Thread.h
-src/StretcherChannelData.o: src/system/Thread.h src/system/sysutils.h
-src/StretcherChannelData.o: src/dsp/Resampler.h src/system/Allocators.h
-src/StretcherChannelData.o: src/system/VectorOps.h src/system/sysutils.h
+src/StretcherChannelData.o: src/system/sysutils.h src/dsp/Resampler.h
+src/StretcherChannelData.o: src/system/Allocators.h src/system/VectorOps.h
+src/StretcherChannelData.o: src/system/sysutils.h
 src/StretcherImpl.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
-src/StretcherImpl.o: src/dsp/Window.h src/dsp/SincWindow.h src/dsp/FFT.h src/base/RingBuffer.h
-src/StretcherImpl.o: src/base/Scavenger.h src/system/Thread.h src/system/Thread.h
-src/StretcherImpl.o: src/system/sysutils.h src/dsp/PercussiveAudioCurve.h
+src/StretcherImpl.o: src/dsp/Window.h src/dsp/SincWindow.h src/dsp/FFT.h
+src/StretcherImpl.o: src/dsp/CompoundAudioCurve.h
 src/StretcherImpl.o: src/dsp/AudioCurveCalculator.h
+src/StretcherImpl.o: src/dsp/PercussiveAudioCurve.h
+src/StretcherImpl.o: src/dsp/HighFrequencyAudioCurve.h src/dsp/SampleFilter.h
+src/StretcherImpl.o: src/base/RingBuffer.h src/base/Scavenger.h
+src/StretcherImpl.o: src/system/Thread.h src/system/sysutils.h
+src/StretcherImpl.o: src/dsp/PercussiveAudioCurve.h
 src/StretcherImpl.o: src/dsp/HighFrequencyAudioCurve.h
-src/StretcherImpl.o: src/dsp/SpectralDifferenceAudioCurve.h src/dsp/Window.h src/dsp/SincWindow.h
+src/StretcherImpl.o: src/dsp/SpectralDifferenceAudioCurve.h src/dsp/Window.h
 src/StretcherImpl.o: src/system/VectorOps.h src/system/sysutils.h
 src/StretcherImpl.o: src/dsp/SilentAudioCurve.h src/dsp/ConstantAudioCurve.h
 src/StretcherImpl.o: src/dsp/Resampler.h src/StretchCalculator.h

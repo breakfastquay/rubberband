@@ -1,5 +1,23 @@
 
-Changed in Rubber Band v1.5
+
+Changes in Rubber Band v1.6
+
+ * Add Smoothing option.  This uses a window-presum FFT, introducing
+   time-domain aliasing which is then smoothed using a sinc window.
+   This can be used in combination with any of the existing processing
+   control options.  This will soften transients but the result may
+   still be more pleasant for some material that is not very amenable
+   to being time stretched.
+ * Fix silent channel of output when processing with band-limited
+   transients option
+ * Include libresample support
+
+The library is binary compatible with version 1.5 for forward
+compatibility (values have been added to an existing enum).  Code
+written to use 1.6 is not necessarily compatible with 1.5.
+
+
+Changes in Rubber Band v1.5
 
  * Add a more reliable transient detection mode, and make the mode
    selectable using OptionDetectorXXX flags -- the new method is
@@ -10,8 +28,8 @@ Changed in Rubber Band v1.5
    management during offline stretches
 
 The library is binary compatible with version 1.4 for forward
-compatibility (a function and an enum have been added, but no existing
-entry points have changed).  Code written to use 1.5 is not
+compatibility (a function has been added and an enum changed, but no
+existing entry points have changed).  Code written to use 1.5 is not
 necessarily compatible with 1.4.
 
 

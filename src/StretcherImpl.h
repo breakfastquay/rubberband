@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -32,6 +32,8 @@ using namespace RubberBand;
 
 namespace RubberBand
 {
+
+typedef double process_t;
 
 class AudioCurveCalculator;
 class StretchCalculator;
@@ -119,9 +121,9 @@ protected:
     
     size_t roundUp(size_t value); // to next power of two
 
-    template <typename T>
+    template <typename T, typename S>
     void cutShiftAndFold(T *target, int targetSize,
-                         float *src, // destructive to src
+                         S *src, // destructive to src
                          Window<float> *window) {
         window->cut(src);
         const int windowSize = window->getSize();

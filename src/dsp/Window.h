@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -16,7 +16,6 @@
 #define _RUBBERBAND_WINDOW_H_
 
 #include <cmath>
-#include <iostream>
 #include <cstdlib>
 #include <map>
 
@@ -81,7 +80,6 @@ public:
             total += m_cache[i] * m_cache[i];
         }
         T rms = sqrt(total / m_size);
-        std::cerr << "rms = " << rms << std::endl;
         return rms;
     }
 

@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -30,10 +30,13 @@ class FFTImpl;
  * complex conjugates half is omitted), so the "complex" arrays need
  * room for size/2+1 elements.
  *
- * Not thread safe: use a separate instance per thread, or use a mutex.
+ * The "interleaved" functions use the format sometimes called CCS --
+ * size/2+1 real+imaginary pairs.  So, the array elements at indices 1
+ * and size+1 will always be zero (since the signal is real).
+ *
+ * This class is reentrant but not thread safe: use a separate
+ * instance per thread, or use a mutex.
  */
-
-//!!! it would be nice if we could redefine forwardMagnitude as forwardPower (i.e. square of magnitude)
 
 class FFT
 {
@@ -44,18 +47,22 @@ public:
     ~FFT();
 
     void forward(const double *R__ realIn, double *R__ realOut, double *R__ imagOut);
+    void forwardInterleaved(const double *R__ realIn, double *R__ complexOut);
     void forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut);
     void forwardMagnitude(const double *R__ realIn, double *R__ magOut);
 
     void forward(const float *R__ realIn, float *R__ realOut, float *R__ imagOut);
+    void forwardInterleaved(const float *R__ realIn, float *R__ complexOut);
     void forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut);
     void forwardMagnitude(const float *R__ realIn, float *R__ magOut);
 
     void inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ realOut);
+    void inverseInterleaved(const double *R__ complexIn, double *R__ realOut);
     void inversePolar(const double *R__ magIn, const double *R__ phaseIn, double *R__ realOut);
     void inverseCepstral(const double *R__ magIn, double *R__ cepOut);
 
     void inverse(const float *R__ realIn, const float *R__ imagIn, float *R__ realOut);
+    void inverseInterleaved(const float *R__ complexIn, float *R__ realOut);
     void inversePolar(const float *R__ magIn, const float *R__ phaseIn, float *R__ realOut);
     void inverseCepstral(const float *R__ magIn, float *R__ cepOut);
 

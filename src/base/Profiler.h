@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -16,14 +16,17 @@
 #define _PROFILER_H_
 
 //#define NO_TIMING 1
-
 //#define WANT_TIMING 1
 //#define PROFILE_CLOCKS 1
 
+// Define NO_TIMING or NDEBUG to switch off profilers
 #ifdef NDEBUG
-#ifndef WANT_TIMING
 #define NO_TIMING 1
 #endif
+
+// But we always allow WANT_TIMING to switch them back on again
+#ifdef WANT_TIMING
+#undef NO_TIMING
 #endif
 
 #ifndef NO_TIMING

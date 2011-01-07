@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -298,9 +298,23 @@ inline void v_interleave(T *const R__ dst,
                          const int count)
 {
     int idx = 0;
-    for (int i = 0; i < count; ++i) {
-        for (int j = 0; j < channels; ++j) {
-            dst[idx++] = src[j][i];
+    switch (channels) {
+    case 2:
+        // common case, may be vectorized by compiler if hardcoded
+        for (int i = 0; i < count; ++i) {
+            for (int j = 0; j < 2; ++j) {
+                dst[idx++] = src[j][i];
+            }
+        }
+        return;
+    case 1:
+        v_copy(dst, src[0], count);
+        return;
+    default:
+        for (int i = 0; i < count; ++i) {
+            for (int j = 0; j < channels; ++j) {
+                dst[idx++] = src[j][i];
+            }
         }
     }
 }
@@ -313,9 +327,23 @@ inline void v_deinterleave(T *const R__ *const R__ dst,
                            const int count)
 {
     int idx = 0;
-    for (int i = 0; i < count; ++i) {
-        for (int j = 0; j < channels; ++j) {
-            dst[j][i] = src[idx++];
+    switch (channels) {
+    case 2:
+        // common case, may be vectorized by compiler if hardcoded
+        for (int i = 0; i < count; ++i) {
+            for (int j = 0; j < 2; ++j) {
+                dst[j][i] = src[idx++];
+            }
+        }
+        return;
+    case 1:
+        v_copy(dst[0], src, count);
+        return;
+    default:
+        for (int i = 0; i < count; ++i) {
+            for (int j = 0; j < channels; ++j) {
+                dst[j][i] = src[idx++];
+            }
         }
     }
 }
@@ -331,6 +359,30 @@ inline void v_fftshift(T *const R__ ptr,
         ptr[i] = ptr[i + hs];
         ptr[i + hs] = t;
     }
+}
+
+template<typename T>
+inline T v_mean(const T *const R__ ptr, const int count)
+{
+    T t = T(0);
+    for (int i = 0; i < count; ++i) {
+        t += ptr[i];
+    }
+    t /= T(count);
+    return t;
+}
+
+template<typename T>
+inline T v_mean_channels(const T *const R__ *const R__ ptr,
+                         const int channels,
+                         const int count)
+{
+    T t = T(0);
+    for (int c = 0; c < channels; ++c) {
+        t += v_mean(ptr[c], count);
+    }
+    t /= T(channels);
+    return t;
 }
 
 }

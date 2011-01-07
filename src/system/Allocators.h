@@ -3,7 +3,7 @@
 /*
     Rubber Band
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2010 Chris Cannam.
+    Copyright 2007-2011 Chris Cannam.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -85,6 +85,14 @@ T *reallocate(T *ptr, size_t oldcount, size_t count)
     }
     if (ptr) deallocate<T>(ptr);
     return newptr;
+}
+	
+template <typename T>
+T *reallocate_and_zero(T *ptr, size_t oldcount, size_t count)
+{
+    ptr = reallocate(ptr, oldcount, count);
+    v_zero(ptr, count);
+    return ptr;
 }
 
 template <typename T>
