@@ -3,8 +3,8 @@
 # Does not build the Vamp plugin, LADSPA plugin, or command-line utility.
 
 CXX		:= g++
-CXXFLAGS	:= -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG -O3 -arch i386 -arch x86_64 -msse -msse2 -ffast-math -ftree-vectorize -I../include -I/usr/local/include -Irubberband -I. -Isrc
-LDFLAGS		:= -arch i386 -arch x86_64 -L../lib -L/usr/local/lib
+CXXFLAGS	:= -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG -O3 -arch i386 -msse -msse2 -ffast-math -ftree-vectorize -I../include -I/usr/local/include -Irubberband -I. -Isrc
+LDFLAGS		:= -arch i386 -L../lib -L/usr/local/lib
 
 # CXX		:= g++-4.0
 # CXXFLAGS	:= -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk -O3 -arch i386 -msse -msse2 -ffast-math -ftree-vectorize -I../include -I/usr/local/include -Irubberband -I. -Isrc
@@ -16,7 +16,7 @@ MKDIR			:= mkdir
 AR			:= ar
 
 DYNAMIC_LDFLAGS 	:= -dynamiclib
-DYNAMIC_EXTENSION	:= .so
+DYNAMIC_EXTENSION	:= .dylib
 
 STATIC_TARGET  		:= lib/librubberband.a
 DYNAMIC_TARGET 		:= lib/librubberband$(DYNAMIC_EXTENSION)
@@ -81,6 +81,7 @@ LIBRARY_SOURCES := \
 LIBRARY_OBJECTS := $(LIBRARY_SOURCES:.cpp=.o)
 
 $(STATIC_TARGET):	$(LIBRARY_OBJECTS)
+	rm -f $@
 	$(AR) rsc $@ $^
 
 $(DYNAMIC_TARGET):	$(LIBRARY_OBJECTS)
