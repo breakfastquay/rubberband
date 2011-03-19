@@ -28,6 +28,7 @@ CompoundAudioCurve::CompoundAudioCurve(Parameters parameters) :
     m_hf(parameters),
     m_hfFilter(new MovingMedian<double>(19, 85)),
     m_hfDerivFilter(new MovingMedian<double>(19, 90)),
+    m_type(CompoundDetector),
     m_lastHf(0.0),
     m_lastResult(0.0),
     m_risingCount(0)

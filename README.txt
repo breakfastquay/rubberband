@@ -4,9 +4,28 @@ Rubber Band
 
 An audio time-stretching and pitch-shifting library and utility program.
 
-Copyright 2007-2010 Chris Cannam, chris.cannam@breakfastquay.com.
+Copyright 2007-2011 Chris Cannam, chris.cannam@breakfastquay.com.
 
 Distributed under the GNU General Public License.
+
+
+Contents
+========
+
+1. About Rubber Band
+    - Attractive features
+    - Limitations
+
+2. Compiling Rubber Band
+
+3. Using the Rubber Band utility
+
+4. Using the Rubber Band library
+
+
+
+About Rubber Band
+-----------------
 
 Rubber Band is a library and utility program that permits you to
 change the tempo and pitch of an audio recording independently of one
@@ -90,11 +109,15 @@ Limitations
 Compiling Rubber Band
 ---------------------
 
-Rubber Band is supplied with build scripts that have been tested on
-Linux platforms.  It is also possible to build Rubber Band on other
-platforms, including both POSIX platforms such as OS/X and non-POSIX
-platforms such as Win32.  There are some example Makefiles in the misc
-directory.
+Rubber Band Library is supplied with a configure script for Linux and
+other systems with pkg-config, and a separate Makefile for basic OS/X
+builds without pkg-config.  It's also possible to build the Rubber
+Band Library GPL edition for Windows using MinGW, though you'll have
+to hack your own Makefile for that.
+
+
+Using configure
+~~~~~~~~~~~~~~~
 
 To build Rubber Band you will also need libsndfile, libsamplerate,
 FFTW3, the Vamp plugin SDK, the LADSPA plugin header, the pthread
@@ -111,6 +134,18 @@ to compile, and optionally
   # make install
 
 to install.
+
+
+Simple build for OS/X
+~~~~~~~~~~~~~~~~~~~~~
+
+To build just the library (but not the command-line utility, Vamp
+plugin or LADSPA plugin) for OS/X, run
+
+  $ make -f build/Makefile.osx
+
+You will need libsamplerate and libfftw3 installed, but no other
+non-system dependencies.
 
 
 Using the Rubber Band utility

@@ -43,7 +43,7 @@ PercussiveAudioCurve::reset()
 void
 PercussiveAudioCurve::setFftSize(int newSize)
 {
-    m_prevMag = reallocate(m_prevMag, m_fftSize, newSize);
+    m_prevMag = reallocate(m_prevMag, m_fftSize/2 + 1, newSize/2 + 1);
     AudioCurveCalculator::setFftSize(newSize);
     reset();
 }

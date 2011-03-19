@@ -43,6 +43,9 @@ namespace RubberBand {
  * -- it's just a quick hack for use with things like plugins.
  */
 
+//!!! should review this, it's not really thread safe owing to lack of
+//!!! atomic updates
+
 template <typename T>
 class Scavenger
 {

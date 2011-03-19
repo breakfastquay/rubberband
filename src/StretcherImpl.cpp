@@ -783,8 +783,10 @@ RubberBandStretcher::Impl::reconfigure()
                 new Resampler(Resampler::FastestTolerable, 1, m_sWindowSize,
                               m_debugLevel);
 
-            m_channelData[c]->setResampleBufSize
-                (lrintf(ceil((m_increment * m_timeRatio * 2) / m_pitchScale)));
+            size_t rbs = 
+                lrintf(ceil((m_increment * m_timeRatio * 2) / m_pitchScale));
+            if (rbs < m_increment * 16) rbs = m_increment * 16;
+            m_channelData[c]->setResampleBufSize(rbs);
         }
     }
 

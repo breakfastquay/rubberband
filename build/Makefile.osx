@@ -3,8 +3,12 @@
 # Does not build the Vamp plugin, LADSPA plugin, or command-line utility.
 
 CXX		:= g++
-CXXFLAGS	:= -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk -O3 -arch i386 -arch ppc -msse -msse2 -ffast-math -ftree-vectorize -I../include -I/usr/local/include -Irubberband -I. -Isrc
-LDFLAGS		:= -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc -L../lib -L/usr/local/lib
+CXXFLAGS	:= -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG -O3 -arch i386 -arch x86_64 -msse -msse2 -ffast-math -ftree-vectorize -I../include -I/usr/local/include -Irubberband -I. -Isrc
+LDFLAGS		:= -arch i386 -arch x86_64 -L../lib -L/usr/local/lib
+
+# CXX		:= g++-4.0
+# CXXFLAGS	:= -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS -DNO_TIMING -DNDEBUG -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk -O3 -arch i386 -msse -msse2 -ffast-math -ftree-vectorize -I../include -I/usr/local/include -Irubberband -I. -Isrc
+# LDFLAGS		:= -mmacosx-version-min=10.4 -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -L../lib -L/usr/local/lib
 
 LIBRARY_LIBS		:= -lsamplerate -lfftw3 -lpthread -lm
 

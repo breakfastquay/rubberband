@@ -35,7 +35,7 @@ public:
         CompoundDetector,
         SoftDetector
     };
-    virtual void setType(Type);
+    virtual void setType(Type); // default is CompoundDetector
     
     virtual void setFftSize(int newSize);
 

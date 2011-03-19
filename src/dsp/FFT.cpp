@@ -17,8 +17,9 @@
 #include "base/Profiler.h"
 #include "system/Allocators.h"
 #include "system/VectorOps.h"
+#include "system/VectorOpsComplex.h"
 
-//#define FFT_MEASUREMENT 1
+#define FFT_MEASUREMENT 1
 
 
 #ifdef HAVE_FFTW3
@@ -77,9 +78,6 @@ public:
     virtual void inverseInterleaved(const float *R__ complexIn, float *R__ realOut) = 0;
     virtual void inversePolar(const float *R__ magIn, const float *R__ phaseIn, float *R__ realOut) = 0;
     virtual void inverseCepstral(const float *R__ magIn, float *R__ cepOut) = 0;
-
-    virtual float *getFloatTimeBuffer() = 0;
-    virtual double *getDoubleTimeBuffer() = 0;
 };    
 
 namespace FFTs {
@@ -152,15 +150,8 @@ namespace FFTs {
 class D_FFTW : public FFTImpl
 {
 public:
-    D_FFTW(int size) : m_fplanf(0)
-#ifdef FFTW_DOUBLE_ONLY
-                              , m_frb(0)
-#endif
-                              , m_dplanf(0)
-#ifdef FFTW_FLOAT_ONLY
-                              , m_drb(0)
-#endif
-                              , m_size(size)
+    D_FFTW(int size) :
+        m_fplanf(0), m_dplanf(0), m_size(size)
     {
     }
 
@@ -176,9 +167,6 @@ public:
             fftwf_destroy_plan(m_fplani);
             fftwf_free(m_fbuf);
             fftwf_free(m_fpacked);
-#ifdef FFTW_DOUBLE_ONLY
-            if (m_frb) fftw_free(m_frb);
-#endif
             m_commonMutex.unlock();
         }
         if (m_dplanf) {
@@ -192,9 +180,6 @@ public:
             fftw_destroy_plan(m_dplani);
             fftw_free(m_dbuf);
             fftw_free(m_dpacked);
-#ifdef FFTW_FLOAT_ONLY
-            if (m_drb) fftwf_free(m_drb);
-#endif
             m_commonMutex.unlock();
         }
     }
@@ -390,14 +375,8 @@ public:
                 dbuf[i] = realIn[i];
             }
         fftw_execute(m_dplanf);
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrt(m_dpacked[i][0] * m_dpacked[i][0] +
-                             m_dpacked[i][1] * m_dpacked[i][1]);
-        }
-        for (int i = 0; i <= hs; ++i) {
-            phaseOut[i] = atan2(m_dpacked[i][1], m_dpacked[i][0]);
-        }
+        v_cartesian_interleaved_to_polar(magOut, phaseOut,
+                                         (double *)m_dpacked, m_size/2+1);
     }
 
     void forwardMagnitude(const double *R__ realIn, double *R__ magOut) {
@@ -457,14 +436,8 @@ public:
                 fbuf[i] = realIn[i];
             }
         fftwf_execute(m_fplanf);
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrtf(m_fpacked[i][0] * m_fpacked[i][0] +
-                              m_fpacked[i][1] * m_fpacked[i][1]);
-        }
-        for (int i = 0; i <= hs; ++i) {
-            phaseOut[i] = atan2f(m_fpacked[i][1], m_fpacked[i][0]) ;
-        }
+        v_cartesian_interleaved_to_polar(magOut, phaseOut,
+                                         (float *)m_fpacked, m_size/2+1);
     }
 
     void forwardMagnitude(const float *R__ realIn, float *R__ magOut) {
@@ -625,31 +598,10 @@ public:
             }
     }
 
-    float *getFloatTimeBuffer() {
-        initFloat();
-#ifdef FFTW_DOUBLE_ONLY
-        if (!m_frb) m_frb = (float *)fftw_malloc(m_size * sizeof(float));
-        return m_frb;
-#else
-        return m_fbuf;
-#endif
-    }
-
-    double *getDoubleTimeBuffer() {
-        initDouble();
-#ifdef FFTW_FLOAT_ONLY
-        if (!m_drb) m_drb = (double *)fftwf_malloc(m_size * sizeof(double));
-        return m_drb;
-#else
-        return m_dbuf;
-#endif
-    }
-
 private:
     fftwf_plan m_fplanf;
     fftwf_plan m_fplani;
 #ifdef FFTW_DOUBLE_ONLY
-    float *m_frb;
     double *m_fbuf;
 #else
     float *m_fbuf;
@@ -659,11 +611,10 @@ private:
     fftw_plan m_dplani;
 #ifdef FFTW_FLOAT_ONLY
     float *m_dbuf;
-    double *m_drb;
 #else
     double *m_dbuf;
 #endif
-    fftw_complex * m_dpacked;
+    fftw_complex *m_dpacked;
     const int m_size;
     static int m_extantf;
     static int m_extantd;
@@ -688,8 +639,6 @@ class D_KISSFFT : public FFTImpl
 public:
     D_KISSFFT(int size) :
         m_size(size),
-        m_frb(0),
-        m_drb(0),
         m_fplanf(0),  
         m_fplani(0)
     {
@@ -714,9 +663,6 @@ public:
 
         delete[] m_fbuf;
         delete[] m_fpacked;
-
-        if (m_frb) delete[] m_frb;
-        if (m_drb) delete[] m_drb;
     }
 
     void initFloat() { }
@@ -956,21 +902,9 @@ public:
 
         kiss_fftri(m_fplani, m_fpacked, cepOut);
     }
-    
-    float *getFloatTimeBuffer() {
-        if (!m_frb) m_frb = new float[m_size];
-        return m_frb;
-    }
-
-    double *getDoubleTimeBuffer() {
-        if (!m_drb) m_drb = new double[m_size];
-        return m_drb;
-    }
 
 private:
     const int m_size;
-    float* m_frb;
-    double* m_drb;
     kiss_fftr_cfg m_fplanf;
     kiss_fftr_cfg m_fplani;
     kiss_fft_scalar *m_fbuf;
@@ -984,7 +918,7 @@ private:
 class D_Cross : public FFTImpl
 {
 public:
-    D_Cross(int size) : m_size(size), m_table(0), m_frb(0), m_drb(0) {
+    D_Cross(int size) : m_size(size), m_table(0) {
         
         m_a = new double[size];
         m_b = new double[size];
@@ -1022,8 +956,6 @@ public:
         delete[] m_b;
         delete[] m_c;
         delete[] m_d;
-        delete[] m_frb;
-        delete[] m_drb;
     }
 
     void initFloat() { }
@@ -1221,21 +1153,9 @@ public:
         for (int i = 0; i < m_size; ++i) cepOut[i] = m_c[i];
     }
 
-    float *getFloatTimeBuffer() {
-        if (!m_frb) m_frb = new float[m_size];
-        return m_frb;
-    }
-
-    double *getDoubleTimeBuffer() {
-        if (!m_drb) m_drb = new double[m_size];
-        return m_drb;
-    }
-
 private:
     const int m_size;
     int *m_table;
-    float *m_frb;
-    double *m_drb;
     double *m_a;
     double *m_b;
     double *m_c;
@@ -1559,18 +1479,6 @@ void
 FFT::initDouble() 
 {
     d->initDouble();
-}
-
-float *
-FFT::getFloatTimeBuffer()
-{
-    return d->getFloatTimeBuffer();
-}
-
-double *
-FFT::getDoubleTimeBuffer()
-{
-    return d->getDoubleTimeBuffer();
 }
 
 

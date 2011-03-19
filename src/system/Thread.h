@@ -99,26 +99,26 @@ private:
     Mutex *m_mutex;
 };
 
+/**
+  The Condition class bundles a condition variable and mutex.
+
+  To wait on a condition, call lock(), test the termination condition
+  if desired, then wait().  The condition will be unlocked during the
+  wait and re-locked when wait() returns (which will happen when the
+  condition is signalled or the timer times out).
+
+  To signal a condition, call signal().  If the condition is signalled
+  between lock() and wait(), the signal may be missed by the waiting
+  thread.  To avoid this, the signalling thread should also lock the
+  condition before calling signal() and unlock it afterwards.
+*/
+
 class Condition
 {
 public:
     Condition(std::string name);
     ~Condition();
     
-    // The Condition class bundles a condition variable and mutex.
-
-    // To wait on a condition, call lock(), test the termination
-    // condition if desired, then wait().  The condition will be
-    // unlocked during the wait and re-locked when wait() returns
-    // (which will happen when the condition is signalled or the timer
-    // times out).
-
-    // To signal a condition, call signal().  If the condition is
-    // signalled between lock() and wait(), the signal may be missed
-    // by the waiting thread.  To avoid this, the signalling thread
-    // should also lock the condition before calling signal() and
-    // unlock it afterwards.
-
     void lock();
     void unlock();
     void wait(int us = 0);

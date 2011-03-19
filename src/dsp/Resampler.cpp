@@ -506,6 +506,14 @@ Resampler::Resampler(Resampler::Quality quality, int channels,
 #endif
         break;
     }
+
+    if (!d) {
+        std::cerr << "Resampler::Resampler(" << quality << ", " << channels
+                  << ", " << maxBufferSize
+                  << "): Internal error: No implementation selected"
+                  << std::endl;
+        abort();
+    }
 }
 
 Resampler::~Resampler()

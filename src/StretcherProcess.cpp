@@ -886,7 +886,7 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel,
     const int hs = fsz / 2;
 
     const int wsz = m_sWindowSize;
-    
+
     if (!cd.unchanged) {
 
         cd.fft->inversePolar(cd.mag, cd.phase, cd.dblbuf);
@@ -910,22 +910,27 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel,
     }
 
     if (wsz > fsz) {
-        float *tmp = (float *)alloca(wsz * sizeof(float));
         int p = shiftIncrement * 2;
         if (cd.interpolatorScale != p) {
             SincWindow<float>::write(cd.interpolator, wsz, p);
+            cd.interpolatorScale = p;
         }
         v_multiply(fltbuf, cd.interpolator, wsz);
-        v_copy(tmp, cd.interpolator, wsz);
-        m_swindow->cut(tmp);
-        v_add(windowAccumulator, tmp, wsz);
-    } else {
-        m_swindow->add(windowAccumulator, m_awindow->getArea() * 1.5f);
     }
 
     m_swindow->cut(fltbuf);
     v_add(accumulator, fltbuf, wsz);
     cd.accumulatorFill = wsz;
+
+    if (wsz > fsz) {
+        // reuse fltbuf to calculate interpolating window shape for
+        // window accumulator
+        v_copy(fltbuf, cd.interpolator, wsz);
+        m_swindow->cut(fltbuf);
+        v_add(windowAccumulator, fltbuf, wsz);
+    } else {
+        m_swindow->add(windowAccumulator, m_awindow->getArea() * 1.5f);
+    }
 }
 
 void

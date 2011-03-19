@@ -26,13 +26,9 @@
 
 #include "system/sysutils.h"
 
-#ifdef __MSVC__
-#include "getopt/getopt.h"
-#else
 #include <getopt.h>
 #include <unistd.h>
 #include <sys/time.h>
-#endif
 
 #include "base/Profiler.h"
 
@@ -43,9 +39,6 @@ using namespace RubberBand;
 using RubberBand::gettimeofday;
 #endif
 
-#ifdef __MSVC__
-using RubberBand::usleep;
-#endif
 
 double tempo_convert(const char *str)
 {

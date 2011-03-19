@@ -69,7 +69,8 @@ void deallocate(T *ptr)
     if (ptr) free((void *)ptr);
 }
 
-	
+
+/// Reallocate preserving contents but leaving additional memory uninitialised	
 template <typename T>
 T *reallocate(T *ptr, size_t oldcount, size_t count)
 {
@@ -86,12 +87,22 @@ T *reallocate(T *ptr, size_t oldcount, size_t count)
     if (ptr) deallocate<T>(ptr);
     return newptr;
 }
-	
+
+/// Reallocate, zeroing all contents
 template <typename T>
 T *reallocate_and_zero(T *ptr, size_t oldcount, size_t count)
 {
     ptr = reallocate(ptr, oldcount, count);
     v_zero(ptr, count);
+    return ptr;
+}
+	
+/// Reallocate preserving contents and zeroing any additional memory	
+template <typename T>
+T *reallocate_and_zero_extension(T *ptr, size_t oldcount, size_t count)
+{
+    ptr = reallocate(ptr, oldcount, count);
+    if (count > oldcount) v_zero(ptr + oldcount, count - oldcount);
     return ptr;
 }
 
