@@ -84,8 +84,8 @@ inline void v_copy_channels(T *const R__ *const R__ dst,
 }
 
 template<typename T>
-inline void v_move(T *const R__ dst,
-                   const T *const R__ src,
+inline void v_move(T *const dst,
+                   const T *const src,
                    const int count)
 {
     memmove(dst, src, count * sizeof(T));
