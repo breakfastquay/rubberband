@@ -21,6 +21,7 @@
 
 #include <vector>
 #include <map>
+#include <cstddef>
 
 /**
  * @mainpage RubberBand
