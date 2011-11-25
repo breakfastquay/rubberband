@@ -34,6 +34,7 @@
 #include <sys/mman.h>
 #endif
 
+
 namespace RubberBand {
 
 template <typename T>
@@ -44,13 +45,15 @@ T *allocate(size_t count)
     if (posix_memalign(&ptr, 16, count * sizeof(T))) {
         ptr = malloc(count * sizeof(T));
     }
-#else
+#else 
     // Note that malloc always aligns to 16 byte boundaries on OS/X,
     // so we don't need posix_memalign there (which is fortunate,
     // since it doesn't exist)
     ptr = malloc(count * sizeof(T));
-#endif
-    if (!ptr) throw(std::bad_alloc());
+#endif 
+    if (!ptr) {
+        throw(std::bad_alloc());
+    }
     return (T *)ptr;
 }
 
@@ -74,13 +77,7 @@ void deallocate(T *ptr)
 template <typename T>
 T *reallocate(T *ptr, size_t oldcount, size_t count)
 {
-    T *newptr = 0;
-    try {
-        newptr = allocate<T>(count);
-    } catch (std::bad_alloc) {
-        if (ptr) deallocate<T>(ptr);
-        throw;
-    }
+    T *newptr = allocate<T>(count);
     if (oldcount && ptr) {
         v_copy(newptr, ptr, oldcount < count ? oldcount : count);
     }
@@ -141,13 +138,7 @@ T **reallocate_channels(T **ptr,
                         size_t oldchannels, size_t oldcount,
                         size_t channels, size_t count)
 {
-    T **newptr = 0;
-    try {
-        newptr = allocate_channels<T>(channels, count);
-    } catch (std::bad_alloc) {
-        if (ptr) deallocate_channels<T>(ptr, channels);
-        throw;
-    }
+    T **newptr = allocate_channels<T>(channels, count);
     if (oldcount && ptr) {
         v_copy_channels(newptr, ptr, channels, oldcount < count ? oldcount : count);
     } 
@@ -160,13 +151,7 @@ T **reallocate_and_zero_extend_channels(T **ptr,
                                         size_t oldchannels, size_t oldcount,
                                         size_t channels, size_t count)
 {
-    T **newptr = 0;
-    try {
-        newptr = allocate_and_zero_channels<T>(channels, count);
-    } catch (std::bad_alloc) {
-        if (ptr) deallocate_channels<T>(ptr, channels);
-        throw;
-    }
+    T **newptr = allocate_and_zero_channels<T>(channels, count);
     if (oldcount && ptr) {
         v_copy_channels(newptr, ptr, channels, oldcount < count ? oldcount : count);
     } 

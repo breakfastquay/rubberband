@@ -14,6 +14,8 @@
 
 #include "StretcherImpl.h"
 
+using namespace std;
+
 namespace RubberBand {
 
 
@@ -111,7 +113,7 @@ RubberBandStretcher::setMaxProcessSize(size_t samples)
 }
 
 void
-RubberBandStretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
+RubberBandStretcher::setKeyFrameMap(const map<size_t, size_t> &mapping)
 {
     m_d->setKeyFrameMap(mapping);
 }
@@ -166,19 +168,19 @@ RubberBandStretcher::getInputIncrement() const
     return m_d->getInputIncrement();
 }
 
-std::vector<int>
+vector<int>
 RubberBandStretcher::getOutputIncrements() const
 {
     return m_d->getOutputIncrements();
 }
 
-std::vector<float>
+vector<float>
 RubberBandStretcher::getPhaseResetCurve() const
 {
     return m_d->getPhaseResetCurve();
 }
 
-std::vector<int>
+vector<int>
 RubberBandStretcher::getExactTimePoints() const
 {
     return m_d->getExactTimePoints();

@@ -126,7 +126,7 @@ D_SRC::D_SRC(Resampler::Quality quality, int channels, int maxBufferSize,
     if (err) {
         std::cerr << "Resampler::Resampler: failed to create libsamplerate resampler: " 
                   << src_strerror(err) << std::endl;
-        throw Resampler::ImplementationError; //!!! of course, need to catch this!
+        throw Resampler::ImplementationError;
     }
 
     if (maxBufferSize > 0 && m_channels > 1) {
@@ -184,7 +184,7 @@ D_SRC::resample(const float *const R__ *const R__ in,
     if (err) {
         std::cerr << "Resampler::process: libsamplerate error: "
                   << src_strerror(err) << std::endl;
-        throw Resampler::ImplementationError; //!!! of course, need to catch this!
+        throw Resampler::ImplementationError;
     }
 
     if (m_channels > 1) {
@@ -220,7 +220,7 @@ D_SRC::resampleInterleaved(const float *const R__ in,
     if (err) {
         std::cerr << "Resampler::process: libsamplerate error: "
                   << src_strerror(err) << std::endl;
-        throw Resampler::ImplementationError; //!!! of course, need to catch this!
+        throw Resampler::ImplementationError;
     }
 
     m_lastRatio = ratio;

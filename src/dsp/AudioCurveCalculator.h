@@ -23,6 +23,23 @@
 namespace RubberBand 
 {
 
+/**
+ * AudioCurveCalculator turns a sequence of audio "columns" --
+ * short-time spectrum magnitude blocks -- into a sequence of numbers
+ * representing some quality of the input such as power or likelihood
+ * of an onset occurring.
+ *
+ * These are typically low-level building-blocks: AudioCurveCalculator
+ * is a simple causal interface in which each input column corresponds
+ * to exactly one output value which is returned immediately.  They
+ * have far less power (because of the causal interface and
+ * magnitude-only input) and flexibility (because of the limited
+ * return types) than for example the Vamp plugin interface.
+ *
+ * AudioCurveCalculator implementations typically remember the history
+ * of their processing data, and the caller must call reset() before
+ * resynchronising to an unrelated piece of input audio.
+ */
 class AudioCurveCalculator
 {
 public:
@@ -56,11 +73,36 @@ public:
     // given instance
 
 
+    /**
+     * Process the given magnitude spectrum block and return the curve
+     * value for it.  The mag input contains (fftSize/2 + 1) values
+     * corresponding to the magnitudes of the complex FFT output bins
+     * for a windowed input of size fftSize.  The hop (expressed in
+     * time-domain audio samples) from the previous to the current
+     * input block is given by increment.
+     */
     virtual float processFloat(const float *R__ mag, int increment) = 0;
+
+    /**
+     * Process the given magnitude spectrum block and return the curve
+     * value for it.  The mag input contains (fftSize/2 + 1) values
+     * corresponding to the magnitudes of the complex FFT output bins
+     * for a windowed input of size fftSize.  The hop (expressed in
+     * time-domain audio samples) from the previous to the current
+     * input block is given by increment.
+     */
     virtual double processDouble(const double *R__ mag, int increment) = 0;
 
+    /**
+     * Reset the calculator, forgetting the history of the audio input
+     * so far.
+     */
     virtual void reset() = 0;
 
+    /**
+     * If the output of this calculator has a known unit, return it as
+     * text.  For example, "Hz" or "V".
+     */
     virtual const char *getUnit() const { return ""; }
 
 protected:

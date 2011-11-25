@@ -17,25 +17,24 @@
 
 #include <sys/types.h>
 
-#include "Scavenger.h"
-
 //#define DEBUG_RINGBUFFER 1
 
 #include "system/sysutils.h"
 #include "system/Allocators.h"
 
-#ifdef DEBUG_RINGBUFFER
 #include <iostream>
-#endif
 
 namespace RubberBand {
 
 /**
- * RingBuffer implements a lock-free ring buffer for one writer and N
- * readers, that is to be used to store a sample type T.
+ * RingBuffer implements a lock-free ring buffer for one writer and
+ * one reader, that is to be used to store a sample type T.
+ *
+ * RingBuffer is thread-safe provided only one thread writes and only
+ * one thread reads.
  */
 
-template <typename T, int N = 1>
+template <typename T>
 class RingBuffer
 {
 public:
@@ -59,14 +58,6 @@ public:
     int getSize() const;
 
     /**
-     * Resize the ring buffer.  This also empties it; use resized()
-     * below if you do not want this to happen.  Actually swaps in a
-     * new, larger buffer; the old buffer is scavenged after a seemly
-     * delay.  Should be called from the write thread.
-     */
-    void resize(int newSize);
-
-    /**
      * Return a new ring buffer (allocated with "new" -- called must
      * delete when no longer needed) of the given size, containing the
      * same data as this one.  If another thread reads from or writes
@@ -74,7 +65,7 @@ public:
      * or inconsistent.  If this buffer's data will not fit in the new
      * size, the contents are undefined.
      */
-    RingBuffer<T, N> *resized(int newSize, int R = 0) const;
+    RingBuffer<T> *resized(int newSize) const;
 
     /**
      * Lock the ring buffer into physical memory.  Returns true
@@ -92,7 +83,7 @@ public:
      * Return the amount of data available for reading by reader R, in
      * samples.
      */
-    int getReadSpace(int R = 0) const;
+    int getReadSpace() const;
 
     /**
      * Return the amount of space available for writing, in samples.
@@ -106,18 +97,23 @@ public:
      *
      * This is a template function, taking an argument S for the target
      * sample type, which is permitted to differ from T if the two
-     * types are compatible for assignment.
+     * types are compatible for arithmetic operations.
      */
     template <typename S>
-    int read(S *const R__ destination, int n, int R = 0);
+    int read(S *const R__ destination, int n);
 
     /**
      * Read n samples from the buffer, for reader R, adding them to
      * the destination.  If fewer than n are available, the remainder
      * will be left alone.  Returns the number of samples actually
      * read.
+     *
+     * This is a template function, taking an argument S for the target
+     * sample type, which is permitted to differ from T if the two
+     * types are compatible for arithmetic operations.
      */
-    int readAdding(T *const R__ destination, int n, int R = 0);
+    template <typename S>
+    int readAdding(S *const R__ destination, int n);
 
     /**
      * Read one sample from the buffer, for reader R.  If no sample is
@@ -126,7 +122,7 @@ public:
      * may be good enough if you don't want to allocate a buffer to
      * read into.
      */
-    T readOne(int R = 0);
+    T readOne();
 
     /**
      * Read n samples from the buffer, if available, for reader R,
@@ -135,7 +131,7 @@ public:
      * n are available, the remainder will be zeroed out.  Returns the
      * number of samples actually read.
      */
-    int peek(T *const R__ destination, int n, int R = 0) const;
+    int peek(T *const R__ destination, int n) const;
 
     /**
      * Read one sample from the buffer, if available, without
@@ -143,7 +139,7 @@ public:
      * skip() will be necessary to empty the buffer.  Returns zero if
      * no sample was available.
      */
-    T peekOne(int R = 0) const;
+    T peekOne() const;
 
     /**
      * Pretend to read n samples from the buffer, for reader R,
@@ -151,7 +147,7 @@ public:
      * samples).  Returns the number of samples actually available for
      * discarding.
      */
-    int skip(int n, int R = 0);
+    int skip(int n);
 
     /**
      * Write n samples to the buffer.  If insufficient space is
@@ -173,101 +169,78 @@ public:
     int zero(int n);
 
 protected:
-    T *R__           m_buffer;
-    volatile int     m_writer;
-    volatile int     m_readers[N];
-    int              m_size;
-    bool             m_mlocked;
+    T *const R__ m_buffer;
+    int          m_writer;
+    int          m_reader;
+    const int    m_size;
+    bool         m_mlocked;
 
-    static Scavenger<ScavengerArrayWrapper<T> > m_scavenger;
+    int readSpaceFor(int w, int r) const {
+        int space;
+        if (w > r) space = w - r;
+        else if (w < r) space = (w + m_size) - r;
+        else space = 0;
+        return space;
+    }
+
+    int writeSpaceFor(int w, int r) const {
+        int space = (r + m_size - w - 1);
+        if (space >= m_size) space -= m_size;
+        return space;
+    }
 
 private:
     RingBuffer(const RingBuffer &); // not provided
     RingBuffer &operator=(const RingBuffer &); // not provided
 };
 
-template <typename T, int N>
-Scavenger<ScavengerArrayWrapper<T> > RingBuffer<T, N>::m_scavenger;
-
-template <typename T, int N>
-RingBuffer<T, N>::RingBuffer(int n) :
+template <typename T>
+RingBuffer<T>::RingBuffer(int n) :
+    m_buffer(allocate<T>(n + 1)),
     m_writer(0),
     m_size(n + 1),
     m_mlocked(false)
 {
-    m_buffer = allocate<T>(n + 1);
-
 #ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::RingBuffer(" << n << ")" << std::endl;
+    std::cerr << "RingBuffer<T>[" << this << "]::RingBuffer(" << n << ")" << std::endl;
 #endif
 
-    for (int i = 0; i < N; ++i) m_readers[i] = 0;
-
-    m_scavenger.scavenge();
+    m_reader = 0;
 }
 
-template <typename T, int N>
-RingBuffer<T, N>::~RingBuffer()
+template <typename T>
+RingBuffer<T>::~RingBuffer()
 {
 #ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::~RingBuffer" << std::endl;
+    std::cerr << "RingBuffer<T>[" << this << "]::~RingBuffer" << std::endl;
 #endif
 
     if (m_mlocked) {
 	MUNLOCK((void *)m_buffer, m_size * sizeof(T));
     }
 
-    deallocate<T>(m_buffer);
-
-    m_scavenger.scavenge();
+    deallocate(m_buffer);
 }
 
-template <typename T, int N>
+template <typename T>
 int
-RingBuffer<T, N>::getSize() const
+RingBuffer<T>::getSize() const
 {
 #ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::getSize(): " << m_size-1 << std::endl;
+    std::cerr << "RingBuffer<T>[" << this << "]::getSize(): " << m_size-1 << std::endl;
 #endif
 
     return m_size - 1;
 }
 
-template <typename T, int N>
-void
-RingBuffer<T, N>::resize(int newSize)
+template <typename T>
+RingBuffer<T> *
+RingBuffer<T>::resized(int newSize) const
 {
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::resize(" << newSize << ")" << std::endl;
-#endif
-
-    m_scavenger.scavenge();
-
-    if (m_mlocked) {
-	MUNLOCK((void *)m_buffer, m_size * sizeof(T));
-    }
-
-    m_scavenger.claim(new ScavengerArrayWrapper<T>(m_buffer));
-
-    reset();
-    m_buffer = allocate<T>(newSize + 1);
-    m_size = newSize + 1;
-
-    if (m_mlocked) {
-	if (MLOCK((void *)m_buffer, m_size * sizeof(T))) {
-	    m_mlocked = false;
-	}
-    }
-}
-
-template <typename T, int N>
-RingBuffer<T, N> *
-RingBuffer<T, N>::resized(int newSize, int R) const
-{
-    RingBuffer<T, N> *newBuffer = new RingBuffer<T, N>(newSize);
+    RingBuffer<T> *newBuffer = new RingBuffer<T>(newSize);
 
     int w = m_writer;
-    int r = m_readers[R];
+    int r = m_reader;
 
     while (r != w) {
         T value = m_buffer[r];
@@ -278,143 +251,95 @@ RingBuffer<T, N>::resized(int newSize, int R) const
     return newBuffer;
 }
 
-template <typename T, int N>
+template <typename T>
 bool
-RingBuffer<T, N>::mlock()
+RingBuffer<T>::mlock()
 {
     if (MLOCK((void *)m_buffer, m_size * sizeof(T))) return false;
     m_mlocked = true;
     return true;
 }
 
-template <typename T, int N>
+template <typename T>
 void
-RingBuffer<T, N>::reset()
+RingBuffer<T>::reset()
 {
 #ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::reset" << std::endl;
+    std::cerr << "RingBuffer<T>[" << this << "]::reset" << std::endl;
 #endif
 
     m_writer = 0;
-    for (int i = 0; i < N; ++i) m_readers[i] = 0;
+    m_reader = 0;
 }
 
-template <typename T, int N>
+template <typename T>
 int
-RingBuffer<T, N>::getReadSpace(int R) const
+RingBuffer<T>::getReadSpace() const
 {
-    int writer = m_writer;
-    int reader = m_readers[R];
-    int space;
-
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::getReadSpace(" << R << "): reader " << reader << ", writer " << writer << std::endl;
-#endif
-
-    if (writer > reader) space = writer - reader;
-    else if (writer < reader) space = (writer + m_size) - reader;
-    else space = 0;
-
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::getReadSpace(" << R << "): " << space << std::endl;
-#endif
-
-    return space;
+    return readSpaceFor(m_writer, m_reader);
 }
 
-template <typename T, int N>
+template <typename T>
 int
-RingBuffer<T, N>::getWriteSpace() const
+RingBuffer<T>::getWriteSpace() const
 {
-    int space = 0;
-    for (int i = 0; i < N; ++i) {
-        int writer = m_writer;
-        int reader = m_readers[i];
-	int here = (reader + m_size - writer - 1);
-        if (here >= m_size) here -= m_size;
-	if (i == 0 || here < space) space = here;
-    }
-
-#ifdef DEBUG_RINGBUFFER
-    int rs(getReadSpace()), rp(m_readers[0]);
-
-    std::cerr << "RingBuffer: write space " << space << ", read space "
-	      << rs << ", total " << (space + rs) << ", m_size " << m_size << std::endl;
-    std::cerr << "RingBuffer: reader " << rp << ", writer " << m_writer << std::endl;
-#endif
-
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::getWriteSpace(): " << space << std::endl;
-#endif
-
-    return space;
+    return writeSpaceFor(m_writer, m_reader);
 }
 
-template <typename T, int N>
+template <typename T>
 template <typename S>
 int
-RingBuffer<T, N>::read(S *const R__ destination, int n, int R)
+RingBuffer<T>::read(S *const R__ destination, int n)
 {
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::read(dest, " << n << ", " << R << ")" << std::endl;
-#endif
+    int w = m_writer;
+    int r = m_reader;
 
-    int available = getReadSpace(R);
+    int available = readSpaceFor(w, r);
     if (n > available) {
-#ifdef DEBUG_RINGBUFFER
-	std::cerr << "WARNING: Only " << available << " samples available"
-		  << std::endl;
-#endif
-        for (int i = available; i < n; ++i) {
-            destination[i] = S(0);
-        }
+	std::cerr << "WARNING: RingBuffer::read: " << n << " requested, only "
+                  << available << " available" << std::endl;
+        v_zero(destination + available, n - available);
 	n = available;
     }
     if (n == 0) return n;
 
-    int reader = m_readers[R];
-    int here = m_size - reader;
-    T *const R__ bufbase = m_buffer + reader;
+    int here = m_size - r;
+    T *const R__ bufbase = m_buffer + r;
 
     if (here >= n) {
-        v_convert<T, S>(destination, bufbase, n);
+        v_convert(destination, bufbase, n);
     } else {
-        v_convert<T, S>(destination, bufbase, here);
-        v_convert<T, S>(destination + here, m_buffer, n - here);
+        v_convert(destination, bufbase, here);
+        v_convert(destination + here, m_buffer, n - here);
     }
 
-    reader += n;
-    while (reader >= m_size) reader -= m_size;
-    m_readers[R] = reader;
+    r += n;
+    while (r >= m_size) r -= m_size;
 
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::read: read " << n << ", reader now " << m_readers[R] << std::endl;
-#endif
+    MBARRIER();
+    m_reader = r;
 
     return n;
 }
 
-template <typename T, int N>
+template <typename T>
+template <typename S>
 int
-RingBuffer<T, N>::readAdding(T *const R__ destination, int n, int R)
+RingBuffer<T>::readAdding(S *const R__ destination, int n)
 {
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::readAdding(dest, " << n << ", " << R << ")" << std::endl;
-#endif
+    int w = m_writer;
+    int r = m_reader;
 
-    int available = getReadSpace(R);
+    int available = readSpaceFor(w, r);
     if (n > available) {
-#ifdef DEBUG_RINGBUFFER
-	std::cerr << "WARNING: Only " << available << " samples available"
-		  << std::endl;
-#endif
+	std::cerr << "WARNING: RingBuffer::read: " << n << " requested, only "
+                  << available << " available" << std::endl;
 	n = available;
     }
     if (n == 0) return n;
 
-    int reader = m_readers[R];
-    int here = m_size - reader;
-    const T *const R__ bufbase = m_buffer + reader;
+    int here = m_size - r;
+    T *const R__ bufbase = m_buffer + r;
 
     if (here >= n) {
         v_add(destination, bufbase, n);
@@ -423,56 +348,55 @@ RingBuffer<T, N>::readAdding(T *const R__ destination, int n, int R)
         v_add(destination + here, m_buffer, n - here);
     }
 
-    reader += n;
-    while (reader >= m_size) reader -= m_size;
-    m_readers[R] = reader;
+    r += n;
+    while (r >= m_size) r -= m_size;
+
+    MBARRIER();
+    m_reader = r;
+
     return n;
 }
 
-template <typename T, int N>
+template <typename T>
 T
-RingBuffer<T, N>::readOne(int R)
+RingBuffer<T>::readOne()
 {
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::readOne(" << R << ")" << std::endl;
-#endif
+    int w = m_writer;
+    int r = m_reader;
 
-    if (m_writer == m_readers[R]) {
-#ifdef DEBUG_RINGBUFFER
-	std::cerr << "WARNING: No sample available"
+    if (w == r) {
+	std::cerr << "WARNING: RingBuffer::readOne: no sample available"
 		  << std::endl;
-#endif
 	return 0;
     }
-    int reader = m_readers[R];
-    T value = m_buffer[reader];
-    if (++reader == m_size) reader = 0;
-    m_readers[R] = reader;
+
+    T value = m_buffer[r];
+    if (++r == m_size) r = 0;
+
+    MBARRIER();
+    m_reader = r;
+
     return value;
 }
 
-template <typename T, int N>
+template <typename T>
 int
-RingBuffer<T, N>::peek(T *const R__ destination, int n, int R) const
+RingBuffer<T>::peek(T *const R__ destination, int n) const
 {
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::peek(dest, " << n << ", " << R << ")" << std::endl;
-#endif
+    int w = m_writer;
+    int r = m_reader;
 
-    int available = getReadSpace(R);
+    int available = readSpaceFor(w, r);
     if (n > available) {
-#ifdef DEBUG_RINGBUFFER
-	std::cerr << "WARNING: Only " << available << " samples available"
-		  << std::endl;
-#endif
+	std::cerr << "WARNING: RingBuffer::peek: " << n << " requested, only "
+                  << available << " available" << std::endl;
 	memset(destination + available, 0, (n - available) * sizeof(T));
 	n = available;
     }
     if (n == 0) return n;
 
-    int reader = m_readers[R];
-    int here = m_size - reader;
-    const T *const R__ bufbase = m_buffer + reader;
+    int here = m_size - r;
+    const T *const R__ bufbase = m_buffer + r;
 
     if (here >= n) {
         v_copy(destination, bufbase, n);
@@ -481,79 +405,68 @@ RingBuffer<T, N>::peek(T *const R__ destination, int n, int R) const
         v_copy(destination + here, m_buffer, n - here);
     }
 
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::peek: read " << n << std::endl;
-#endif
-
     return n;
 }
 
-template <typename T, int N>
+template <typename T>
 T
-RingBuffer<T, N>::peekOne(int R) const
+RingBuffer<T>::peekOne() const
 {
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::peek(" << R << ")" << std::endl;
-#endif
+    int w = m_writer;
+    int r = m_reader;
 
-    if (m_writer == m_readers[R]) {
-#ifdef DEBUG_RINGBUFFER
-	std::cerr << "WARNING: No sample available"
+    if (w == r) {
+	std::cerr << "WARNING: RingBuffer::peekOne: no sample available"
 		  << std::endl;
-#endif
 	return 0;
     }
-    T value = m_buffer[m_readers[R]];
+
+    T value = m_buffer[r];
     return value;
 }
 
-template <typename T, int N>
+template <typename T>
 int
-RingBuffer<T, N>::skip(int n, int R)
+RingBuffer<T>::skip(int n)
 {
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::skip(" << n << ", " << R << ")" << std::endl;
-#endif
+    int w = m_writer;
+    int r = m_reader;
 
-    int available = getReadSpace(R);
+    int available = readSpaceFor(w, r);
     if (n > available) {
-#ifdef DEBUG_RINGBUFFER
-	std::cerr << "WARNING: Only " << available << " samples available"
-		  << std::endl;
-#endif
+	std::cerr << "WARNING: RingBuffer::skip: " << n << " requested, only "
+                  << available << " available" << std::endl;
 	n = available;
     }
     if (n == 0) return n;
 
-    int reader = m_readers[R];
-    reader += n;
-    while (reader >= m_size) reader -= m_size;
-    m_readers[R] = reader;
+    r += n;
+    while (r >= m_size) r -= m_size;
+
+    // No memory barrier required, because we didn't read any data
+    m_reader = r;
+
     return n;
 }
 
-template <typename T, int N>
+template <typename T>
 template <typename S>
 int
-RingBuffer<T, N>::write(const S *const R__ source, int n)
+RingBuffer<T>::write(const S *const R__ source, int n)
 {
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::write(" << n << ")" << std::endl;
-#endif
+    int w = m_writer;
+    int r = m_reader;
 
-    int available = getWriteSpace();
+    int available = writeSpaceFor(w, r);
     if (n > available) {
-#ifdef DEBUG_RINGBUFFER
-	std::cerr << "WARNING: Only room for " << available << " samples"
-		  << std::endl;
-#endif
+	std::cerr << "WARNING: RingBuffer::write: " << n
+                  << " requested, only room for " << available << std::endl;
 	n = available;
     }
     if (n == 0) return n;
 
-    int writer = m_writer;
-    int here = m_size - writer;
-    T *const R__ bufbase = m_buffer + writer;
+    int here = m_size - w;
+    T *const R__ bufbase = m_buffer + w;
 
     if (here >= n) {
         v_convert<S, T>(bufbase, source, n);
@@ -562,38 +475,32 @@ RingBuffer<T, N>::write(const S *const R__ source, int n)
         v_convert<S, T>(m_buffer, source + here, n - here);
     }
 
-    writer += n;
-    while (writer >= m_size) writer -= m_size;
-    m_writer = writer;
+    w += n;
+    while (w >= m_size) w -= m_size;
 
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::write: wrote " << n << ", writer now " << m_writer << std::endl;
-#endif
+    MBARRIER();
+    m_writer = w;
 
     return n;
 }
 
-template <typename T, int N>
+template <typename T>
 int
-RingBuffer<T, N>::zero(int n)
+RingBuffer<T>::zero(int n)
 {
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "RingBuffer<T," << N << ">[" << this << "]::zero(" << n << ")" << std::endl;
-#endif
+    int w = m_writer;
+    int r = m_reader;
 
-    int available = getWriteSpace();
+    int available = writeSpaceFor(w, r);
     if (n > available) {
-#ifdef DEBUG_RINGBUFFER
-	std::cerr << "WARNING: Only room for " << available << " samples"
-		  << std::endl;
-#endif
+	std::cerr << "WARNING: RingBuffer::zero: " << n
+                  << " requested, only room for " << available << std::endl;
 	n = available;
     }
     if (n == 0) return n;
 
-    int writer = m_writer;
-    int here = m_size - writer;
-    T *const R__ bufbase = m_buffer + writer;
+    int here = m_size - w;
+    T *const R__ bufbase = m_buffer + w;
 
     if (here >= n) {
         v_zero(bufbase, n);
@@ -602,13 +509,11 @@ RingBuffer<T, N>::zero(int n)
         v_zero(m_buffer, n - here);
     }
 
-    writer += n;
-    while (writer >= m_size) writer -= m_size;
-    m_writer = writer;
+    w += n;
+    while (w >= m_size) w -= m_size;
 
-#ifdef DEBUG_RINGBUFFER
-    std::cerr << "writer -> " << m_writer << std::endl;
-#endif
+    MBARRIER();
+    m_writer = w;
 
     return n;
 }

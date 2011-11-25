@@ -19,9 +19,9 @@
 extern "C" {
 #endif
 
-#define RUBBERBAND_VERSION "1.6-gpl"
+#define RUBBERBAND_VERSION "1.7-gpl"
 #define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 4
+#define RUBBERBAND_API_MINOR_VERSION 5
 
 /**
  * This is a C-linkage interface to the Rubber Band time stretcher.
@@ -71,7 +71,10 @@ enum RubberBandOption {
 
     RubberBandOptionPitchHighQuality     = 0x00000000,
     RubberBandOptionPitchHighSpeed       = 0x02000000,
-    RubberBandOptionPitchHighConsistency = 0x04000000
+    RubberBandOptionPitchHighConsistency = 0x04000000,
+
+    RubberBandOptionChannelsApart        = 0x00000000,
+    RubberBandOptionChannelsTogether     = 0x10000000,
 };
 
 typedef int RubberBandOptions;

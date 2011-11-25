@@ -79,6 +79,7 @@ int main(int argc, char **argv)
     bool smoothing = false;
     bool hqpitch = false;
     bool formant = false;
+    bool together = false;
     bool crispchanged = false;
     int crispness = -1;
     bool help = false;
@@ -122,6 +123,7 @@ int main(int argc, char **argv)
             { "no-threads",    0, 0, '0' },
             { "no-transients", 0, 0, '1' },
             { "no-lamination", 0, 0, '2' },
+            { "centre-focus",  0, 0, '7' },
             { "window-long",   0, 0, '3' },
             { "window-short",  0, 0, '4' },
             { "bl-transients", 0, 0, '8' },
@@ -161,6 +163,7 @@ int main(int argc, char **argv)
         case '4': shortwin = true; crispchanged = true; break;
         case '5': detector = PercussiveDetector; crispchanged = true; break;
         case '6': detector = SoftDetector; crispchanged = true; break;
+        case '7': together = true; break;
         case '8': transients = BandLimitedTransients; crispchanged = true; break;
         case '9': smoothing = true; crispchanged = true; break;
         case '%': hqpitch = true; break;
@@ -226,6 +229,8 @@ int main(int argc, char **argv)
         cerr << "         --detector-perc  Use percussive transient detector (as in pre-1.5)" << endl;
         cerr << "         --detector-soft  Use soft transient detector" << endl;
         cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
+        cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
+        cerr << "                          (at a cost in width and individual channel quality)" << endl;
         cerr << endl;
         cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 0, full 3" << endl;
         cerr << "                          (N.B. debug level 3 includes audible ticks in output)" << endl;
@@ -304,7 +309,9 @@ int main(int argc, char **argv)
             while (i < line.length() && line[i] == ' ') ++i;
             size_t target = atoi(line.substr(i).c_str());
             mapping[source] = target;
-            cerr << "adding mapping from " << source << " to " << target << endl;
+            if (debug > 0) {
+                cerr << "adding mapping from " << source << " to " << target << endl;
+            }
             ++lineno;
         }
         ifile.close();
@@ -365,6 +372,7 @@ int main(int argc, char **argv)
     if (smoothing)   options |= RubberBandStretcher::OptionSmoothingOn;
     if (formant)     options |= RubberBandStretcher::OptionFormantPreserved;
     if (hqpitch)     options |= RubberBandStretcher::OptionPitchHighQuality;
+    if (together)    options |= RubberBandStretcher::OptionChannelsTogether;
 
     switch (threading) {
     case 0:
@@ -497,6 +505,10 @@ int main(int argc, char **argv)
         }
 
         bool final = (frame + ibs >= sfinfo.frames);
+
+        if (debug > 2) {
+            cerr << "count = " << count << ", ibs = " << ibs << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
+        }
 
         ts.process(ibuf, count, final);
 

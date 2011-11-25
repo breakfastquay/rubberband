@@ -15,9 +15,9 @@
 #ifndef _RUBBERBANDSTRETCHER_H_
 #define _RUBBERBANDSTRETCHER_H_
     
-#define RUBBERBAND_VERSION "1.6-gpl"
+#define RUBBERBAND_VERSION "1.7-gpl"
 #define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 4
+#define RUBBERBAND_API_MINOR_VERSION 5
 
 #include <vector>
 #include <map>
@@ -110,7 +110,9 @@ public:
      *   percussive event).  This, the default setting, usually
      *   results in a clear-sounding output; but it is not always
      *   consistent, and may cause interruptions in stable sounds
-     *   present at the same time as transient events.
+     *   present at the same time as transient events.  The
+     *   OptionDetector flags (below) can be used to tune this to some
+     *   extent.
      *
      *   \li \c OptionTransientsMixed - Reset component phases at the
      *   peak of each transient, outside a frequency range typical of
@@ -132,7 +134,7 @@ public:
      *
      *   \li \c OptionDetectorCompound - Use a general-purpose
      *   transient detector which is likely to be good for most
-     *   situations.
+     *   situations.  This is the default.
      *
      *   \li \c OptionDetectorPercussive - Detect percussive
      *   transients.  Note that this was the default and only option
@@ -166,7 +168,8 @@ public:
      *   determine its own threading model.  Usually this means using
      *   one processing thread per audio channel in offline mode if
      *   the stretcher is able to determine that more than one CPU is
-     *   available, and one thread only in realtime mode.
+     *   available, and one thread only in realtime mode.  This is the
+     *   defafult.
      *
      *   \li \c OptionThreadingNever - Never use more than one thread.
      *  
@@ -197,11 +200,13 @@ public:
      * not be changed after construction.
      *
      *   \li \c OptionSmoothingOff - Do not use time-domain smoothing.
+     *   This is the default.
      *
-     *   \li \c OptionSmoothingOn - Use time-domain smoothing.
-     *   This will result in a softer sound, but it may be
-     *   appropriate for longer stretches of some instruments and
-     *   can mix well with OptionWindowShort.
+     *   \li \c OptionSmoothingOn - Use time-domain smoothing.  This
+     *   will result in a softer sound with some audible artifacts
+     *   around sharp transients, but it may be appropriate for longer
+     *   stretches of some instruments and can mix well with
+     *   OptionWindowShort.
      *
      * 9. Flags prefixed \c OptionFormant control the handling of
      * formant shape (spectral envelope) when pitch-shifting.  These
@@ -209,7 +214,7 @@ public:
      *
      *   \li \c OptionFormantShifted - Apply no special formant
      *   processing.  The spectral envelope will be pitch shifted as
-     *   normal.
+     *   normal.  This is the default.
      *
      *   \li \c OptionFormantPreserved - Preserve the spectral
      *   envelope of the unshifted signal.  This permits shifting the
@@ -224,7 +229,7 @@ public:
      *   \li \c OptionPitchHighSpeed - Use a method with a CPU cost
      *   that is relatively moderate and predictable.  This may
      *   sound less clear than OptionPitchHighQuality, especially
-     *   for large pitch shifts. 
+     *   for large pitch shifts.  This is the default.
 
      *   \li \c OptionPitchHighQuality - Use the highest quality
      *   method for pitch shifting.  This method has a CPU cost
@@ -236,6 +241,26 @@ public:
      *   options, this avoids discontinuities when moving across the
      *   1.0 pitch scale in real-time; it also consumes more CPU than
      *   the others in the case where the pitch scale is exactly 1.0.
+     *
+     * 11. Flags prefixed \c OptionChannels control the method used for
+     * processing two-channel audio.  These options may not be changed
+     * after construction.
+     *
+     *   \li \c OptionChannelsApart - Each channel is processed
+     *   individually, though timing is synchronised and phases are
+     *   synchronised at transients (depending on the OptionTransients
+     *   setting).  This gives the highest quality for the individual
+     *   channels but a relative lack of stereo focus and unrealistic
+     *   increase in "width".  This is the default.
+     *
+     *   \li \c OptionChannelsTogether - The first two channels (where
+     *   two or more are present) are considered to be a stereo pair
+     *   and are processed in mid-side format; mid and side are
+     *   processed individually, with timing synchronised and phases
+     *   synchronised at transients (depending on the OptionTransients
+     *   setting).  This usually leads to better focus in the centre
+     *   but a loss of stereo space and width.  Any channels beyond
+     *   the first two are processed individually.
      */
     
     enum Option {
@@ -273,7 +298,12 @@ public:
 
         OptionPitchHighSpeed       = 0x00000000,
         OptionPitchHighQuality     = 0x02000000,
-        OptionPitchHighConsistency = 0x04000000
+        OptionPitchHighConsistency = 0x04000000,
+
+        OptionChannelsApart        = 0x00000000,
+        OptionChannelsTogether     = 0x10000000,
+
+        // n.b. Options is int, so we must stop before 0x80000000
     };
 
     typedef int Options;
@@ -432,26 +462,20 @@ public:
     void setExpectedInputDuration(size_t samples);
 
     /**
-     * Ask the stretcher how many audio sample frames should be
-     * provided as input in order to ensure that some more output
-     * becomes available.  Normal usage consists of querying this
-     * function, providing that number of samples to process(),
-     * reading the output using available() and retrieve(), and then
-     * repeating.
-     *
-     * Note that this value is only relevant to process(), not to
-     * study() (to which you may pass any number of samples at a time,
-     * and from which there is no output).
-     */
-     size_t getSamplesRequired() const;
-
-    /**
      * Tell the stretcher the maximum number of sample frames that you
-     * will ever be passing in to a single process() call. If you
-     * don't call this function, the stretcher will assume that you
-     * never pass in more samples than getSamplesRequired() suggested
-     * you should.  You should not pass in more samples than that
-     * unless you have called setMaxProcessSize first.
+     * will ever be passing in to a single process() call.  If you
+     * don't call this, the stretcher will assume that you are calling
+     * getSamplesRequired() at each cycle and are never passing more
+     * samples than are suggested by that function.
+     *
+     * If your application has some external constraint that means you
+     * prefer a fixed block size, then your normal mode of operation
+     * would be to provide that block size to this function; to loop
+     * calling process() with that size of block; after each call to
+     * process(), test whether output has been generated by calling
+     * available(); and, if so, call retrieve() to obtain it.  See
+     * getSamplesRequired() for a more suitable operating mode for
+     * applications without such external constraints.
      *
      * This function may not be called after the first call to study()
      * or process().
@@ -461,6 +485,26 @@ public:
      * and from which there is no output).
      */
     void setMaxProcessSize(size_t samples);
+
+    /**
+     * Ask the stretcher how many audio sample frames should be
+     * provided as input in order to ensure that some more output
+     * becomes available.
+     * 
+     * If your application has no particular constraint on processing
+     * block size and you are able to provide any block size as input
+     * for each cycle, then your normal mode of operation would be to
+     * loop querying this function; providing that number of samples
+     * to process(); and reading the output using available() and
+     * retrieve().  See setMaxProcessSize() for a more suitable
+     * operating mode for applications that do have external block
+     * size constraints.
+     *
+     * Note that this value is only relevant to process(), not to
+     * study() (to which you may pass any number of samples at a time,
+     * and from which there is no output).
+     */
+     size_t getSamplesRequired() const;
 
     /**
      * Provide a set of mappings from "before" to "after" sample

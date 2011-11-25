@@ -83,6 +83,7 @@ inline void v_copy_channels(T *const R__ *const R__ dst,
     }
 }
 
+// src and dst alias by definition, so not restricted
 template<typename T>
 inline void v_move(T *const dst,
                    const T *const src,
@@ -136,6 +137,16 @@ inline void v_add(T *const R__ dst,
 {
     for (int i = 0; i < count; ++i) {
         dst[i] += src[i];
+    }
+}
+
+template<typename T>
+inline void v_add(T *const R__ dst,
+                  const T value,
+                  const int count)
+{
+    for (int i = 0; i < count; ++i) {
+        dst[i] += value;
     }
 }
 
@@ -240,6 +251,17 @@ inline void v_multiply_and_add(T *const R__ dst,
     }
 }
 
+
+template<typename T>
+inline T v_sum(const T *const R__ src,
+               const int count)
+{
+    T result = T();
+    for (int i = 0; i < count; ++i) {
+        result += src[i];
+    }
+    return result;
+}
 
 template<typename T>
 inline void v_log(T *const R__ dst,

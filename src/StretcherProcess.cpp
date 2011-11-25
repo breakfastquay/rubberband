@@ -132,10 +132,33 @@ RubberBandStretcher::Impl::resampleBeforeStretching() const
         return (m_pitchScale > 1.0); // better performance
     }
 }
+
+void
+RubberBandStretcher::Impl::prepareChannelMS(size_t c,
+                                            const float *const *inputs,
+                                            size_t offset,
+                                            size_t samples, 
+                                            float *prepared)
+{
+    for (size_t i = 0; i < samples; ++i) {
+        float left = inputs[0][i + offset];
+        float right = inputs[1][i + offset];
+        float mid = (left + right) / 2;
+        float side = (left - right) / 2;
+        if (c == 0) {
+            prepared[i] = mid;
+        } else {
+            prepared[i] = side;
+        }
+    }
+}
     
 size_t
-RubberBandStretcher::Impl::consumeChannel(size_t c, const float *input,
-                                          size_t samples, bool final)
+RubberBandStretcher::Impl::consumeChannel(size_t c,
+                                          const float *const *inputs,
+                                          size_t offset,
+                                          size_t samples,
+                                          bool final)
 {
     Profiler profiler("RubberBandStretcher::Impl::consumeChannel");
 
@@ -146,6 +169,13 @@ RubberBandStretcher::Impl::consumeChannel(size_t c, const float *input,
     size_t writable = inbuf.getWriteSpace();
 
     bool resampling = resampleBeforeStretching();
+
+    float *ms = 0;
+    const float *input = 0;
+
+    bool useMidSide = ((m_options & OptionChannelsTogether) &&
+                       (m_channels >= 2) &&
+                       (c < 2));
 
     if (resampling) {
 
@@ -163,6 +193,14 @@ RubberBandStretcher::Impl::consumeChannel(size_t c, const float *input,
         }
 
 
+        if (useMidSide) {
+            ms = (float *)alloca(samples * sizeof(float));
+            prepareChannelMS(c, inputs, offset, samples, ms);
+            input = ms;
+        } else {
+            input = inputs[c] + offset;
+        }
+
         toWrite = cd.resampler->resample(&input,
                                          &cd.resamplebuf,
                                          samples,
@@ -179,10 +217,21 @@ RubberBandStretcher::Impl::consumeChannel(size_t c, const float *input,
     }
 
     if (resampling) {
+
         inbuf.write(cd.resamplebuf, toWrite);
         cd.inCount += samples;
         return samples;
+
     } else {
+
+        if (useMidSide) {
+            ms = (float *)alloca(toWrite * sizeof(float));
+            prepareChannelMS(c, inputs, offset, toWrite, ms);
+            input = ms;
+        } else {
+            input = inputs[c] + offset;
+        }
+
         inbuf.write(input, toWrite);
         cd.inCount += toWrite;
         return toWrite;
@@ -208,15 +257,18 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
     while (!last) {
 
         if (!testInbufReadSpace(c)) {
-//            cerr << "not enough input" << endl;
+            if (m_debugLevel > 2) {
+                cerr << "processChunks: out of input" << endl;
+            }
             break;
         }
 
         any = true;
 
         if (!cd.draining) {
-            size_t got = cd.inbuf->peek(cd.fltbuf, m_aWindowSize);
-            assert(got == m_aWindowSize || cd.inputSize >= 0);
+            size_t ready = cd.inbuf->getReadSpace();
+            assert(ready >= m_aWindowSize || cd.inputSize >= 0);
+            cd.inbuf->peek(cd.fltbuf, std::min(ready, m_aWindowSize));
             cd.inbuf->skip(m_increment);
         }
 
@@ -267,11 +319,17 @@ RubberBandStretcher::Impl::processOneChunk()
     // This is the normal process method in RT mode.
 
     for (size_t c = 0; c < m_channels; ++c) {
-        if (!testInbufReadSpace(c)) return false;
+        if (!testInbufReadSpace(c)) {
+            if (m_debugLevel > 2) {
+                cerr << "processOneChunk: out of input" << endl;
+            }
+            return false;
+        }
         ChannelData &cd = *m_channelData[c];
         if (!cd.draining) {
-            size_t got = cd.inbuf->peek(cd.fltbuf, m_aWindowSize);
-            assert(got == m_aWindowSize || cd.inputSize >= 0);
+            size_t ready = cd.inbuf->getReadSpace();
+            assert(ready >= m_aWindowSize || cd.inputSize >= 0);
+            cd.inbuf->peek(cd.fltbuf, std::min(ready, m_aWindowSize));
             cd.inbuf->skip(m_increment);
             analyseChunk(c);
         }
@@ -314,9 +372,11 @@ RubberBandStretcher::Impl::testInbufReadSpace(size_t c)
             // we know there is more input to come.
 
             if (!m_threaded) {
-//                cerr << "WARNING: RubberBandStretcher: read space < chunk size ("
-//                          << inbuf.getReadSpace() << " < " << m_windowSize
-//                          << ") when not all input written, on processChunks for channel " << c << endl;
+                if (m_debugLevel > 1) {
+                    cerr << "WARNING: RubberBandStretcher: read space < chunk size ("
+                         << inbuf.getReadSpace() << " < " << m_aWindowSize
+                         << ") when not all input written, on processChunks for channel " << c << endl;
+                }
             }
             return false;
         }
@@ -520,8 +580,12 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
     int incr = m_stretchCalculator->calculateSingle
         (getEffectiveRatio(), df, m_increment);
 
-    m_lastProcessPhaseResetDf.write(&df, 1);
-    m_lastProcessOutputIncrements.write(&incr, 1);
+    if (m_lastProcessPhaseResetDf.getWriteSpace() > 0) {
+        m_lastProcessPhaseResetDf.write(&df, 1);
+    }
+    if (m_lastProcessOutputIncrements.getWriteSpace() > 0) {
+        m_lastProcessOutputIncrements.write(&incr, 1);
+    }
 
     if (incr < 0) {
         phaseReset = true;
@@ -1103,7 +1167,9 @@ RubberBandStretcher::Impl::available() const
             if (m_channelData[c]->inputSize >= 0) {
 //                cerr << "available: m_done true" << endl;
                 if (m_channelData[c]->inbuf->getReadSpace() > 0) {
-//                    cerr << "calling processChunks(" << c << ") from available" << endl;
+                    if (m_debugLevel > 1) {
+                        cerr << "calling processChunks(" << c << ") from available" << endl;
+                    }
                     //!!! do we ever actually do this? if so, this method should not be const
                     // ^^^ yes, we do sometimes -- e.g. when fed a very short file
                     bool any = false, last = false;
@@ -1153,6 +1219,17 @@ RubberBandStretcher::Impl::retrieve(float *const *output, size_t samples) const
             got = gotHere;
         }
     }
+
+    if ((m_options & OptionChannelsTogether) && (m_channels >= 2)) {
+        for (size_t i = 0; i < got; ++i) {
+            float mid = output[0][i];
+            float side = output[1][i];
+            float left = mid + side;
+            float right = mid - side;
+            output[0][i] = left;
+            output[1][i] = right;
+        }
+    }            
 
     return got;
 }
