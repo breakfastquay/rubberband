@@ -226,7 +226,13 @@ system_get_process_status(int pid)
 #ifdef _WIN32
 void system_memorybarrier()
 {
+#ifdef MemoryBarrier
     MemoryBarrier();
+#else /* (mingw) */
+    LONG Barrier = 0;
+    __asm__ __volatile__("xchgl %%eax,%0 "
+                         : "=r" (Barrier));
+#endif
 }
 #else /* !_WIN32 */
 #if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)

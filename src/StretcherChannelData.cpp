@@ -72,8 +72,6 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &sizes,
     unwrappedPhase = allocate_and_zero<process_t>(realSize);
     envelope = allocate_and_zero<process_t>(realSize);
 
-    freqPeak = allocate_and_zero<size_t>(realSize);
-
     fltbuf = allocate_and_zero<float>(maxSize);
     dblbuf = allocate_and_zero<process_t>(maxSize);
 
@@ -144,7 +142,6 @@ RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,
         v_zero(prevPhase, realSize);
         v_zero(prevError, realSize);
         v_zero(unwrappedPhase, realSize);
-        v_zero(freqPeak, realSize);
 
         return;
     }
@@ -168,7 +165,6 @@ RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,
     prevError = reallocate_and_zero(prevError, oldReal, realSize);
     unwrappedPhase = reallocate_and_zero(unwrappedPhase, oldReal, realSize);
     envelope = reallocate_and_zero(envelope, oldReal, realSize);
-    freqPeak = reallocate_and_zero(freqPeak, oldReal, realSize);
     fltbuf = reallocate_and_zero(fltbuf, oldMax, maxSize);
     dblbuf = reallocate_and_zero(dblbuf, oldMax, maxSize);
 
@@ -238,7 +234,6 @@ RubberBandStretcher::Impl::ChannelData::~ChannelData()
     deallocate(prevError);
     deallocate(unwrappedPhase);
     deallocate(envelope);
-    deallocate(freqPeak);
     deallocate(accumulator);
     deallocate(windowAccumulator);
     deallocate(fltbuf);

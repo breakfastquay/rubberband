@@ -99,8 +99,6 @@ public:
     process_t *prevError;
     process_t *unwrappedPhase;
 
-    size_t *freqPeak;
-
     float *accumulator;
     size_t accumulatorFill;
     float *windowAccumulator;
