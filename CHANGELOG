@@ -1,4 +1,14 @@
 
+Changes in Rubber Band v1.7
+
+ * Add the centre-focus option as an alternative processing mode for
+   stereo (using mid-side arrangement)
+ * Several bug fixes
+
+The library is binary compatible with version 1.6 for forward
+compatibility (values have been added to an existing enum).  Code
+written to use 1.7 is not necessarily compatible with 1.6.
+
 
 Changes in Rubber Band v1.6
 
