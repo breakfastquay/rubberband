@@ -160,8 +160,9 @@ protected:
 
     size_t m_maxProcessSize;
     size_t m_expectedInputDuration;
-    
+
     bool m_threaded;
+
     bool m_realtime;
     Options m_options;
     int m_debugLevel;

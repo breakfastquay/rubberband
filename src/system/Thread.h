@@ -15,13 +15,14 @@
 #ifndef _RUBBERBAND_THREAD_H_
 #define _RUBBERBAND_THREAD_H_
 
+#include <string>
+
+
 #ifdef _WIN32
 #include <windows.h>
 #else /* !_WIN32 */
 #include <pthread.h>
 #endif /* !_WIN32 */
-
-#include <string>
 
 //#define DEBUG_THREAD 1
 //#define DEBUG_MUTEX 1
@@ -142,5 +143,6 @@ private:
 };
 
 }
+
 
 #endif

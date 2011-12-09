@@ -26,6 +26,13 @@ inline void c_phasor(T *real, T *imag, T phase)
 {
     //!!! IPP contains ippsSinCos_xxx in ippvm.h -- these are
     //!!! fixed-accuracy, test and compare
+#if defined __GNUC__
+    if (sizeof(T) == sizeof(float)) {
+        sincosf(phase, (float *)imag, (float *)real);
+    } else {
+        sincos(phase, (double *)imag, (double *)real);
+    }
+#else
     if (sizeof(T) == sizeof(float)) {
         *real = cosf(phase);
         *imag = sinf(phase);
@@ -33,6 +40,7 @@ inline void c_phasor(T *real, T *imag, T phase)
         *real = cos(phase);
         *imag = sin(phase);
     }
+#endif
 }
 
 template<typename T>

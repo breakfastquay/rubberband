@@ -42,6 +42,7 @@ using std::endl;
 
 namespace RubberBand {
 
+
 RubberBandStretcher::Impl::ProcessThread::ProcessThread(Impl *s, size_t c) :
     m_s(s),
     m_channel(c),
@@ -115,6 +116,7 @@ RubberBandStretcher::Impl::ProcessThread::abandon()
 {
     m_abandoning = true;
 }
+
 
 bool
 RubberBandStretcher::Impl::resampleBeforeStretching() const
@@ -377,6 +379,7 @@ RubberBandStretcher::Impl::testInbufReadSpace(size_t c)
                          << inbuf.getReadSpace() << " < " << m_aWindowSize
                          << ") when not all input written, on processChunks for channel " << c << endl;
                 }
+
             }
             return false;
         }

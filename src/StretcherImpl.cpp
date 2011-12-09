@@ -1220,7 +1220,6 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
             }
         }
 
-
         if (m_threaded) {
             MutexLocker locker(&m_threadSetMutex);
 
@@ -1247,12 +1246,6 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
 
     while (!allConsumed) {
 
-//#ifndef NO_THREADING
-//        if (m_threaded) {
-//            pthread_mutex_lock(&m_inputProcessedMutex);
-//        }
-//#endif
-
         // In a threaded mode, our "consumed" counters only indicate
         // the number of samples that have been taken into the input
         // ring buffers waiting to be processed by the process thread.
@@ -1276,7 +1269,9 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
                 }
 //                cerr << "process: happy with channel " << c << endl;
             }
-            if (!m_threaded && !m_realtime) {
+            if (
+                !m_threaded &&
+                !m_realtime) {
                 bool any = false, last = false;
                 processChunks(c, any, last);
             }
@@ -1289,7 +1284,6 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
             // the realtime onset detector
             processOneChunk();
         }
-
         if (m_threaded) {
             for (ThreadSet::iterator i = m_threadSet.begin();
                  i != m_threadSet.end(); ++i) {
@@ -1300,16 +1294,6 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
                 m_spaceAvailable.wait(500);
             }
             m_spaceAvailable.unlock();
-/*
-        } else {
-            if (!allConsumed) {
-                cerr << "RubberBandStretcher::Impl::process: ERROR: Too much data provided to process() call -- either call setMaxProcessSize() beforehand, or provide only getSamplesRequired() frames at a time" << endl;
-                for (size_t c = 0; c < m_channels; ++c) {
-                    cerr << "channel " << c << ": " << samples << " provided, " << consumed[c] << " consumed" << endl;
-                }
-//                break;
-            }
-*/
         }
 
         if (m_debugLevel > 2) {
