@@ -3174,7 +3174,11 @@ FFT::FFT(int size, int debugLevel) :
     if (!d) {
         std::cerr << "FFT::FFT(" << size << "): ERROR: implementation "
                   << impl << " is not compiled in" << std::endl;
+#ifndef NO_EXCEPTIONS
         throw InvalidImplementation;
+#else
+        abort();
+#endif
     }
 }
 

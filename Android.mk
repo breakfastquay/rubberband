@@ -2,6 +2,8 @@
 LOCAL_MODULE := rubberband
 LOCAL_MODULE_FILENAME := librubberband
 
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/rubberband $(LOCAL_PATH)/rubberband/src
+
 RUBBERBAND_PATH := rubberband
 RUBBERBAND_SRC_PATH := $(RUBBERBAND_PATH)/src
 
