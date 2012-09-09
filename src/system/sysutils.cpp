@@ -1,15 +1,24 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /*
-    Rubber Band
+    Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2011 Chris Cannam.
-    
+    Copyright 2007-2012 Particular Programs Ltd.
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation; either version 2 of the
     License, or (at your option) any later version.  See the file
     COPYING included with this distribution for more information.
+
+    Alternatively, if you have a valid commercial licence for the
+    Rubber Band Library obtained by agreement with the copyright
+    holders, you may redistribute and/or modify it under the terms
+    described in that licence.
+
+    If you wish to distribute code using the Rubber Band Library
+    under terms other than those of the GNU General Public License,
+    you must obtain a valid commercial licence before doing so.
 */
 
 #include "sysutils.h"
@@ -38,7 +47,14 @@
 #include <cstdlib>
 #include <iostream>
 
+#ifdef HAVE_IPP
+#include <ipp.h> // for static init
+#endif
 
+#ifdef HAVE_VDSP
+#include <vecLib/vDSP.h>
+#include <fenv.h>
+#endif
 
 #ifdef _WIN32
 #include <fstream>
@@ -55,17 +71,17 @@ system_get_platform_tag()
 #else /* !_WIN32 */
 #ifdef __APPLE__
     return "osx";
-#else 
+#else /* !__APPLE__ */
 #ifdef __LINUX__
     if (sizeof(long) == 8) {
         return "linux64";
     } else {
         return "linux";
     }
-#else 
+#else /* !__LINUX__ */
     return "posix";
-#endif 
-#endif 
+#endif /* !__LINUX__ */
+#endif /* !__APPLE__ */
 #endif /* !_WIN32 */
 }
 
@@ -192,6 +208,30 @@ void clock_gettime(int, struct timespec *ts)
 
 void system_specific_initialise()
 {
+#if defined HAVE_IPP
+#ifndef USE_IPP_DYNAMIC_LIBS
+//    std::cerr << "Calling ippStaticInit" << std::endl;
+    ippStaticInit();
+#endif
+    ippSetDenormAreZeros(1);
+#elif defined HAVE_VDSP
+#if defined __i386__ || defined __x86_64__ 
+    fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+#endif
+#endif
+#if defined __ARMEL__
+    static const unsigned int x = 0x04086060;
+    static const unsigned int y = 0x03000000;
+    int r;
+    asm volatile (
+        "fmrx	%0, fpscr   \n\t"
+        "and	%0, %0, %1  \n\t"
+        "orr	%0, %0, %2  \n\t"
+        "fmxr	fpscr, %0   \n\t"
+        : "=r"(r)
+        : "r"(x), "r"(y)
+	);
+#endif
 }
 
 void system_specific_application_initialise()
@@ -226,9 +266,13 @@ system_get_process_status(int pid)
 #ifdef _WIN32
 void system_memorybarrier()
 {
+#ifdef __MSVC__
+    MemoryBarrier();
+#else /* (mingw) */
     LONG Barrier = 0;
     __asm__ __volatile__("xchgl %%eax,%0 "
                          : "=r" (Barrier));
+#endif
 }
 #else /* !_WIN32 */
 #if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)

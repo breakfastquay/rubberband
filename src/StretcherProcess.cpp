@@ -1,22 +1,31 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /*
-    Rubber Band
+    Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2011 Chris Cannam.
-    
+    Copyright 2007-2012 Particular Programs Ltd.
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation; either version 2 of the
     License, or (at your option) any later version.  See the file
     COPYING included with this distribution for more information.
+
+    Alternatively, if you have a valid commercial licence for the
+    Rubber Band Library obtained by agreement with the copyright
+    holders, you may redistribute and/or modify it under the terms
+    described in that licence.
+
+    If you wish to distribute code using the Rubber Band Library
+    under terms other than those of the GNU General Public License,
+    you must obtain a valid commercial licence before doing so.
 */
 
 #include "StretcherImpl.h"
 
-#include "dsp/PercussiveAudioCurve.h"
-#include "dsp/HighFrequencyAudioCurve.h"
-#include "dsp/ConstantAudioCurve.h"
+#include "audiocurves/PercussiveAudioCurve.h"
+#include "audiocurves/HighFrequencyAudioCurve.h"
+#include "audiocurves/ConstantAudioCurve.h"
 
 #include "StretchCalculator.h"
 #include "StretcherChannelData.h"
@@ -42,6 +51,7 @@ using std::endl;
 
 namespace RubberBand {
 
+#ifndef NO_THREADING
 
 RubberBandStretcher::Impl::ProcessThread::ProcessThread(Impl *s, size_t c) :
     m_s(s),
@@ -117,6 +127,7 @@ RubberBandStretcher::Impl::ProcessThread::abandon()
     m_abandoning = true;
 }
 
+#endif
 
 bool
 RubberBandStretcher::Impl::resampleBeforeStretching() const
@@ -194,6 +205,13 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
             cd.setResampleBufSize(reqSize);
         }
 
+#ifndef NO_THREADING
+#if defined HAVE_IPP && !defined USE_SPEEX
+        if (m_threaded) {
+            m_resamplerMutex.lock();
+        }
+#endif
+#endif
 
         if (useMidSide) {
             ms = (float *)alloca(samples * sizeof(float));
@@ -209,6 +227,13 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
                                          1.0 / m_pitchScale,
                                          final);
 
+#ifndef NO_THREADING
+#if defined HAVE_IPP && !defined USE_SPEEX
+        if (m_threaded) {
+            m_resamplerMutex.unlock();
+        }
+#endif
+#endif
     }
 
     if (writable < toWrite) {
@@ -373,14 +398,18 @@ RubberBandStretcher::Impl::testInbufReadSpace(size_t c)
             // its input -- and that would give incorrect output, as
             // we know there is more input to come.
 
+#ifndef NO_THREADING
             if (!m_threaded) {
+#endif
                 if (m_debugLevel > 1) {
                     cerr << "WARNING: RubberBandStretcher: read space < chunk size ("
                          << inbuf.getReadSpace() << " < " << m_aWindowSize
                          << ") when not all input written, on processChunks for channel " << c << endl;
                 }
 
+#ifndef NO_THREADING
             }
+#endif
             return false;
         }
         
@@ -956,11 +985,13 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel,
 
     if (!cd.unchanged) {
 
-        cd.fft->inversePolar(cd.mag, cd.phase, cd.dblbuf);
-
-        // our ffts produced unscaled results
+        // Our FFTs produced unscaled results. Scale before inverse
+        // transform rather than after, to avoid overflow if using a
+        // fixed-point FFT.
         float factor = 1.f / fsz;
-        v_scale(dblbuf, factor, fsz);
+        v_scale(cd.mag, factor, hs + 1);
+
+        cd.fft->inversePolar(cd.mag, cd.phase, cd.dblbuf);
 
         if (wsz == fsz) {
             v_convert(fltbuf, dblbuf + hs, hs);
@@ -1044,6 +1075,13 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
             cd.setResampleBufSize(reqSize);
         }
 
+#ifndef NO_THREADING
+#if defined HAVE_IPP && !defined USE_SPEEX
+        if (m_threaded) {
+            m_resamplerMutex.lock();
+        }
+#endif
+#endif
 
         size_t outframes = cd.resampler->resample(&cd.accumulator,
                                                   &cd.resamplebuf,
@@ -1051,6 +1089,13 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
                                                   1.0 / m_pitchScale,
                                                   last);
 
+#ifndef NO_THREADING
+#if defined HAVE_IPP && !defined USE_SPEEX
+        if (m_threaded) {
+            m_resamplerMutex.unlock();
+        }
+#endif
+#endif
 
         writeOutput(*cd.outbuf, cd.resamplebuf,
                     outframes, cd.outCount, theoreticalOut);
@@ -1158,14 +1203,18 @@ RubberBandStretcher::Impl::available() const
 {
     Profiler profiler("RubberBandStretcher::Impl::available");
 
+#ifndef NO_THREADING
     if (m_threaded) {
         MutexLocker locker(&m_threadSetMutex);
         if (m_channelData.empty()) return 0;
     } else {
         if (m_channelData.empty()) return 0;
     }
+#endif
 
+#ifndef NO_THREADING
     if (!m_threaded) {
+#endif
         for (size_t c = 0; c < m_channels; ++c) {
             if (m_channelData[c]->inputSize >= 0) {
 //                cerr << "available: m_done true" << endl;
@@ -1180,7 +1229,9 @@ RubberBandStretcher::Impl::available() const
                 }
             }
         }
+#ifndef NO_THREADING
     }
+#endif
 
     size_t min = 0;
     bool consumed = true;

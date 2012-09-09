@@ -1,5 +1,5 @@
 
-AC_INIT(RubberBand, 1.7, cannam@all-day-breakfast.com)
+AC_INIT(RubberBand, 1.7, chris.cannam@breakfastquay.com)
 
 AC_CONFIG_SRCDIR(src/StretcherImpl.h)
 AC_PROG_CXX
@@ -33,7 +33,7 @@ if test "x$GCC" = "xyes"; then
   esac
   case " $CXXFLAGS " in
     *[\ \	]-fPIC\ -Wall[\ \	]*) ;;
-    *) CXXFLAGS="$CXXFLAGS -fPIC -Wall -Woverloaded-virtual" ;;
+    *) CXXFLAGS="$CXXFLAGS -fPIC -Wall" ;;
   esac
 fi
 changequote([,])dnl

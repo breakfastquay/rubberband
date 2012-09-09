@@ -1,20 +1,33 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /*
-    Rubber Band
+    Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2011 Chris Cannam.
-    
+    Copyright 2007-2012 Particular Programs Ltd.
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation; either version 2 of the
     License, or (at your option) any later version.  See the file
     COPYING included with this distribution for more information.
+
+    Alternatively, if you have a valid commercial licence for the
+    Rubber Band Library obtained by agreement with the copyright
+    holders, you may redistribute and/or modify it under the terms
+    described in that licence.
+
+    If you wish to distribute code using the Rubber Band Library
+    under terms other than those of the GNU General Public License,
+    you must obtain a valid commercial licence before doing so.
 */
 
 #ifndef _RUBBERBAND_SYSUTILS_H_
 #define _RUBBERBAND_SYSUTILS_H_
 
+#ifdef __MSVC__
+#include "float_cast/float_cast.h"
+#define R__ __restrict
+#endif
 
 #ifdef __GNUC__
 #define R__ __restrict__
@@ -27,11 +40,26 @@
 #ifdef __MINGW32__
 #include <malloc.h>
 #else
+#ifndef __MSVC__
 #include <alloca.h>
 #endif
+#endif
 
+#ifdef __MSVC__
+#include <malloc.h>
+#include <process.h>
+#define alloca _alloca
+#define getpid _getpid
+#endif
 
+#ifdef __MSVC__
+#define uint8_t unsigned __int8
+#define uint16_t unsigned __int16
+#define uint32_t unsigned __int32
+#define ssize_t long
+#else
 #include <stdint.h>
+#endif
 
 #include <math.h>
 
@@ -49,6 +77,7 @@ extern ProcessStatus system_get_process_status(int pid);
 struct timespec { long tv_sec; long tv_nsec; };
 void clock_gettime(int clk_id, struct timespec *p);
 #define CLOCK_MONOTONIC 1
+#define CLOCK_REALTIME 2
 #endif
 
 #ifdef _WIN32
@@ -60,9 +89,15 @@ struct timespec { long tv_sec; long tv_nsec; };
 // always uses GetPerformanceCounter, does not check whether it's valid or not:
 void clock_gettime(int clk_id, struct timespec *p);
 #define CLOCK_MONOTONIC 1
+#define CLOCK_REALTIME 2
 
 #endif
 
+#ifdef __MSVC__
+
+void usleep(unsigned long);
+
+#endif
 
 inline double mod(double x, double y) { return x - (y * floor(x / y)); }
 inline float modf(float x, float y) { return x - (y * float(floor(x / y))); }
@@ -125,5 +160,9 @@ extern void system_memorybarrier();
 
 #endif
 
+#ifdef NO_THREADING
+#undef MBARRIER
+#define MBARRIER() 
+#endif
 
 #endif

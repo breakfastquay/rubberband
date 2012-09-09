@@ -1,0 +1,96 @@
+/* Copyright Chris Cannam - All Rights Reserved */
+
+package com.breakfastquay.rubberband;
+
+public class RubberBandStretcher
+{
+    public RubberBandStretcher(int sampleRate, int channels,
+			       int options,
+			       double initialTimeRatio,
+			       double initialPitchScale) {
+	handle = 0;
+	initialise(sampleRate, channels, options,
+		   initialTimeRatio, initialPitchScale);
+    }
+
+    public native void dispose();
+
+    public native void reset();
+
+    public native void setTimeRatio(double ratio);
+    public native void setPitchScale(double scale);
+
+    public native int getChannelCount();
+    public native double getTimeRatio();
+    public native double getPitchScale();
+
+    public native int getLatency();
+
+    public native void setTransientsOption(int options);
+    public native void setDetectorOption(int options);
+    public native void setPhaseOption(int options);
+    public native void setFormantOption(int options);
+    public native void setPitchOption(int options);
+
+    public native void setExpectedInputDuration(long samples);
+    public native void setMaxProcessSize(int samples);
+
+    public native int getSamplesRequired();
+
+    //!!! setKeyFrameMap
+
+    //!!! we should check, for example, that the samples arrays have the right number of channels
+    //!!! extracting subset of array in java is a pain, this should take array + offset and there should be an interleaved alternative
+    public native void study(float[][] input, boolean finalBlock);
+    public native void process(float[][] input, boolean finalBlock);
+
+    public native int available();
+    public native int retrieve(float[][] output);
+
+    private native void initialise(int sampleRate, int channels, int options,
+				   double initialTimeRatio,
+				   double initialPitchScale);
+    private long handle;
+
+    public static final int OptionProcessOffline       = 0x00000000;
+    public static final int OptionProcessRealTime      = 0x00000001;
+
+    public static final int OptionStretchElastic       = 0x00000000;
+    public static final int OptionStretchPrecise       = 0x00000010;
+    
+    public static final int OptionTransientsCrisp      = 0x00000000;
+    public static final int OptionTransientsMixed      = 0x00000100;
+    public static final int OptionTransientsSmooth     = 0x00000200;
+
+    public static final int OptionDetectorCompound     = 0x00000000;
+    public static final int OptionDetectorPercussive   = 0x00000400;
+    public static final int OptionDetectorSoft         = 0x00000800;
+
+    public static final int OptionPhaseLaminar         = 0x00000000;
+    public static final int OptionPhaseIndependent     = 0x00002000;
+
+    public static final int OptionWindowStandard       = 0x00000000;
+    public static final int OptionWindowShort          = 0x00100000;
+    public static final int OptionWindowLong           = 0x00200000;
+
+    public static final int OptionSmoothingOff         = 0x00000000;
+    public static final int OptionSmoothingOn          = 0x00800000;
+
+    public static final int OptionFormantShifted       = 0x00000000;
+    public static final int OptionFormantPreserved     = 0x01000000;
+
+    public static final int OptionPitchHighSpeed       = 0x00000000;
+    public static final int OptionPitchHighQuality     = 0x02000000;
+    public static final int OptionPitchHighConsistency = 0x04000000;
+
+    public static final int OptionChannelsApart        = 0x00000000;
+    public static final int OptionChannelsTogether     = 0x10000000;
+
+    public static final int DefaultOptions             = 0x00000000;
+    public static final int PercussiveOptions          = 0x00102000;
+
+    static {
+	System.loadLibrary("rubberband");
+    }
+};
+

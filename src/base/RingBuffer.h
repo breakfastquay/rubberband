@@ -1,15 +1,24 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /*
-    Rubber Band
+    Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2011 Chris Cannam.
-    
+    Copyright 2007-2012 Particular Programs Ltd.
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation; either version 2 of the
     License, or (at your option) any later version.  See the file
     COPYING included with this distribution for more information.
+
+    Alternatively, if you have a valid commercial licence for the
+    Rubber Band Library obtained by agreement with the copyright
+    holders, you may redistribute and/or modify it under the terms
+    described in that licence.
+
+    If you wish to distribute code using the Rubber Band Library
+    under terms other than those of the GNU General Public License,
+    you must obtain a valid commercial licence before doing so.
 */
 
 #ifndef _RUBBERBAND_RINGBUFFER_H_
@@ -47,7 +56,7 @@ public:
      * power of two, this means n should ideally be some power of two
      * minus one.
      */
-    RingBuffer(int n = 0);
+    RingBuffer(int n);
 
     virtual ~RingBuffer();
 
@@ -268,8 +277,7 @@ RingBuffer<T>::reset()
     std::cerr << "RingBuffer<T>[" << this << "]::reset" << std::endl;
 #endif
 
-    m_writer = 0;
-    m_reader = 0;
+    m_reader = m_writer;
 }
 
 template <typename T>
@@ -298,7 +306,7 @@ RingBuffer<T>::read(S *const R__ destination, int n)
     if (n > available) {
 	std::cerr << "WARNING: RingBuffer::read: " << n << " requested, only "
                   << available << " available" << std::endl;
-        v_zero(destination + available, n - available);
+//!!!        v_zero(destination + available, n - available);
 	n = available;
     }
     if (n == 0) return n;
@@ -367,7 +375,7 @@ RingBuffer<T>::readOne()
     if (w == r) {
 	std::cerr << "WARNING: RingBuffer::readOne: no sample available"
 		  << std::endl;
-	return 0;
+	return T();
     }
 
     T value = m_buffer[r];

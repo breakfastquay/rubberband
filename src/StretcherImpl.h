@@ -1,15 +1,24 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /*
-    Rubber Band
+    Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2011 Chris Cannam.
-    
+    Copyright 2007-2012 Particular Programs Ltd.
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation; either version 2 of the
     License, or (at your option) any later version.  See the file
     COPYING included with this distribution for more information.
+
+    Alternatively, if you have a valid commercial licence for the
+    Rubber Band Library obtained by agreement with the copyright
+    holders, you may redistribute and/or modify it under the terms
+    described in that licence.
+
+    If you wish to distribute code using the Rubber Band Library
+    under terms other than those of the GNU General Public License,
+    you must obtain a valid commercial licence before doing so.
 */
 
 #ifndef _RUBBERBAND_STRETCHERIMPL_H_
@@ -20,7 +29,8 @@
 #include "dsp/Window.h"
 #include "dsp/SincWindow.h"
 #include "dsp/FFT.h"
-#include "dsp/CompoundAudioCurve.h"
+
+#include "audiocurves/CompoundAudioCurve.h"
 
 #include "base/RingBuffer.h"
 #include "base/Scavenger.h"
@@ -34,7 +44,11 @@ using namespace RubberBand;
 namespace RubberBand
 {
 
+#ifdef PROCESS_SAMPLE_TYPE
+typedef PROCESS_SAMPLE_TYPE process_t;
+#else
 typedef double process_t;
+#endif
 
 class AudioCurveCalculator;
 class StretchCalculator;
@@ -161,7 +175,9 @@ protected:
     size_t m_maxProcessSize;
     size_t m_expectedInputDuration;
 
+#ifndef NO_THREADING    
     bool m_threaded;
+#endif
 
     bool m_realtime;
     Options m_options;
@@ -183,6 +199,7 @@ protected:
     Window<float> *m_swindow;
     FFT *m_studyFFT;
 
+#ifndef NO_THREADING
     Condition m_spaceAvailable;
     
     class ProcessThread : public Thread
@@ -203,6 +220,13 @@ protected:
     typedef std::set<ProcessThread *> ThreadSet;
     ThreadSet m_threadSet;
     
+#if defined HAVE_IPP && !defined USE_SPEEX
+    // Exasperatingly, the IPP polyphase resampler does not appear to
+    // be thread-safe as advertised -- a good reason to prefer the
+    // Speex alternative
+    Mutex m_resamplerMutex;
+#endif
+#endif
 
     size_t m_inputDuration;
     CompoundAudioCurve::Type m_detectorType;

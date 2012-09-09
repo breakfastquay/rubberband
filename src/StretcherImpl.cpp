@@ -1,25 +1,35 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /*
-    Rubber Band
+    Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2011 Chris Cannam.
-    
+    Copyright 2007-2012 Particular Programs Ltd.
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation; either version 2 of the
     License, or (at your option) any later version.  See the file
     COPYING included with this distribution for more information.
+
+    Alternatively, if you have a valid commercial licence for the
+    Rubber Band Library obtained by agreement with the copyright
+    holders, you may redistribute and/or modify it under the terms
+    described in that licence.
+
+    If you wish to distribute code using the Rubber Band Library
+    under terms other than those of the GNU General Public License,
+    you must obtain a valid commercial licence before doing so.
 */
 
 #include "StretcherImpl.h"
 
-#include "dsp/PercussiveAudioCurve.h"
-#include "dsp/HighFrequencyAudioCurve.h"
-#include "dsp/SpectralDifferenceAudioCurve.h"
-#include "dsp/SilentAudioCurve.h"
-#include "dsp/ConstantAudioCurve.h"
-#include "dsp/CompoundAudioCurve.h"
+#include "audiocurves/PercussiveAudioCurve.h"
+#include "audiocurves/HighFrequencyAudioCurve.h"
+#include "audiocurves/SpectralDifferenceAudioCurve.h"
+#include "audiocurves/SilentAudioCurve.h"
+#include "audiocurves/ConstantAudioCurve.h"
+#include "audiocurves/CompoundAudioCurve.h"
+
 #include "dsp/Resampler.h"
 
 #include "StretchCalculator.h"
@@ -75,7 +85,9 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_outbufSize(m_defaultFftSize * 2),
     m_maxProcessSize(m_defaultFftSize),
     m_expectedInputDuration(0),
+#ifndef NO_THREADING
     m_threaded(false),
+#endif
     m_realtime(false),
     m_options(options),
     m_debugLevel(m_defaultDebugLevel),
@@ -84,7 +96,9 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_afilter(0),
     m_swindow(0),
     m_studyFFT(0),
+#ifndef NO_THREADING
     m_spaceAvailable("space"),
+#endif
     m_inputDuration(0),
     m_detectorType(CompoundAudioCurve::CompoundDetector),
     m_silentHistory(0),
@@ -145,6 +159,7 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
         }
     }
 
+#ifndef NO_THREADING
     if (m_channels > 1) {
 
         m_threaded = true;
@@ -162,12 +177,14 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
             cerr << "Going multithreaded..." << endl;
         }
     }
+#endif
 
     configure();
 }
 
 RubberBandStretcher::Impl::~Impl()
 {
+#ifndef NO_THREADING
     if (m_threaded) {
         MutexLocker locker(&m_threadSetMutex);
         for (set<ProcessThread *>::iterator i = m_threadSet.begin();
@@ -180,6 +197,7 @@ RubberBandStretcher::Impl::~Impl()
             delete *i;
         }
     }
+#endif
 
     for (size_t c = 0; c < m_channels; ++c) {
         delete m_channelData[c];
@@ -204,6 +222,7 @@ RubberBandStretcher::Impl::~Impl()
 void
 RubberBandStretcher::Impl::reset()
 {
+#ifndef NO_THREADING
     if (m_threaded) {
         m_threadSetMutex.lock();
         for (set<ProcessThread *>::iterator i = m_threadSet.begin();
@@ -217,6 +236,7 @@ RubberBandStretcher::Impl::reset()
         }
         m_threadSet.clear();
     }
+#endif
 
     m_emergencyScavenger.scavenge();
 
@@ -235,7 +255,9 @@ RubberBandStretcher::Impl::reset()
     m_inputDuration = 0;
     m_silentHistory = 0;
 
+#ifndef NO_THREADING
     if (m_threaded) m_threadSetMutex.unlock();
+#endif
 
     reconfigure();
 }
@@ -534,6 +556,7 @@ RubberBandStretcher::Impl::calculateSizes()
         // the pitch scale changes
         m_outbufSize = m_outbufSize * 16;
     } else {
+#ifndef NO_THREADING
         if (m_threaded) {
             // This headroom is to permit the processing threads to
             // run ahead of the buffer output drainage; the exact
@@ -541,6 +564,7 @@ RubberBandStretcher::Impl::calculateSizes()
             // results
             m_outbufSize = m_outbufSize * 16;
         }
+#endif
     }
 
     if (m_debugLevel > 0) {
@@ -1220,6 +1244,7 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
             }
         }
 
+#ifndef NO_THREADING
         if (m_threaded) {
             MutexLocker locker(&m_threadSetMutex);
 
@@ -1233,6 +1258,7 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
                 cerr << m_channels << " threads created" << endl;
             }
         }
+#endif
         
         m_mode = Processing;
     }
@@ -1270,7 +1296,9 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
 //                cerr << "process: happy with channel " << c << endl;
             }
             if (
+#ifndef NO_THREADING
                 !m_threaded &&
+#endif
                 !m_realtime) {
                 bool any = false, last = false;
                 processChunks(c, any, last);
@@ -1284,6 +1312,7 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
             // the realtime onset detector
             processOneChunk();
         }
+#ifndef NO_THREADING
         if (m_threaded) {
             for (ThreadSet::iterator i = m_threadSet.begin();
                  i != m_threadSet.end(); ++i) {
@@ -1295,6 +1324,7 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
             }
             m_spaceAvailable.unlock();
         }
+#endif
 
         if (m_debugLevel > 2) {
             if (!allConsumed) cerr << "process looping" << endl;

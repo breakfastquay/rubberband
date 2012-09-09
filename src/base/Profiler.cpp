@@ -1,15 +1,24 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /*
-    Rubber Band
+    Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2011 Chris Cannam.
-    
+    Copyright 2007-2012 Particular Programs Ltd.
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation; either version 2 of the
     License, or (at your option) any later version.  See the file
     COPYING included with this distribution for more information.
+
+    Alternatively, if you have a valid commercial licence for the
+    Rubber Band Library obtained by agreement with the copyright
+    holders, you may redistribute and/or modify it under the terms
+    described in that licence.
+
+    If you wish to distribute code using the Rubber Band Library
+    under terms other than those of the GNU General Public License,
+    you must obtain a valid commercial licence before doing so.
 */
 
 #include "Profiler.h"
@@ -19,7 +28,12 @@
 #include <string>
 #include <map>
 
-#include <cstdio>
+#include <stdio.h>
+
+#ifdef __MSVC__
+// Ugh --cc
+#define snprintf sprintf_s
+#endif
 
 namespace RubberBand {
 
@@ -53,39 +67,23 @@ Profiler::add(const char *id, float ms)
 void
 Profiler::dump()
 {
+    std::string report = getReport();
+    fprintf(stderr, "%s", report.c_str());
+}
+
+std::string
+Profiler::getReport()
+{
+    static const int buflen = 256;
+    char buffer[buflen];
+    std::string report;
+
 #ifdef PROFILE_CLOCKS
-    fprintf(stderr, "Profiling points [CPU time]:\n");
+    snprintf(buffer, buflen, "Profiling points [CPU time]:\n");
 #else
-    fprintf(stderr, "Profiling points [Wall time]:\n");
+    snprintf(buffer, buflen, "Profiling points [Wall time]:\n");
 #endif
-
-    fprintf(stderr, "\nBy name:\n");
-
-    typedef std::set<const char *, std::less<std::string> > StringSet;
-
-    StringSet profileNames;
-    for (ProfileMap::const_iterator i = m_profiles.begin();
-         i != m_profiles.end(); ++i) {
-        profileNames.insert(i->first);
-    }
-
-    for (StringSet::const_iterator i = profileNames.begin();
-         i != profileNames.end(); ++i) {
-
-        ProfileMap::const_iterator j = m_profiles.find(*i);
-        if (j == m_profiles.end()) continue;
-
-        const TimePair &pp(j->second);
-        fprintf(stderr, "%s(%d):\n", *i, pp.first);
-        fprintf(stderr, "\tReal: \t%f ms      \t[%f ms total]\n",
-                (pp.second / pp.first),
-                (pp.second));
-
-        WorstCallMap::const_iterator k = m_worstCalls.find(*i);
-        if (k == m_worstCalls.end()) continue;
-        
-        fprintf(stderr, "\tWorst:\t%f ms/call\n", k->second);
-    }
+    report += buffer;
 
     typedef std::multimap<float, const char *> TimeRMap;
     typedef std::multimap<int, const char *> IntRMap;
@@ -105,29 +103,71 @@ Profiler::dump()
         worstmap.insert(TimeRMap::value_type(i->second, i->first));
     }
 
-    fprintf(stderr, "\nBy total:\n");
+    snprintf(buffer, buflen, "\nBy total:\n");
+    report += buffer;
     for (TimeRMap::const_iterator i = totmap.end(); i != totmap.begin(); ) {
         --i;
-        fprintf(stderr, "%-40s  %f ms\n", i->second, i->first);
+        snprintf(buffer, buflen, "%-40s  %f ms\n", i->second, i->first);
+        report += buffer;
     }
 
-    fprintf(stderr, "\nBy average:\n");
+    snprintf(buffer, buflen, "\nBy average:\n");
+    report += buffer;
     for (TimeRMap::const_iterator i = avgmap.end(); i != avgmap.begin(); ) {
         --i;
-        fprintf(stderr, "%-40s  %f ms\n", i->second, i->first);
+        snprintf(buffer, buflen, "%-40s  %f ms\n", i->second, i->first);
+        report += buffer;
     }
 
-    fprintf(stderr, "\nBy worst case:\n");
+    snprintf(buffer, buflen, "\nBy worst case:\n");
+    report += buffer;
     for (TimeRMap::const_iterator i = worstmap.end(); i != worstmap.begin(); ) {
         --i;
-        fprintf(stderr, "%-40s  %f ms\n", i->second, i->first);
+        snprintf(buffer, buflen, "%-40s  %f ms\n", i->second, i->first);
+        report += buffer;
     }
 
-    fprintf(stderr, "\nBy number of calls:\n");
+    snprintf(buffer, buflen, "\nBy number of calls:\n");
+    report += buffer;
     for (IntRMap::const_iterator i = ncallmap.end(); i != ncallmap.begin(); ) {
         --i;
-        fprintf(stderr, "%-40s  %d\n", i->second, i->first);
+        snprintf(buffer, buflen, "%-40s  %d\n", i->second, i->first);
+        report += buffer;
     }
+
+    snprintf(buffer, buflen, "\nBy name:\n");
+    report += buffer;
+
+    typedef std::set<const char *, std::less<std::string> > StringSet;
+
+    StringSet profileNames;
+    for (ProfileMap::const_iterator i = m_profiles.begin();
+         i != m_profiles.end(); ++i) {
+        profileNames.insert(i->first);
+    }
+
+    for (StringSet::const_iterator i = profileNames.begin();
+         i != profileNames.end(); ++i) {
+
+        ProfileMap::const_iterator j = m_profiles.find(*i);
+        if (j == m_profiles.end()) continue;
+
+        const TimePair &pp(j->second);
+        snprintf(buffer, buflen, "%s(%d):\n", *i, pp.first);
+        report += buffer;
+        snprintf(buffer, buflen, "\tReal: \t%f ms      \t[%f ms total]\n",
+                (pp.second / pp.first),
+                (pp.second));
+        report += buffer;
+
+        WorstCallMap::const_iterator k = m_worstCalls.find(*i);
+        if (k == m_worstCalls.end()) continue;
+        
+        snprintf(buffer, buflen, "\tWorst:\t%f ms/call\n", k->second);
+        report += buffer;
+    }
+
+    return report;
 }
 
 Profiler::Profiler(const char* c) :

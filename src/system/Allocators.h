@@ -1,15 +1,24 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /*
-    Rubber Band
+    Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2011 Chris Cannam.
-    
+    Copyright 2007-2012 Particular Programs Ltd.
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation; either version 2 of the
     License, or (at your option) any later version.  See the file
     COPYING included with this distribution for more information.
+
+    Alternatively, if you have a valid commercial licence for the
+    Rubber Band Library obtained by agreement with the copyright
+    holders, you may redistribute and/or modify it under the terms
+    described in that licence.
+
+    If you wish to distribute code using the Rubber Band Library
+    under terms other than those of the GNU General Public License,
+    you must obtain a valid commercial licence before doing so.
 */
 
 #ifndef _RUBBERBAND_ALLOCATORS_H_
@@ -34,6 +43,9 @@
 #include <sys/mman.h>
 #endif
 
+#ifdef LACK_BAD_ALLOC
+namespace std { struct bad_alloc { }; }
+#endif
 
 namespace RubberBand {
 
@@ -41,22 +53,55 @@ template <typename T>
 T *allocate(size_t count)
 {
     void *ptr = 0;
+    // 32-byte alignment is required for at least OpenMAX
+    static const int alignment = 32;
+#ifdef USE_OWN_ALIGNED_MALLOC
+    // Alignment must be a power of two, bigger than the pointer
+    // size. Stuff the actual malloc'd pointer in just before the
+    // returned value.  This is the least desirable way to do this --
+    // the other options below are all better
+    size_t allocd = count * sizeof(T) + alignment;
+    void *buf = malloc(allocd);
+    if (buf) {
+        char *adj = (char *)buf;
+        while ((unsigned long long)adj & (alignment-1)) --adj;
+        ptr = ((char *)adj) + alignment;
+        ((void **)ptr)[-1] = buf;
+    }
+#else /* !USE_OWN_ALIGNED_MALLOC */
 #ifdef HAVE_POSIX_MEMALIGN
-    if (posix_memalign(&ptr, 16, count * sizeof(T))) {
+    if (posix_memalign(&ptr, alignment, count * sizeof(T))) {
         ptr = malloc(count * sizeof(T));
     }
-#else 
-    // Note that malloc always aligns to 16 byte boundaries on OS/X,
-    // so we don't need posix_memalign there (which is fortunate,
-    // since it doesn't exist)
+#else /* !HAVE_POSIX_MEMALIGN */
+#ifdef __MSVC__
+    ptr = _aligned_malloc(count * sizeof(T), alignment);
+#else /* !__MSVC__ */
+#warning "No aligned malloc available or defined"
+    // Note that malloc always aligns to 16 byte boundaries on OS/X
     ptr = malloc(count * sizeof(T));
-#endif 
+#endif /* !__MSVC__ */
+#endif /* !HAVE_POSIX_MEMALIGN */
+#endif /* !USE_OWN_ALIGNED_MALLOC */
     if (!ptr) {
+#ifndef NO_EXCEPTIONS
         throw(std::bad_alloc());
+#else
+        abort();
+#endif
     }
     return (T *)ptr;
 }
 
+#ifdef HAVE_IPP
+
+template <>
+float *allocate(size_t count);
+
+template <>
+double *allocate(size_t count);
+
+#endif
 	
 template <typename T>
 T *allocate_and_zero(size_t count)
@@ -69,9 +114,26 @@ T *allocate_and_zero(size_t count)
 template <typename T>
 void deallocate(T *ptr)
 {
+#ifdef USE_OWN_ALIGNED_MALLOC
+    if (ptr) free(((void **)ptr)[-1]);
+#else /* !USE_OWN_ALIGNED_MALLOC */
+#ifdef __MSVC__
+    if (ptr) _aligned_free((void *)ptr);
+#else /* !__MSVC__ */
     if (ptr) free((void *)ptr);
+#endif /* !__MSVC__ */
+#endif /* !USE_OWN_ALIGNED_MALLOC */
 }
 
+#ifdef HAVE_IPP
+
+template <>
+void deallocate(float *);
+
+template <>
+void deallocate(double *);
+
+#endif
 
 /// Reallocate preserving contents but leaving additional memory uninitialised	
 template <typename T>
@@ -158,6 +220,17 @@ T **reallocate_and_zero_extend_channels(T **ptr,
     if (ptr) deallocate_channels<T>(ptr, channels);
     return newptr;
 }
+
+/// RAII class to call deallocate() on destruction
+template <typename T>
+class Deallocator
+{
+public:
+    Deallocator(T *t) : m_t(t) { }
+    ~Deallocator() { deallocate<T>(m_t); }
+private:
+    T *m_t;
+};
 
 }
 
