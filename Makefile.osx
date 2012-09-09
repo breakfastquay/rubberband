@@ -1,10 +1,10 @@
 
 CXX		:= g++
 CC		:= gcc
-ARCHFLAGS	:= -arch i386 -arch x86_64
+ARCHFLAGS	:= 
 OPTFLAGS	:= -DNDEBUG -ffast-math -mfpmath=sse -msse -msse2 -O3 -ftree-vectorize
 
-CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I/usr/local/include -DUSE_PTHREADS -DHAVE_VDSP -DUSE_SPEEX -DNO_THREAD_CHECKS -DNO_TIMING -Irubberband -I. -Isrc
+CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I/usr/local/include -DUSE_PTHREADS -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DNO_THREAD_CHECKS -DNO_TIMING -Irubberband -I. -Isrc
 
 LIBRARY_LIBS		:= -framework Accelerate
 

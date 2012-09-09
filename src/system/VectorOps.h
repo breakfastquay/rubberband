@@ -674,7 +674,7 @@ inline void v_abs(float *const R__ dst,
                   const int count)
 {
     float tmp[count];
-    vvfabf(tmp, dst, &count);
+    vvfabsf(tmp, dst, &count);
     v_copy(dst, tmp, count);
 }
 #endif
