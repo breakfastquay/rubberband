@@ -208,6 +208,9 @@ the supplied build files will handle these for you.)
    -DNO_THREADING
    Build without any multithread support.
 
+   -DUSE_PTHREADS
+   Use the pthreads library (required unless NO_THREADING or on Windows)
+
    -DPROCESS_SAMPLE_TYPE=float
    Select single precision for internal calculations. The default is
    double precision. Consider using for mobile architectures with
