@@ -356,10 +356,6 @@
 				RelativePath=".\src\system\Thread.cpp"
 				>
 			</File>
-			<File
-				RelativePath=".\src\dsp\Window.cpp"
-				>
-			</File>
 		</Filter>
 	</Files>
 	<Globals>
