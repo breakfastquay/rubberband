@@ -37,15 +37,24 @@ public class RubberBandStretcher
 
     public native int getSamplesRequired();
 
-    //!!! setKeyFrameMap
+    //!!! todo: setKeyFrameMap
 
-    //!!! we should check, for example, that the samples arrays have the right number of channels
-    //!!! extracting subset of array in java is a pain, this should take array + offset and there should be an interleaved alternative
-    public native void study(float[][] input, boolean finalBlock);
-    public native void process(float[][] input, boolean finalBlock);
+    public native void study(float[][] input, int offset, int n, boolean finalBlock);
+    public void study(float[][] input, boolean finalBlock) {
+	study(input, 0, input[0].length, finalBlock);
+    }
+
+    public native void process(float[][] input, int offset, int n, boolean finalBlock);
+    public void process(float[][] input, boolean finalBlock) {
+	process(input, 0, input[0].length, finalBlock);
+    }
 
     public native int available();
-    public native int retrieve(float[][] output);
+
+    public native int retrieve(float[][] output, int offset, int n);
+    public int retrieve(float[][] output) {
+	return retrieve(output, 0, output[0].length);
+    }
 
     private native void initialise(int sampleRate, int channels, int options,
 				   double initialTimeRatio,
@@ -68,6 +77,10 @@ public class RubberBandStretcher
 
     public static final int OptionPhaseLaminar         = 0x00000000;
     public static final int OptionPhaseIndependent     = 0x00002000;
+    
+    public static final int OptionThreadingAuto        = 0x00000000;
+    public static final int OptionThreadingNever       = 0x00010000;
+    public static final int OptionThreadingAlways      = 0x00020000;
 
     public static final int OptionWindowStandard       = 0x00000000;
     public static final int OptionWindowShort          = 0x00100000;
