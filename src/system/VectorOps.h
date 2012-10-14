@@ -674,7 +674,11 @@ inline void v_abs(float *const R__ dst,
                   const int count)
 {
     float tmp[count];
+#if (MACOSX_DEPLOYMENT_TARGET <= 1070 && MAC_OS_X_VERSION_MIN_REQUIRED <= 1070)
+    vvfabf(tmp, dst, &count);
+#else
     vvfabsf(tmp, dst, &count);
+#endif
     v_copy(dst, tmp, count);
 }
 #endif
