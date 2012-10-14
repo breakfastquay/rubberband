@@ -46,6 +46,8 @@ class FFTImpl;
  * size/2+1 real+imaginary pairs.  So, the array elements at indices 1
  * and size+1 will always be zero (since the signal is real).
  *
+ * Neither forward nor inverse transform is scaled.
+ *
  * This class is reentrant but not thread safe: use a separate
  * instance per thread, or use a mutex.
  */
