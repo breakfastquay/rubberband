@@ -930,7 +930,8 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
 
     v_scale(dblbuf, factor, cutoff);
 
-    cd.fft->forward(dblbuf, envelope, 0);
+    double *spare = (double *)alloca((hs + 1) * sizeof(double));
+    cd.fft->forward(dblbuf, envelope, spare);
 
     v_exp(envelope, hs + 1);
     v_divide(mag, envelope, hs + 1);

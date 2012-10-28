@@ -45,17 +45,21 @@ class FFTImpl;
  * The "interleaved" functions use the format sometimes called CCS --
  * size/2+1 real+imaginary pairs.  So, the array elements at indices 1
  * and size+1 will always be zero (since the signal is real).
+ * 
+ * All pointer arguments must point to valid data. A NullArgument
+ * exception is thrown if any argument is NULL.
  *
  * Neither forward nor inverse transform is scaled.
  *
  * This class is reentrant but not thread safe: use a separate
  * instance per thread, or use a mutex.
  */
-
 class FFT
 {
 public:
-    enum Exception { InvalidSize, InvalidImplementation, InternalError };
+    enum Exception {
+        NullArgument, InvalidSize, InvalidImplementation, InternalError
+    };
 
     FFT(int size, int debugLevel = 0); // may throw InvalidSize
     ~FFT();
