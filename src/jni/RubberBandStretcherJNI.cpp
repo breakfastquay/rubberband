@@ -199,105 +199,111 @@ setStretcher(JNIEnv *env, jobject obj, RubberBandStretcher *stretcher)
     env->SetLongField(obj, fid, handle);
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_initialise(JNIEnv *env, jobject obj, jint sampleRate, jint channels, jint options, jdouble initialTimeRatio, jdouble initialPitchScale)
 {
     setStretcher(env, obj, new RubberBandStretcher
                  (sampleRate, channels, options, initialTimeRatio, initialPitchScale));
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_dispose(JNIEnv *env, jobject obj)
 {
     delete getStretcher(env, obj);
     setStretcher(env, obj, 0);
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_reset(JNIEnv *env, jobject obj)
 {
     getStretcher(env, obj)->reset();
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_setTimeRatio(JNIEnv *env, jobject obj, jdouble ratio)
 {
     getStretcher(env, obj)->setTimeRatio(ratio);
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_setPitchScale(JNIEnv *env, jobject obj, jdouble scale)
 {
     getStretcher(env, obj)->setPitchScale(scale);
 }
 
-jint
+JNIEXPORT jint JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_getChannelCount(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->getChannelCount();
 }
 
-jdouble
+JNIEXPORT jdouble JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_getTimeRatio(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->getTimeRatio();
 }
 
-jdouble
+JNIEXPORT jdouble JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_getPitchScale(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->getPitchScale();
 }
 
-jint
+JNIEXPORT jint JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_getLatency(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->getLatency();
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_setTransientsOption(JNIEnv *env, jobject obj, jint options)
 {
     getStretcher(env, obj)->setTransientsOption(options);
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_setDetectorOption(JNIEnv *env, jobject obj, jint options)
 {
     getStretcher(env, obj)->setDetectorOption(options);
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_setPhaseOption(JNIEnv *env, jobject obj, jint options)
 {
     getStretcher(env, obj)->setPhaseOption(options);
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_setFormantOption(JNIEnv *env, jobject obj, jint options)
 {
     getStretcher(env, obj)->setFormantOption(options);
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_setPitchOption(JNIEnv *env, jobject obj, jint options)
 {
     getStretcher(env, obj)->setPitchOption(options);
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_setExpectedInputDuration(JNIEnv *env, jobject obj, jlong duration)
 {
     getStretcher(env, obj)->setExpectedInputDuration(duration);
 }
 
-jint
+JNIEXPORT void JNICALL
+Java_com_breakfastquay_rubberband_RubberBandStretcher_setMaxProcessSize(JNIEnv *env, jobject obj, jint size)
+{
+    getStretcher(env, obj)->setMaxProcessSize(size);
+}
+
+JNIEXPORT jint JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_getSamplesRequired(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->getSamplesRequired();
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_study(JNIEnv *env, jobject obj, jobjectArray data, jint offset, jint n, jboolean final)
 {
     int channels = env->GetArrayLength(data);
@@ -318,7 +324,7 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_study(JNIEnv *env, jobject
     }
 }
 
-void
+JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_process(JNIEnv *env, jobject obj, jobjectArray data, jint offset, jint n, jboolean final)
 {
     int channels = env->GetArrayLength(data);
@@ -342,13 +348,13 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_process(JNIEnv *env, jobje
     deallocate(arr);
 }
 
-jint
+JNIEXPORT jint JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_available(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->available();
 }
 
-jint
+JNIEXPORT jint JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_retrieve(JNIEnv *env, jobject obj, jobjectArray output, jint offset, jint n)
 {
     RubberBandStretcher *stretcher = getStretcher(env, obj);
