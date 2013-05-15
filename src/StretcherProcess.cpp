@@ -183,7 +183,6 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
 
     bool resampling = resampleBeforeStretching();
 
-    float *ms = 0;
     const float *input = 0;
 
     bool useMidSide = ((m_options & OptionChannelsTogether) &&
@@ -214,9 +213,8 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
 #endif
 
         if (useMidSide) {
-            ms = (float *)alloca(samples * sizeof(float));
-            prepareChannelMS(c, inputs, offset, samples, ms);
-            input = ms;
+            prepareChannelMS(c, inputs, offset, samples, cd.ms);
+            input = cd.ms;
         } else {
             input = inputs[c] + offset;
         }
@@ -252,9 +250,8 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
     } else {
 
         if (useMidSide) {
-            ms = (float *)alloca(toWrite * sizeof(float));
-            prepareChannelMS(c, inputs, offset, toWrite, ms);
-            input = ms;
+            prepareChannelMS(c, inputs, offset, toWrite, cd.ms);
+            input = cd.ms;
         } else {
             input = inputs[c] + offset;
         }
