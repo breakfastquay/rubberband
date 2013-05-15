@@ -52,10 +52,11 @@
 #define getpid _getpid
 #endif
 
-#ifdef __MSVC__
+#if defined(__MSVC__) && _MSC_VER < 1700
 #define uint8_t unsigned __int8
 #define uint16_t unsigned __int16
 #define uint32_t unsigned __int32
+#elif defined(__MSVC__)
 #define ssize_t long
 #else
 #include <stdint.h>
