@@ -281,6 +281,8 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
     last = false;
     any = false;
 
+    float *tmp = 0;
+
     while (!last) {
 
         if (!testInbufReadSpace(c)) {
@@ -312,8 +314,8 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
             if (m_debugLevel > 1) {
                 cerr << "channel " << c << " breaking down overlong increment " << shiftIncrement << " into " << bit << "-size bits" << endl;
             }
+            if (!tmp) tmp = allocate<float>(m_aWindowSize);
             analyseChunk(c);
-            float *tmp = (float *)alloca(m_aWindowSize * sizeof(float));
             v_copy(tmp, cd.fltbuf, m_aWindowSize);
             for (size_t i = 0; i < shiftIncrement; i += bit) {
                 v_copy(cd.fltbuf, tmp, m_aWindowSize);
@@ -332,6 +334,8 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
             cerr << "channel " << c << ": last = " << last << ", chunkCount = " << cd.chunkCount << endl;
         }
     }
+
+    if (tmp) deallocate(tmp);
 }
 
 bool
