@@ -3,6 +3,7 @@ AC_INIT(RubberBand, 1.8.1, chris.cannam@breakfastquay.com)
 
 AC_CONFIG_SRCDIR(src/StretcherImpl.h)
 AC_PROG_CXX
+AC_PROG_CC
 AC_HEADER_STDC
 AC_C_BIGENDIAN
 
