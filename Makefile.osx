@@ -4,7 +4,7 @@ CC		:= gcc
 ARCHFLAGS	:= 
 OPTFLAGS	:= -DNDEBUG -ffast-math -mfpmath=sse -msse -msse2 -O3 -ftree-vectorize
 
-CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I/usr/local/include -DUSE_PTHREADS -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DNO_THREAD_CHECKS -DNO_TIMING -Irubberband -I. -Isrc
+CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -I/usr/local/include -DUSE_PTHREADS -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DNO_THREAD_CHECKS -DNO_TIMING
 
 LIBRARY_LIBS		:= -framework Accelerate
 
