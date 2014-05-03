@@ -537,7 +537,7 @@ RubberBandStretcher::Impl::calculateSizes()
     // ratio) for any chunk.
 
     if (m_debugLevel > 0) {
-        cerr << "configure: effective ratio = " << getEffectiveRatio() << endl;
+        cerr << "configure: time ratio = " << m_timeRatio << ", pitch scale = " << m_pitchScale << ", effective ratio = " << getEffectiveRatio() << endl;
         cerr << "configure: analysis window size = " << m_aWindowSize << ", synthesis window size = " << m_sWindowSize << ", fft size = " << m_fftSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
     }
 
