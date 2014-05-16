@@ -1,4 +1,21 @@
 
+Changes in Rubber Band v1.8.1
+
+ * Fix a crash in formant-preserving pitch shift for some build targets
+
+The API is unchanged and the library is binary compatible with
+version 1.7.
+
+
+Changes in Rubber Band v1.8
+
+ * Add build support for Win32/MSVC, Android, and various libraries
+ * Add Java JNI interface
+
+The API is unchanged and the library is binary compatible with
+version 1.7.
+
+
 Changes in Rubber Band v1.7
 
  * Add the centre-focus option as an alternative processing mode for

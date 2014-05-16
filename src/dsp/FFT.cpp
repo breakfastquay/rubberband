@@ -3187,99 +3187,154 @@ FFT::~FFT()
     delete d;
 }
 
+#ifndef NO_EXCEPTIONS
+#define CHECK_NOT_NULL(x) \
+    if (!(x)) { \
+        std::cerr << "FFT: ERROR: Null argument " #x << std::endl;  \
+        throw NullArgument; \
+    }
+#else
+#define CHECK_NOT_NULL(x) \
+    if (!(x)) { \
+        std::cerr << "FFT: ERROR: Null argument " #x << std::endl;  \
+        std::cerr << "FFT: Would be throwing NullArgument here, if exceptions were not disabled" << std::endl;  \
+        return; \
+    }
+#endif
+
 void
 FFT::forward(const double *R__ realIn, double *R__ realOut, double *R__ imagOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(realOut);
+    CHECK_NOT_NULL(imagOut);
     d->forward(realIn, realOut, imagOut);
 }
 
 void
 FFT::forwardInterleaved(const double *R__ realIn, double *R__ complexOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(complexOut);
     d->forwardInterleaved(realIn, complexOut);
 }
 
 void
 FFT::forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(magOut);
+    CHECK_NOT_NULL(phaseOut);
     d->forwardPolar(realIn, magOut, phaseOut);
 }
 
 void
 FFT::forwardMagnitude(const double *R__ realIn, double *R__ magOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(magOut);
     d->forwardMagnitude(realIn, magOut);
 }
 
 void
 FFT::forward(const float *R__ realIn, float *R__ realOut, float *R__ imagOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(realOut);
+    CHECK_NOT_NULL(imagOut);
     d->forward(realIn, realOut, imagOut);
 }
 
 void
 FFT::forwardInterleaved(const float *R__ realIn, float *R__ complexOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(complexOut);
     d->forwardInterleaved(realIn, complexOut);
 }
 
 void
 FFT::forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(magOut);
+    CHECK_NOT_NULL(phaseOut);
     d->forwardPolar(realIn, magOut, phaseOut);
 }
 
 void
 FFT::forwardMagnitude(const float *R__ realIn, float *R__ magOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(magOut);
     d->forwardMagnitude(realIn, magOut);
 }
 
 void
 FFT::inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ realOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(imagIn);
+    CHECK_NOT_NULL(realOut);
     d->inverse(realIn, imagIn, realOut);
 }
 
 void
 FFT::inverseInterleaved(const double *R__ complexIn, double *R__ realOut)
 {
+    CHECK_NOT_NULL(complexIn);
+    CHECK_NOT_NULL(realOut);
     d->inverseInterleaved(complexIn, realOut);
 }
 
 void
 FFT::inversePolar(const double *R__ magIn, const double *R__ phaseIn, double *R__ realOut)
 {
+    CHECK_NOT_NULL(magIn);
+    CHECK_NOT_NULL(phaseIn);
+    CHECK_NOT_NULL(realOut);
     d->inversePolar(magIn, phaseIn, realOut);
 }
 
 void
 FFT::inverseCepstral(const double *R__ magIn, double *R__ cepOut)
 {
+    CHECK_NOT_NULL(magIn);
+    CHECK_NOT_NULL(cepOut);
     d->inverseCepstral(magIn, cepOut);
 }
 
 void
 FFT::inverse(const float *R__ realIn, const float *R__ imagIn, float *R__ realOut)
 {
+    CHECK_NOT_NULL(realIn);
+    CHECK_NOT_NULL(imagIn);
+    CHECK_NOT_NULL(realOut);
     d->inverse(realIn, imagIn, realOut);
 }
 
 void
 FFT::inverseInterleaved(const float *R__ complexIn, float *R__ realOut)
 {
+    CHECK_NOT_NULL(complexIn);
+    CHECK_NOT_NULL(realOut);
     d->inverseInterleaved(complexIn, realOut);
 }
 
 void
 FFT::inversePolar(const float *R__ magIn, const float *R__ phaseIn, float *R__ realOut)
 {
+    CHECK_NOT_NULL(magIn);
+    CHECK_NOT_NULL(phaseIn);
+    CHECK_NOT_NULL(realOut);
     d->inversePolar(magIn, phaseIn, realOut);
 }
 
 void
 FFT::inverseCepstral(const float *R__ magIn, float *R__ cepOut)
 {
+    CHECK_NOT_NULL(magIn);
+    CHECK_NOT_NULL(cepOut);
     d->inverseCepstral(magIn, cepOut);
 }
 

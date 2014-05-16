@@ -111,6 +111,7 @@ public:
     float *accumulator;
     size_t accumulatorFill;
     float *windowAccumulator;
+    float *ms; // only used when mid-side processing
     float *interpolator; // only used when time-domain smoothing is on
     int interpolatorScale;
 

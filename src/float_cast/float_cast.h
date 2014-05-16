@@ -1,3 +1,6 @@
+#ifndef ERIKD_FLOATCAST_H
+#define ERIKD_FLOATCAST_H
+
 /*
 ** Copyright (C) 2001 Erik de Castro Lopo <erikd AT mega-nerd DOT com>
 **
@@ -69,5 +72,4 @@
 
 #endif
 
-
-
+#endif

@@ -993,6 +993,7 @@ D_Speex::resample(const float *const R__ *const R__ in,
         
     //!!! check err, respond appropriately
 
+
     if (m_channels > 1) {
         v_deinterleave(out, m_iout, m_channels, outcount);
     }
@@ -1022,6 +1023,8 @@ D_Speex::resampleInterleaved(const float *const R__ in,
                                                         &uincount,
                                                         data_out,
                                                         &outcount);
+
+//    std::cerr << "D_SPEEX: incount " << incount << " ratio " << ratio << " req " << lrintf(ceilf(incount * ratio)) << " final " << final << " output_frames_gen " << outcount << std::endl;
 
     return outcount;
 }
