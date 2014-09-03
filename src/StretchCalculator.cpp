@@ -45,6 +45,7 @@ StretchCalculator::StretchCalculator(size_t sampleRate,
     m_recovery(0),
     m_prevRatio(1.0),
     m_transientAmnesty(0),
+    m_debugLevel(0),
     m_useHardPeaks(useHardPeaks)
 {
 //    std::cerr << "StretchCalculator::StretchCalculator: useHardPeaks = " << useHardPeaks << std::endl;

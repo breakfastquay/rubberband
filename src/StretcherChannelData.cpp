@@ -249,6 +249,7 @@ RubberBandStretcher::Impl::ChannelData::~ChannelData()
     deallocate(accumulator);
     deallocate(windowAccumulator);
     deallocate(fltbuf);
+    deallocate(dblbuf);
 
     for (std::map<size_t, FFT *>::iterator i = ffts.begin();
          i != ffts.end(); ++i) {

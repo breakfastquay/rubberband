@@ -130,6 +130,7 @@ template <typename T>
 Scavenger<T>::Scavenger(int sec, int defaultObjectListSize) :
     m_objects(ObjectTimeList(defaultObjectListSize)),
     m_sec(sec),
+    m_lastExcess(0),
     m_claimed(0),
     m_scavenged(0),
     m_asExcess(0)

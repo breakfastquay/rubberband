@@ -253,6 +253,12 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_sampleRate(sampleRate),
     m_channels(channels)
 {
+    m_input = new float *[m_channels];
+    m_output = new float *[m_channels];
+
+    m_outputBuffer = new RingBuffer<float> *[m_channels];
+    m_scratch = new float *[m_channels];
+    
     for (size_t c = 0; c < m_channels; ++c) {
 
         m_input[c] = 0;
@@ -276,6 +282,10 @@ RubberBandPitchShifter::~RubberBandPitchShifter()
         delete m_outputBuffer[c];
         delete[] m_scratch[c];
     }
+    delete[] m_outputBuffer;
+    delete[] m_scratch;
+    delete[] m_output;
+    delete[] m_input;
 }
     
 LADSPA_Handle

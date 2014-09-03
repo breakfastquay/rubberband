@@ -102,7 +102,6 @@ protected:
                                 float adj) const;
 
     size_t m_sampleRate;
-    size_t m_blockSize;
     size_t m_increment;
     float m_prevDf;
     double m_divergence;

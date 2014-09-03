@@ -1118,11 +1118,15 @@ RubberBandStretcher::Impl::calculateStretch()
 
     double prdm = 0, sdm = 0;
     if (!m_phaseResetDf.empty()) {
-        for (int i = 0; i < m_phaseResetDf.size(); ++i) prdm += m_phaseResetDf[i];
+        for (int i = 0; i < (int)m_phaseResetDf.size(); ++i) {
+            prdm += m_phaseResetDf[i];
+        }
         prdm /= m_phaseResetDf.size();
     }
     if (!m_stretchDf.empty()) {
-        for (int i = 0; i < m_stretchDf.size(); ++i) sdm += m_stretchDf[i];
+        for (int i = 0; i < (int)m_stretchDf.size(); ++i) {
+            sdm += m_stretchDf[i];
+        }
         sdm /= m_stretchDf.size();
     }
 //    std::cerr << "phase reset df mean = " << prdm << ", stretch df mean = " << sdm << std::endl;
