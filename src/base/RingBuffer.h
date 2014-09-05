@@ -67,7 +67,7 @@ public:
     int getSize() const;
 
     /**
-     * Return a new ring buffer (allocated with "new" -- called must
+     * Return a new ring buffer (allocated with "new" -- caller must
      * delete when no longer needed) of the given size, containing the
      * same data as this one.  If another thread reads from or writes
      * to this buffer during the call, the results may be incomplete
@@ -89,8 +89,7 @@ public:
     void reset();
 
     /**
-     * Return the amount of data available for reading by reader R, in
-     * samples.
+     * Return the amount of data available for reading, in samples.
      */
     int getReadSpace() const;
 
@@ -100,9 +99,9 @@ public:
     int getWriteSpace() const;
 
     /**
-     * Read n samples from the buffer, for reader R.  If fewer than n
-     * are available, the remainder will be zeroed out.  Returns the
-     * number of samples actually read.
+     * Read n samples from the buffer.  If fewer than n are available,
+     * the remainder will be zeroed out.  Returns the number of
+     * samples actually read.
      *
      * This is a template function, taking an argument S for the target
      * sample type, which is permitted to differ from T if the two
@@ -112,10 +111,9 @@ public:
     int read(S *const R__ destination, int n);
 
     /**
-     * Read n samples from the buffer, for reader R, adding them to
-     * the destination.  If fewer than n are available, the remainder
-     * will be left alone.  Returns the number of samples actually
-     * read.
+     * Read n samples from the buffer, adding them to the destination.
+     * If fewer than n are available, the remainder will be left
+     * alone.  Returns the number of samples actually read.
      *
      * This is a template function, taking an argument S for the target
      * sample type, which is permitted to differ from T if the two
@@ -125,20 +123,19 @@ public:
     int readAdding(S *const R__ destination, int n);
 
     /**
-     * Read one sample from the buffer, for reader R.  If no sample is
-     * available, this will silently return zero.  Calling this
-     * repeatedly is obviously slower than calling read once, but it
-     * may be good enough if you don't want to allocate a buffer to
-     * read into.
+     * Read one sample from the buffer.  If no sample is available,
+     * this will silently return zero.  Calling this repeatedly is
+     * obviously slower than calling read once, but it may be good
+     * enough if you don't want to allocate a buffer to read into.
      */
     T readOne();
 
     /**
-     * Read n samples from the buffer, if available, for reader R,
-     * without advancing the read pointer -- i.e. a subsequent read()
-     * or skip() will be necessary to empty the buffer.  If fewer than
-     * n are available, the remainder will be zeroed out.  Returns the
-     * number of samples actually read.
+     * Read n samples from the buffer, if available, without advancing
+     * the read pointer -- i.e. a subsequent read() or skip() will be
+     * necessary to empty the buffer.  If fewer than n are available,
+     * the remainder will be zeroed out.  Returns the number of
+     * samples actually read.
      */
     int peek(T *const R__ destination, int n) const;
 
@@ -151,10 +148,9 @@ public:
     T peekOne() const;
 
     /**
-     * Pretend to read n samples from the buffer, for reader R,
-     * without actually returning them (i.e. discard the next n
-     * samples).  Returns the number of samples actually available for
-     * discarding.
+     * Pretend to read n samples from the buffer, without actually
+     * returning them (i.e. discard the next n samples).  Returns the
+     * number of samples actually available for discarding.
      */
     int skip(int n);
 

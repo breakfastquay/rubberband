@@ -52,7 +52,7 @@
 #endif
 
 #ifdef HAVE_VDSP
-#include <vecLib/vDSP.h>
+#include <Accelerate/Accelerate.h>
 #include <fenv.h>
 #endif
 

@@ -80,7 +80,7 @@ public:
     }
 
     inline void add(T *const R__ dst, T scale) const {
-        v_add_with_gain(dst, m_cache, m_size, scale);
+        v_add_with_gain(dst, m_cache, scale, m_size);
     }
 
     inline T getRMS() const {

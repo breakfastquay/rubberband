@@ -289,8 +289,8 @@ inline void v_add_channels(T *const R__ *const R__ dst,
 template<typename T, typename G>
 inline void v_add_with_gain(T *const R__ dst,
                             const T *const R__ src,
-                            const int count,
-                            const G gain)
+                            const G gain,
+                            const int count)
 {
     for (int i = 0; i < count; ++i) {
         dst[i] += src[i] * gain;
@@ -300,12 +300,12 @@ inline void v_add_with_gain(T *const R__ dst,
 template<typename T, typename G>
 inline void v_add_channels_with_gain(T *const R__ *const R__ dst,
                                      const T *const R__ *const R__ src,
+                                     const G gain,
                                      const int channels,
-                                     const int count,
-                                     const G gain)
+                                     const int count)
 {
     for (int c = 0; c < channels; ++c) {
-        v_add_with_gain(dst[c], src[c], count, gain);
+        v_add_with_gain(dst[c], src[c], gain, count);
     }
 }
 

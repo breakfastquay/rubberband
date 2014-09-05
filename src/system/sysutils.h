@@ -58,6 +58,7 @@
 #define uint32_t unsigned __int32
 #elif defined(__MSVC__)
 #define ssize_t long
+#include <stdint.h>
 #else
 #include <stdint.h>
 #endif

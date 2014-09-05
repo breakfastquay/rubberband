@@ -43,8 +43,7 @@
 #endif
 
 #ifdef HAVE_VDSP
-#include <vecLib/vDSP.h>
-#include <vecLib/vForce.h>
+#include <Accelerate/Accelerate.h>
 #endif
 
 #ifdef HAVE_MEDIALIB
