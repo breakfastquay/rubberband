@@ -1057,7 +1057,7 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
         }
     }
 
-    if (m_channels > 1) delete[] mdalloc;
+    if (m_channels > 1 || final) delete[] mdalloc;
 }
 
 vector<int>
