@@ -183,7 +183,7 @@ distclean:	clean
 	rm -f $(PROGRAM_TARGET) $(STATIC_TARGET) $(DYNAMIC_TARGET) $(VAMP_TARGET) $(LADSPA_TARGET)
 
 depend:
-	makedepend -Y $(LIBRARY_SOURCES) $(PROGRAM_SOURCES)
+	makedepend -f Makefile.osx -Y $(LIBRARY_SOURCES) $(PROGRAM_SOURCES)
 
 
 # DO NOT DELETE

@@ -28,7 +28,7 @@
 #include <cassert>
 
 #if defined USE_POMMIER_MATHFUN
-#if defined __ARMEL__
+#if defined __ARMEL__ || defined __aarch64__
 #include "pommier/neon_mathfun.h"
 #else
 #include "pommier/sse_mathfun.h"
@@ -71,7 +71,7 @@ float approximate_atan2f(float real, float imag)
 
 #if defined USE_POMMIER_MATHFUN
 
-#ifdef __ARMEL__
+#if defined __ARMEL__ || defined __aarch64__
 typedef union {
   float f[4];
   int i[4];
