@@ -1,8 +1,13 @@
 
 CXX		:= clang++
 CC		:= clang
-ARCHFLAGS	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS8.1.sdk -miphoneos-version-min=6 -arch armv7 -arch arm64
 OPTFLAGS	:= -DNDEBUG -ffast-math -O3 -ftree-vectorize
+
+# For the device
+#ARCHFLAGS	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch armv7 -arch arm64
+
+# Or for the simulator
+ARCHFLAGS	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch x86_64
 
 CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DUSE_POMMIER_MATHFUN -DNO_THREADING -DNO_THREAD_CHECKS -DNO_TIMING
 
