@@ -4,24 +4,31 @@ CC		:= clang
 OPTFLAGS	:= -DNDEBUG -ffast-math -O3 -ftree-vectorize
 
 # For the device
-#ARCHFLAGS	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch armv7 -arch arm64
+ARCHFLAGS_DEV	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch armv7 -arch arm64
 
 # Or for the simulator
-ARCHFLAGS	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch x86_64
+ARCHFLAGS_SIM	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch i386 -arch x86_64
 
-CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DUSE_POMMIER_MATHFUN -DNO_THREADING -DNO_THREAD_CHECKS -DNO_TIMING
+CXXFLAGS_ANY	:= $(OPTFLAGS) -I. -Isrc -Irubberband -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DUSE_POMMIER_MATHFUN -DNO_THREADING -DNO_THREAD_CHECKS -DNO_TIMING
 
-CFLAGS		:= $(ARCHFLAGS) $(OPTFLAGS)
+CXXFLAGS_DEV	:= $(ARCHFLAGS_DEV) $(CXXFLAGS_ANY)
+CXXFLAGS_SIM	:= $(ARCHFLAGS_SIM) $(CXXFLAGS_ANY)
+
+CFLAGS_DEV	:= $(ARCHFLAGS_DEV) $(OPTFLAGS)
+CFLAGS_SIM	:= $(ARCHFLAGS_SIM) $(OPTFLAGS)
 
 AR			:= ar
+LIPO			:= lipo
 
 LIBNAME			:= librubberband
 
 STATIC_TARGET  		:= lib/$(LIBNAME).a
+STATIC_TARGET_DEV	:= lib/$(LIBNAME).dev.a
+STATIC_TARGET_SIM	:= lib/$(LIBNAME).sim.a
 
-default:	bin lib $(STATIC_TARGET)
+default:	lib $(STATIC_TARGET)
 
-all:		bin lib $(STATIC_TARGET)
+all:		lib $(STATIC_TARGET)
 
 static:		$(STATIC_TARGET)
 
@@ -83,12 +90,15 @@ LIBRARY_INCLUDES := $(LIBRARY_INCLUDES) \
 LIBRARY_SOURCES := $(LIBRARY_SOURCES) \
 	src/speex/resample.c
 
-LIBRARY_OBJECTS := $(LIBRARY_SOURCES:.cpp=.o)
-LIBRARY_OBJECTS := $(LIBRARY_OBJECTS:.c=.o)
+LIBRARY_OBJECTS_DEV := $(LIBRARY_SOURCES:.cpp=.dev.o)
+LIBRARY_OBJECTS_DEV := $(LIBRARY_OBJECTS_DEV:.c=.dev.o)
 
-$(STATIC_TARGET):	$(LIBRARY_OBJECTS)
+LIBRARY_OBJECTS_SIM := $(LIBRARY_SOURCES:.cpp=.sim.o)
+LIBRARY_OBJECTS_SIM := $(LIBRARY_OBJECTS_SIM:.c=.sim.o)
+
+$(STATIC_TARGET):	$(STATIC_TARGET_DEV) $(STATIC_TARGET_SIM)
 	rm -f $@
-	$(AR) rsc $@ $^
+	$(LIPO) -create -output $@ $^
 	@echo 
 	@echo "Build complete."
 	@echo 
@@ -96,97 +106,39 @@ $(STATIC_TARGET):	$(LIBRARY_OBJECTS)
 	@echo "iOS app on the App Store, unless you have first obtained a commercial licence."
 	@echo
 
-bin:
-	$(MKDIR) $@
+$(STATIC_TARGET_DEV):	$(LIBRARY_OBJECTS_DEV)
+	rm -f $@
+	$(AR) rsc $@ $^
+
+$(STATIC_TARGET_SIM):	$(LIBRARY_OBJECTS_SIM)
+	rm -f $@
+	$(AR) rsc $@ $^
+
+%.dev.o: %.c
+	 $(CC) -c $(CFLAGS_DEV) -o $@ $<
+
+%.dev.o: %.cpp
+	 $(CXX) -c $(CXXFLAGS_DEV) -o $@ $<
+
+%.sim.o: %.c
+	 $(CC) -c $(CFLAGS_SIM) -o $@ $<
+
+%.sim.o: %.cpp
+	 $(CXX) -c $(CXXFLAGS_SIM) -o $@ $<
+
 lib:
 	$(MKDIR) $@
 
 clean:
-	rm -f $(LIBRARY_OBJECTS)
+	rm -f $(LIBRARY_OBJECTS_DEV) $(LIBRARY_OBJECTS_SIM)
 
 distclean:	clean
-	rm -f $(STATIC_TARGET) 
+	rm -f $(STATIC_TARGET_DEV) $(STATIC_TARGET_SIM)
 
 depend:
-	makedepend -f Makefile.ios -Y $(LIBRARY_SOURCES)
+	touch Makefile.dev_depends Makefile.sim_depends
+	makedepend -f Makefile.dev_depends -o.dev.o -Y $(LIBRARY_SOURCES)
+	makedepend -f Makefile.sim_depends -o.sim.o -Y $(LIBRARY_SOURCES)
 
-
-# DO NOT DELETE
-
-src/rubberband-c.o: rubberband/rubberband-c.h
-src/rubberband-c.o: rubberband/RubberBandStretcher.h
-src/RubberBandStretcher.o: src/StretcherImpl.h
-src/RubberBandStretcher.o: rubberband/RubberBandStretcher.h src/dsp/Window.h
-src/RubberBandStretcher.o: src/dsp/SincWindow.h src/dsp/FFT.h
-src/RubberBandStretcher.o: src/audiocurves/CompoundAudioCurve.h
-src/RubberBandStretcher.o: src/audiocurves/PercussiveAudioCurve.h
-src/RubberBandStretcher.o: src/audiocurves/HighFrequencyAudioCurve.h
-src/RubberBandStretcher.o: src/base/RingBuffer.h src/base/Scavenger.h
-src/RubberBandStretcher.o: src/system/Thread.h src/system/sysutils.h
-src/StretcherProcess.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
-src/StretcherProcess.o: src/dsp/Window.h src/dsp/SincWindow.h src/dsp/FFT.h
-src/StretcherProcess.o: src/audiocurves/CompoundAudioCurve.h
-src/StretcherProcess.o: src/audiocurves/PercussiveAudioCurve.h
-src/StretcherProcess.o: src/audiocurves/HighFrequencyAudioCurve.h
-src/StretcherProcess.o: src/base/RingBuffer.h src/base/Scavenger.h
-src/StretcherProcess.o: src/system/Thread.h src/system/sysutils.h
-src/StretcherProcess.o: src/audiocurves/PercussiveAudioCurve.h
-src/StretcherProcess.o: src/audiocurves/HighFrequencyAudioCurve.h
-src/StretcherProcess.o: src/audiocurves/ConstantAudioCurve.h
-src/StretcherProcess.o: src/StretchCalculator.h src/StretcherChannelData.h
-src/StretcherProcess.o: src/dsp/Resampler.h src/base/Profiler.h
-src/StretcherProcess.o: src/system/VectorOps.h src/system/sysutils.h
-src/StretchCalculator.o: src/StretchCalculator.h src/system/sysutils.h
-src/base/Profiler.o: src/base/Profiler.h src/system/sysutils.h
-src/dsp/AudioCurveCalculator.o: src/dsp/AudioCurveCalculator.h
-src/dsp/AudioCurveCalculator.o: src/system/sysutils.h
-src/audiocurves/CompoundAudioCurve.o: src/audiocurves/CompoundAudioCurve.h
-src/audiocurves/CompoundAudioCurve.o: src/audiocurves/PercussiveAudioCurve.h
-src/audiocurves/CompoundAudioCurve.o: src/audiocurves/HighFrequencyAudioCurve.h
-src/audiocurves/SpectralDifferenceAudioCurve.o: src/audiocurves/SpectralDifferenceAudioCurve.h
-src/audiocurves/SpectralDifferenceAudioCurve.o: src/dsp/Window.h
-src/audiocurves/SpectralDifferenceAudioCurve.o: src/system/VectorOps.h
-src/audiocurves/SpectralDifferenceAudioCurve.o: src/system/sysutils.h
-src/audiocurves/HighFrequencyAudioCurve.o: src/audiocurves/HighFrequencyAudioCurve.h
-src/audiocurves/SilentAudioCurve.o: src/audiocurves/SilentAudioCurve.h
-src/audiocurves/ConstantAudioCurve.o: src/audiocurves/ConstantAudioCurve.h
-src/audiocurves/PercussiveAudioCurve.o: src/audiocurves/PercussiveAudioCurve.h
-src/audiocurves/PercussiveAudioCurve.o: src/system/VectorOps.h
-src/audiocurves/PercussiveAudioCurve.o: src/system/sysutils.h
-src/dsp/Resampler.o: src/dsp/Resampler.h src/system/sysutils.h
-src/dsp/Resampler.o: src/base/Profiler.h
-src/dsp/FFT.o: src/dsp/FFT.h src/system/sysutils.h src/system/Thread.h
-src/dsp/FFT.o: src/base/Profiler.h src/system/VectorOps.h
-src/dsp/FFT.o: src/system/sysutils.h
-src/system/Allocators.o: src/system/Allocators.h src/system/VectorOps.h
-src/system/Allocators.o: src/system/sysutils.h
-src/system/sysutils.o: src/system/sysutils.h
-src/system/Thread.o: src/system/Thread.h
-src/system/VectorOpsComplex.o: src/system/VectorOpsComplex.h
-src/system/VectorOpsComplex.o: src/system/VectorOps.h src/system/sysutils.h
-src/system/VectorOpsComplex.o: src/system/sysutils.h
-src/StretcherChannelData.o: src/StretcherChannelData.h src/StretcherImpl.h
-src/StretcherChannelData.o: rubberband/RubberBandStretcher.h src/dsp/Window.h
-src/StretcherChannelData.o: src/dsp/SincWindow.h src/dsp/FFT.h
-src/StretcherChannelData.o: src/audiocurves/CompoundAudioCurve.h
-src/StretcherChannelData.o: src/audiocurves/PercussiveAudioCurve.h
-src/StretcherChannelData.o: src/audiocurves/HighFrequencyAudioCurve.h
-src/StretcherChannelData.o: src/base/RingBuffer.h src/base/Scavenger.h
-src/StretcherChannelData.o: src/system/Thread.h src/system/sysutils.h
-src/StretcherChannelData.o: src/dsp/Resampler.h src/system/Allocators.h
-src/StretcherChannelData.o: src/system/VectorOps.h src/system/sysutils.h
-src/StretcherImpl.o: src/StretcherImpl.h rubberband/RubberBandStretcher.h
-src/StretcherImpl.o: src/dsp/Window.h src/dsp/SincWindow.h src/dsp/FFT.h
-src/StretcherImpl.o: src/audiocurves/CompoundAudioCurve.h
-src/StretcherImpl.o: src/audiocurves/PercussiveAudioCurve.h
-src/StretcherImpl.o: src/audiocurves/HighFrequencyAudioCurve.h
-src/StretcherImpl.o: src/base/RingBuffer.h src/base/Scavenger.h
-src/StretcherImpl.o: src/system/Thread.h src/system/sysutils.h
-src/StretcherImpl.o: src/audiocurves/PercussiveAudioCurve.h
-src/StretcherImpl.o: src/audiocurves/HighFrequencyAudioCurve.h
-src/StretcherImpl.o: src/audiocurves/SpectralDifferenceAudioCurve.h
-src/StretcherImpl.o: src/audiocurves/SilentAudioCurve.h
-src/StretcherImpl.o: src/audiocurves/ConstantAudioCurve.h src/dsp/Resampler.h
-src/StretcherImpl.o: src/StretchCalculator.h src/StretcherChannelData.h
-src/StretcherImpl.o: src/base/Profiler.h
-src/speex/resample.o: src/speex/speex_resampler.h
+-include Makefile.dev_depends
+-include Makefile.sim_depends
