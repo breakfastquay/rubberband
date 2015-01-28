@@ -29,8 +29,12 @@
 #define R__ __restrict
 #endif
 
+#ifdef __clang__
+#define R__ __restrict__
+#else
 #ifdef __GNUC__
 #define R__ __restrict__
+#endif
 #endif
 
 #ifndef R__
