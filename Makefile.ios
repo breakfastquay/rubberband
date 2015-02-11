@@ -19,6 +19,7 @@ CFLAGS_SIM	:= $(ARCHFLAGS_SIM) $(OPTFLAGS)
 
 AR			:= ar
 LIPO			:= lipo
+MKDIR			:= mkdir
 
 LIBNAME			:= librubberband
 
