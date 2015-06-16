@@ -222,7 +222,7 @@ StretchCalculator::mapPeaks(std::vector<Peak> &peaks,
 
     // NB we know for certain we have a mapping from 0 -> 0 (or at
     // least, some mapping for source sample 0) because that is
-    // enforced in setLockPoints above.  However, we aren't guaranteed
+    // enforced in setKeyFrameMap above.  However, we aren't guaranteed
     // to have a mapping for the total duration -- we will usually
     // need to assume it maps to the normal duration * ratio sample
 
