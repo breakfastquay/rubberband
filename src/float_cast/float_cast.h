@@ -38,7 +38,7 @@
 **		long int lrint  (double x) ;
 */
 
-#if (defined (WIN32) || defined (_WIN32))
+#if ((defined (WIN32) || defined (_WIN32)) && !defined (_WIN64))
 
 	#include	<math.h>
 

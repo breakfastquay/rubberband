@@ -43,6 +43,7 @@
 #include <set>
 #include <map>
 #include <deque>
+#include <algorithm>
 
 using namespace RubberBand;
 
