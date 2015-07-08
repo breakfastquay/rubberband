@@ -1597,6 +1597,15 @@ public:
             m_commonMutex.unlock();
 #endif
         }
+#ifndef NO_THREADING
+        m_commonMutex.lock();
+#endif
+        if (m_extantf <= 0 && m_extantd <= 0) {
+            fftw_cleanup();
+        }
+#ifndef NO_THREADING
+        m_commonMutex.unlock();
+#endif
     }
 
     FFT::Precisions
