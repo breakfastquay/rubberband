@@ -826,8 +826,11 @@ RubberBandStretcher::Impl::reconfigure()
 size_t
 RubberBandStretcher::Impl::getLatency() const
 {
+    /*
     if (!m_realtime) return 0;
     return int((m_aWindowSize/2) / m_pitchScale + 1);
+    */
+    return 0;
 }
 
 void

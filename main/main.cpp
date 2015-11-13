@@ -446,6 +446,8 @@ int main(int argc, char **argv)
 
     ts.setExpectedInputDuration(sfinfo.frames);
 
+    int drop = int(ts.getLatency());
+    
     float *fbuf = new float[channels * ibs];
     float **ibuf = new float *[channels];
     for (size_t i = 0; i < channels; ++i) ibuf[i] = new float[ibs];
@@ -554,7 +556,14 @@ int main(int argc, char **argv)
 //    }
 //    d /= avail;
 //    cout << d << endl;
-            sf_writef_float(sndfileOut, fobf, avail);
+            if (drop == 0) {
+                sf_writef_float(sndfileOut, fobf, avail);
+            } else if (drop < avail) {
+                sf_writef_float(sndfileOut, fobf + drop * channels, avail - drop);
+                drop = 0;
+            } else {
+                drop -= avail;
+            }
             delete[] fobf;
             for (size_t i = 0; i < channels; ++i) {
                 delete[] obf[i];
@@ -605,7 +614,14 @@ int main(int argc, char **argv)
                 }
             }
 
-            sf_writef_float(sndfileOut, fobf, avail);
+            if (drop == 0) {
+                sf_writef_float(sndfileOut, fobf, avail);
+            } else if (drop < avail) {
+                sf_writef_float(sndfileOut, fobf + drop * channels, avail - drop);
+                drop = 0;
+            } else {
+                drop -= avail;
+            }
             delete[] fobf;
             for (size_t i = 0; i < channels; ++i) {
                 delete[] obf[i];
