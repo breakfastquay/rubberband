@@ -551,9 +551,11 @@ public:
      * blocks in individual study() calls, or as a single large block.
      *
      * "input" should point to de-interleaved audio data with one
-     * float array per channel.  "samples" supplies the number of
-     * audio sample frames available in "input".  If "samples" is
-     * zero, "input" may be NULL.
+     * float array per channel. Sample values are conventionally
+     * expected to be in the range -1.0f to +1.0f.  "samples" supplies
+     * the number of audio sample frames available in "input" (that
+     * is, the number of possibly multi-channel frames rather than of
+     * individual samples). If "samples" is zero, "input" may be NULL.
      * 
      * Set "final" to true if this is the last block of data that will
      * be provided to study() before the first process() call.
@@ -563,6 +565,13 @@ public:
     /**
      * Provide a block of "samples" sample frames for processing.
      * See also getSamplesRequired() and setMaxProcessSize().
+     *
+     * "input" should point to de-interleaved audio data with one
+     * float array per channel. Sample values are conventionally
+     * expected to be in the range -1.0f to +1.0f.  "samples" supplies
+     * the number of audio sample frames available in "input" (that
+     * is, the number of possibly multi-channel frames rather than of
+     * individual samples).
      *
      * Set "final" to true if this is the last block of input data.
      */
