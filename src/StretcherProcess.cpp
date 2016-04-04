@@ -35,7 +35,10 @@
 #include "system/VectorOps.h"
 
 #ifndef _WIN32
-#include <alloca.h>
+#ifndef __USE_MISC
+#define __USE_MISC
+#endif
+#include <stdlib.h>
 #endif
 
 #include <cassert>

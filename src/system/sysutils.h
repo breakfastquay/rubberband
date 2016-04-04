@@ -45,7 +45,10 @@
 #include <malloc.h>
 #else
 #ifndef __MSVC__
-#include <alloca.h>
+#ifndef __USE_MISC
+#define __USE_MISC
+#endif
+#include <stdlib.h>
 #endif
 #endif
 
