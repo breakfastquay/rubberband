@@ -4,16 +4,21 @@ set -eu
 
 ( cd ../.. ; make )
 
-sox dirac.wav testfile.wav pad 100000s 99500s
+sox dirac.wav up.wav pad 100000s 99500s
+# this doesn't work, whichever signal is louder/earlier ends up having
+# both the max and min values at more substantial stretch/squash
+# factors
+sox -v -0.3 dirac.wav down.wav pad 1000s 995s
+sox -m up.wav down.wav testfile.wav
 
 g++ printpeak.cpp -o printpeak -lsndfile
-g++ -I../.. printlatency.cpp -o printlatency -L../../lib -lrubberband -lsamplerate 
+g++ -I../.. printlatency.cpp -o printlatency ../../lib/librubberband.a -lfftw3 -lfftw3f -lsamplerate -lpthread
 
 mkdir -p output
 
 (
     
-for timeratio in 0.4 0.9 1.0 1.001 1.2 2.2 ; do
+for timeratio in 0.2 0.4 0.9 1.0 1.001 1.2 2.2 3.4 ; do
 #    for pitchshift in -13 -5 0 5 13 ; do
     for pitchshift in 0 ; do
 	#	for rt in N Y ; do
@@ -51,7 +56,7 @@ for timeratio in 0.4 0.9 1.0 1.001 1.2 2.2 ; do
 		    fftsize=$(grep 'fft size =' output/log.txt | head -1 | sed 's/^.*fft size = \([0-9]*\).*$/\1/')
 		    inincr=$(grep ', increment =' output/log.txt | head -1 | sed 's/^.*, increment = \([0-9]*\).*$/\1/')
 		    outincr=$(grep 'output increment =' output/log.txt | head -1 | sed 's/^.*output increment = \([0-9]*\).*$/\1/')
-		    peakpos=$(./printpeak "$outfile" | awk '{ print $3; }')
+		    peakpos=$(./printpeak "$outfile" | grep max | awk '{ print $4; }')
 		    expected=$(echo 100000 "$timeratio" '*' p | dc | sed 's/[.].*$//')
 		    alternate=$(($expected + 1))
 		    if [ "$peakpos" = "$expected" ] || [ "$peakpos" = "$alternate" ]; then

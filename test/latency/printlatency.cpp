@@ -59,10 +59,12 @@ int main(int argc, char **argv)
     cout << "reported latency: " << reported << endl;
     cout << "initial required: " << required << endl;
 
+    int pad = 2000;
+    
     for (int i = 0; ; ++i) {
 	float f = 0.f;
         float *ff = &f;
-        if (i == 0) f = 1.f;
+        if (i == pad) f = 1.f;
 	if (latency < 0 && ts.available() > 0) {
 	    latency = i;
             cout << "measured latency: " << latency << endl;
@@ -70,10 +72,11 @@ int main(int argc, char **argv)
 	ts.process(&ff, 1, false);
 	if (ts.available() > 0) {
 	    ts.retrieve(&ff, 1);
+//            cerr << "n " << i << ", prev " << prev << ", f " << f << " abs " << fabsf(f) << endl;
 	    if (fabsf(f) < prev) {
 		//!!! is this right, or do we have an off-by-one error?
-		delay = i - latency;
-                cout << "measured delay: " << delay << endl;
+		delay = i - latency - pad;
+                cout << "measured delay: " << delay << " (output is at pad + " << i - pad << ")" << endl;
 		break;
 	    }
 	    prev = fabsf(f);

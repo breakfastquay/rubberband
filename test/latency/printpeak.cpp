@@ -30,17 +30,23 @@ int main(int argc, char **argv)
     vector<float> ff(nf, 0.f);
     sf_readf_float(sndfile, &ff[0], nf);
 
-    size_t maxi = 0;
-    float max = 0.f;
+    size_t maxi = 0, mini = 0;
+    float max = 0.f, min = 0.f;
+
     for (size_t i = 0; i < nf; ++i) {
-	float f = fabsf(ff[i]);
+	float f = ff[i];
 	if (f > max) {
 	    max = f;
 	    maxi = i;
 	}
+	if (f < min) {
+	    min = f;
+	    mini = i;
+	}
     }
 
-    cout << max << " @ " << maxi << endl;
+    cout << "max " << max << " @ " << maxi << endl;
+    cout << "min " << min << " @ " << mini << endl;
     sf_close(sndfile);
     
     return 0;
