@@ -38,33 +38,34 @@ PUBLIC_INCLUDES := \
 	rubberband/RubberBandStretcher.h
 
 LIBRARY_INCLUDES := \
-	src/StretcherChannelData.h \
+	src/bqresample/bqresample/Resampler.h \
+	src/bqvec/bqvec/Allocators.h \
+	src/bqvec/bqvec/RingBuffer.h \
+	src/bqvec/bqvec/VectorOps.h \
+	src/bqfft/bqfft/FFT.h \
 	src/float_cast/float_cast.h \
+	src/StretcherChannelData.h \
 	src/StretcherImpl.h \
 	src/StretchCalculator.h \
 	src/base/Profiler.h \
-	src/base/RingBuffer.h \
 	src/base/Scavenger.h \
 	src/dsp/AudioCurveCalculator.h \
+	src/dsp/MovingMedian.h \
+	src/dsp/SincWindow.h \
+	src/dsp/Window.h \
 	src/audiocurves/CompoundAudioCurve.h \
 	src/audiocurves/ConstantAudioCurve.h \
 	src/audiocurves/HighFrequencyAudioCurve.h \
 	src/audiocurves/PercussiveAudioCurve.h \
 	src/audiocurves/SilentAudioCurve.h \
 	src/audiocurves/SpectralDifferenceAudioCurve.h \
-	src/dsp/Resampler.h \
-	src/dsp/FFT.h \
-	src/dsp/MovingMedian.h \
-	src/dsp/SincWindow.h \
-	src/dsp/Window.h \
-	src/system/Allocators.h \
 	src/system/Thread.h \
-	src/system/VectorOps.h \
-	src/system/VectorOpsComplex.h \
 	src/system/sysutils.h
 
 LIBRARY_SOURCES := \
-	src/rubberband-c.cpp \
+	src/bqvec/src/Allocators.cpp \
+	src/bqresample/src/Resampler.cpp \
+	src/bqfft/src/FFT.cpp \
 	src/RubberBandStretcher.cpp \
 	src/StretcherProcess.cpp \
 	src/StretchCalculator.cpp \
@@ -76,14 +77,11 @@ LIBRARY_SOURCES := \
 	src/audiocurves/SilentAudioCurve.cpp \
 	src/audiocurves/ConstantAudioCurve.cpp \
 	src/audiocurves/PercussiveAudioCurve.cpp \
-	src/dsp/Resampler.cpp \
-	src/dsp/FFT.cpp \
-	src/system/Allocators.cpp \
 	src/system/sysutils.cpp \
 	src/system/Thread.cpp \
-	src/system/VectorOpsComplex.cpp \
 	src/StretcherChannelData.cpp \
-	src/StretcherImpl.cpp
+	src/StretcherImpl.cpp \
+	src/rubberband-c.cpp
 
 # For Speex resampler -- comment these lines out if not specifying USE_SPEEX
 LIBRARY_INCLUDES := $(LIBRARY_INCLUDES) \
