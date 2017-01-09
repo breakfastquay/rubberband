@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _CONSTANT_AUDIO_CURVE_H_
-#define _CONSTANT_AUDIO_CURVE_H_
+#ifndef RUBBERBAND_CONSTANT_AUDIO_CURVE_H
+#define RUBBERBAND_CONSTANT_AUDIO_CURVE_H
 
 #include "dsp/AudioCurveCalculator.h"
 
@@ -35,8 +35,8 @@ public:
     ConstantAudioCurve(Parameters parameters);
     virtual ~ConstantAudioCurve();
 
-    virtual float processFloat(const float *R__ mag, int increment);
-    virtual double processDouble(const double *R__ mag, int increment);
+    virtual float processFloat(const float *BQ_R__ mag, int increment);
+    virtual double processDouble(const double *BQ_R__ mag, int increment);
     virtual void reset();
 };
 

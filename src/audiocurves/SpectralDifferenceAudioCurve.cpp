@@ -23,12 +23,13 @@
 
 #include "SpectralDifferenceAudioCurve.h"
 
-#include "system/Allocators.h"
-#include "system/VectorOps.h"
+#include "bqvec/Allocators.h"
+#include "bqvec/VectorOps.h"
+
+using namespace breakfastquay;
 
 namespace RubberBand
 {
-
 
 SpectralDifferenceAudioCurve::SpectralDifferenceAudioCurve(Parameters parameters) :
     AudioCurveCalculator(parameters)
@@ -62,7 +63,7 @@ SpectralDifferenceAudioCurve::setFftSize(int newSize)
 }
 
 float
-SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, int increment)
+SpectralDifferenceAudioCurve::processFloat(const float *BQ_R__ mag, int increment)
 {
     double result = 0.0;
 
@@ -83,7 +84,7 @@ SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, int increment)
 }
 
 double
-SpectralDifferenceAudioCurve::processDouble(const double *R__ mag, int increment)
+SpectralDifferenceAudioCurve::processDouble(const double *BQ_R__ mag, int increment)
 {
     double result = 0.0;
 

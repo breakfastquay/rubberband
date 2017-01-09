@@ -30,7 +30,7 @@
 #include "audiocurves/ConstantAudioCurve.h"
 #include "audiocurves/CompoundAudioCurve.h"
 
-#include "dsp/Resampler.h"
+#include "bqresample/Resampler.h"
 
 #include "StretchCalculator.h"
 #include "StretcherChannelData.h"
@@ -48,6 +48,7 @@
 #include <algorithm>
 
 using namespace RubberBand;
+using namespace breakfastquay;
 
 using std::cerr;
 using std::endl;

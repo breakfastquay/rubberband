@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _SPECTRALDIFFERENCE_AUDIO_CURVE_H_
-#define _SPECTRALDIFFERENCE_AUDIO_CURVE_H_
+#ifndef RUBBERBAND_SPECTRALDIFFERENCE_AUDIO_CURVE_H
+#define RUBBERBAND_SPECTRALDIFFERENCE_AUDIO_CURVE_H
 
 #include "dsp/AudioCurveCalculator.h"
 #include "dsp/Window.h"
@@ -39,14 +39,14 @@ public:
 
     virtual void setFftSize(int newSize);
 
-    virtual float processFloat(const float *R__ mag, int increment);
-    virtual double processDouble(const double *R__ mag, int increment);
+    virtual float processFloat(const float *BQ_R__ mag, int increment);
+    virtual double processDouble(const double *BQ_R__ mag, int increment);
     virtual void reset();
     virtual const char *getUnit() const { return "V"; }
 
 protected:
-    double *R__ m_mag;
-    double *R__ m_tmpbuf;
+    double *BQ_R__ m_mag;
+    double *BQ_R__ m_tmpbuf;
 };
 
 }

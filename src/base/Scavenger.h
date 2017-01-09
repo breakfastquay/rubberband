@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_SCAVENGER_H_
-#define _RUBBERBAND_SCAVENGER_H_
+#ifndef RUBBERBAND_SCAVENGER_H
+#define RUBBERBAND_SCAVENGER_H
 
 #include <vector>
 #include <list>
@@ -35,7 +35,8 @@
 
 #include "system/Thread.h"
 #include "system/sysutils.h"
-#include "system/Allocators.h"
+
+#include "bqvec/Allocators.h"
 
 //#define DEBUG_SCAVENGER 1
 
@@ -119,7 +120,7 @@ class ScavengerAllocArrayWrapper
 {
 public:
     ScavengerAllocArrayWrapper(T *array) : m_array(array) { }
-    ~ScavengerAllocArrayWrapper() { deallocate<T>(m_array); }
+    ~ScavengerAllocArrayWrapper() { breakfastquay::deallocate<T>(m_array); }
 
 private:
     T *m_array;

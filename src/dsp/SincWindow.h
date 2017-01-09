@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_SINC_WINDOW_H_
-#define _RUBBERBAND_SINC_WINDOW_H_
+#ifndef RUBBERBAND_SINC_WINDOW_H
+#define RUBBERBAND_SINC_WINDOW_H
 
 #include <cmath>
 #include <iostream>
@@ -30,8 +30,9 @@
 #include <map>
 
 #include "system/sysutils.h"
-#include "system/VectorOps.h"
-#include "system/Allocators.h"
+
+#include "bqvec/VectorOps.h"
+#include "bqvec/Allocators.h"
 
 namespace RubberBand {
 
@@ -61,7 +62,7 @@ public:
 	return *this;
     }
     virtual ~SincWindow() {
-        deallocate(m_cache);
+        breakfastquay::deallocate(m_cache);
     }
 
     /**
@@ -76,16 +77,16 @@ public:
         encache();
     }
     
-    inline void cut(T *const R__ dst) const {
-        v_multiply(dst, m_cache, m_size);
+    inline void cut(T *const BQ_R__ dst) const {
+        breakfastquay::v_multiply(dst, m_cache, m_size);
     }
 
-    inline void cut(const T *const R__ src, T *const R__ dst) const {
-        v_multiply(dst, src, m_cache, m_size);
+    inline void cut(const T *const BQ_R__ src, T *const BQ_R__ dst) const {
+        breakfastquay::v_multiply(dst, src, m_cache, m_size);
     }
 
-    inline void add(T *const R__ dst, T scale) const {
-        v_add_with_gain(dst, m_cache, scale, m_size);
+    inline void add(T *const BQ_R__ dst, T scale) const {
+        breakfastquay::v_add_with_gain(dst, m_cache, scale, m_size);
     }
 
     inline T getArea() const { return m_area; }
@@ -100,7 +101,7 @@ public:
      * constructor).
      */
     static
-    void write(T *const R__ dst, const int n, const int p) {
+    void write(T *const BQ_R__ dst, const int n, const int p) {
         const int half = n/2;
         writeHalf(dst, n, p);
         int target = half - 1;
@@ -115,7 +116,7 @@ public:
 protected:
     int m_size;
     int m_p;
-    T *R__ m_cache;
+    T *BQ_R__ m_cache;
     T m_area;
 
     /**
@@ -125,7 +126,7 @@ protected:
      * half (indices 0 to n/2-1) of dst is left unchanged.
      */
     static
-    void writeHalf(T *const R__ dst, const int n, const int p) {
+    void writeHalf(T *const BQ_R__ dst, const int n, const int p) {
         const int half = n/2;
         const T twopi = 2. * M_PI;
         dst[half] = T(1.0);
@@ -137,7 +138,7 @@ protected:
     
     void encache() {
         if (!m_cache) {
-            m_cache = allocate<T>(m_size);
+            m_cache = breakfastquay::allocate<T>(m_size);
         }
 
         write(m_cache, m_size, m_p);

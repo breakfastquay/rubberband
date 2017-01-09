@@ -30,9 +30,10 @@
 #include "StretchCalculator.h"
 #include "StretcherChannelData.h"
 
-#include "dsp/Resampler.h"
 #include "base/Profiler.h"
-#include "system/VectorOps.h"
+
+#include "bqresample/Resampler.h"
+#include "bqvec/VectorOps.h"
 
 #ifndef _WIN32
 #include <alloca.h>
@@ -46,6 +47,7 @@
 #include <algorithm>
 
 using namespace RubberBand;
+using namespace breakfastquay;
 
 using std::cerr;
 using std::endl;
@@ -744,8 +746,8 @@ RubberBandStretcher::Impl::analyseChunk(size_t channel)
 
     ChannelData &cd = *m_channelData[channel];
 
-    process_t *const R__ dblbuf = cd.dblbuf;
-    float *const R__ fltbuf = cd.fltbuf;
+    process_t *const BQ_R__ dblbuf = cd.dblbuf;
+    float *const BQ_R__ fltbuf = cd.fltbuf;
 
     // cd.fltbuf is known to contain m_aWindowSize samples
 
@@ -909,9 +911,9 @@ RubberBandStretcher::Impl::formantShiftChunk(size_t channel)
 
     ChannelData &cd = *m_channelData[channel];
 
-    process_t *const R__ mag = cd.mag;
-    process_t *const R__ envelope = cd.envelope;
-    process_t *const R__ dblbuf = cd.dblbuf;
+    process_t *const BQ_R__ mag = cd.mag;
+    process_t *const BQ_R__ envelope = cd.envelope;
+    process_t *const BQ_R__ dblbuf = cd.dblbuf;
 
     const int sz = m_fftSize;
     const int hs = sz / 2;
@@ -976,10 +978,10 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel,
 
     ChannelData &cd = *m_channelData[channel];
 
-    process_t *const R__ dblbuf = cd.dblbuf;
-    float *const R__ fltbuf = cd.fltbuf;
-    float *const R__ accumulator = cd.accumulator;
-    float *const R__ windowAccumulator = cd.windowAccumulator;
+    process_t *const BQ_R__ dblbuf = cd.dblbuf;
+    float *const BQ_R__ fltbuf = cd.fltbuf;
+    float *const BQ_R__ accumulator = cd.accumulator;
+    float *const BQ_R__ windowAccumulator = cd.windowAccumulator;
     
     const int fsz = m_fftSize;
     const int hs = fsz / 2;
@@ -1041,8 +1043,8 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
 
     ChannelData &cd = *m_channelData[channel];
     
-    float *const R__ accumulator = cd.accumulator;
-    float *const R__ windowAccumulator = cd.windowAccumulator;
+    float *const BQ_R__ accumulator = cd.accumulator;
+    float *const BQ_R__ windowAccumulator = cd.windowAccumulator;
 
     const int sz = m_sWindowSize;
     const int si = shiftIncrement;

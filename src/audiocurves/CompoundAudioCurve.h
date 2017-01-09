@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _COMPOUND_AUDIO_CURVE_H_
-#define _COMPOUND_AUDIO_CURVE_H_
+#ifndef RUBBERBAND_COMPOUND_AUDIO_CURVE_H
+#define RUBBERBAND_COMPOUND_AUDIO_CURVE_H
 
 #include "dsp/AudioCurveCalculator.h"
 #include "PercussiveAudioCurve.h"
@@ -48,8 +48,8 @@ public:
     
     virtual void setFftSize(int newSize);
 
-    virtual float processFloat(const float *R__ mag, int increment);
-    virtual double processDouble(const double *R__ mag, int increment);
+    virtual float processFloat(const float *BQ_R__ mag, int increment);
+    virtual double processDouble(const double *BQ_R__ mag, int increment);
 
     virtual void reset();
 

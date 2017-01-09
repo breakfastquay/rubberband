@@ -29,6 +29,7 @@
 #include <cmath>
 
 using namespace RubberBand;
+using namespace breakfastquay;
 
 using std::cout;
 using std::cerr;

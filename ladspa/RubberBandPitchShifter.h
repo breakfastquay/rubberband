@@ -21,12 +21,12 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_PITCH_SHIFTER_H_
-#define _RUBBERBAND_PITCH_SHIFTER_H_
+#ifndef RUBBERBAND_PITCH_SHIFTER_H
+#define RUBBERBAND_PITCH_SHIFTER_H
 
 #include <ladspa.h>
 
-#include "base/RingBuffer.h"
+#include "bqvec/RingBuffer.h"
 
 namespace RubberBand {
 class RubberBandStretcher;
@@ -105,7 +105,7 @@ protected:
     size_t m_minfill;
 
     RubberBand::RubberBandStretcher *m_stretcher;
-    RubberBand::RingBuffer<float> **m_outputBuffer;
+    breakfastquay::RingBuffer<float> **m_outputBuffer;
     float **m_scratch;
 
     int m_sampleRate;

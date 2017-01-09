@@ -30,7 +30,6 @@
 namespace RubberBand
 {
 
-
 CompoundAudioCurve::CompoundAudioCurve(Parameters parameters) :
     AudioCurveCalculator(parameters),
     m_percussive(parameters),
@@ -78,7 +77,7 @@ CompoundAudioCurve::setFftSize(int newSize)
 }
 
 float
-CompoundAudioCurve::processFloat(const float *R__ mag, int increment)
+CompoundAudioCurve::processFloat(const float *BQ_R__ mag, int increment)
 {
     float percussive = 0.f;
     float hf = 0.f;
@@ -98,7 +97,7 @@ CompoundAudioCurve::processFloat(const float *R__ mag, int increment)
 }
 
 double
-CompoundAudioCurve::processDouble(const double *R__ mag, int increment)
+CompoundAudioCurve::processDouble(const double *BQ_R__ mag, int increment)
 {
     double percussive = 0.0;
     double hf = 0.0;

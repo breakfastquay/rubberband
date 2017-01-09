@@ -21,24 +21,13 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_SYSUTILS_H_
-#define _RUBBERBAND_SYSUTILS_H_
+#ifndef RUBBERBAND_SYSUTILS_H
+#define RUBBERBAND_SYSUTILS_H
+
+#include "bqvec/Restrict.h"
 
 #ifdef __MSVC__
 #include "float_cast/float_cast.h"
-#define R__ __restrict
-#endif
-
-#ifdef __clang__
-#define R__ __restrict__
-#else
-#ifdef __GNUC__
-#define R__ __restrict__
-#endif
-#endif
-
-#ifndef R__
-#define R__
 #endif
 
 #ifdef __MINGW32__
@@ -149,7 +138,7 @@ extern void system_memorybarrier();
 #include <libkern/OSAtomic.h>
 #define MBARRIER() OSMemoryBarrier()
 #else
-#if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)
+#if defined (__GNUC__) && ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1))
 #define MBARRIER() __sync_synchronize()
 #else
 namespace RubberBand {
