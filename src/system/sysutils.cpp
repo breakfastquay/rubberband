@@ -48,7 +48,8 @@
 #include <iostream>
 
 #ifdef HAVE_IPP
-#include <ipp.h> // for static init
+#include <ippversion.h>
+#include <ipp.h> // for init
 #endif
 
 #ifdef HAVE_VDSP
@@ -209,9 +210,12 @@ void clock_gettime(int, struct timespec *ts)
 void system_specific_initialise()
 {
 #if defined HAVE_IPP
+#if (IPP_VERSION_MAJOR >= 6)
+    ippInit();
+#else 
 #ifndef USE_IPP_DYNAMIC_LIBS
-//    std::cerr << "Calling ippStaticInit" << std::endl;
     ippStaticInit();
+#endif
 #endif
     ippSetDenormAreZeros(1);
 #elif defined HAVE_VDSP

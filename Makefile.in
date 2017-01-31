@@ -2,9 +2,9 @@
 PREFIX		:= @prefix@
 CXX		:= @CXX@
 CC		:= @CC@
-CXXFLAGS	:= -DHAVE_LIBSAMPLERATE -DHAVE_FFTW3 -DFFTW_DOUBLE_ONLY -DNO_THREAD_CHECKS -DUSE_PTHREADS -DNO_TIMING -DNDEBUG -I. -Isrc -Isrc/bqvec -Isrc/bqvec/bqvec -Isrc/bqfft -Isrc/bqresample -Irubberband @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @Vamp_CFLAGS@ $(OPTFLAGS)
+CXXFLAGS	:= -DHAVE_LIBSAMPLERATE -DHAVE_IPP -I/opt/intel/ipp/include -DNO_THREAD_CHECKS -DUSE_PTHREADS -DNO_TIMING -DNDEBUG -I. -Isrc -Isrc/bqvec -Isrc/bqvec/bqvec -Isrc/bqfft -Isrc/bqresample -Irubberband @CXXFLAGS@ @SRC_CFLAGS@ @SNDFILE_CFLAGS@ @FFTW_CFLAGS@ @Vamp_CFLAGS@ $(OPTFLAGS)
 CFLAGS		:= @CFLAGS@ $(OPTFLAGS)
-LDFLAGS		:= @LDFLAGS@ -lpthread $(LDFLAGS)
+LDFLAGS		:= @LDFLAGS@ -lpthread $(LDFLAGS) -L/opt/intel/ipp/lib/intel64_lin -Wl,-Bstatic -lipps -lippvm -lippcore -Wl,-Bdynamic
 
 JNI_CXXFLAGS	:= -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
 JAVAC		:= $(JAVA_HOME)/bin/javac
