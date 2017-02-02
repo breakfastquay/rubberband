@@ -108,7 +108,7 @@ public:
         for (int i = half + 1; i < n; ++i) {
             dst[target--] = dst[i];
         }
-        const T twopi = 2. * M_PI;
+        const T twopi = T(2. * M_PI);
         T arg = T(half) * twopi / p;
         dst[0] = sin(arg) / arg;
     }
@@ -128,7 +128,7 @@ protected:
     static
     void writeHalf(T *const BQ_R__ dst, const int n, const int p) {
         const int half = n/2;
-        const T twopi = 2. * M_PI;
+        const T twopi = T(2. * M_PI);
         dst[half] = T(1.0);
         for (int i = 1; i < half; ++i) {
             T arg = T(i) * twopi / p;

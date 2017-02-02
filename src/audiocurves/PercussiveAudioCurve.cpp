@@ -88,8 +88,8 @@ PercussiveAudioCurve::processFloat(const float *BQ_R__ mag, int increment)
 double
 PercussiveAudioCurve::processDouble(const double *BQ_R__ mag, int increment)
 {
-    static double threshold = powf(10., 0.15); // 3dB rise in square of magnitude
-    static double zeroThresh = powf(10., -8);
+    static double threshold = pow(10., 0.15); // 3dB rise in square of magnitude
+    static double zeroThresh = pow(10., -8);
 
     int count = 0;
     int nonZeroCount = 0;

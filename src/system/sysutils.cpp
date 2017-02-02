@@ -180,7 +180,7 @@ void clock_gettime(int, struct timespec *ts)
 
     //!!! check this
     ts->tv_sec = counter.QuadPart / cps.QuadPart;
-    double sub = counter.QuadPart % cps.QuadPart;
+    double sub = double(counter.QuadPart % cps.QuadPart);
     sub = sub / cps.QuadPart;
     sub = sub * 1000000000.;
     ts->tv_nsec = long(sub) ;

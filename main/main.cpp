@@ -444,7 +444,7 @@ int main(int argc, char **argv)
     RubberBandStretcher ts(sfinfo.samplerate, channels, options,
                            ratio, frequencyshift);
 
-    ts.setExpectedInputDuration(sfinfo.frames);
+    ts.setExpectedInputDuration(size_t(sfinfo.frames));
 
     float *fbuf = new float[channels * ibs];
     float **ibuf = new float *[channels];
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
 
             int count = -1;
 
-            if ((count = sf_readf_float(sndfile, fbuf, ibs)) <= 0) break;
+            if ((count = int(sf_readf_float(sndfile, fbuf, ibs))) <= 0) break;
         
             for (size_t c = 0; c < channels; ++c) {
                 for (int i = 0; i < count; ++i) {
@@ -509,7 +509,7 @@ int main(int argc, char **argv)
 
         int count = -1;
 
-	if ((count = sf_readf_float(sndfile, fbuf, ibs)) < 0) break;
+	if ((count = int(sf_readf_float(sndfile, fbuf, ibs))) < 0) break;
         
         countIn += count;
 

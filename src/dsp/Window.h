@@ -106,7 +106,7 @@ protected:
     T m_area;
     
     void encache();
-    void cosinewin(T *, T, T, T, T);
+    void cosinewin(T *, double, double, double, double);
 };
 
 template <typename T>
@@ -185,14 +185,14 @@ void Window<T>::encache()
 }
 
 template <typename T>
-void Window<T>::cosinewin(T *mult, T a0, T a1, T a2, T a3)
+void Window<T>::cosinewin(T *mult, double a0, double a1, double a2, double a3)
 {
     int n = int(m_size);
     for (int i = 0; i < n; ++i) {
-        mult[i] *= (a0
+        mult[i] = T(mult[i] * (a0
                     - a1 * cos(2 * M_PI * i / n)
                     + a2 * cos(4 * M_PI * i / n)
-                    - a3 * cos(6 * M_PI * i / n));
+                    - a3 * cos(6 * M_PI * i / n)));
     }
 }
 
