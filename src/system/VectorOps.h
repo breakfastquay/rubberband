@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -33,8 +33,7 @@
 #endif
 
 #ifdef HAVE_VDSP
-#include <vecLib/vDSP.h>
-#include <vecLib/vForce.h>
+#include <Accelerate/Accelerate.h>
 #endif
 
 #include <cstring>
@@ -289,8 +288,8 @@ inline void v_add_channels(T *const R__ *const R__ dst,
 template<typename T, typename G>
 inline void v_add_with_gain(T *const R__ dst,
                             const T *const R__ src,
-                            const int count,
-                            const G gain)
+                            const G gain,
+                            const int count)
 {
     for (int i = 0; i < count; ++i) {
         dst[i] += src[i] * gain;
@@ -300,12 +299,12 @@ inline void v_add_with_gain(T *const R__ dst,
 template<typename T, typename G>
 inline void v_add_channels_with_gain(T *const R__ *const R__ dst,
                                      const T *const R__ *const R__ src,
+                                     const G gain,
                                      const int channels,
-                                     const int count,
-                                     const G gain)
+                                     const int count)
 {
     for (int c = 0; c < channels; ++c) {
-        v_add_with_gain(dst[c], src[c], count, gain);
+        v_add_with_gain(dst[c], src[c], gain, count);
     }
 }
 
@@ -674,7 +673,7 @@ inline void v_abs(float *const R__ dst,
                   const int count)
 {
     float tmp[count];
-#if (MACOSX_DEPLOYMENT_TARGET <= 1070 && MAC_OS_X_VERSION_MIN_REQUIRED <= 1070)
+#if (defined(MACOSX_DEPLOYMENT_TARGET) && MACOSX_DEPLOYMENT_TARGET <= 1070 && MAC_OS_X_VERSION_MIN_REQUIRED <= 1070)
     vvfabf(tmp, dst, &count);
 #else
     vvfabsf(tmp, dst, &count);

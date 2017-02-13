@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -85,7 +85,7 @@ public:
     }
 
     inline void add(T *const R__ dst, T scale) const {
-        v_add_with_gain(dst, m_cache, m_size, scale);
+        v_add_with_gain(dst, m_cache, scale, m_size);
     }
 
     inline T getArea() const { return m_area; }

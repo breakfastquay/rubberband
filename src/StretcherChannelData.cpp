@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -26,6 +26,8 @@
 #include "dsp/Resampler.h"
 
 #include "system/Allocators.h"
+
+#include <algorithm>
 
 namespace RubberBand 
 {
@@ -249,6 +251,7 @@ RubberBandStretcher::Impl::ChannelData::~ChannelData()
     deallocate(accumulator);
     deallocate(windowAccumulator);
     deallocate(fltbuf);
+    deallocate(dblbuf);
 
     for (std::map<size_t, FFT *>::iterator i = ffts.begin();
          i != ffts.end(); ++i) {

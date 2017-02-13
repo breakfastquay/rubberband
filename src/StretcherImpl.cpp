@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -45,6 +45,7 @@
 #include <cmath>
 #include <set>
 #include <map>
+#include <algorithm>
 
 using namespace RubberBand;
 
@@ -1057,7 +1058,7 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
         }
     }
 
-    if (m_channels > 1) delete[] mdalloc;
+    if (m_channels > 1 || final) delete[] mdalloc;
 }
 
 vector<int>
@@ -1118,11 +1119,15 @@ RubberBandStretcher::Impl::calculateStretch()
 
     double prdm = 0, sdm = 0;
     if (!m_phaseResetDf.empty()) {
-        for (int i = 0; i < m_phaseResetDf.size(); ++i) prdm += m_phaseResetDf[i];
+        for (int i = 0; i < (int)m_phaseResetDf.size(); ++i) {
+            prdm += m_phaseResetDf[i];
+        }
         prdm /= m_phaseResetDf.size();
     }
     if (!m_stretchDf.empty()) {
-        for (int i = 0; i < m_stretchDf.size(); ++i) sdm += m_stretchDf[i];
+        for (int i = 0; i < (int)m_stretchDf.size(); ++i) {
+            sdm += m_stretchDf[i];
+        }
         sdm /= m_stretchDf.size();
     }
 //    std::cerr << "phase reset df mean = " << prdm << ", stretch df mean = " << sdm << std::endl;

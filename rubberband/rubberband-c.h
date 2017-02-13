@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#define RUBBERBAND_VERSION "1.8.1"
+#define RUBBERBAND_VERSION "1.8.2"
 #define RUBBERBAND_API_MAJOR_VERSION 2
 #define RUBBERBAND_API_MINOR_VERSION 5
 

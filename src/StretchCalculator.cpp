@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -45,6 +45,7 @@ StretchCalculator::StretchCalculator(size_t sampleRate,
     m_recovery(0),
     m_prevRatio(1.0),
     m_transientAmnesty(0),
+    m_debugLevel(0),
     m_useHardPeaks(useHardPeaks)
 {
 //    std::cerr << "StretchCalculator::StretchCalculator: useHardPeaks = " << useHardPeaks << std::endl;
@@ -221,7 +222,7 @@ StretchCalculator::mapPeaks(std::vector<Peak> &peaks,
 
     // NB we know for certain we have a mapping from 0 -> 0 (or at
     // least, some mapping for source sample 0) because that is
-    // enforced in setLockPoints above.  However, we aren't guaranteed
+    // enforced in setKeyFrameMap above.  However, we aren't guaranteed
     // to have a mapping for the total duration -- we will usually
     // need to assume it maps to the normal duration * ratio sample
 

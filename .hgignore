@@ -12,4 +12,5 @@ lib/*
 config.status
 doc/html
 *.rej
-
+cov-int
+*~

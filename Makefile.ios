@@ -1,0 +1,145 @@
+
+CXX		:= clang++
+CC		:= clang
+OPTFLAGS	:= -ffast-math -freciprocal-math -O3 -ftree-vectorize 
+
+# For the device
+ARCHFLAGS_DEV	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch armv7 -arch arm64 
+
+# Or for the simulator
+ARCHFLAGS_SIM	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch i386 -arch x86_64
+
+CXXFLAGS_ANY	:= $(OPTFLAGS) -I. -Isrc -Irubberband -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DUSE_POMMIER_MATHFUN -DNO_THREADING -DNO_THREAD_CHECKS -DNO_TIMING -DNO_TIMING_COMPLETE_NOOP -DNDEBUG
+
+CXXFLAGS_DEV	:= $(ARCHFLAGS_DEV) $(CXXFLAGS_ANY)
+CXXFLAGS_SIM	:= $(ARCHFLAGS_SIM) $(CXXFLAGS_ANY)
+
+CFLAGS_DEV	:= $(ARCHFLAGS_DEV) $(OPTFLAGS)
+CFLAGS_SIM	:= $(ARCHFLAGS_SIM) $(OPTFLAGS)
+
+AR			:= ar
+LIPO			:= lipo
+MKDIR			:= mkdir
+
+LIBNAME			:= librubberband
+
+STATIC_TARGET  		:= lib/$(LIBNAME).a
+STATIC_TARGET_DEV	:= lib/$(LIBNAME).dev.a
+STATIC_TARGET_SIM	:= lib/$(LIBNAME).sim.a
+
+default:	lib $(STATIC_TARGET)
+
+all:		lib $(STATIC_TARGET)
+
+static:		$(STATIC_TARGET)
+
+PUBLIC_INCLUDES := \
+	rubberband/rubberband-c.h \
+	rubberband/RubberBandStretcher.h
+
+LIBRARY_INCLUDES := \
+	src/StretcherChannelData.h \
+	src/float_cast/float_cast.h \
+	src/StretcherImpl.h \
+	src/StretchCalculator.h \
+	src/base/Profiler.h \
+	src/base/RingBuffer.h \
+	src/base/Scavenger.h \
+	src/dsp/AudioCurveCalculator.h \
+	src/audiocurves/CompoundAudioCurve.h \
+	src/audiocurves/ConstantAudioCurve.h \
+	src/audiocurves/HighFrequencyAudioCurve.h \
+	src/audiocurves/PercussiveAudioCurve.h \
+	src/audiocurves/SilentAudioCurve.h \
+	src/audiocurves/SpectralDifferenceAudioCurve.h \
+	src/dsp/Resampler.h \
+	src/dsp/FFT.h \
+	src/dsp/MovingMedian.h \
+	src/dsp/SincWindow.h \
+	src/dsp/Window.h \
+	src/system/Allocators.h \
+	src/system/Thread.h \
+	src/system/VectorOps.h \
+	src/system/VectorOpsComplex.h \
+	src/system/sysutils.h
+
+LIBRARY_SOURCES := \
+	src/rubberband-c.cpp \
+	src/RubberBandStretcher.cpp \
+	src/StretcherProcess.cpp \
+	src/StretchCalculator.cpp \
+	src/base/Profiler.cpp \
+	src/dsp/AudioCurveCalculator.cpp \
+	src/audiocurves/CompoundAudioCurve.cpp \
+	src/audiocurves/SpectralDifferenceAudioCurve.cpp \
+	src/audiocurves/HighFrequencyAudioCurve.cpp \
+	src/audiocurves/SilentAudioCurve.cpp \
+	src/audiocurves/ConstantAudioCurve.cpp \
+	src/audiocurves/PercussiveAudioCurve.cpp \
+	src/dsp/Resampler.cpp \
+	src/dsp/FFT.cpp \
+	src/system/Allocators.cpp \
+	src/system/sysutils.cpp \
+	src/system/Thread.cpp \
+	src/system/VectorOpsComplex.cpp \
+	src/StretcherChannelData.cpp \
+	src/StretcherImpl.cpp
+
+# For Speex resampler -- comment these lines out if not specifying USE_SPEEX
+LIBRARY_INCLUDES := $(LIBRARY_INCLUDES) \
+	src/speex/speex_resampler.h
+LIBRARY_SOURCES := $(LIBRARY_SOURCES) \
+	src/speex/resample.c
+
+LIBRARY_OBJECTS_DEV := $(LIBRARY_SOURCES:.cpp=.dev.o)
+LIBRARY_OBJECTS_DEV := $(LIBRARY_OBJECTS_DEV:.c=.dev.o)
+
+LIBRARY_OBJECTS_SIM := $(LIBRARY_SOURCES:.cpp=.sim.o)
+LIBRARY_OBJECTS_SIM := $(LIBRARY_OBJECTS_SIM:.c=.sim.o)
+
+$(STATIC_TARGET):	$(STATIC_TARGET_DEV) $(STATIC_TARGET_SIM)
+	rm -f $@
+	$(LIPO) -create -output $@ $^
+	@echo 
+	@echo "Build complete."
+	@echo 
+	@echo "Please note that you cannot legally distribute the Rubber Band Library in an"
+	@echo "iOS app on the App Store, unless you have first obtained a commercial licence."
+	@echo
+
+$(STATIC_TARGET_DEV):	$(LIBRARY_OBJECTS_DEV)
+	rm -f $@
+	$(AR) rsc $@ $^
+
+$(STATIC_TARGET_SIM):	$(LIBRARY_OBJECTS_SIM)
+	rm -f $@
+	$(AR) rsc $@ $^
+
+%.dev.o: %.c
+	 $(CC) -c $(CFLAGS_DEV) -o $@ $<
+
+%.dev.o: %.cpp
+	 $(CXX) -c $(CXXFLAGS_DEV) -o $@ $<
+
+%.sim.o: %.c
+	 $(CC) -c $(CFLAGS_SIM) -o $@ $<
+
+%.sim.o: %.cpp
+	 $(CXX) -c $(CXXFLAGS_SIM) -o $@ $<
+
+lib:
+	$(MKDIR) $@
+
+clean:
+	rm -f $(LIBRARY_OBJECTS_DEV) $(LIBRARY_OBJECTS_SIM)
+
+distclean:	clean
+	rm -f $(STATIC_TARGET_DEV) $(STATIC_TARGET_SIM)
+
+depend:
+	touch Makefile.dev_depends Makefile.sim_depends
+	makedepend -f Makefile.dev_depends -o.dev.o -Y $(LIBRARY_SOURCES)
+	makedepend -f Makefile.sim_depends -o.sim.o -Y $(LIBRARY_SOURCES)
+
+-include Makefile.dev_depends
+-include Makefile.sim_depends

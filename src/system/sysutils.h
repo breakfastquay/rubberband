@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -29,8 +29,12 @@
 #define R__ __restrict
 #endif
 
+#ifdef __clang__
+#define R__ __restrict__
+#else
 #ifdef __GNUC__
 #define R__ __restrict__
+#endif
 #endif
 
 #ifndef R__
@@ -58,6 +62,7 @@
 #define uint32_t unsigned __int32
 #elif defined(__MSVC__)
 #define ssize_t long
+#include <stdint.h>
 #else
 #include <stdint.h>
 #endif

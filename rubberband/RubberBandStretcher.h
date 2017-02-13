@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -24,7 +24,7 @@
 #ifndef _RUBBERBANDSTRETCHER_H_
 #define _RUBBERBANDSTRETCHER_H_
     
-#define RUBBERBAND_VERSION "1.8.1"
+#define RUBBERBAND_VERSION "1.8.2"
 #define RUBBERBAND_API_MAJOR_VERSION 2
 #define RUBBERBAND_API_MINOR_VERSION 5
 
@@ -462,11 +462,17 @@ public:
     void setPitchOption(Options options);
 
     /**
-     * Tell the stretcher exactly how many input samples it will
+     * Tell the stretcher exactly how many input sample frames it will
      * receive.  This is only useful in Offline mode, when it allows
      * the stretcher to ensure that the number of output samples is
      * exactly correct.  In RealTime mode no such guarantee is
      * possible and this value is ignored.
+     *
+     * Note that the value of "samples" refers to the number of audio
+     * sample frames, which may be multi-channel, not the number of
+     * individual samples. (For example, one second of stereo audio
+     * sampled at 44100Hz yields a value of 44100 sample frames, not
+     * 88200.)  This rule applies throughout the Rubber Band API.
      */
     void setExpectedInputDuration(size_t samples);
 
@@ -492,6 +498,12 @@ public:
      * Note that this value is only relevant to process(), not to
      * study() (to which you may pass any number of samples at a time,
      * and from which there is no output).
+     *
+     * Note that the value of "samples" refers to the number of audio
+     * sample frames, which may be multi-channel, not the number of
+     * individual samples. (For example, one second of stereo audio
+     * sampled at 44100Hz yields a value of 44100 sample frames, not
+     * 88200.)  This rule applies throughout the Rubber Band API.
      */
     void setMaxProcessSize(size_t samples);
 
@@ -512,6 +524,12 @@ public:
      * Note that this value is only relevant to process(), not to
      * study() (to which you may pass any number of samples at a time,
      * and from which there is no output).
+     *
+     * Note that the return value refers to the number of audio sample
+     * frames, which may be multi-channel, not the number of
+     * individual samples. (For example, one second of stereo audio
+     * sampled at 44100Hz yields a value of 44100 sample frames, not
+     * 88200.)  This rule applies throughout the Rubber Band API.
      */
      size_t getSamplesRequired() const;
 
@@ -551,9 +569,16 @@ public:
      * blocks in individual study() calls, or as a single large block.
      *
      * "input" should point to de-interleaved audio data with one
-     * float array per channel.  "samples" supplies the number of
-     * audio sample frames available in "input".  If "samples" is
-     * zero, "input" may be NULL.
+     * float array per channel. Sample values are conventionally
+     * expected to be in the range -1.0f to +1.0f.  "samples" supplies
+     * the number of audio sample frames available in "input". If
+     * "samples" is zero, "input" may be NULL.
+     *
+     * Note that the value of "samples" refers to the number of audio
+     * sample frames, which may be multi-channel, not the number of
+     * individual samples. (For example, one second of stereo audio
+     * sampled at 44100Hz yields a value of 44100 sample frames, not
+     * 88200.)  This rule applies throughout the Rubber Band API.
      * 
      * Set "final" to true if this is the last block of data that will
      * be provided to study() before the first process() call.
@@ -563,6 +588,17 @@ public:
     /**
      * Provide a block of "samples" sample frames for processing.
      * See also getSamplesRequired() and setMaxProcessSize().
+     *
+     * "input" should point to de-interleaved audio data with one
+     * float array per channel. Sample values are conventionally
+     * expected to be in the range -1.0f to +1.0f.  "samples" supplies
+     * the number of audio sample frames available in "input".
+     *
+     * Note that the value of "samples" refers to the number of audio
+     * sample frames, which may be multi-channel, not the number of
+     * individual samples. (For example, one second of stereo audio
+     * sampled at 44100Hz yields a value of 44100 sample frames, not
+     * 88200.)  This rule applies throughout the Rubber Band API.
      *
      * Set "final" to true if this is the last block of input data.
      */
@@ -578,6 +614,12 @@ public:
      * enough data has yet been processed.  Call getSamplesRequired()
      * to discover whether more input is needed.
      *
+     * Note that the return value refers to the number of audio sample
+     * frames, which may be multi-channel, not the number of
+     * individual samples. (For example, one second of stereo audio
+     * sampled at 44100Hz yields a value of 44100 sample frames, not
+     * 88200.)  This rule applies throughout the Rubber Band API.
+     *
      * This function returns -1 if all data has been fully processed
      * and all output read, and the stretch process is now finished.
      */
@@ -589,6 +631,13 @@ public:
      * channel for de-interleaved audio data) pointed to by "output".
      * The return value is the actual number of sample frames
      * retrieved.
+     *
+     * Note that the value of "samples" and the return value refer to
+     * the number of audio sample frames, which may be multi-channel,
+     * not the number of individual samples. (For example, one second
+     * of stereo audio sampled at 44100Hz yields a value of 44100
+     * sample frames, not 88200.)  This rule applies throughout the
+     * Rubber Band API.
      */
     size_t retrieve(float *const *output, size_t samples) const;
 

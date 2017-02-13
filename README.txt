@@ -5,7 +5,7 @@ Rubber Band
 An audio time-stretching and pitch-shifting library and utility program.
 
 Written by Chris Cannam, chris.cannam@breakfastquay.com.
-Copyright 2007-2014 Particular Programs Ltd.
+Copyright 2007-2015 Particular Programs Ltd.
 
 Rubber Band is a library and utility program that permits changing the
 tempo and pitch of an audio recording independently of one another.
@@ -176,7 +176,7 @@ Resampler libraries supported
 Name           Flags required        Notes
 ----           --------------        -----   
 
-libsamplerate  -DHAVE_LIBSAMPLERATE  GPL.
+libsamplerate  -DHAVE_LIBSAMPLERATE  GPL until v0.1.8, BSD for v0.1.9 and later.
 
 libresample    -DHAVE_LIBRESAMPLE    LGPL.
 
@@ -246,14 +246,16 @@ The following Makefile targets are available:
 The default target is "all".
 
 
-4d. OS/X and iOS
-----------------
+4d. OS/X
+--------
 
 A Makefile for OS/X is provided as Makefile.osx.
 
 Adjust the Makefile according to your preference for compiler and
 platform SDK, FFT and resampler implementations.  The default is to
-use the Accelerate framework and the Speex resampler.
+use the Accelerate framework and the Speex resampler.  Then run
+e.g. "make -f Makefile.osx library" in a terminal window to build.
+You will need the Xcode command-line tools installed.
 
 The following Makefile targets are available:
 
@@ -275,8 +277,32 @@ for RubberBandStretcherJNI.cpp) and the API headers in rubberband/
 should be all you need.
 
 Note that you cannot legally distribute applications using Rubber Band
-through the iPhone/iPad App Store or OS/X App Store unless you have a
-valid commercial licence.  GPL code is not permitted in these stores.
+in the Mac App Store, unless you have first obtained a commercial
+licence for the Rubber Band Library.  GPL code is not permitted in the
+app store.  See http://breakfastquay.com/technology/license.html for
+commercial terms.
+
+
+4d. iOS
+-------
+
+A Makefile for iOS is provided as Makefile.ios.  It produces a single
+static library containing both simulator and device binaries, in both
+32- and 64-bit architectures.
+
+Run e.g. "make -f Makefile.ios" in a terminal window to build.  You
+will need the Xcode command-line tools installed.
+
+If you prefer to add the Rubber Band library files to an existing
+build project instead of using the Makefile, the files in src/ (except
+for RubberBandStretcherJNI.cpp) and the API headers in rubberband/
+should be all you need.
+
+Note that you cannot legally distribute applications using Rubber Band
+in the iOS App Store, unless you have a first obtained a commercial
+licence for the Rubber Band Library. GPL code is not permitted in the
+app store.  See http://breakfastquay.com/technology/license.html for
+commercial terms.
 
 
 4e. Win32 and Visual Studio

@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -29,6 +29,8 @@
 #include "system/Allocators.h"
 
 #include <algorithm>
+
+#include <iostream>
 
 namespace RubberBand
 {
@@ -59,6 +61,10 @@ public:
     }
 
     void push(T value) {
+        if (value != value) {
+            std::cerr << "WARNING: MovingMedian: NaN encountered" << std::endl;
+            value = T();
+        }
 	drop(m_frame[0]);
 	v_move(m_frame, m_frame+1, P::m_size-1);
 	m_frame[P::m_size-1] = value;

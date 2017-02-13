@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -43,8 +43,7 @@
 #endif
 
 #ifdef HAVE_VDSP
-#include <vecLib/vDSP.h>
-#include <vecLib/vForce.h>
+#include <Accelerate/Accelerate.h>
 #endif
 
 #ifdef HAVE_MEDIALIB
@@ -1598,6 +1597,15 @@ public:
             m_commonMutex.unlock();
 #endif
         }
+#ifndef NO_THREADING
+        m_commonMutex.lock();
+#endif
+        if (m_extantf <= 0 && m_extantd <= 0) {
+            fftw_cleanup();
+        }
+#ifndef NO_THREADING
+        m_commonMutex.unlock();
+#endif
     }
 
     FFT::Precisions

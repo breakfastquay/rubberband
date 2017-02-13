@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2012 Particular Programs Ltd.
+    Copyright 2007-2015 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -85,8 +85,8 @@ protected:
     void updateFormant();
     void updateFast();
 
-    float *m_input[2];
-    float *m_output[2];
+    float **m_input;
+    float **m_output;
     float *m_latency;
     float *m_cents;
     float *m_semitones;
@@ -105,8 +105,8 @@ protected:
     size_t m_minfill;
 
     RubberBand::RubberBandStretcher *m_stretcher;
-    RubberBand::RingBuffer<float> *m_outputBuffer[2];
-    float *m_scratch[2];
+    RubberBand::RingBuffer<float> **m_outputBuffer;
+    float **m_scratch;
 
     int m_sampleRate;
     size_t m_channels;

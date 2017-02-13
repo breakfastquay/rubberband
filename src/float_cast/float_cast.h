@@ -38,7 +38,13 @@
 **		long int lrint  (double x) ;
 */
 
-#if (defined (WIN32) || defined (_WIN32))
+#if (defined (_WIN64))
+
+#include <math.h>
+__inline long int lrint(double flt) { return (long int)flt; }
+__inline long int lrintf(float flt) { return (long int)flt; }
+
+#elif (defined (WIN32) || defined (_WIN32))
 
 	#include	<math.h>
 
