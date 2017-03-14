@@ -157,7 +157,7 @@ FFT libraries supported
 Name           Flags required        Notes
 ----           --------------        -----   
 
-FFTW3	       -DHAVE_FFTW	     GPL.
+FFTW3	       -DHAVE_FFTW3	     GPL.
 
 Accelerate     -DHAVE_VDSP	     Platform library on OS/X and iOS.
 
