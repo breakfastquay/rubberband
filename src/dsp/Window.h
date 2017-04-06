@@ -21,16 +21,17 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_WINDOW_H_
-#define _RUBBERBAND_WINDOW_H_
+#ifndef RUBBERBAND_WINDOW_H
+#define RUBBERBAND_WINDOW_H
 
 #include <cmath>
 #include <cstdlib>
 #include <map>
 
 #include "system/sysutils.h"
-#include "system/VectorOps.h"
-#include "system/Allocators.h"
+
+#include "bqvec/VectorOps.h"
+#include "bqvec/Allocators.h"
 
 namespace RubberBand {
 
@@ -68,19 +69,19 @@ public:
 	return *this;
     }
     virtual ~Window() {
-        deallocate(m_cache);
+        breakfastquay::deallocate(m_cache);
     }
     
-    inline void cut(T *const R__ block) const {
-        v_multiply(block, m_cache, m_size);
+    inline void cut(T *const BQ_R__ block) const {
+        breakfastquay::v_multiply(block, m_cache, m_size);
     }
 
-    inline void cut(const T *const R__ src, T *const R__ dst) const {
-        v_multiply(dst, src, m_cache, m_size);
+    inline void cut(const T *const BQ_R__ src, T *const BQ_R__ dst) const {
+        breakfastquay::v_multiply(dst, src, m_cache, m_size);
     }
 
-    inline void add(T *const R__ dst, T scale) const {
-        v_add_with_gain(dst, m_cache, scale, m_size);
+    inline void add(T *const BQ_R__ dst, T scale) const {
+        breakfastquay::v_add_with_gain(dst, m_cache, scale, m_size);
     }
 
     inline T getRMS() const {
@@ -101,20 +102,20 @@ public:
 protected:
     WindowType m_type;
     int m_size;
-    T *R__ m_cache;
+    T *BQ_R__ m_cache;
     T m_area;
     
     void encache();
-    void cosinewin(T *, T, T, T, T);
+    void cosinewin(T *, double, double, double, double);
 };
 
 template <typename T>
 void Window<T>::encache()
 {
-    if (!m_cache) m_cache = allocate<T>(m_size);
+    if (!m_cache) m_cache = breakfastquay::allocate<T>(m_size);
 
     const int n = m_size;
-    v_set(m_cache, T(1.0), n);
+    breakfastquay::v_set(m_cache, T(1.0), n);
     int i;
 
     switch (m_type) {
@@ -184,14 +185,14 @@ void Window<T>::encache()
 }
 
 template <typename T>
-void Window<T>::cosinewin(T *mult, T a0, T a1, T a2, T a3)
+void Window<T>::cosinewin(T *mult, double a0, double a1, double a2, double a3)
 {
     int n = int(m_size);
     for (int i = 0; i < n; ++i) {
-        mult[i] *= (a0
+        mult[i] = T(mult[i] * (a0
                     - a1 * cos(2 * M_PI * i / n)
                     + a2 * cos(4 * M_PI * i / n)
-                    - a3 * cos(6 * M_PI * i / n));
+                    - a3 * cos(6 * M_PI * i / n)));
     }
 }
 

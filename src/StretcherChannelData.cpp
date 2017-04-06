@@ -23,11 +23,13 @@
 
 #include "StretcherChannelData.h"
 
-#include "dsp/Resampler.h"
+#include "bqresample/Resampler.h"
 
-#include "system/Allocators.h"
+#include "bqvec/Allocators.h"
 
 #include <algorithm>
+
+using namespace breakfastquay;
 
 namespace RubberBand 
 {

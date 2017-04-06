@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _HIGHFREQUENCY_AUDIO_CURVE_H_
-#define _HIGHFREQUENCY_AUDIO_CURVE_H_
+#ifndef RUBBERBAND_HIGHFREQUENCY_AUDIO_CURVE_H
+#define RUBBERBAND_HIGHFREQUENCY_AUDIO_CURVE_H
 
 #include "dsp/AudioCurveCalculator.h"
 
@@ -36,8 +36,8 @@ public:
 
     virtual ~HighFrequencyAudioCurve();
 
-    virtual float processFloat(const float *R__ mag, int increment);
-    virtual double processDouble(const double *R__ mag, int increment);
+    virtual float processFloat(const float *BQ_R__ mag, int increment);
+    virtual double processDouble(const double *BQ_R__ mag, int increment);
     virtual void reset();
     virtual const char *getUnit() const { return "Vbin"; }
 };

@@ -21,19 +21,17 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_STRETCHERCHANNELDATA_H_
-#define _RUBBERBAND_STRETCHERCHANNELDATA_H_
+#ifndef RUBBERBAND_STRETCHERCHANNELDATA_H
+#define RUBBERBAND_STRETCHERCHANNELDATA_H
 
 #include "StretcherImpl.h"
 
-#include <set>
+#include "bqresample/Resampler.h"
 
-//#define EXPERIMENT 1
+#include <set>
 
 namespace RubberBand
 {
-
-class Resampler;
 
 class RubberBandStretcher::Impl::ChannelData
 {
@@ -98,8 +96,8 @@ public:
      */
     void setResampleBufSize(size_t resamplebufSize);
     
-    RingBuffer<float> *inbuf;
-    RingBuffer<float> *outbuf;
+    breakfastquay::RingBuffer<float> *inbuf;
+    breakfastquay::RingBuffer<float> *outbuf;
 
     process_t *mag;
     process_t *phase;
@@ -130,10 +128,10 @@ public:
     bool draining;
     bool outputComplete;
 
-    FFT *fft;
-    std::map<size_t, FFT *> ffts;
+    breakfastquay::FFT *fft;
+    std::map<size_t, breakfastquay::FFT *> ffts;
 
-    Resampler *resampler;
+    breakfastquay::Resampler *resampler;
     float *resamplebuf;
     size_t resamplebufSize;
 

@@ -26,7 +26,6 @@
 namespace RubberBand
 {
 
-
 HighFrequencyAudioCurve::HighFrequencyAudioCurve(Parameters parameters) :
     AudioCurveCalculator(parameters)
 {
@@ -42,7 +41,7 @@ HighFrequencyAudioCurve::reset()
 }
 
 float
-HighFrequencyAudioCurve::processFloat(const float *R__ mag, int increment)
+HighFrequencyAudioCurve::processFloat(const float *BQ_R__ mag, int increment)
 {
     float result = 0.0;
 
@@ -56,7 +55,7 @@ HighFrequencyAudioCurve::processFloat(const float *R__ mag, int increment)
 }
 
 double
-HighFrequencyAudioCurve::processDouble(const double *R__ mag, int increment)
+HighFrequencyAudioCurve::processDouble(const double *BQ_R__ mag, int increment)
 {
     float result = 0.0;
 

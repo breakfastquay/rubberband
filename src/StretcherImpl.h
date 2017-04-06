@@ -21,18 +21,20 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_STRETCHERIMPL_H_
-#define _RUBBERBAND_STRETCHERIMPL_H_
+#ifndef RUBBERBAND_STRETCHERIMPL_H
+#define RUBBERBAND_STRETCHERIMPL_H
 
 #include "rubberband/RubberBandStretcher.h"
 
 #include "dsp/Window.h"
 #include "dsp/SincWindow.h"
-#include "dsp/FFT.h"
+
+#include "bqfft/FFT.h"
 
 #include "audiocurves/CompoundAudioCurve.h"
 
-#include "base/RingBuffer.h"
+#include "bqvec/RingBuffer.h"
+
 #include "base/Scavenger.h"
 #include "system/Thread.h"
 #include "system/sysutils.h"
@@ -146,10 +148,10 @@ protected:
         const int windowSize = window->getSize();
         const int hs = targetSize / 2;
         if (windowSize == targetSize) {
-            v_convert(target, src + hs, hs);
-            v_convert(target + hs, src, hs);
+            breakfastquay::v_convert(target, src + hs, hs);
+            breakfastquay::v_convert(target + hs, src, hs);
         } else {
-            v_zero(target, targetSize);
+            breakfastquay::v_zero(target, targetSize);
             int j = targetSize - windowSize/2;
             while (j < 0) j += targetSize;
             for (int i = 0; i < windowSize; ++i) {
@@ -197,7 +199,7 @@ protected:
     Window<float> *m_awindow;
     SincWindow<float> *m_afilter;
     Window<float> *m_swindow;
-    FFT *m_studyFFT;
+    breakfastquay::FFT *m_studyFFT;
 
 #ifndef NO_THREADING
     Condition m_spaceAvailable;
@@ -240,9 +242,9 @@ protected:
 
     std::vector<int> m_outputIncrements;
 
-    mutable RingBuffer<int> m_lastProcessOutputIncrements;
-    mutable RingBuffer<float> m_lastProcessPhaseResetDf;
-    Scavenger<RingBuffer<float> > m_emergencyScavenger;
+    mutable breakfastquay::RingBuffer<int> m_lastProcessOutputIncrements;
+    mutable breakfastquay::RingBuffer<float> m_lastProcessPhaseResetDf;
+    Scavenger<breakfastquay::RingBuffer<float> > m_emergencyScavenger;
 
     CompoundAudioCurve *m_phaseResetAudioCurve;
     AudioCurveCalculator *m_stretchAudioCurve;
@@ -256,7 +258,7 @@ protected:
     size_t m_baseFftSize;
     float m_rateMultiple;
 
-    void writeOutput(RingBuffer<float> &to, float *from,
+    void writeOutput(breakfastquay::RingBuffer<float> &to, float *from,
                      size_t qty, size_t &outCount, size_t theoreticalOut);
 
     static int m_defaultDebugLevel;

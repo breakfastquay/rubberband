@@ -23,11 +23,12 @@
 
 #include "rubberband/RubberBandStretcher.h"
 
-#include "system/Allocators.h"
+#include "bqvec/Allocators.h"
 
 #include <jni.h>
 
 using namespace RubberBand;
+using namespace breakfastquay;
 
 extern "C" {
 

@@ -11,15 +11,15 @@ RUBBERBAND_JNI_FILES := \
 	$(RUBBERBAND_SRC_PATH)/jni/RubberBandStretcherJNI.cpp
 
 RUBBERBAND_SRC_FILES := \
+        $(RUBBERBAND_SRC_PATH)/bqvec/src/Allocators.cpp \
+        $(RUBBERBAND_SRC_PATH)/bqresample/src/Resampler.cpp \
+        $(RUBBERBAND_SRC_PATH)/bqfft/src/FFT.cpp \
         $(RUBBERBAND_SRC_PATH)/base/Profiler.cpp \
         $(RUBBERBAND_SRC_PATH)/system/Thread.cpp \
-        $(RUBBERBAND_SRC_PATH)/system/Allocators.cpp \
         $(RUBBERBAND_SRC_PATH)/system/sysutils.cpp \
         $(RUBBERBAND_SRC_PATH)/system/VectorOpsComplex.cpp \
         $(RUBBERBAND_SRC_PATH)/StretcherChannelData.cpp \
         $(RUBBERBAND_SRC_PATH)/dsp/AudioCurveCalculator.cpp \
-        $(RUBBERBAND_SRC_PATH)/dsp/FFT.cpp \
-        $(RUBBERBAND_SRC_PATH)/dsp/Resampler.cpp \
         $(RUBBERBAND_SRC_PATH)/audiocurves/SilentAudioCurve.cpp \
         $(RUBBERBAND_SRC_PATH)/audiocurves/CompoundAudioCurve.cpp \
         $(RUBBERBAND_SRC_PATH)/audiocurves/HighFrequencyAudioCurve.cpp \

@@ -28,7 +28,6 @@
 namespace RubberBand
 {
 
-
 SilentAudioCurve::SilentAudioCurve(Parameters parameters) :
     AudioCurveCalculator(parameters)
 {
@@ -44,7 +43,7 @@ SilentAudioCurve::reset()
 }
 
 float
-SilentAudioCurve::processFloat(const float *R__ mag, int)
+SilentAudioCurve::processFloat(const float *BQ_R__ mag, int)
 {
     const int hs = m_lastPerceivedBin;
     static float threshold = powf(10.f, -6);
@@ -57,7 +56,7 @@ SilentAudioCurve::processFloat(const float *R__ mag, int)
 }
 
 double
-SilentAudioCurve::processDouble(const double *R__ mag, int)
+SilentAudioCurve::processDouble(const double *BQ_R__ mag, int)
 {
     const int hs = m_lastPerceivedBin;
     static double threshold = pow(10.0, -6);

@@ -21,12 +21,13 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _MOVING_MEDIAN_H_
-#define _MOVING_MEDIAN_H_
+#ifndef RUBBERBAND_MOVING_MEDIAN_H
+#define RUBBERBAND_MOVING_MEDIAN_H
 
 #include "SampleFilter.h"
 
-#include "system/Allocators.h"
+#include "bqvec/Allocators.h"
+#include "bqvec/VectorOps.h"
 
 #include <algorithm>
 
@@ -43,15 +44,15 @@ class MovingMedian : public SampleFilter<T>
 public:
     MovingMedian(int size, float percentile = 50.f) :
         SampleFilter<T>(size),
-	m_frame(allocate_and_zero<T>(size)),
-	m_sorted(allocate_and_zero<T>(size)),
+	m_frame(breakfastquay::allocate_and_zero<T>(size)),
+	m_sorted(breakfastquay::allocate_and_zero<T>(size)),
 	m_sortend(m_sorted + P::m_size - 1) {
         setPercentile(percentile);
     }
 
     ~MovingMedian() { 
-	deallocate(m_frame);
-	deallocate(m_sorted);
+        breakfastquay::deallocate(m_frame);
+        breakfastquay::deallocate(m_sorted);
     }
 
     void setPercentile(float p) {
@@ -66,7 +67,7 @@ public:
             value = T();
         }
 	drop(m_frame[0]);
-	v_move(m_frame, m_frame+1, P::m_size-1);
+	breakfastquay::v_move(m_frame, m_frame+1, P::m_size-1);
 	m_frame[P::m_size-1] = value;
 	put(value);
     }
@@ -76,8 +77,8 @@ public:
     }
 
     void reset() {
-	v_zero(m_frame, P::m_size);
-	v_zero(m_sorted, P::m_size);
+	breakfastquay::v_zero(m_frame, P::m_size);
+	breakfastquay::v_zero(m_sorted, P::m_size);
     }
 
 private:
@@ -90,7 +91,7 @@ private:
 	// precondition: m_sorted contains m_size-1 values, packed at start
 	// postcondition: m_sorted contains m_size values, one of which is value
 	T *index = std::lower_bound(m_sorted, m_sortend, value);
-	v_move(index + 1, index, m_sortend - index);
+	breakfastquay::v_move(index + 1, index, m_sortend - index);
 	*index = value;
     }
 
@@ -99,7 +100,7 @@ private:
 	// postcondition: m_sorted contains m_size-1 values, packed at start
 	T *index = std::lower_bound(m_sorted, m_sortend + 1, value);
 	assert(*index == value);
-	v_move(index, index + 1, m_sortend - index);
+	breakfastquay::v_move(index, index + 1, m_sortend - index);
 	*m_sortend = T(0);
     }
 };
