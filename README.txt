@@ -157,7 +157,7 @@ FFT libraries supported
 Name           Flags required        Notes
 ----           --------------        -----   
 
-FFTW3	       -DHAVE_FFTW	     GPL.
+FFTW3	       -DHAVE_FFTW3	     GPL.
 
 Accelerate     -DHAVE_VDSP	     Platform library on OS/X and iOS.
 
@@ -176,7 +176,7 @@ Resampler libraries supported
 Name           Flags required        Notes
 ----           --------------        -----   
 
-libsamplerate  -DHAVE_LIBSAMPLERATE  GPL.
+libsamplerate  -DHAVE_LIBSAMPLERATE  GPL until v0.1.8, BSD for v0.1.9 and later.
 
 libresample    -DHAVE_LIBRESAMPLE    LGPL.
 

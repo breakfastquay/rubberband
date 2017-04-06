@@ -52,7 +52,6 @@ LOCAL_CFLAGS_RELEASE := \
 	-mfloat-abi=softfp \
 	-ffast-math \
 	-ftree-vectorize \
-	-ftree-vect-loop-version \
 	-freciprocal-math \
 	-fsingle-precision-constant \
 	-D__ARM_ARCH_7__ \
