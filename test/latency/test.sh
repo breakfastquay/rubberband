@@ -13,13 +13,14 @@ fi
 #sox -m up.wav down.wav testfile.wav
 
 g++ printpeak.cpp -o printpeak -lsndfile
+g++ measure.cpp -o measure -lsndfile
 g++ -I../.. printlatency.cpp -o printlatency ../../lib/librubberband.a -lfftw3 -lfftw3f -lsamplerate -lpthread
 
 mkdir -p output
 
 (
     
-for timeratio in 0.2 0.4 0.5 0.8 0.999 1.0 1.001 1.2 2.0 2.2 3.4 10.0 ; do
+for timeratio in 0.2 0.4 0.5 0.8 0.999 1.0 1.001 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 1.95 2.0 2.05 2.1 2.2 3.4 10.0 ; do
 #    for pitchshift in -13 -5 0 5 13 ; do
     for pitchshift in 0 ; do
 	#	for rt in N Y ; do
@@ -61,8 +62,10 @@ for timeratio in 0.2 0.4 0.5 0.8 0.999 1.0 1.001 1.2 2.0 2.2 3.4 10.0 ; do
 
 		    echo -n "[fftsize $fftsize, in incr $inincr, out incr $outincr] "
 
-		    peak1=$(./printpeak "$outfile" | grep chunk | head -1 | awk '{ print $8; }')
-		    peak2=$(./printpeak "$outfile" | grep chunk | tail -1 | awk '{ print $8; }')
+#		    peak1=$(./printpeak "$outfile" | grep chunk | head -1 | awk '{ print $8; }')
+#		    peak2=$(./printpeak "$outfile" | grep chunk | tail -n +2 | head -1 | awk '{ print $8; }')
+		    peak1=$(./measure "$outfile" | grep 'transient 1' | awk '{ print $5; }')
+		    peak2=$(./measure "$outfile" | grep 'transient 2' | awk '{ print $5; }')
 		    
 		    exp1=$(echo 1000 "$timeratio" '*' p | dc | sed 's/[.].*$//')
 		    exp2=$(echo 100000 "$timeratio" '*' p | dc | sed 's/[.].*$//')

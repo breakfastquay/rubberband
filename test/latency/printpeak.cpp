@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     size_t maxi = 0, mini = 0, chunkAbsMaxi = 0;
     float max = 0.f, min = 0.f, chunkAbsMax = 0.f;
     int chunkCount = 0;
-    int chunkSize = nf/2;
+    int chunkSize = nf/3;
 
     for (size_t i = 0; i < nf; ++i) {
 	float f = ff[i];
