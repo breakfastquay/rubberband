@@ -431,6 +431,7 @@ RubberBandStretcher::Impl::calculateSizes()
     double r = getEffectiveRatio();
 
     if (m_realtime) {
+            cerr << "rt" << endl;
 
         if (r < 1) {
             
@@ -440,9 +441,15 @@ RubberBandStretcher::Impl::calculateSizes()
             else if (rsb) windowIncrRatio = 4.5;
             else windowIncrRatio = 6;
 
+            if (m_debugLevel > 0) {
+                cerr << "windowIncrRatio = " << windowIncrRatio << endl;
+            }
+
             inputIncrement = int(windowSize / windowIncrRatio);
             outputIncrement = int(floor(inputIncrement * r));
 
+            cerr << "a" << endl;
+            
             // Very long stretch or very low pitch shift
             if (outputIncrement < m_defaultIncrement / 4) {
                 if (outputIncrement < 1) outputIncrement = 1;
@@ -462,8 +469,16 @@ RubberBandStretcher::Impl::calculateSizes()
             else if (rsb) windowIncrRatio = 4.5;
             else windowIncrRatio = 8;
 
-            outputIncrement = int(windowSize / windowIncrRatio);
+            if (m_debugLevel > 0) {
+                cerr << "windowIncrRatio = " << windowIncrRatio << endl;
+            }
+            
+//            outputIncrement = int(windowSize / windowIncrRatio);
+            outputIncrement = 256;
             inputIncrement = int(outputIncrement / r);
+
+            cerr << "b" << endl;
+
             while (outputIncrement > 1024 * m_rateMultiple &&
                    inputIncrement > 1) {
                 outputIncrement /= 2;
@@ -487,6 +502,7 @@ RubberBandStretcher::Impl::calculateSizes()
         }
 
     } else {
+            cerr << "non-rt" << endl;
 
         if (r < 1) {
             inputIncrement = windowSize / 4;
@@ -728,15 +744,16 @@ RubberBandStretcher::Impl::configure()
     // start with a swoosh than introduce more latency, and we don't
     // want gaps when the ratio changes.
 
-    if (!m_realtime) {
+//    if (!m_realtime) {
         if (m_debugLevel > 1) {
-            cerr << "Not real time mode: prefilling" << endl;
+//            cerr << "Not real time mode: prefilling" << endl;
+            cerr << "Prefilling with " << m_aWindowSize/2 << " zeros" << endl;
         }
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData[c]->reset();
             m_channelData[c]->inbuf->zero(m_aWindowSize/2);
         }
-    }
+//    }
 }
 
 
@@ -833,13 +850,40 @@ RubberBandStretcher::Impl::reconfigure()
     }
 }
 
-size_t
+int
 RubberBandStretcher::Impl::getLatency() const
 {
-    /*
     if (!m_realtime) return 0;
-    return int((m_aWindowSize/2) / m_pitchScale + 1);
-    */
+
+    int inIncr = m_increment;
+    int outIncr = int(lrint(m_increment * getEffectiveRatio()));
+
+    // 1.0    2048  512  512  1024  0.5
+    // 1.001  2048  255  255  1023  0.5
+    // 1.2    2048  213  256  790   0.38
+    // 2.0    2048  128  256  1024  0.5
+    // 2.2    2048  116  255  801   0.39
+    // 3.4    2048   75  255  594   0.29
+    
+    
+    // must produce:
+    // 0 when inIncr == 128, outIncr == 256, and m_aWindowSize == 2048
+    // 0 when inIncr == 512, outIncr == 512, and m_aWindowSize == 2048
+
+//    return 0;
+    /*
+    double frac = double(inIncr - outIncr) / outIncr;
+
+    int latency = int(m_aWindowSize * frac);
+    cerr << "latency = " << latency << endl;
+    return latency;
+    */    
+/*    
+    
+    return m_aWindowSize / frac - m_aWindowSize/2;
+*/    
+    return int((m_aWindowSize/2) / m_pitchScale);
+
     return 0;
 }
 
@@ -1312,6 +1356,11 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
                     m_channelData[c]->inputSize = m_channelData[c]->inCount;
                 }
 //                cerr << "process: happy with channel " << c << endl;
+            }
+            if (m_debugLevel > 2) {
+                cerr << "process: consumed[" << c << "] = " << consumed[c]
+                     << ", samples = " << samples << ", setting allConsumed = "
+                     << allConsumed << endl;
             }
             if (
 #ifndef NO_THREADING

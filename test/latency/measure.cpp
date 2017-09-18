@@ -8,9 +8,9 @@ using namespace std;
 
 // Timing measurement for output of non-transient-preserving mode.
 //
-// We know that our file contains two impulses, one near the start (or
-// at least within the first third of the file) and the other toward
-// the end (or at least within the last two-thirds).
+// We know that our file contains three impulses, one in the first
+// quarter of the file, one in the second, and one in the third. (The
+// final quarter is silent.)
 //
 // These impulses are likely to be smeared, so we want to isolate them
 // and find their "middle", i.e. the half-way point between where the
@@ -19,7 +19,8 @@ using namespace std;
 //
 // Having located the rough middle, we then look for a peak within the
 // area of the middle (the smeared impulse can be asymmetric). This is
-// the peak value within the middle 1/4 of the impulse range.
+// the peak value between slightly before the middle and 3/4 of the
+// way through the impulse region.
 
 int findTransientCentre(const vector<float> &ff, int i0, int i1)
 {
@@ -49,7 +50,7 @@ int findTransientCentre(const vector<float> &ff, int i0, int i1)
 
     int middle = (i + j) / 2;
 
-    int k0 = i + (j - i) / 4;
+    int k0 = middle - (j - i) / 8;
     int k1 = j - (j - i) / 4;
 
     if (k1 <= k0) {
@@ -98,14 +99,15 @@ int main(int argc, char **argv)
     vector<float> ff(nf, 0.f);
     sf_readf_float(sndfile, &ff[0], nf);
 
-    // before this we seek the first transient, after it we seek the second:
-    int division = nf/3;
+    int division = nf/4;
 
     int t1 = findTransientCentre(ff, 0, division);
-    int t2 = findTransientCentre(ff, division, nf);
+    int t2 = findTransientCentre(ff, division, division*2);
+    int t3 = findTransientCentre(ff, division*2, nf);
 
     cout << "transient 1 centre @ " << t1 << endl;
     cout << "transient 2 centre @ " << t2 << endl;
+    cout << "transient 3 centre @ " << t3 << endl;
 
     sf_close(sndfile);
     

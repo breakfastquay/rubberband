@@ -101,6 +101,7 @@ int main(int argc, char **argv)
     bool help = false;
     bool version = false;
     bool quiet = false;
+    bool delaycomp = true;
 
     bool haveRatio = false;
 
@@ -150,6 +151,7 @@ int main(int argc, char **argv)
             { "threads",       0, 0, '@' },
             { "quiet",         0, 0, 'q' },
             { "timemap",       1, 0, 'M' },
+            { "no-delay-comp", 0, 0, 'Y' },
             { 0, 0, 0, 0 }
         };
 
@@ -186,6 +188,7 @@ int main(int argc, char **argv)
         case 'c': crispness = atoi(optarg); break;
         case 'q': quiet = true; break;
         case 'M': mapfile = optarg; break;
+        case 'Y': delaycomp = false; break;
         default:  help = true; break;
         }
     }
@@ -247,6 +250,7 @@ int main(int argc, char **argv)
         cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
         cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
         cerr << "                          (at a cost in width and individual channel quality)" << endl;
+        cerr << "         --no-delay-comp  Don't compensate for processing delay in the output" << endl;
         cerr << endl;
         cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 0, full 3" << endl;
         cerr << "                          (N.B. debug level 3 includes audible ticks in output)" << endl;
@@ -446,7 +450,14 @@ int main(int argc, char **argv)
 
     ts.setExpectedInputDuration(size_t(sfinfo.frames));
 
-    int drop = int(ts.getLatency());
+    int drop = 0;
+    int delay = int(ts.getLatency());
+    if (debug > 0) {
+        cerr << "reported output delay = " << delay << endl;
+    }
+    if (delaycomp) {
+        drop = delay;
+    }
     
     float *fbuf = new float[channels * ibs];
     float **ibuf = new float *[channels];
@@ -525,7 +536,7 @@ int main(int argc, char **argv)
         bool final = (frame + ibs >= sfinfo.frames);
 
         if (debug > 2) {
-            cerr << "count = " << count << ", ibs = " << ibs << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
+            cerr << "\ncount = " << count << ", ibs = " << ibs << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
         }
 
         ts.process(ibuf, count, final);
@@ -573,6 +584,10 @@ int main(int argc, char **argv)
 
         if (frame == 0 && !realtime && !quiet) {
             cerr << "Pass 2: Processing..." << endl;
+        }
+
+        if (debug > 2) {
+            cerr << "in: " << countIn << ", out: " << countOut << ", ratio: " << float(countOut)/float(countIn) << ", ideal output: " << lrint(countIn * ratio) << ", error: " << abs(lrint(countIn * ratio) - int(countOut)) << endl;
         }
 
 	int p = int((double(frame) * 100.0) / sfinfo.frames);

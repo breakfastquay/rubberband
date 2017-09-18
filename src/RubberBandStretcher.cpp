@@ -73,7 +73,7 @@ RubberBandStretcher::getPitchScale() const
     return m_d->getPitchScale();
 }
 
-size_t
+int
 RubberBandStretcher::getLatency() const
 {
     return m_d->getLatency();

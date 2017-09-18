@@ -415,7 +415,7 @@ public:
      * In RealTime mode, the latency may depend on the time and pitch
      * ratio and other options.
      */
-    size_t getLatency() const;
+    int getLatency() const;
 
     /**
      * Change an OptionTransients configuration setting.  This may be

@@ -184,6 +184,11 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
     size_t toWrite = samples;
     size_t writable = inbuf.getWriteSpace();
 
+    if (m_debugLevel > 2) {
+        cerr << "consumeChannel: inbuf has space for " << writable
+             << " samples, we have " << toWrite << endl;
+    }
+    
     bool resampling = resampleBeforeStretching();
 
     const float *input = 0;
@@ -455,7 +460,7 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         cerr << "processChunkForChannel: phase reset found, incrs "
              << phaseIncrement << ":" << shiftIncrement << endl;
     }
-
+    
     ChannelData &cd = *m_channelData[c];
 
     if (!cd.draining) {
@@ -1051,7 +1056,7 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
     const int si = shiftIncrement;
 
     if (m_debugLevel > 2) {
-        cerr << "writeChunk(" << channel << ", " << shiftIncrement << ", " << last << ")" << endl;
+        cerr << "writeChunk[" << cd.chunkCount << "](" << channel << ", " << shiftIncrement << ", " << last << ")" << endl;
     }
 
     v_divide(accumulator, windowAccumulator, si);

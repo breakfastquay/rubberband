@@ -69,7 +69,7 @@ public:
     double getTimeRatio() const;
     double getPitchScale() const;
 
-    size_t getLatency() const;
+    int getLatency() const;
 
     void setTransientsOption(Options);
     void setDetectorOption(Options);
