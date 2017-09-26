@@ -1236,6 +1236,12 @@ int speex_resampler_reset_mem(SpeexResamplerState *st)
         st->mem[i] = 0;
     }
 
+    for (i = 0; i < st->nb_channels; i++) {
+        st->last_sample[i] = 0;
+        st->magic_samples[i] = 0;
+        st->samp_frac_num[i] = 0;
+    }
+
     return RESAMPLER_ERR_SUCCESS;
 }
 

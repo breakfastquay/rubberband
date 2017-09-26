@@ -404,6 +404,10 @@ StretchCalculator::reset()
 {
     m_prevDf = 0;
     m_divergence = 0;
+    m_recovery = 0;
+    m_prevRatio = 1.0;
+    m_transientAmnesty = 0;
+    m_keyFrameMap.clear();
 }
 
 std::vector<StretchCalculator::Peak>

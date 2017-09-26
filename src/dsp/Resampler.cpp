@@ -1033,6 +1033,8 @@ D_Speex::resampleInterleaved(const float *const R__ in,
 void
 D_Speex::reset()
 {
+    m_lastratio = -1.0; // force reset of ratio
+    m_initial = true;
     speex_resampler_reset_mem(m_resampler);
 }
 
