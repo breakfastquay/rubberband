@@ -38,6 +38,7 @@
 #include "system/sysutils.h"
 
 #include <set>
+#include <algorithm>
 
 using namespace RubberBand;
 

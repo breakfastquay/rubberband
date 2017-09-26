@@ -25,7 +25,9 @@
 #define _RUBBERBAND_SYSUTILS_H_
 
 #ifdef __MSVC__
+#if _MSC_VER < 1800
 #include "float_cast/float_cast.h"
+#endif
 #define R__ __restrict
 #endif
 
