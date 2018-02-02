@@ -81,23 +81,10 @@ extern void system_specific_application_initialise();
 enum ProcessStatus { ProcessRunning, ProcessNotRunning, UnknownProcessStatus };
 extern ProcessStatus system_get_process_status(int pid);
 
-#ifdef __APPLE__
-struct timespec { long tv_sec; long tv_nsec; };
-void clock_gettime(int clk_id, struct timespec *p);
-#define CLOCK_MONOTONIC 1
-#define CLOCK_REALTIME 2
-#endif
-
 #ifdef _WIN32
 
 struct timeval { long tv_sec; long tv_usec; };
 void gettimeofday(struct timeval *p, void *tz);
-
-struct timespec { long tv_sec; long tv_nsec; };
-// always uses GetPerformanceCounter, does not check whether it's valid or not:
-void clock_gettime(int clk_id, struct timespec *p);
-#define CLOCK_MONOTONIC 1
-#define CLOCK_REALTIME 2
 
 #endif
 
