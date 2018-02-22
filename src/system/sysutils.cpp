@@ -182,9 +182,12 @@ void system_specific_initialise()
 #elif defined HAVE_VDSP
 #if defined __i386__ || defined __x86_64__ 
     fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+#elif defined __arm64__
+    fesetenv(FE_DFL_DISABLE_DENORMS_ENV);
 #endif
 #endif
 #if defined __ARMEL__
+    // ARM32
     static const unsigned int x = 0x04086060;
     static const unsigned int y = 0x03000000;
     int r;
