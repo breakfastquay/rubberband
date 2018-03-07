@@ -165,44 +165,9 @@ void gettimeofday(struct timeval *tv, void *tz)
     tv->tv_sec = (long)((now.ns100 - 116444736000000000LL) / 10000000LL); 
 }
 
-void clock_gettime(int, struct timespec *ts)
-{
-    static LARGE_INTEGER cps;
-    static bool haveCps = false;
-    
-    if (!haveCps) {
-        QueryPerformanceFrequency(&cps);
-        haveCps = true;
-    }
-
-    LARGE_INTEGER counter;
-    QueryPerformanceCounter(&counter);
-
-    //!!! check this
-    ts->tv_sec = counter.QuadPart / cps.QuadPart;
-    double sub = double(counter.QuadPart % cps.QuadPart);
-    sub = sub / cps.QuadPart;
-    sub = sub * 1000000000.;
-    ts->tv_nsec = long(sub) ;
-}
-
 void usleep(unsigned long usec)
 {
     ::Sleep(usec == 0 ? 0 : usec < 1000 ? 1 : usec / 1000);
-}
-
-#endif
-
-#ifdef __APPLE__
-
-void clock_gettime(int, struct timespec *ts)
-{
-    uint64_t t = mach_absolute_time();
-    static mach_timebase_info_data_t sTimebaseInfo;
-    if (sTimebaseInfo.denom == 0) (void)mach_timebase_info(&sTimebaseInfo);
-    uint64_t n = t * sTimebaseInfo.numer / sTimebaseInfo.denom;
-    ts->tv_sec = n / 1000000000;
-    ts->tv_nsec = n % 1000000000;
 }
 
 #endif
@@ -221,9 +186,12 @@ void system_specific_initialise()
 #elif defined HAVE_VDSP
 #if defined __i386__ || defined __x86_64__ 
     fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+#elif defined __arm64__
+    fesetenv(FE_DFL_DISABLE_DENORMS_ENV);
 #endif
 #endif
 #if defined __ARMEL__
+    // ARM32
     static const unsigned int x = 0x04086060;
     static const unsigned int y = 0x03000000;
     int r;

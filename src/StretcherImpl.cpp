@@ -243,7 +243,7 @@ RubberBandStretcher::Impl::reset()
     m_emergencyScavenger.scavenge();
 
     if (m_stretchCalculator) {
-        m_stretchCalculator->setKeyFrameMap(std::map<size_t, size_t>());
+        m_stretchCalculator->reset();
     }
 
     for (size_t c = 0; c < m_channels; ++c) {

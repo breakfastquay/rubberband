@@ -2,7 +2,7 @@
 PREFIX		:= /usr/local
 CXX		:= clang++ -stdlib=libc++
 CC		:= clang
-ARCHFLAGS	:= -arch i386 -arch x86_64 -mmacosx-version-min=10.7
+ARCHFLAGS	:= -arch x86_64 -mmacosx-version-min=10.7
 OPTFLAGS	:= -DNDEBUG -ffast-math -mfpmath=sse -msse -msse2 -O3 -ftree-vectorize
 
 CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -I/usr/local/include -DUSE_PTHREADS -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DNO_THREAD_CHECKS -DNO_TIMING
@@ -134,6 +134,7 @@ $(PROGRAM_TARGET):	$(LIBRARY_OBJECTS) $(PROGRAM_OBJECTS)
 	$(CXX) -o $@ $^ $(PROGRAM_LIBS) $(LDFLAGS)
 
 $(STATIC_TARGET):	$(LIBRARY_OBJECTS)
+	rm -f $@
 	$(AR) rsc $@ $^
 
 $(DYNAMIC_TARGET):	$(LIBRARY_OBJECTS)
