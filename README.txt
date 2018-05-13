@@ -5,7 +5,7 @@ Rubber Band
 An audio time-stretching and pitch-shifting library and utility program.
 
 Written by Chris Cannam, chris.cannam@breakfastquay.com.
-Copyright 2007-2015 Particular Programs Ltd.
+Copyright 2007-2018 Particular Programs Ltd.
 
 Rubber Band is a library and utility program that permits changing the
 tempo and pitch of an audio recording independently of one another.
@@ -223,8 +223,8 @@ the supplied build files will handle these for you.)
    for mobile architectures.
 
 
-4c. GNU/POSIX systems and Makefiles
------------------------------------
+4c. Building on Linux
+---------------------
 
 A GNU-style configure script is included for use on Linux and similar
 systems.
@@ -246,10 +246,10 @@ The following Makefile targets are available:
 The default target is "all".
 
 
-4d. OS/X
---------
+4d. Building on macOS
+---------------------
 
-A Makefile for OS/X is provided as Makefile.osx.
+A Makefile for macOS is provided as Makefile.osx.
 
 Adjust the Makefile according to your preference for compiler and
 platform SDK, FFT and resampler implementations.  The default is to
@@ -308,13 +308,11 @@ commercial terms.
 4e. Win32 and Visual Studio
 ---------------------------
 
-Two Visual Studio 2005 projects are supplied.
-
-rubberband-library.vcproj builds the Rubber Band static libraries
-only.
-
-rubberband-program.vcproj builds the Rubber Band command-line tool
-only (requires the Rubber Band libraries, and libsndfile).
+A Visual Studio solution, targeted to VC 2015, with two projects is
+supplied. The rubberband-library project builds the Rubber Band static
+libraries only. The rubberband-program project builds the Rubber Band
+command-line tool (which requires the Rubber Band libraries, and
+libsndfile).
 
 You will need to adjust the project settings so as to set the compile
 flags according to your preference for FFT and resampler
