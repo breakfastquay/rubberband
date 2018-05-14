@@ -28,8 +28,12 @@
 #ifndef _MSC_VER
 #include <inttypes.h>
 #endif
+#include <ippversion.h>
 #include <ipps.h>
+#if (IPP_VERSION_MAJOR <= 7)
+// Deprecated in v8, removed in v9
 #include <ippac.h>
+#endif
 #endif
 
 #ifdef HAVE_VDSP
@@ -711,6 +715,8 @@ inline void v_interleave(T *const R__ dst,
 }
 
 #if defined HAVE_IPP 
+#if (IPP_VERSION_MAJOR <= 7)
+// Deprecated in v8, removed in v9
 template<>
 inline void v_interleave(float *const R__ dst,
                          const float *const R__ *const R__ src,
@@ -720,6 +726,7 @@ inline void v_interleave(float *const R__ dst,
     ippsInterleave_32f((const Ipp32f **)src, channels, count, dst);
 }
 // IPP does not (currently?) provide double-precision interleave
+#endif
 #endif
 
 template<typename T>
@@ -751,6 +758,8 @@ inline void v_deinterleave(T *const R__ *const R__ dst,
 }
 
 #if defined HAVE_IPP
+#if (IPP_VERSION_MAJOR <= 7)
+// Deprecated in v8, removed in v9
 template<>
 inline void v_deinterleave(float *const R__ *const R__ dst,
                            const float *const R__ src,
@@ -760,6 +769,7 @@ inline void v_deinterleave(float *const R__ *const R__ dst,
     ippsDeinterleave_32f((const Ipp32f *)src, channels, count, (Ipp32f **)dst);
 }
 // IPP does not (currently?) provide double-precision deinterleave
+#endif
 #endif
 
 template<typename T>

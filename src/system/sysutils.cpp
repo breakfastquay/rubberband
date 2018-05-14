@@ -48,7 +48,8 @@
 #include <iostream>
 
 #ifdef HAVE_IPP
-#include <ipp.h> // for static init
+#include <ippversion.h>
+#include <ipp.h>
 #endif
 
 #ifdef HAVE_VDSP
@@ -175,8 +176,10 @@ void system_specific_initialise()
 {
 #if defined HAVE_IPP
 #ifndef USE_IPP_DYNAMIC_LIBS
-//    std::cerr << "Calling ippStaticInit" << std::endl;
+#if (IPP_VERSION_MAJOR < 9)
+    // This was removed in v9
     ippStaticInit();
+#endif
 #endif
     ippSetDenormAreZeros(1);
 #elif defined HAVE_VDSP

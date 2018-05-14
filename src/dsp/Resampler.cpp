@@ -33,9 +33,14 @@
 #include "system/Allocators.h"
 
 #ifdef HAVE_IPP
+#include <ippversion.h>
+#if (IPP_VERSION_MAJOR < 7)
 #include <ipps.h>
 #include <ippsr.h>
 #include <ippac.h>
+#else
+#include <ipps.h>
+#endif
 #endif
 
 #ifdef HAVE_LIBSAMPLERATE
@@ -112,6 +117,9 @@ public:
     void reset();
 
 protected:
+    // to m_outbuf
+    int doResample(int outcount, double ratio, bool final);
+
     IppsResamplingPolyphase_32f **m_state;
     float **m_inbuf;
     size_t m_inbufsz;
@@ -140,8 +148,8 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, int maxBufferSize,
                   << std::endl;
     }
 
-    int nStep;
-    IppHintAlgorithm hint;
+    int nStep = 16;
+    IppHintAlgorithm hint = ippAlgHintFast;
 
     switch (quality) {
 
@@ -152,10 +160,8 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, int maxBufferSize,
         break;
 
     case Resampler::FastestTolerable:
-//        m_window = 48;
         nStep = 16;
         m_window = 16;
-//        nStep = 8;
         hint = ippAlgHintFast;
         break;
 
@@ -174,35 +180,54 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, int maxBufferSize,
     m_lastread = new int[m_channels];
     m_time = new double[m_channels];
 
-    m_bufsize = maxBufferSize + m_history;
+    m_inbufsz = 0;
+    m_outbufsz = 0;
+    m_inbuf = 0;
+    m_outbuf = 0;
+    m_bufsize = 0;
+
+    setBufSize(maxBufferSize + m_history);
 
     if (m_debugLevel > 1) {
         std::cerr << "bufsize = " << m_bufsize << ", window = " << m_window << ", nStep = " << nStep << ", history = " << m_history << std::endl;
     }
 
+#if (IPP_VERSION_MAJOR >= 7)
+    int specSize = 0;
+    ippsResamplePolyphaseGetSize_32f(float(m_window),
+                                     nStep,
+                                     &specSize,
+                                     hint);
+    if (specSize == 0) {
+#ifndef NO_EXCEPTIONS
+        throw Resampler::ImplementationError;
+#else        
+        abort();
+#endif
+    }
+#endif
+
     for (int c = 0; c < m_channels; ++c) {
+#if (IPP_VERSION_MAJOR < 7)
         ippsResamplePolyphaseInitAlloc_32f(&m_state[c],
                                            float(m_window),
                                            nStep,
                                            0.95f,
                                            9.0f,
                                            hint);
+#else
+        m_state[c] = (IppsResamplingPolyphase_32f *)ippsMalloc_8u(specSize);
+        ippsResamplePolyphaseInit_32f(float(m_window),
+                                      nStep,
+                                      0.95f,
+                                      9.0f,
+                                      m_state[c],
+                                      hint);
+#endif
+        
         m_lastread[c] = m_history;
         m_time[c] = m_history;
     }
-
-    m_inbufsz = m_bufsize + m_history + 2;
-    if (m_debugLevel > 1) {
-        std::cerr << "inbuf allocating " << m_bufsize << " + " << m_history << " + 2 = " << m_inbufsz << std::endl;
-    }
-
-    m_outbufsz = lrintf(ceil((m_bufsize - m_history) * m_factor + 2));
-    if (m_debugLevel > 1) {
-        std::cerr << "outbuf allocating (" << m_bufsize << " - " << m_history << ") * " << m_factor << " + 2 = " << m_outbufsz << std::endl;
-    }
-
-    m_inbuf  = allocate_and_zero_channels<float>(m_channels, m_inbufsz);
-    m_outbuf = allocate_and_zero_channels<float>(m_channels, m_outbufsz);
 
     if (m_debugLevel > 1) {
         std::cerr << "Resampler init done" << std::endl;
@@ -211,9 +236,15 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, int maxBufferSize,
 
 D_IPP::~D_IPP()
 {
+#if (IPP_VERSION_MAJOR < 7)
     for (int c = 0; c < m_channels; ++c) {
         ippsResamplePolyphaseFree_32f(m_state[c]);
     }
+#else
+    for (int c = 0; c < m_channels; ++c) {
+        ippsFree(m_state[c]);
+    }
+#endif
 
     deallocate_channels(m_inbuf, m_channels);
     deallocate_channels(m_outbuf, m_channels);
@@ -232,7 +263,9 @@ D_IPP::setBufSize(int sz)
 
     m_bufsize = sz;
 
-    std::cerr << m_bufsize << std::endl;
+    if (m_debugLevel > 1) {
+        std::cerr << m_bufsize << std::endl;
+    }
 
     int n1 = m_bufsize + m_history + 2;
     int n2 = lrintf(ceil((m_bufsize - m_history) * m_factor + 2));
@@ -258,8 +291,6 @@ D_IPP::resample(const float *const R__ *const R__ in,
                 float ratio,
                 bool final)
 {
-    int outcount = 0;
-
     if (ratio > m_factor) {
         m_factor = ratio;
         m_history = int(m_window * 0.5 * std::max(1.0, 1.0 / m_factor)) + 1;
@@ -272,31 +303,136 @@ D_IPP::resample(const float *const R__ *const R__ in,
     }
 
     for (int c = 0; c < m_channels; ++c) {
-
         for (int i = 0; i < incount; ++i) {
             m_inbuf[c][m_lastread[c] + i] = in[c][i];
         }
         m_lastread[c] += incount;
+    }
+
+    int got = doResample(int(round(incount * ratio)), ratio, final);
+    
+    for (int c = 0; c < m_channels; ++c) {
+        v_copy(out[c], m_outbuf[c], got);
+    }
+
+    return got;
+}
+
+int
+D_IPP::resampleInterleaved(const float *const R__ in,
+                           float *const R__ out,
+                           int incount,
+                           float ratio,
+                           bool final)
+{
+    if (ratio > m_factor) {
+        m_factor = ratio;
+        m_history = int(m_window * 0.5 * std::max(1.0, 1.0 / m_factor)) + 1;
+    }
+
+    for (int c = 0; c < m_channels; ++c) {
+        if (m_lastread[c] + incount + m_history > m_bufsize) {
+            setBufSize(m_lastread[c] + incount + m_history);
+        }
+    }
+
+    for (int c = 0; c < m_channels; ++c) {
+        for (int i = 0; i < incount; ++i) {
+            m_inbuf[c][m_lastread[c] + i] = in[i * m_channels + c];
+        }
+        m_lastread[c] += incount;
+    }
+
+    int got = doResample(int(round(incount * ratio)), ratio, final);
+
+    v_interleave(out, m_outbuf, m_channels, got);
+
+    return got;
+}
+
+int
+D_IPP::doResample(int outspace, double ratio, bool final)
+{
+    int outcount = 0;
+    
+    for (int c = 0; c < m_channels; ++c) {
+
+        int n = m_lastread[c] - m_history - int(m_time[c]);
+
+        if (c == 0 && m_debugLevel > 2) {
+            std::cerr << "at start, lastread = " << m_lastread[c] << ", history = "
+                 << m_history << ", time = " << m_time[c] << ", therefore n = "
+                 << n << std::endl;
+        }
+
+        if (n <= 0) {
+            if (c == 0 && m_debugLevel > 1) {
+                std::cerr << "not enough input samples to do anything" << std::endl;
+            }
+            continue;
+        }
         
+        if (c == 0 && m_debugLevel > 2) {
+            std::cerr << "before resample call, time = " << m_time[c] << std::endl;
+        }
+
+        // We're committed to not overrunning outspace, so we need to
+        // offer the resampler only enough samples to ensure it won't
+
+        int limit = int(floor(outspace / ratio));
+        if (n > limit) {
+            if (c == 0 && m_debugLevel > 1) {
+                std::cerr << "trimming input samples from " << n << " to " << limit
+                     << " to avoid overrunning " << outspace << " at output"
+                     << std::endl;
+            }
+            n = limit;
+        }
+        
+#if (IPP_VERSION_MAJOR < 7)
         ippsResamplePolyphase_32f(m_state[c],
                                   m_inbuf[c],
-                                  m_lastread[c] - m_history - int(m_time[c]),
+                                  n,
                                   m_outbuf[c],
                                   ratio,
-                                  0.97f,
+                                  1.0f,
                                   &m_time[c],
                                   &outcount);
+#else
+        ippsResamplePolyphase_32f(m_inbuf[c],
+                                  n,
+                                  m_outbuf[c],
+                                  ratio,
+                                  1.0f,
+                                  &m_time[c],
+                                  &outcount,
+                                  m_state[c]);
+#endif
 
-        v_copy(out[c], m_outbuf[c], outcount);
+        int t = int(round(m_time[c]));
+        
+        if (c == 0 && m_debugLevel > 2) {
+            std::cerr << "converted " << n << " samples to " << outcount
+                 << ", time advanced to " << t << std::endl;
+            std::cerr << "will move " << m_lastread[c] + m_history - t
+                 << " unconverted samples back from index " << t - m_history
+                 << " to 0" << std::endl;
+        }
 
-        ippsMove_32f(m_inbuf[c] + int(m_time[c]) - m_history,
-                     m_inbuf[c],
-                     m_lastread[c] + m_history - int(m_time[c]));
+        v_move(m_inbuf[c],
+               m_inbuf[c] + t - m_history,
+               m_lastread[c] + m_history - t);
 
-        m_lastread[c] -= int(m_time[c]) - m_history;
-        m_time[c] -= int(m_time[c]) - m_history;
+        m_lastread[c] -= t - m_history;
+        m_time[c] -= t - m_history;
 
-        if (final) {
+        if (c == 0 && m_debugLevel > 2) {
+            std::cerr << "lastread reduced to " << m_lastread[c]
+                 << ", time reduced to " << m_time[c]
+                 << std::endl;
+        }
+        
+        if (final && n < limit) {
 
             // Looks like this actually produces too many samples
             // (additionalcount is a few samples too large).
@@ -309,127 +445,67 @@ D_IPP::resample(const float *const R__ *const R__ in,
 
             int additionalcount = 0;
 
+            if (c == 0 && m_debugLevel > 2) {
+                std::cerr << "final call, padding input with " << m_history
+                     << " zeros (symmetrical with m_history)" << std::endl;
+            }
+            
             for (int i = 0; i < m_history; ++i) {
                 m_inbuf[c][m_lastread[c] + i] = 0.f;
             }
-            
-            ippsResamplePolyphase_32f(m_state[c],
-                                      m_inbuf[c],
-                                      m_lastread[c] - int(m_time[c]),
-                                      m_outbuf[c],
-                                      ratio,
-                                      0.97f,
-                                      &m_time[c],
-                                      &additionalcount);
 
-            if (m_debugLevel > 2) {
-                std::cerr << "incount = " << incount << ", outcount = " << outcount << ", additionalcount = " << additionalcount << ", sum " << outcount + additionalcount << ", est space = " << lrintf(ceil(incount * ratio)) <<std::endl;
+            if (c == 0 && m_debugLevel > 2) {
+                std::cerr << "before resample call, time = " << m_time[c] << std::endl;
             }
 
-            v_copy(out[c] + outcount, m_outbuf[c], additionalcount);
+            int nAdditional = m_lastread[c] - int(m_time[c]);
 
-            outcount += additionalcount;
-        }
-    }
-
-    for (int c = 0; c < m_channels; ++c) {
-        ippsThreshold_32f_I(out[c], outcount, 1.f, ippCmpGreater);
-        ippsThreshold_32f_I(out[c], outcount, -1.f, ippCmpLess);
-    }
-
-    return outcount;
-}
-
-int
-D_IPP::resampleInterleaved(const float *const R__ in,
-                           float *const R__ out,
-                           int incount,
-                           float ratio,
-                           bool final)
-{
-    int outcount = 0;
-
-    if (ratio > m_factor) {
-        m_factor = ratio;
-        m_history = int(m_window * 0.5 * std::max(1.0, 1.0 / m_factor)) + 1;
-    }
-
-    for (int c = 0; c < m_channels; ++c) {
-        if (m_lastread[c] + incount + m_history > m_bufsize) {
-            setBufSize(m_lastread[c] + incount + m_history);
-        }
-    }
-
-    for (int c = 0; c < m_channels; ++c) {
-
-        for (int i = 0; i < incount; ++i) {
-            m_inbuf[c][m_lastread[c] + i] = in[i * m_channels + c];
-        }
-        m_lastread[c] += incount;
-        
-        ippsResamplePolyphase_32f(m_state[c],
-                                  m_inbuf[c],
-                                  m_lastread[c] - m_history - int(m_time[c]),
-                                  m_outbuf[c],
-                                  ratio,
-                                  0.97f,
-                                  &m_time[c],
-                                  &outcount);
-
-        ippsMove_32f(m_inbuf[c] + int(m_time[c]) - m_history,
-                     m_inbuf[c],
-                     m_lastread[c] + m_history - int(m_time[c]));
-
-        m_lastread[c] -= int(m_time[c]) - m_history;
-        m_time[c] -= int(m_time[c]) - m_history;
-    }
-
-    v_interleave(out, m_outbuf, m_channels, outcount);
-
-    if (final) {
-
-        // Looks like this actually produces too many samples
-        // (additionalcount is a few samples too large).
-
-        // Also, we aren't likely to have enough space in the
-        // output buffer as the caller won't have allowed for
-        // all the samples we're retrieving here.
-
-        // What to do?
-
-        int additionalcount = 0;
-        
-        for (int c = 0; c < m_channels; ++c) {
-
-            for (int i = 0; i < m_history; ++i) {
-                m_inbuf[c][m_lastread[c] + i] = 0.f;
+            if (n + nAdditional > limit) {
+                if (c == 0 && m_debugLevel > 1) {
+                    std::cerr << "trimming final input samples from " << nAdditional
+                         << " to " << (limit - n)
+                         << " to avoid overrunning " << outspace << " at output"
+                         << std::endl;
+                }
+                nAdditional = limit - n;
             }
             
+#if (IPP_VERSION_MAJOR < 7)
             ippsResamplePolyphase_32f(m_state[c],
                                       m_inbuf[c],
-                                      m_lastread[c] - int(m_time[c]),
+                                      nAdditional,
                                       m_outbuf[c],
                                       ratio,
-                                      0.97f,
+                                      1.0f,
                                       &m_time[c],
                                       &additionalcount);
+#else
+            ippsResamplePolyphase_32f(m_inbuf[c],
+                                      nAdditional,
+                                      m_outbuf[c],
+                                      ratio,
+                                      1.0f,
+                                      &m_time[c],
+                                      &additionalcount,
+                                      m_state[c]);
+#endif
+        
+            if (c == 0 && m_debugLevel > 2) {
+                std::cerr << "converted " << n << " samples to " << additionalcount
+                     << ", time advanced to " << m_time[c] << std::endl;
+                std::cerr << "outcount = " << outcount << ", additionalcount = " << additionalcount << ", sum " << outcount + additionalcount << std::endl;
+            }
 
-            if (m_debugLevel > 2) {
-                std::cerr << "incount = " << incount << ", outcount = " << outcount << ", additionalcount = " << additionalcount << ", sum " << outcount + additionalcount << ", est space = " << lrintf(ceil(incount * ratio)) <<std::endl;
+            if (c == 0) {
+                outcount += additionalcount;
             }
         }
-
-        v_interleave(out + (outcount * m_channels),
-                     m_outbuf,
-                     m_channels,
-                     additionalcount);
-
-        outcount += additionalcount;
     }
 
-    ippsThreshold_32f_I(out, outcount * m_channels, 1.f, ippCmpGreater);
-    ippsThreshold_32f_I(out, outcount * m_channels, -1.f, ippCmpLess);
-
+    if (m_debugLevel > 2) {
+        std::cerr << "returning " << outcount << " samples" << std::endl;
+    }
+    
     return outcount;
 }
 
