@@ -1,0 +1,24 @@
+dist:
+  - trusty
+
+language:
+  - cpp
+
+sudo:
+  - false
+
+os:
+  - linux
+  - osx
+
+addons:
+  apt:
+    packages:
+      - libsndfile-dev
+      
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" = "osx" ]] ; then brew update ; brew install libsndfile ; fi
+
+script:
+  - if [[ "$TRAVIS_OS_NAME" = "osx" ]] ; then make -f Makefile.osx ; else ./configure && make ; fi
+
