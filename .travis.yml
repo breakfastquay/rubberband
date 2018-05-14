@@ -18,6 +18,7 @@ addons:
       - libsamplerate-dev
       - libfftw3-dev
       - vamp-plugin-sdk
+      - ladspa-sdk
       
 before_install:
   - if [[ "$TRAVIS_OS_NAME" = "osx" ]] ; then brew update ; brew install libsndfile ; fi
