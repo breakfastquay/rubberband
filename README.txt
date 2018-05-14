@@ -47,10 +47,11 @@ Contents of this README
 4. Compiling Rubber Band
    a. FFT and resampler selection
    b. Other supported #defines
-   c. GNU/POSIX systems and Makefiles
-   d. OS/X and iOS
-   e. Win32 and Visual Studio
-   f. Android and Java
+   c. Building on Linux
+   d. Building on macOS
+   e. Building for iOS
+   f. Building on Windows with Visual C++
+   g. Building for Android and Java integration
 5. Copyright notes for bundled libraries
 
 
@@ -283,8 +284,8 @@ app store.  See http://breakfastquay.com/technology/license.html for
 commercial terms.
 
 
-4d. iOS
--------
+4e. Building for iOS
+--------------------
 
 A Makefile for iOS is provided as Makefile.ios.  It produces a single
 static library containing both simulator and device binaries, in both
@@ -305,8 +306,8 @@ app store.  See http://breakfastquay.com/technology/license.html for
 commercial terms.
 
 
-4e. Win32 and Visual Studio
----------------------------
+4f. Building on Windows with Visual C++
+---------------------------------------
 
 A Visual Studio solution, targeted to VC 2015, with two projects is
 supplied. The rubberband-library project builds the Rubber Band static
@@ -326,8 +327,8 @@ build project instead of using the supplied one, the files in src/
 rubberband/ should be all you need.
 
 
-4f. Android and Java
---------------------
+4g. Building for Android and Java integration
+---------------------------------------------
 
 An Android NDK build file is provided as Android.mk. This includes
 compile definitions for a shared library built for ARM architectures
