@@ -258,6 +258,9 @@ use the Accelerate framework and the Speex resampler.  Then run
 e.g. "make -f Makefile.osx library" in a terminal window to build.
 You will need the Xcode command-line tools installed.
 
+(You probably don't want to use the configure script on macOS -- just
+use Makefile.osx directly.)
+
 The following Makefile targets are available:
 
   static  -- build static libraries only
@@ -337,6 +340,10 @@ interface (i.e. the Android NDK).
 
 The Java side of the interface can be found in
 com/breakfastquay/rubberband/RubberBandStretcher.java.
+
+See
+https://bitbucket.org/breakfastquay/rubberband-android-simple-sample
+for a very trivial example of integration with Android Java code.
 
 The supplied .mk file uses KissFFT and the Speex resampler.
 

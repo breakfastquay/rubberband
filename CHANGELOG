@@ -9,7 +9,7 @@ Changes in Rubber Band v1.8.2
 The API is unchanged and the library is binary compatible with
 version 1.7.
 
-	
+
 Changes in Rubber Band v1.8.1
 
  * Fix a crash in formant-preserving pitch shift for some build targets

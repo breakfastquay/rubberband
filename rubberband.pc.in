@@ -4,7 +4,7 @@ libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
 Name: rubberband
-Version: 1.8.1
+Version: 1.8.2
 Description: 
 Libs: -L${libdir} -lrubberband
 Cflags: -I${includedir} 

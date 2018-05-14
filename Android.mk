@@ -30,6 +30,7 @@ RUBBERBAND_SRC_FILES := \
         $(RUBBERBAND_SRC_PATH)/StretcherProcess.cpp \
         $(RUBBERBAND_SRC_PATH)/StretchCalculator.cpp \
         $(RUBBERBAND_SRC_PATH)/RubberBandStretcher.cpp \
+        $(RUBBERBAND_SRC_PATH)/rubberband-c.cpp \
         $(RUBBERBAND_SRC_PATH)/speex/resample.c
 
 LOCAL_SRC_FILES += \
