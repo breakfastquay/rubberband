@@ -47,7 +47,11 @@
 #include <malloc.h>
 #else
 #ifndef __MSVC__
+#if !defined(__FreeBSD__)
 #include <alloca.h>
+#else
+#include <stdlib.h>
+#endif
 #endif
 #endif
 

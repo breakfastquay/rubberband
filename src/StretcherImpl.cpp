@@ -38,7 +38,11 @@
 #include "base/Profiler.h"
 
 #ifndef _WIN32
+#if !defined(__FreeBSD__)
 #include <alloca.h>
+#else
+#include <stdlib.h>
+#endif
 #endif
 
 #include <cassert>
