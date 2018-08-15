@@ -1568,6 +1568,7 @@ private:
 #define fftwf_destroy_plan fftw_destroy_plan
 #define fftwf_malloc fftw_malloc
 #define fftwf_free fftw_free
+#define fftwf_cleanup fftw_cleanup
 #define fftwf_execute fftw_execute
 #define atan2f atan2
 #define sqrtf sqrt
@@ -1586,6 +1587,7 @@ private:
 #define fftw_destroy_plan fftwf_destroy_plan
 #define fftw_malloc fftwf_malloc
 #define fftw_free fftwf_free
+#define fftw_cleanup fftwf_cleanup
 #define fftw_execute fftwf_execute
 #define atan2 atan2f
 #define sqrt sqrtf
