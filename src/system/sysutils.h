@@ -135,8 +135,12 @@ extern void system_memorybarrier();
 #define MUNLOCK_SAMPLEBLOCK(a) do { if (!(a).empty()) { const float &b = *(a).begin(); MUNLOCK(&b, (a).capacity() * sizeof(float)); } } while(0);
 
 #ifdef __APPLE__
+#if defined __MAC_10_12
+#define MBARRIER() __sync_synchronize()
+#else
 #include <libkern/OSAtomic.h>
 #define MBARRIER() OSMemoryBarrier()
+#endif
 #else
 #if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)
 #define MBARRIER() __sync_synchronize()
