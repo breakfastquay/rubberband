@@ -96,7 +96,7 @@ T *allocate(size_t count)
     if (rv) {
 #ifndef NO_EXCEPTIONS
         if (rv == EINVAL) {
-            throw std::logic_error("Internal error: invalid alignment");
+            throw "Internal error: invalid alignment";
         } else {
             throw std::bad_alloc();
         }
