@@ -3,6 +3,10 @@ Makefile
 autom4te*
 bin/*
 lib/*
+obj/*
+.vs/*
+*.user
+*.nupkg
 *.a
 *.so
 *.o
