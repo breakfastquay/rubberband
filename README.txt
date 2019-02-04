@@ -5,7 +5,8 @@ Rubber Band
 An audio time-stretching and pitch-shifting library and utility program.
 
 Written by Chris Cannam, chris.cannam@breakfastquay.com.
-Copyright 2007-2018 Particular Programs Ltd.
+Published by Particular Programs Ltd t/a Breakfast Quay.
+Copyright 2007-2019 Particular Programs Ltd.
 
 Rubber Band is a library and utility program that permits changing the
 tempo and pitch of an audio recording independently of one another.
@@ -31,12 +32,28 @@ supersedes this README and the enclosed COPYING file and you may
 redistribute and/or modify Rubber Band under the terms described in
 that licence. Please refer to your licence agreement for more details.
 
-Note that Rubber Band may link with other GPL libraries or with
-proprietary libraries, depending on its build configuration. See the
-section "FFT and resampler selection" below. It is your responsibility
-to ensure that you redistribute only in accordance with the licence
-terms of any other libraries you may build with.
+Rubber Band includes a .NET interface generously contributed by
+Jonathan Gilbert under a BSD-like licence. The files in the
+rubberband-dll and rubberband-sharp directories fall under this
+licence. If you make use of this interface, please ensure you comply
+with the terms of its licence.
 
+Rubber Band may link with other libraries or be compiled with other
+source code, depending on its build configuration. It is your
+responsibility to ensure that you redistribute these only in
+accordance with their own licence terms, regardless of the conditions
+under which you are redistributing the Rubber Band code itself. The
+licences for some relevant library code are as follows, to the best of
+our knowledge. See also the end of this README for detailed terms.
+
+ * FFTW3 - GPL; proprietary licence needed for redistribution
+ * Intel IPP - Proprietary; licence needed for redistribution
+ * KissFFT - BSD-like
+ * libsamplerate - BSD-like from version 0.1.9 onwards
+ * libresample - LGPL
+ * Speex - BSD-like
+ * Pommier math functions - BSD-like
+ 
 
 Contents of this README
 -----------------------
@@ -115,6 +132,9 @@ requires linkage against the C++ standard libraries.  It is not yet
 documented separately from the C++ header.  You should include only
 one of the two headers, not both.
 
+A .NET interface is also included, contributed by Jonathan Gilbert;
+see the files in the rubberband-sharp/ directory for details.
+
 The source code for the command-line utility (main/main.cpp) provides
 a good example of how to use Rubber Band in offline mode; the LADSPA
 pitch shifter plugin (ladspa/RubberBandPitchShifter.cpp) may be used
@@ -160,16 +180,17 @@ Name           Flags required        Notes
 
 FFTW3	       -DHAVE_FFTW3	     GPL.
 
-Accelerate     -DHAVE_VDSP	     Platform library on OS/X and iOS.
+Accelerate     -DHAVE_VDSP	     Platform library on macOS and iOS.
 
 Intel IPP      -DHAVE_IPP            Proprietary library, can only be used with
       	    			     Rubber Band commercial licence. Define
 				     USE_IPP_STATIC as well to build with static
 				     IPP libraries.
 
-KissFFT        -DUSE_KISSFFT	     Bundled, can be used with GPL or commercial
-	    			     licence.  Single-precision. Slower than the
-				     above options.
+KissFFT        -DUSE_KISSFFT	     Bundled, can be distributed with either the
+                                     Rubber Band GPL or commercial licence.
+                                     Single-precision. Slower than the above
+                                     options.
 
 Resampler libraries supported
 -----------------------------
@@ -181,8 +202,8 @@ libsamplerate  -DHAVE_LIBSAMPLERATE  GPL until v0.1.8, BSD for v0.1.9 and later.
 
 libresample    -DHAVE_LIBRESAMPLE    LGPL.
 
-Speex	       -DUSE_SPEEX	     Bundled, can be used with GPL or commercial
-	       			     licence.
+Speex	       -DUSE_SPEEX	     Bundled, can be distributed with either the
+                                     Rubber Band GPL or commercial licence.
 
 
 4b. Other supported #defines
@@ -467,7 +488,7 @@ made about the suitability of this software for any purpose.  It is
 provided "as is" without express or implied warranty.
 
 
-5d. getopt
+5e. getopt
 ----------
 
 [files in src/getopt, used by command-line tool on some platforms]
@@ -505,3 +526,35 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
+
+
+5f. rubberband-sharp
+--------------------
+
+[files in rubberband-dll and rubberband-sharp]
+
+Copyright 2018-2019 Jonathan Gilbert
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use, copy,
+modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR
+ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Except as contained in this notice, the name of Jonathan Gilbert
+shall not be used in advertising or otherwise to promote the sale,
+use or other dealings in this Software without prior written
+authorization.
