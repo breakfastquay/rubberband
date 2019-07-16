@@ -37,7 +37,8 @@ namespace RubberBand
 	
 StretchCalculator::StretchCalculator(size_t sampleRate,
                                      size_t inputIncrement,
-                                     bool useHardPeaks) :
+                                     bool useHardPeaks,
+                                     int curveFrameSize) :
     m_sampleRate(sampleRate),
     m_increment(inputIncrement),
     m_prevDf(0),
@@ -46,7 +47,8 @@ StretchCalculator::StretchCalculator(size_t sampleRate,
     m_prevRatio(1.0),
     m_transientAmnesty(0),
     m_debugLevel(0),
-    m_useHardPeaks(useHardPeaks)
+    m_useHardPeaks(useHardPeaks),
+    m_curveFrameSize(curveFrameSize)
 {
 //    std::cerr << "StretchCalculator::StretchCalculator: useHardPeaks = " << useHardPeaks << std::endl;
 }    
@@ -205,9 +207,16 @@ StretchCalculator::mapPeaks(std::vector<Peak> &peaks,
         // "normal" behaviour -- fixed points are strictly in
         // proportion
         peaks = m_peaks;
+        double perChunk = double(outputDuration) / double(totalCount);
+        double ratio = perChunk / m_increment;
+        int hardPeakOffset = lrint((m_curveFrameSize/2 - m_increment) *
+                                   (ratio - 1.0));
         for (size_t i = 0; i < peaks.size(); ++i) {
-            targets.push_back
-                (lrint((double(peaks[i].chunk) * outputDuration) / totalCount));
+            size_t target = lrint(double(peaks[i].chunk) * perChunk);
+            if (peaks[i].hard && target > 0) {
+                target += hardPeakOffset;
+            }
+            targets.push_back(target);
         }
         return;
     }

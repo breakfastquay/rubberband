@@ -35,7 +35,8 @@ namespace RubberBand
 class StretchCalculator
 {
 public:
-    StretchCalculator(size_t sampleRate, size_t inputIncrement, bool useHardPeaks);
+    StretchCalculator(size_t sampleRate, size_t inputIncrement,
+                      bool useHardPeaks, int curveFrameSize);
     virtual ~StretchCalculator();
 
     /**
@@ -110,6 +111,7 @@ protected:
     int m_transientAmnesty; // only in RT mode; handled differently offline
     int m_debugLevel;
     bool m_useHardPeaks;
+    int m_curveFrameSize;
 
     std::map<size_t, size_t> m_keyFrameMap;
     std::vector<Peak> m_peaks;

@@ -707,7 +707,7 @@ RubberBandStretcher::Impl::configure()
     delete m_stretchCalculator;
     m_stretchCalculator = new StretchCalculator
         (m_sampleRate, m_increment,
-         !(m_options & OptionTransientsSmooth));
+         !(m_options & OptionTransientsSmooth), m_fftSize);
 
     m_stretchCalculator->setDebugLevel(m_debugLevel);
     m_inputDuration = 0;
