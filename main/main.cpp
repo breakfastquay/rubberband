@@ -505,6 +505,28 @@ int main(int argc, char **argv)
     
     size_t countIn = 0, countOut = 0;
 
+    size_t toDrop = ts.getLatency();
+    size_t toPush = toDrop;
+    if (frequencyshift != 1.0) {
+        toPush = floor(toPush * frequencyshift);
+    }
+    cerr << "toPush = " << toPush << ", toDrop = " << toDrop << endl;
+
+    if (realtime && toPush > 0) {
+        float **empty = new float *[channels];
+        for (size_t c = 0; c < channels; ++c) {
+            empty[c] = new float[toPush];
+            for (size_t i = 0; i < toPush; ++i) {
+                empty[c][i] = 0.f;
+            }
+        }
+        ts.process(empty, toPush, false);
+        for (size_t c = 0; c < channels; ++c) {
+            delete[] empty[c];
+        }
+        delete[] empty;
+    }
+
     while (frame < sfinfo.frames) {
 
         int count = -1;
@@ -527,9 +549,26 @@ int main(int argc, char **argv)
         }
 
         ts.process(ibuf, count, final);
-
+        
         int avail = ts.available();
         if (debug > 1) cerr << "available = " << avail << endl;
+
+        if (realtime && (countOut == 0)) {
+            if (avail >= int(toDrop)) {
+                float **obf = new float *[channels];
+                for (size_t i = 0; i < channels; ++i) {
+                    obf[i] = new float[toDrop];
+                }
+                ts.retrieve(obf, toDrop);
+                for (size_t i = 0; i < channels; ++i) {
+                    delete[] obf[i];
+                }
+                delete[] obf;
+                avail -= (int)toDrop;
+            } else {
+                continue;
+            }
+        }
 
         if (avail > 0) {
             float **obf = new float *[channels];
