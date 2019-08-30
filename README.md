@@ -175,10 +175,10 @@ applicable.
 FFT libraries supported
 -----------------------
 
+```
 Name           Flags required        Notes
 ----           --------------        -----   
 
-```
 FFTW3	       -DHAVE_FFTW3	     GPL.
 
 Accelerate     -DHAVE_VDSP	     Platform library on macOS and iOS.
@@ -197,10 +197,10 @@ KissFFT        -DUSE_KISSFFT	     Bundled, can be distributed with either the
 Resampler libraries supported
 -----------------------------
 
+```
 Name           Flags required        Notes
 ----           --------------        -----   
 
-```
 libsamplerate  -DHAVE_LIBSAMPLERATE  GPL until v0.1.8, BSD for v0.1.9 and later.
 
 libresample    -DHAVE_LIBRESAMPLE    LGPL.
@@ -215,39 +215,38 @@ Speex	       -DUSE_SPEEX	     Bundled, can be distributed with either the
 Other symbols you may define at compile time are as follows. (Usually
 the supplied build files will handle these for you.)
 
-```
-   -DLACK_BAD_ALLOC
-   Define on systems lacking std::bad_alloc in the C++ library.
+    -DLACK_BAD_ALLOC
+    Define on systems lacking std::bad_alloc in the C++ library.
 
-   -DLACK_POSIX_MEMALIGN
-   Define on systems lacking posix_memalign.
+    -DLACK_POSIX_MEMALIGN
+    Define on systems lacking posix_memalign.
 
-   -DUSE_OWN_ALIGNED_MALLOC
-   Define on systems lacking any aligned malloc implementation.
+    -DUSE_OWN_ALIGNED_MALLOC
+    Define on systems lacking any aligned malloc implementation.
 
-   -DLACK_SINCOS
-   Define on systems lacking sincos().
-   
-   -DNO_EXCEPTIONS
-   Build without use of C++ exceptions.
+    -DLACK_SINCOS
+    Define on systems lacking sincos().
+    
+    -DNO_EXCEPTIONS
+    Build without use of C++ exceptions.
 
-   -DNO_THREADING
-   Build without any multithread support.
+    -DNO_THREADING
+    Build without any multithread support.
 
-   -DUSE_PTHREADS
-   Use the pthreads library (required unless NO_THREADING or on Windows)
+    -DUSE_PTHREADS
+    Use the pthreads library (required unless NO_THREADING or on Windows)
 
-   -DPROCESS_SAMPLE_TYPE=float
-   Select single precision for internal calculations. The default is
-   double precision. Consider using for mobile architectures with
-   slower double-precision support.
+    -DPROCESS_SAMPLE_TYPE=float
+    Select single precision for internal calculations. The default is
+    double precision. Consider using for mobile architectures with
+    slower double-precision support.
 
-   -DUSE_POMMIER_MATHFUN
-   Select the Julien Pommier implementations of trig functions for ARM
-   NEON or x86 SSE architectures. These are usually faster but may be
-   of lower precision than system implementations. Consider using this
-   for mobile architectures.
-```
+    -DUSE_POMMIER_MATHFUN
+    Select the Julien Pommier implementations of trig functions for ARM
+    NEON or x86 SSE architectures. These are usually faster but may be
+    of lower precision than system implementations. Consider using this
+    for mobile architectures.
+
 
 4c. Building on Linux
 ---------------------
@@ -261,13 +260,13 @@ to use FFTW3 and libsamplerate.
 
 The following Makefile targets are available:
 
-  static  -- build static libraries only
-  dynamic -- build dynamic libraries only
-  library -- build static and dynamic libraries only
-  program -- build the command-line tool
-  vamp    -- build Vamp plugin
-  ladspa  -- build LADSPA plugin
-  all     -- build everything.
+    static  -- build static libraries only
+    dynamic -- build dynamic libraries only
+    library -- build static and dynamic libraries only
+    program -- build the command-line tool
+    vamp    -- build Vamp plugin
+    ladspa  -- build LADSPA plugin
+    all     -- build everything.
 
 The default target is "all".
 
@@ -288,13 +287,13 @@ use `Makefile.osx` directly.)
 
 The following Makefile targets are available:
 
-  static  -- build static libraries only
-  dynamic -- build dynamic libraries only
-  library -- build static and dynamic libraries only
-  program -- build the command-line tool
-  vamp    -- build Vamp plugin
-  ladspa  -- build LADSPA plugin
-  all     -- build everything.
+    static  -- build static libraries only
+    dynamic -- build dynamic libraries only
+    library -- build static and dynamic libraries only
+    program -- build the command-line tool
+    vamp    -- build Vamp plugin
+    ladspa  -- build LADSPA plugin
+    all     -- build everything.
 
 The default target is to build the static and dynamic libraries and
 the command line tool.  The sndfile library is required for the
