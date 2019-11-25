@@ -14,6 +14,11 @@ find_library(FFTW3_LIBRARY fftw3)
 find_path(SAMPLERATE_INCLUDEDIR samplerate.h)
 find_library(SAMPLERATE_LIBRARY samplerate)
 
+# Accelerate framework
+if(APPLE)
+  find_library(ACCELERATE_FRAMEWORK NAMES Accelerate)
+endif()
+
 ### Create our target ###
 add_library(rubberband)
 
@@ -74,6 +79,14 @@ else()
     PRIVATE
       src/kissfft/kiss_fft.c
       src/kissfft/kiss_fftr.c
+  )
+endif()
+
+# Apple framework
+if(APPLE)
+  target_link_libraries(rubberband
+    PRIVATE
+      "${ACCELERATE_FRAMEWORK}"
   )
 endif()
 
