@@ -11,8 +11,10 @@ find_path(FFTW3_INCLUDEDIR fftw3.h)
 find_library(FFTW3_LIBRARY fftw3)
 
 # libsamplerate
-find_path(SAMPLERATE_INCLUDEDIR samplerate.h)
-find_library(SAMPLERATE_LIBRARY samplerate)
+if(NOT TARGET samplerate)
+  find_path(SAMPLERATE_INCLUDEDIR samplerate.h)
+  find_library(SAMPLERATE_LIBRARY samplerate)
+endif()
 
 # Accelerate framework
 if(APPLE)
@@ -91,7 +93,17 @@ if(APPLE)
 endif()
 
 # Handle resampling library
-if(SAMPLERATE_INCLUDEDIR AND SAMPLERATE_LIBRARY)
+if(TARGET samplerate)
+  target_compile_definitions(rubberband
+    PRIVATE
+      HAVE_LIBSAMPLERATE
+  )
+
+  target_link_libraries(rubberband
+    PRIVATE
+      samplerate
+  )
+elseif(SAMPLERATE_INCLUDEDIR AND SAMPLERATE_LIBRARY)
   target_include_directories(rubberband
     PRIVATE
       ${SAMPLERATE_INCLUDEDIR}
