@@ -27,7 +27,7 @@ add_library(rubberband)
 ### Handle general flags, include paths, etc ###
 target_compile_options(rubberband
   PRIVATE
-    $<$<BOOL:${APPLE}>:-mmacosx-version-min=10.7>
+    $<$<BOOL:${APPLE}>:-mmacosx-version-min=10.11>
     $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<CONFIG:Release>>:-ffast-math -march=native -O3 -ftree-vectorize>
 )
 
