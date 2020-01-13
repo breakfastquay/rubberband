@@ -56,7 +56,7 @@ our knowledge. See also the end of this README for detailed terms.
  
 
 Contents of this README
------------------------
+=======================
 
 1. Code components
 2. Using the Rubber Band command-line tool
@@ -73,18 +73,18 @@ Contents of this README
 
 
 1. Code components
-------------------
+==================
 
 Rubber Band consists of:
 
- * The Rubber Band library code.  This is the code that will normally
+ * The Rubber Band Library code.  This is the code that will normally
    be used by your applications.  The headers for this are in the
    rubberband/ directory, and the source code is in src/.
-   The Rubber Band library depends upon resampler and FFT code; see
+   The Rubber Band Library depends upon resampler and FFT code; see
    section 3a below for details.
 
  * The Rubber Band command-line tool.  This is in main/main.cpp.
-   This program uses the Rubber Band library and also requires libsndfile
+   This program uses the Rubber Band Library and also requires libsndfile
    (http://www.mega-nerd.com/libsndfile/, licensed under the GNU Lesser
    General Public License) for audio file loading.
 
@@ -93,12 +93,12 @@ Rubber Band consists of:
 
  * A Vamp audio analysis plugin which may be used to inspect the
    dynamic stretch ratios and other decisions taken by the Rubber Band
-   library when in use.  This is in vamp/.  It requires the Vamp
+   Library when in use.  This is in vamp/.  It requires the Vamp
    plugin SDK (http://www.vamp-plugins.org/develop.html) (not included).
 
 
 2. Using the Rubber Band command-line tool
-------------------------------------------
+==========================================
 
 The Rubber Band command-line tool builds as bin/rubberband.  The basic
 incantation is
@@ -114,13 +114,13 @@ shifts it up in pitch by one octave, and writes the output to output.wav.
 
 Several further options are available: run "rubberband -h" for help.
 In particular, different types of music may benefit from different
-"crispness" options (-c <n> where <n> is from 0 to 6).
+"crispness" options (-c flag with a numerical argument from 0 to 6).
 
 
-3. Using the Rubber Band library
---------------------------------
+3. Using the Rubber Band Library
+================================
 
-The Rubber Band library has a public API that consists of one C++
+The Rubber Band Library has a public API that consists of one C++
 class, called RubberBandStretcher in the RubberBand namespace.  You
 should `#include <rubberband/RubberBandStretcher.h>` to use this
 class.  There is extensive documentation in the class header.
@@ -149,8 +149,8 @@ for modification and redistribution) unless you have separately
 acquired a commercial licence from the author.
 
 
-4. Compiling Rubber Band
-------------------------
+4. Compiling the Rubber Band Library
+====================================
 
 4a. FFT and resampler selection
 -------------------------------
@@ -161,7 +161,7 @@ controlled using preprocessor flags at compile time, as detailed in
 the tables below.
 
 Flags that declare that you want to use an external library begin with
-HAVE_; flags that select from the bundled options begin with USE_.
+`HAVE_`; flags that select from the bundled options begin with `USE_`.
 
 You must enable one resampler implementation and one FFT
 implementation.  Do not enable more than one of either unless you know
@@ -169,11 +169,10 @@ what you're doing.
 
 If you are building this software using one of the bundled library
 options (Speex or KissFFT), please be sure to review the terms for
-those libraries in src/speex/COPYING and src/kissfft/COPYING as
+those libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
 applicable.
 
-FFT libraries supported
------------------------
+FFT libraries supported:
 
 ```
 Name           Flags required        Notes
@@ -194,8 +193,7 @@ KissFFT        -DUSE_KISSFFT	     Bundled, can be distributed with either the
                                      options.
 ```
 
-Resampler libraries supported
------------------------------
+Resampler libraries supported:
 
 ```
 Name           Flags required        Notes
@@ -299,7 +297,7 @@ The default target is to build the static and dynamic libraries and
 the command line tool.  The sndfile library is required for the
 command line tool.
 
-If you prefer to add the Rubber Band library files to an existing
+If you prefer to add the Rubber Band Library files to an existing
 build project instead of using the Makefile, the files in `src/`
 (except for `RubberBandStretcherJNI.cpp`) and the API headers in
 `rubberband/` should be all you need.
@@ -321,7 +319,7 @@ in both 32- and 64-bit architectures.
 Run e.g. `make -f Makefile.ios` in a terminal window to build.  You
 will need the Xcode command-line tools installed.
 
-If you prefer to add the Rubber Band library files to an existing
+If you prefer to add the Rubber Band Library files to an existing
 build project instead of using the Makefile, the files in `src/`
 (except for `RubberBandStretcherJNI.cpp`) and the API headers in
 `rubberband/` should be all you need.
@@ -339,8 +337,8 @@ commercial terms.
 A Visual Studio solution, targeted to VC 2015, with two projects is
 supplied. The `rubberband-library` project builds the Rubber Band
 static libraries only. The `rubberband-program` project builds the
-Rubber Band command-line tool (which requires the Rubber Band
-libraries, and libsndfile).
+Rubber Band command-line tool (which requires the Rubber Band Library
+and libsndfile).
 
 You will need to adjust the project settings so as to set the compile
 flags according to your preference for FFT and resampler
@@ -348,7 +346,7 @@ implementation, and set the include path and library path
 appropriately.  The default is to use the bundled KissFFT and the
 Speex resampler.
 
-If you prefer to add the Rubber Band library files to an existing
+If you prefer to add the Rubber Band Library files to an existing
 build project instead of using the supplied one, the files in `src/`
 (except for `RubberBandStretcherJNI.cpp`) and the API headers in
 `rubberband/` should be all you need.
