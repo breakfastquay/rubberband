@@ -14,8 +14,7 @@ tempo and pitch of an audio recording independently of one another.
 See http://breakfastquay.com/rubberband/ for more information.
 
 
-Licence
-=======
+## Licence
 
 Rubber Band is distributed under the GNU General Public License. See
 the file COPYING for more information.
@@ -55,8 +54,7 @@ our knowledge. See also the end of this README for detailed terms.
  * Pommier math functions - BSD-like
  
 
-Contents of this README
-=======================
+## Contents of this README
 
 1. Code components
 2. Using the Rubber Band command-line tool
@@ -72,8 +70,7 @@ Contents of this README
 5. Copyright notes for bundled libraries
 
 
-1. Code components
-==================
+## 1. Code components
 
 Rubber Band consists of:
 
@@ -97,8 +94,7 @@ Rubber Band consists of:
    plugin SDK (http://www.vamp-plugins.org/develop.html) (not included).
 
 
-2. Using the Rubber Band command-line tool
-==========================================
+## 2. Using the Rubber Band command-line tool
 
 The Rubber Band command-line tool builds as bin/rubberband.  The basic
 incantation is
@@ -117,8 +113,7 @@ In particular, different types of music may benefit from different
 "crispness" options (-c flag with a numerical argument from 0 to 6).
 
 
-3. Using the Rubber Band Library
-================================
+## 3. Using the Rubber Band Library
 
 The Rubber Band Library has a public API that consists of one C++
 class, called RubberBandStretcher in the RubberBand namespace.  You
@@ -149,11 +144,9 @@ for modification and redistribution) unless you have separately
 acquired a commercial licence from the author.
 
 
-4. Compiling the Rubber Band Library
-====================================
+## 4. Compiling the Rubber Band Library
 
-4a. FFT and resampler selection
--------------------------------
+### 4a. FFT and resampler selection
 
 Rubber Band requires additional library code for FFT calculation and
 resampling.  Several libraries are supported.  The selection is
@@ -172,7 +165,7 @@ options (Speex or KissFFT), please be sure to review the terms for
 those libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
 applicable.
 
-FFT libraries supported:
+#### FFT libraries supported
 
 ```
 Name           Flags required        Notes
@@ -193,7 +186,7 @@ KissFFT        -DUSE_KISSFFT	     Bundled, can be distributed with either the
                                      options.
 ```
 
-Resampler libraries supported:
+#### Resampler libraries supported
 
 ```
 Name           Flags required        Notes
@@ -207,8 +200,7 @@ Speex	       -DUSE_SPEEX	     Bundled, can be distributed with either the
                                      Rubber Band GPL or commercial licence.
 ```
 
-4b. Other supported #defines
-----------------------------
+### 4b. Other supported #defines
 
 Other symbols you may define at compile time are as follows. (Usually
 the supplied build files will handle these for you.)
@@ -246,8 +238,7 @@ the supplied build files will handle these for you.)
     for mobile architectures.
 
 
-4c. Building on Linux
----------------------
+### 4c. Building on Linux
 
 A GNU-style configure script is included for use on Linux and similar
 systems.
@@ -269,8 +260,7 @@ The following Makefile targets are available:
 The default target is "all".
 
 
-4d. Building on macOS
----------------------
+### 4d. Building on macOS
 
 A Makefile for macOS is provided as `Makefile.osx`.
 
@@ -309,8 +299,7 @@ app store.  See http://breakfastquay.com/technology/license.html for
 commercial terms.
 
 
-4e. Building for iOS
---------------------
+### 4e. Building for iOS
 
 A Makefile for iOS is provided as `Makefile.ios`.  It produces a
 single static library containing both simulator and device binaries,
@@ -331,8 +320,7 @@ app store.  See http://breakfastquay.com/technology/license.html for
 commercial terms.
 
 
-4f. Building on Windows with Visual C++
----------------------------------------
+### 4f. Building on Windows with Visual C++
 
 A Visual Studio solution, targeted to VC 2015, with two projects is
 supplied. The `rubberband-library` project builds the Rubber Band
@@ -352,8 +340,7 @@ build project instead of using the supplied one, the files in `src/`
 `rubberband/` should be all you need.
 
 
-4g. Building for Android and Java integration
----------------------------------------------
+### 4g. Building for Android and Java integration
 
 An Android NDK build file is provided as `Android.mk`. This includes
 compile definitions for a shared library built for ARM architectures
@@ -370,11 +357,9 @@ for a very trivial example of integration with Android Java code.
 The supplied `.mk` file uses KissFFT and the Speex resampler.
 
 
-5. Copyright notes for bundled libraries
-========================================
+## 5. Copyright notes for bundled libraries
 
-5a. Speex
----------
+### 5a. Speex
 
 ```
 [files in src/speex]
@@ -416,8 +401,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-5b. KissFFT
------------
+### 5b. KissFFT
 
 ```
 [files in src/kissfft]
@@ -453,8 +437,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-5c. Pommier math functions
---------------------------
+### 5c. Pommier math functions
 
 ```
 [files in src/pommier]
@@ -478,8 +461,7 @@ Copyright (C) 2011  Julien Pommier
   3. This notice may not be removed or altered from any source distribution.
 ```
 
-5d. float_cast
---------------
+### 5d. float_cast
 
 ```
 [files in src/float_cast]
@@ -493,8 +475,7 @@ made about the suitability of this software for any purpose.  It is
 provided "as is" without express or implied warranty.
 ```
 
-5e. getopt
-----------
+### 5e. getopt
 
 ```
 [files in src/getopt, used by command-line tool on some platforms]
@@ -534,8 +515,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 ```
 
-5f. rubberband-sharp
---------------------
+### 5f. rubberband-sharp
 
 ```
 [files in rubberband-dll and rubberband-sharp]
