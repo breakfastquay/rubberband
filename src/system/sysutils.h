@@ -25,48 +25,55 @@
 #define _RUBBERBAND_SYSUTILS_H_
 
 #ifdef __MSVC__
-#if _MSC_VER < 1800
-#include "float_cast/float_cast.h"
-#endif
-#define R__ __restrict
-#endif
+#  if _MSC_VER < 1800
+#    include "float_cast/float_cast.h"
+#  endif
+#  define R__ __restrict
+#endif 
 
 #ifdef __clang__
-#define R__ __restrict__
+#  define R__ __restrict__
 #else
-#ifdef __GNUC__
-#define R__ __restrict__
-#endif
+#  ifdef __GNUC__
+#    define R__ __restrict__
+#  endif
 #endif
 
 #ifndef R__
-#define R__
+#  define R__
 #endif
 
-#ifdef __MINGW32__
-#include <malloc.h>
+#if defined(__MSVC__)
+#  include <malloc.h>
+#  include <process.h>
+#  define alloca _alloca
+#  define getpid _getpid
 #else
-#ifndef __MSVC__
-#include <alloca.h>
-#endif
-#endif
-
-#ifdef __MSVC__
-#include <malloc.h>
-#include <process.h>
-#define alloca _alloca
-#define getpid _getpid
+#  if defined(__MINGW32__)
+#    include <malloc.h>
+#  elif defined(__GNUC__)
+#    ifndef alloca
+#      define alloca __builtin_alloca
+#    endif
+#  elif defined(HAVE_ALLOCA_H)
+#    include <alloca.h>
+#  else
+#    ifndef __USE_MISC
+#    define __USE_MISC
+#    endif
+#    include <stdlib.h>
+#  endif
 #endif
 
 #if defined(__MSVC__) && _MSC_VER < 1700
-#define uint8_t unsigned __int8
-#define uint16_t unsigned __int16
-#define uint32_t unsigned __int32
+#  define uint8_t unsigned __int8
+#  define uint16_t unsigned __int16
+#  define uint32_t unsigned __int32
 #elif defined(__MSVC__)
-#define ssize_t long
-#include <stdint.h>
+#  define ssize_t long
+#  include <stdint.h>
 #else
-#include <stdint.h>
+#  include <stdint.h>
 #endif
 
 #include <math.h>
@@ -82,24 +89,20 @@ enum ProcessStatus { ProcessRunning, ProcessNotRunning, UnknownProcessStatus };
 extern ProcessStatus system_get_process_status(int pid);
 
 #ifdef _WIN32
-
 struct timeval { long tv_sec; long tv_usec; };
 void gettimeofday(struct timeval *p, void *tz);
-
-#endif
+#endif // _WIN32
 
 #ifdef __MSVC__
-
 void usleep(unsigned long);
-
-#endif
+#endif // __MSVC__
 
 inline double mod(double x, double y) { return x - (y * floor(x / y)); }
 inline float modf(float x, float y) { return x - (y * float(floor(x / y))); }
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
-#endif
+#endif // M_PI
 
 inline double princarg(double a) { return mod(a + M_PI, -2.0 * M_PI) + M_PI; }
 inline float princargf(float a) { return modf(a + (float)M_PI, -2.f * (float)M_PI) + (float)M_PI; }
@@ -124,7 +127,7 @@ extern void system_memorybarrier();
 #define DLCLOSE(a)   FreeLibrary((HINSTANCE)(a))
 #define DLERROR()    ""
 
-#else
+#else // !_WIN32
 
 #include <sys/mman.h>
 #include <dlfcn.h>
@@ -135,21 +138,21 @@ extern void system_memorybarrier();
 #define MUNLOCK_SAMPLEBLOCK(a) do { if (!(a).empty()) { const float &b = *(a).begin(); MUNLOCK(&b, (a).capacity() * sizeof(float)); } } while(0);
 
 #ifdef __APPLE__
-#if defined __MAC_10_12
-#define MBARRIER() __sync_synchronize()
+#  if defined __MAC_10_12
+#    define MBARRIER() __sync_synchronize()
+#  else
+#    include <libkern/OSAtomic.h>
+#    define MBARRIER() OSMemoryBarrier()
+#  endif
 #else
-#include <libkern/OSAtomic.h>
-#define MBARRIER() OSMemoryBarrier()
-#endif
-#else
-#if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)
-#define MBARRIER() __sync_synchronize()
-#else
+#  if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)
+#    define MBARRIER() __sync_synchronize()
+#  else
 namespace RubberBand {
 extern void system_memorybarrier();
 }
-#define MBARRIER() ::RubberBand::system_memorybarrier()
-#endif
+#    define MBARRIER() ::RubberBand::system_memorybarrier()
+#  endif
 #endif
 
 #define DLOPEN(a,b)  dlopen((a).toStdString().c_str(),(b))
@@ -157,11 +160,12 @@ extern void system_memorybarrier();
 #define DLCLOSE(a)   dlclose((a))
 #define DLERROR()    dlerror()
 
-#endif
+#endif // !_WIN32
 
 #ifdef NO_THREADING
-#undef MBARRIER
-#define MBARRIER() 
-#endif
+#  undef MBARRIER
+#  define MBARRIER() 
+#endif // NO_THREADING
 
 #endif
+

@@ -33,10 +33,7 @@
 #include "dsp/Resampler.h"
 #include "base/Profiler.h"
 #include "system/VectorOps.h"
-
-#ifndef _WIN32
-#include <alloca.h>
-#endif
+#include "system/sysutils.h"
 
 #include <cassert>
 #include <cmath>

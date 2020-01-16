@@ -37,9 +37,7 @@
 
 #include "base/Profiler.h"
 
-#ifndef _WIN32
-#include <alloca.h>
-#endif
+#include "system/sysutils.h"
 
 #include <cassert>
 #include <cmath>
