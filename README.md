@@ -171,16 +171,16 @@ applicable.
 Name           Flags required        Notes
 ----           --------------        -----   
 
-FFTW3	       -DHAVE_FFTW3	     GPL.
+FFTW3          -DHAVE_FFTW3          GPL.
 
-Accelerate     -DHAVE_VDSP	     Platform library on macOS and iOS.
+Accelerate     -DHAVE_VDSP           Platform library on macOS and iOS.
 
 Intel IPP      -DHAVE_IPP            Proprietary library, can only be used with
-      	    			     Rubber Band commercial licence. Define
-				     USE_IPP_STATIC as well to build with static
-				     IPP libraries.
+                                     Rubber Band commercial licence. Define
+                                     USE_IPP_STATIC as well to build with static
+                                     IPP libraries.
 
-KissFFT        -DUSE_KISSFFT	     Bundled, can be distributed with either the
+KissFFT        -DUSE_KISSFFT         Bundled, can be distributed with either the
                                      Rubber Band GPL or commercial licence.
                                      Single-precision. Slower than the above
                                      options.
@@ -196,7 +196,7 @@ libsamplerate  -DHAVE_LIBSAMPLERATE  GPL until v0.1.8, BSD for v0.1.9 and later.
 
 libresample    -DHAVE_LIBRESAMPLE    LGPL.
 
-Speex	       -DUSE_SPEEX	     Bundled, can be distributed with either the
+Speex          -DUSE_SPEEX           Bundled, can be distributed with either the
                                      Rubber Band GPL or commercial licence.
 ```
 
@@ -364,14 +364,14 @@ The supplied `.mk` file uses KissFFT and the Speex resampler.
 ```
 [files in src/speex]
 
-Copyright 2002-2007 	Xiph.org Foundation
-Copyright 2002-2007 	Jean-Marc Valin
-Copyright 2005-2007	Analog Devices Inc.
-Copyright 2005-2007	Commonwealth Scientific and Industrial Research 
+Copyright 2002-2007     Xiph.org Foundation
+Copyright 2002-2007     Jean-Marc Valin
+Copyright 2005-2007     Analog Devices Inc.
+Copyright 2005-2007     Commonwealth Scientific and Industrial Research 
                         Organisation (CSIRO)
 Copyright 1993, 2002, 2006 David Rowe
-Copyright 2003 		EpicGames
-Copyright 1992-1994	Jutta Degener, Carsten Bormann
+Copyright 2003          EpicGames
+Copyright 1992-1994     Jutta Degener, Carsten Bormann
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
