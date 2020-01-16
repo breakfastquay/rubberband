@@ -78,8 +78,8 @@ enum RubberBandOption {
     RubberBandOptionFormantShifted       = 0x00000000,
     RubberBandOptionFormantPreserved     = 0x01000000,
 
-    RubberBandOptionPitchHighQuality     = 0x00000000,
-    RubberBandOptionPitchHighSpeed       = 0x02000000,
+    RubberBandOptionPitchHighSpeed       = 0x00000000,
+    RubberBandOptionPitchHighQuality     = 0x02000000,
     RubberBandOptionPitchHighConsistency = 0x04000000,
 
     RubberBandOptionChannelsApart        = 0x00000000,
