@@ -648,6 +648,9 @@ CPPFLAGS
 LDFLAGS
 CXXFLAGS
 CXX
+WITH_LADSPA
+WITH_VAMP
+WITH_PROGRAMS
 target_alias
 host_alias
 build_alias
@@ -667,6 +670,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -689,6 +693,9 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+enable_programs
+enable_vamp
+enable_ladspa
 '
       ac_precious_vars='build_alias
 host_alias
@@ -751,6 +758,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1003,6 +1011,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1140,7 +1157,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1293,6 +1310,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1317,6 +1335,14 @@ if test -n "$ac_init_help"; then
      short | recursive ) echo "Configuration of RubberBand 1.8.2:";;
    esac
   cat <<\_ACEOF
+
+Optional Features:
+  --disable-option-checking  ignore unrecognized --enable/--with options
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+ --disable-programs   Disable compilation of programs
+ --disable-vamp   Disable compilation of vamp plugin
+ --disable-ladspa   Disable compilation of ladspa plugin
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -2051,6 +2077,45 @@ ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+# Check whether --enable-programs was given.
+if test "${enable_programs+set}" = set; then :
+  enableval=$enable_programs; case "${enableval}" in
+     yes | no ) WITH_PROGRAMS="${enableval}" ;;
+     *) as_fn_error $? "bad value ${enableval} for --disable-programs" "$LINENO" 5 ;;
+   esac
+else
+  WITH_PROGRAMS="yes"
+
+fi
+
+
+
+# Check whether --enable-vamp was given.
+if test "${enable_vamp+set}" = set; then :
+  enableval=$enable_vamp; case "${enableval}" in
+     yes | no ) WITH_VAMP="${enableval}" ;;
+     *) as_fn_error $? "bad value ${enableval} for --disable-vamp" "$LINENO" 5 ;;
+   esac
+else
+  WITH_VAMP="yes"
+
+fi
+
+
+
+# Check whether --enable-ladspa was given.
+if test "${enable_ladspa+set}" = set; then :
+  enableval=$enable_ladspa; case "${enableval}" in
+     yes | no ) WITH_LADSPA="${enableval}" ;;
+     *) as_fn_error $? "bad value ${enableval} for --disable-ladspa" "$LINENO" 5 ;;
+   esac
+else
+  WITH_LADSPA="yes"
+
+fi
 
 
 
@@ -3846,8 +3911,8 @@ $as_echo "no" >&6; }
 fi
 
 pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for samplerate" >&5
-$as_echo_n "checking for samplerate... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SRC" >&5
+$as_echo_n "checking for SRC... " >&6; }
 
 if test -n "$SRC_CFLAGS"; then
     pkg_cv_SRC_CFLAGS="$SRC_CFLAGS"
@@ -3887,7 +3952,7 @@ fi
 
 
 if test $pkg_failed = yes; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
@@ -3914,7 +3979,7 @@ Alternatively, you may set the environment variables SRC_CFLAGS
 and SRC_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details." "$LINENO" 5
 elif test $pkg_failed = untried; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -3938,10 +4003,11 @@ fi
 
 
 
+if test "x$WITH_PROGRAMS" = "xyes"; then
 
 pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for sndfile" >&5
-$as_echo_n "checking for sndfile... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SNDFILE" >&5
+$as_echo_n "checking for SNDFILE... " >&6; }
 
 if test -n "$SNDFILE_CFLAGS"; then
     pkg_cv_SNDFILE_CFLAGS="$SNDFILE_CFLAGS"
@@ -3981,7 +4047,7 @@ fi
 
 
 if test $pkg_failed = yes; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
@@ -4008,7 +4074,7 @@ Alternatively, you may set the environment variables SNDFILE_CFLAGS
 and SNDFILE_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details." "$LINENO" 5
 elif test $pkg_failed = untried; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -4029,13 +4095,14 @@ else
 $as_echo "yes" >&6; }
 
 fi
+fi
 
 
 
 
 pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for fftw3" >&5
-$as_echo_n "checking for fftw3... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for FFTW" >&5
+$as_echo_n "checking for FFTW... " >&6; }
 
 if test -n "$FFTW_CFLAGS"; then
     pkg_cv_FFTW_CFLAGS="$FFTW_CFLAGS"
@@ -4075,7 +4142,7 @@ fi
 
 
 if test $pkg_failed = yes; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
@@ -4102,7 +4169,7 @@ Alternatively, you may set the environment variables FFTW_CFLAGS
 and FFTW_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details." "$LINENO" 5
 elif test $pkg_failed = untried; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -4126,7 +4193,8 @@ fi
 
 
 
-for ac_header in ladspa.h
+if test "x$WITH_LADSPA" = "xyes"; then
+  for ac_header in ladspa.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "ladspa.h" "ac_cv_header_ladspa_h" "$ac_includes_default"
 if test "x$ac_cv_header_ladspa_h" = xyes; then :
@@ -4138,6 +4206,7 @@ fi
 
 done
 
+fi
 for ac_header in pthread.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "pthread.h" "ac_cv_header_pthread_h" "$ac_includes_default"
@@ -4151,10 +4220,11 @@ fi
 done
 
 
+if test "x$WITH_VAMP" = "xyes"; then
 
 pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for vamp-sdk" >&5
-$as_echo_n "checking for vamp-sdk... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Vamp" >&5
+$as_echo_n "checking for Vamp... " >&6; }
 
 if test -n "$Vamp_CFLAGS"; then
     pkg_cv_Vamp_CFLAGS="$Vamp_CFLAGS"
@@ -4194,7 +4264,7 @@ fi
 
 
 if test $pkg_failed = yes; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
@@ -4221,7 +4291,7 @@ Alternatively, you may set the environment variables Vamp_CFLAGS
 and Vamp_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details." "$LINENO" 5
 elif test $pkg_failed = untried; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -4241,6 +4311,7 @@ else
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
+fi
 fi
 
 
