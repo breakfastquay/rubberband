@@ -701,6 +701,11 @@ public:
     size_t getChannelCount() const;
 
     /**
+     * Return the sample rate this stretcher was constructed with.
+     */
+    size_t getSampleRate() const;
+
+    /**
      * Force the stretcher to calculate a stretch profile.  Normally
      * this happens automatically for the first process() call in
      * offline mode.
