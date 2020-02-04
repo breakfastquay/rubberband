@@ -267,6 +267,11 @@ int main(int argc, char **argv)
 	return 2;
     }
 
+    if (ratio <= 0.0) {
+        cerr << "ERROR: Invalid time ratio " << ratio << endl;
+        return 1;
+    }
+
     if (crispness >= 0 && crispchanged) {
         cerr << "WARNING: Both crispness option and transients, lamination or window options" << endl;
         cerr << "         provided -- crispness will override these other options" << endl;
@@ -345,6 +350,7 @@ int main(int argc, char **argv)
     SF_INFO sfinfo;
     SF_INFO sfinfoOut;
     memset(&sfinfo, 0, sizeof(SF_INFO));
+    memset(&sfinfoOut, 0, sizeof(SF_INFO));
 
     sndfile = sf_open(fileName, SFM_READ, &sfinfo);
     if (!sndfile) {
@@ -353,22 +359,27 @@ int main(int argc, char **argv)
 	return 1;
     }
 
+    if (sfinfo.samplerate == 0) {
+        cerr << "ERROR: File lacks sample rate in header" << endl;
+        return 1;
+    }
+
     if (duration != 0.0) {
-        if (sfinfo.frames == 0 || sfinfo.samplerate == 0) {
-            cerr << "ERROR: File lacks frame count or sample rate in header, cannot use --duration" << endl;
+        if (sfinfo.frames == 0) {
+            cerr << "ERROR: File lacks frame count in header, cannot use --duration" << endl;
             return 1;
         }
         double induration = double(sfinfo.frames) / double(sfinfo.samplerate);
         if (induration != 0.0) ratio = duration / induration;
     }
-
+    
     sfinfoOut.channels = sfinfo.channels;
     sfinfoOut.format = sfinfo.format;
     sfinfoOut.frames = int(sfinfo.frames * ratio + 0.1);
     sfinfoOut.samplerate = sfinfo.samplerate;
     sfinfoOut.sections = sfinfo.sections;
     sfinfoOut.seekable = sfinfo.seekable;
-
+    
     sndfileOut = sf_open(fileNameOut, SFM_WRITE, &sfinfoOut) ;
     if (!sndfileOut) {
 	cerr << "ERROR: Failed to open output file \"" << fileNameOut << "\" for writing: "
