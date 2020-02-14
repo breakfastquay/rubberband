@@ -2,7 +2,7 @@
 AC_INIT(RubberBand, 1.8.2, chris.cannam@breakfastquay.com)
 
 AC_ARG_ENABLE(programs,
-  [ --disable-programs   Disable compilation of programs],
+  [  --disable-programs      disable compilation of programs],
   [case "${enableval}" in
      yes | no ) WITH_PROGRAMS="${enableval}" ;;
      *) AC_MSG_ERROR(bad value ${enableval} for --disable-programs) ;;
@@ -12,7 +12,7 @@ AC_ARG_ENABLE(programs,
 AC_SUBST(WITH_PROGRAMS)
 
 AC_ARG_ENABLE(vamp,
-  [ --disable-vamp   Disable compilation of vamp plugin],
+  [  --disable-vamp          disable compilation of Vamp plugin],
   [case "${enableval}" in
      yes | no ) WITH_VAMP="${enableval}" ;;
      *) AC_MSG_ERROR(bad value ${enableval} for --disable-vamp) ;;
@@ -22,7 +22,7 @@ AC_ARG_ENABLE(vamp,
 AC_SUBST(WITH_VAMP)
 
 AC_ARG_ENABLE(ladspa,
-  [ --disable-ladspa   Disable compilation of ladspa plugin],
+  [  --disable-ladspa        disable compilation of LADSPA plugin],
   [case "${enableval}" in
      yes | no ) WITH_LADSPA="${enableval}" ;;
      *) AC_MSG_ERROR(bad value ${enableval} for --disable-ladspa) ;;
