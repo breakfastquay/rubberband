@@ -11,7 +11,7 @@ Copyright 2007-2020 Particular Programs Ltd.
 Rubber Band is a library and utility program that permits changing the
 tempo and pitch of an audio recording independently of one another.
 
-* About Rubber Band Library: https://breakfastquay.com/rubberband/
+* About Rubber Band: https://breakfastquay.com/rubberband/
 * Code repository: https://hg.sr.ht/~breakfastquay/rubberband
 
 
