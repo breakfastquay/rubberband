@@ -11,7 +11,8 @@ Copyright 2007-2020 Particular Programs Ltd.
 Rubber Band is a library and utility program that permits changing the
 tempo and pitch of an audio recording independently of one another.
 
-See http://breakfastquay.com/rubberband/ for more information.
+* About Rubber Band Library: https://breakfastquay.com/rubberband/
+* Code repository: https://hg.sr.ht/~breakfastquay/rubberband
 
 
 ## Licence
@@ -23,7 +24,7 @@ If you wish to distribute code using the Rubber Band Library under
 terms other than those of the GNU General Public License, you must
 obtain a commercial licence from us before doing so. In particular,
 you may not legally distribute through any Apple App Store unless you
-have a commercial licence.  See http://breakfastquay.com/rubberband/
+have a commercial licence.  See https://breakfastquay.com/rubberband/
 for licence terms.
 
 If you have obtained a valid commercial licence, your licence
@@ -91,7 +92,7 @@ Rubber Band consists of:
  * A Vamp audio analysis plugin which may be used to inspect the
    dynamic stretch ratios and other decisions taken by the Rubber Band
    Library when in use.  This is in vamp/.  It requires the Vamp
-   plugin SDK (http://www.vamp-plugins.org/develop.html) (not included).
+   plugin SDK (https://www.vamp-plugins.org/develop.html) (not included).
 
 
 ## 2. Using the Rubber Band command-line tool
@@ -295,7 +296,7 @@ build project instead of using the Makefile, the files in `src/`
 Note that you cannot legally distribute applications using Rubber Band
 in the Mac App Store, unless you have first obtained a commercial
 licence for the Rubber Band Library.  GPL code is not permitted in the
-app store.  See http://breakfastquay.com/technology/license.html for
+app store.  See https://breakfastquay.com/technology/license.html for
 commercial terms.
 
 
@@ -316,7 +317,7 @@ build project instead of using the Makefile, the files in `src/`
 Note that you cannot legally distribute applications using Rubber Band
 in the iOS App Store, unless you have a first obtained a commercial
 licence for the Rubber Band Library. GPL code is not permitted in the
-app store.  See http://breakfastquay.com/technology/license.html for
+app store.  See https://breakfastquay.com/technology/license.html for
 commercial terms.
 
 
