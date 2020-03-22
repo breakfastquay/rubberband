@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 project(rubberband VERSION 2.1.1)
 
 option(RUBBERBAND_EXAMPLE "Build the Rubberband example app" OFF)
@@ -58,7 +58,7 @@ target_link_libraries(rubberband
 )
 
 # Handle FFT library
-if(FFTW3_INCLUDEDIR AND FFTW3_LIBRARY)
+if(0)
   target_include_directories(rubberband
     PRIVATE
       ${FFTW3_INCLUDEDIR}
