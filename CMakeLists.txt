@@ -4,6 +4,16 @@ project(rubberband VERSION 2.1.1)
 option(RUBBERBAND_EXAMPLE "Build the Rubberband example app" OFF)
 
 ### Dependencies ###
+
+# ARM cross-compilers do not support march=native, only mtune=native
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-march=native" MARCH_NATIVE_SUPPORTED)
+if(MARCH_NATIVE_SUPPORTED)
+  set(MARCH_NATIVE_FLAG "-march=native")
+else()
+  set(MARCH_NATIVE_FLAG)
+endif()
+
 find_package(Threads REQUIRED)
 
 # FFTW3
@@ -28,7 +38,7 @@ add_library(rubberband)
 target_compile_options(rubberband
   PRIVATE
     $<$<BOOL:${APPLE}>:-mmacosx-version-min=10.11>
-    $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<CONFIG:Release>>:-ffast-math -march=native -O3 -ftree-vectorize>
+    $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<CONFIG:Release>>:-ffast-math ${MARCH_NATIVE_FLAG} -O3 -ftree-vectorize>
 )
 
 target_compile_definitions(rubberband
@@ -58,7 +68,7 @@ target_link_libraries(rubberband
 )
 
 # Handle FFT library
-if(0)
+if(FFTW3_INCLUDEDIR AND FFTW3_LIBRARY)
   target_include_directories(rubberband
     PRIVATE
       ${FFTW3_INCLUDEDIR}
