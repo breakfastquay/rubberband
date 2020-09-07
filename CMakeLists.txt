@@ -2,16 +2,20 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 project(rubberband VERSION 2.1.1)
 
 option(RUBBERBAND_EXAMPLE "Build the Rubberband example app" OFF)
-
+option(RUBBERBAND_OPTIMIZED "Build Rubberband optimized for the build machine's CPU" OFF)
 ### Dependencies ###
 
 # ARM cross-compilers do not support march=native, only mtune=native
+set(MARCH_NATIVE_FLAG)
+
 include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag("-march=native" MARCH_NATIVE_SUPPORTED)
-if(MARCH_NATIVE_SUPPORTED)
-  set(MARCH_NATIVE_FLAG "-march=native")
-else()
-  set(MARCH_NATIVE_FLAG)
+
+if(RUBBERBAND_OPTIMIZED)
+  check_cxx_compiler_flag("-march=native" MARCH_NATIVE_SUPPORTED)
+  if(MARCH_NATIVE_SUPPORTED)
+    set(MARCH_NATIVE_FLAG "-march=native")
+  else()
+  endif()
 endif()
 
 find_package(Threads REQUIRED)
