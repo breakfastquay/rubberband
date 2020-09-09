@@ -34,7 +34,7 @@ JNINAME			:= librubberband-jni
 JARNAME			:= rubberband.jar
 
 DYNAMIC_EXTENSION	:= .so
-DYNAMIC_FULL_VERSION	:= 2.1.1
+DYNAMIC_FULL_VERSION	:= 2.1.2
 DYNAMIC_ABI_VERSION	:= 2
 DYNAMIC_LDFLAGS		:= -shared -Wl,-Bsymbolic -Wl,-soname=$(LIBNAME)$(DYNAMIC_EXTENSION).$(DYNAMIC_ABI_VERSION)
 VAMP_LDFLAGS		:= -shared -Wl,-Bsymbolic -Wl,--version-script=vamp/vamp-plugin.map

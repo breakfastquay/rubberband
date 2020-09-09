@@ -1,5 +1,5 @@
 
-AC_INIT(RubberBand, 1.8.2, chris.cannam@breakfastquay.com)
+AC_INIT(RubberBand, 1.9.0, chris.cannam@breakfastquay.com)
 
 AC_ARG_ENABLE(programs,
   [  --disable-programs      disable compilation of programs],
