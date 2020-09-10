@@ -201,6 +201,15 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    if (freqMapFile != "" || pitchMapFile != "") {
+        if (freqMapFile != "" && pitchMapFile != "") {
+            cerr << "ERROR: Please specify either pitch map or frequency map, not both" << endl;
+            return 1;
+        }
+        haveRatio = true;
+        realtime = true;
+    }
+    
     if (help || !haveRatio || optind + 2 != argc) {
         cerr << endl;
 	cerr << "Rubber Band" << endl;
@@ -225,27 +234,27 @@ int main(int argc, char **argv)
         cerr << "  -M<F>, --timemap <F>    Use file F as the source for time map" << endl;
         cerr << endl;
         cerr << "  A time map (or key-frame map) file contains a series of lines, each with two" << endl;
-        cerr << "  sample frame numbers separated by a single space.  These are source and" << endl;
+        cerr << "  sample frame numbers separated by a single space. These are source and" << endl;
         cerr << "  target frames for fixed time points within the audio data, defining a varying" << endl;
         cerr << "  stretch factor through the audio." << endl;
-        cerr << "  You must specify an overall stretch factor using e.g. -t as well." << endl;
+        cerr << "  You must specify an overall stretch factor using -t, -T, or -D as well." << endl;
         cerr << endl;
         cerr << "         --pitchmap <F>   Use file F as the source for pitch map" << endl;
         cerr << endl;
         cerr << "  A pitch map file contains a series of lines, each with two values: a" << endl;
         cerr << "  sample frame number and a pitch offset in semitones, separated by a single" << endl;
         cerr << "  space. These specify a varying pitch factor through the audio. The offsets" << endl;
-        cerr << "  are all relative to the initial offset of zero, not to the previous offset." << endl;
-        cerr << "  This option implies realtime mode (-R)." << endl;
+        cerr << "  are all relative to an initial offset specified by the pitch or frequency" << endl;
+        cerr << "  option, or relative to no shift if neither was specified. Offsets are" << endl;
+        cerr << "  not cumulative. This option implies realtime mode (-R)." << endl;
         cerr << endl;
         cerr << "         --freqmap <F>    Use file F as the source for frequency map" << endl;
         cerr << endl;
         cerr << "  As --pitchmap, except that the second column in the file contains frequency" << endl;
         cerr << "  multipliers rather than pitch offsets (the same as the difference between" << endl;
-        cerr << "  pitch and frequency options above)." << endl;
-        cerr << "  This option implies realtime mode (-R)." << endl;
+        cerr << "  pitch and frequency options above). This option implies realtime mode (-R)." << endl;
         cerr << endl;
-        cerr << "The following options provide a simple way to adjust the sound.  See below" << endl;
+        cerr << "The following options provide a simple way to adjust the sound. See below" << endl;
         cerr << "for more details." << endl;
         cerr << endl;
         cerr << "  -c<N>, --crisp <N>      Crispness (N = 0,1,2,3,4,5,6); default 5 (see below)" << endl;
@@ -254,7 +263,7 @@ int main(int argc, char **argv)
         cerr << "The remaining options fine-tune the processing mode and stretch algorithm." << endl;
         cerr << "These are mostly included for test purposes; the default settings and standard" << endl;
         cerr << "crispness parameter are intended to provide the best sounding set of options" << endl;
-        cerr << "for most situations.  The default is to use none of these options." << endl;
+        cerr << "for most situations. The default is to use none of these options." << endl;
         cerr << endl;
         cerr << "  -L,    --loose          Relax timing in hope of better transient preservation" << endl;
         cerr << "  -P,    --precise        Ignored: The opposite of -L, this is default from 1.6" << endl;
@@ -369,11 +378,16 @@ int main(int argc, char **argv)
     }
 
     std::map<size_t, double> freqMap;
-    if (freqMapFile != "") {
-        std::ifstream ifile(freqMapFile.c_str());
+    if (freqMapFile != "" || pitchMapFile != "") {
+        std::string file = freqMapFile;
+        bool convertFromPitch = false;
+        if (pitchMapFile != "") {
+            file = pitchMapFile;
+            convertFromPitch = true;
+        }
+        std::ifstream ifile(file.c_str());
         if (!ifile.is_open()) {
-            cerr << "ERROR: Failed to open frequency map file \""
-                 << freqMapFile << "\"" << endl;
+            cerr << "ERROR: Failed to open map file \"" << file << "\"" << endl;
             return 1;
         }
         std::string line;
@@ -389,13 +403,16 @@ int main(int argc, char **argv)
             }
             std::string::size_type i = line.find_first_of(" ");
             if (i == std::string::npos) {
-                cerr << "ERROR: Frequency map file \"" << freqMapFile
+                cerr << "ERROR: Map file \"" << file
                      << "\" is malformed at line " << lineno << endl;
                 return 1;
             }
             size_t source = atoi(line.substr(0, i).c_str());
             while (i < line.length() && line[i] == ' ') ++i;
             double freq = atof(line.substr(i).c_str());
+            if (convertFromPitch) {
+                freq = pow(2.0, freq / 12.0);
+            }
             freqMap[source] = freq;
             if (debug > 0) {
                 cerr << "adding mapping for source frame " << source << " of frequency multiplier " << freq << endl;
@@ -505,12 +522,17 @@ int main(int argc, char **argv)
     }
 
     if (pitchshift != 0.0) {
-        frequencyshift *= pow(2.0, pitchshift / 12);
+        frequencyshift *= pow(2.0, pitchshift / 12.0);
     }
 
     cerr << "Using time ratio " << ratio;
-    cerr << " and frequency ratio " << frequencyshift << endl;
 
+    if (freqMap.empty()) {
+        cerr << " and frequency ratio " << frequencyshift << endl;
+    } else {
+        cerr << " and initial frequency ratio " << frequencyshift << endl;
+    }
+    
 #ifdef _WIN32
     RubberBand::
 #endif
@@ -580,14 +602,35 @@ int main(int argc, char **argv)
     if (!timeMap.empty()) {
         ts.setKeyFrameMap(timeMap);
     }
+
+    std::map<size_t, double>::const_iterator freqMapItr = freqMap.begin();
     
     size_t countIn = 0, countOut = 0;
 
     while (frame < sfinfo.frames) {
 
         int count = -1;
+        int thisBlockSize = ibs;
 
-	if ((count = sf_readf_float(sndfile, fbuf, ibs)) < 0) break;
+        while (freqMapItr != freqMap.end()) {
+            size_t nextFreqFrame = freqMapItr->first;
+            if (nextFreqFrame <= countIn) {
+                double s = frequencyshift * freqMapItr->second;
+                if (debug > 0) {
+                    cerr << "at frame " << countIn
+                         << " updating frequency ratio to " << s << endl;
+                }
+                ts.setPitchScale(s);
+                ++freqMapItr;
+            } else {
+                if (nextFreqFrame < countIn + thisBlockSize) {
+                    thisBlockSize = nextFreqFrame - countIn;
+                }
+                break;
+            }
+        }
+        
+	if ((count = sf_readf_float(sndfile, fbuf, thisBlockSize)) < 0) break;
         
         countIn += count;
 
@@ -598,10 +641,10 @@ int main(int argc, char **argv)
             }
         }
 
-        bool final = (frame + ibs >= sfinfo.frames);
+        bool final = (frame + thisBlockSize >= sfinfo.frames);
 
         if (debug > 2) {
-            cerr << "count = " << count << ", ibs = " << ibs << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
+            cerr << "count = " << count << ", ibs = " << thisBlockSize << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
         }
 
         ts.process(ibuf, count, final);
@@ -652,7 +695,7 @@ int main(int argc, char **argv)
             }
 	}
 
-        frame += ibs;
+        frame += thisBlockSize;
     }
 
     if (!quiet) {
