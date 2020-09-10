@@ -104,7 +104,9 @@ int main(int argc, char **argv)
 
     bool haveRatio = false;
 
-    std::string mapfile;
+    std::string timeMapFile;
+    std::string freqMapFile;
+    std::string pitchMapFile;
 
     enum {
         NoTransients,
@@ -150,6 +152,8 @@ int main(int argc, char **argv)
             { "threads",       0, 0, '@' },
             { "quiet",         0, 0, 'q' },
             { "timemap",       1, 0, 'M' },
+            { "freqmap",       1, 0, 'Q' },
+            { "pitchmap",      1, 0, 'C' },
             { 0, 0, 0, 0 }
         };
 
@@ -185,7 +189,9 @@ int main(int argc, char **argv)
         case '%': hqpitch = true; break;
         case 'c': crispness = atoi(optarg); break;
         case 'q': quiet = true; break;
-        case 'M': mapfile = optarg; break;
+        case 'M': timeMapFile = optarg; break;
+        case 'Q': freqMapFile = optarg; break;
+        case 'C': pitchMapFile = optarg; break;
         default:  help = true; break;
         }
     }
@@ -213,12 +219,31 @@ int main(int argc, char **argv)
         cerr << "  -p<X>, --pitch <X>      Raise pitch by X semitones, or" << endl;
         cerr << "  -f<X>, --frequency <X>  Change frequency by multiple X" << endl;
         cerr << endl;
-        cerr << "  -M<F>, --timemap <F>    Use file F as the source for key frame map" << endl;
+        cerr << "The following options provide ways of making the time and frequency ratios" << endl;
+        cerr << "change during the audio." << endl;
         cerr << endl;
-        cerr << "A map file consists of a series of lines each having two numbers separated" << endl;
-        cerr << "by a single space.  These are source and target sample frame numbers for fixed" << endl;
-        cerr << "time points within the audio data, defining a varying stretch factor through" << endl;
-        cerr << "the audio.  You must specify an overall stretch factor using e.g. -t as well." << endl;
+        cerr << "  -M<F>, --timemap <F>    Use file F as the source for time map" << endl;
+        cerr << endl;
+        cerr << "  A time map (or key-frame map) file contains a series of lines, each with two" << endl;
+        cerr << "  sample frame numbers separated by a single space.  These are source and" << endl;
+        cerr << "  target frames for fixed time points within the audio data, defining a varying" << endl;
+        cerr << "  stretch factor through the audio." << endl;
+        cerr << "  You must specify an overall stretch factor using e.g. -t as well." << endl;
+        cerr << endl;
+        cerr << "         --pitchmap <F>   Use file F as the source for pitch map" << endl;
+        cerr << endl;
+        cerr << "  A pitch map file contains a series of lines, each with two values: a" << endl;
+        cerr << "  sample frame number and a pitch offset in semitones, separated by a single" << endl;
+        cerr << "  space. These specify a varying pitch factor through the audio. The offsets" << endl;
+        cerr << "  are all relative to the initial offset of zero, not to the previous offset." << endl;
+        cerr << "  This option implies realtime mode (-R)." << endl;
+        cerr << endl;
+        cerr << "         --freqmap <F>    Use file F as the source for frequency map" << endl;
+        cerr << endl;
+        cerr << "  As --pitchmap, except that the second column in the file contains frequency" << endl;
+        cerr << "  multipliers rather than pitch offsets (the same as the difference between" << endl;
+        cerr << "  pitch and frequency options above)." << endl;
+        cerr << "  This option implies realtime mode (-R)." << endl;
         cerr << endl;
         cerr << "The following options provide a simple way to adjust the sound.  See below" << endl;
         cerr << "for more details." << endl;
@@ -302,34 +327,35 @@ int main(int argc, char **argv)
         cerr << ")" << endl;
     }
 
-    std::map<size_t, size_t> mapping;
-    
-    if (mapfile != "") {
-        std::ifstream ifile(mapfile.c_str());
+    std::map<size_t, size_t> timeMap;
+    if (timeMapFile != "") {
+        std::ifstream ifile(timeMapFile.c_str());
         if (!ifile.is_open()) {
-            cerr << "ERROR: Failed to open time map file \"" << mapfile << "\""
-                 << endl;
+            cerr << "ERROR: Failed to open time map file \""
+                 << timeMapFile << "\"" << endl;
             return 1;
         }
         std::string line;
         int lineno = 0;
         while (!ifile.eof()) {
             std::getline(ifile, line);
-            while (line.length() > 0 && line[0] == ' ') line = line.substr(1);
+            while (line.length() > 0 && line[0] == ' ') {
+                line = line.substr(1);
+            }
             if (line == "") {
                 ++lineno;
                 continue;
             }
             std::string::size_type i = line.find_first_of(" ");
             if (i == std::string::npos) {
-                cerr << "ERROR: Time map file \"" << mapfile
+                cerr << "ERROR: Time map file \"" << timeMapFile
                      << "\" is malformed at line " << lineno << endl;
                 return 1;
             }
             size_t source = atoi(line.substr(0, i).c_str());
             while (i < line.length() && line[i] == ' ') ++i;
             size_t target = atoi(line.substr(i).c_str());
-            mapping[source] = target;
+            timeMap[source] = target;
             if (debug > 0) {
                 cerr << "adding mapping from " << source << " to " << target << endl;
             }
@@ -338,7 +364,48 @@ int main(int argc, char **argv)
         ifile.close();
 
         if (!quiet) {
-            cerr << "Read " << mapping.size() << " line(s) from map file" << endl;
+            cerr << "Read " << timeMap.size() << " line(s) from time map file" << endl;
+        }
+    }
+
+    std::map<size_t, double> freqMap;
+    if (freqMapFile != "") {
+        std::ifstream ifile(freqMapFile.c_str());
+        if (!ifile.is_open()) {
+            cerr << "ERROR: Failed to open frequency map file \""
+                 << freqMapFile << "\"" << endl;
+            return 1;
+        }
+        std::string line;
+        int lineno = 0;
+        while (!ifile.eof()) {
+            std::getline(ifile, line);
+            while (line.length() > 0 && line[0] == ' ') {
+                line = line.substr(1);
+            }
+            if (line == "") {
+                ++lineno;
+                continue;
+            }
+            std::string::size_type i = line.find_first_of(" ");
+            if (i == std::string::npos) {
+                cerr << "ERROR: Frequency map file \"" << freqMapFile
+                     << "\" is malformed at line " << lineno << endl;
+                return 1;
+            }
+            size_t source = atoi(line.substr(0, i).c_str());
+            while (i < line.length() && line[i] == ' ') ++i;
+            double freq = atof(line.substr(i).c_str());
+            freqMap[source] = freq;
+            if (debug > 0) {
+                cerr << "adding mapping for source frame " << source << " of frequency multiplier " << freq << endl;
+            }
+            ++lineno;
+        }
+        ifile.close();
+
+        if (!quiet) {
+            cerr << "Read " << freqMap.size() << " line(s) from frequency map file" << endl;
         }
     }
 
@@ -510,8 +577,8 @@ int main(int argc, char **argv)
     frame = 0;
     percent = 0;
 
-    if (!mapping.empty()) {
-        ts.setKeyFrameMap(mapping);
+    if (!timeMap.empty()) {
+        ts.setKeyFrameMap(timeMap);
     }
     
     size_t countIn = 0, countOut = 0;
