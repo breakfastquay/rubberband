@@ -236,8 +236,8 @@ int main(int argc, char **argv)
         cerr << "  A time map (or key-frame map) file contains a series of lines, each with two" << endl;
         cerr << "  sample frame numbers separated by a single space. These are source and" << endl;
         cerr << "  target frames for fixed time points within the audio data, defining a varying" << endl;
-        cerr << "  stretch factor through the audio." << endl;
-        cerr << "  You must specify an overall stretch factor using -t, -T, or -D as well." << endl;
+        cerr << "  stretch factor through the audio. When supplying a time map, you must specify" << endl;
+        cerr << "  an overall stretch factor using -t, -T, or -D as well." << endl;
         cerr << endl;
         cerr << "         --pitchmap <F>   Use file F as the source for pitch map" << endl;
         cerr << endl;
