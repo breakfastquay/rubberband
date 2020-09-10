@@ -613,11 +613,11 @@ int main(int argc, char **argv)
         int thisBlockSize = ibs;
 
         while (freqMapItr != freqMap.end()) {
-            size_t nextFreqFrame = freqMapItr->first;
+            size_t nextFreqFrame = freqMapItr->first + ts.getLatency();
             if (nextFreqFrame <= countIn) {
                 double s = frequencyshift * freqMapItr->second;
                 if (debug > 0) {
-                    cerr << "at frame " << countIn
+                    cerr << "at latency-adjusted frame " << countIn
                          << " updating frequency ratio to " << s << endl;
                 }
                 ts.setPitchScale(s);
