@@ -12,6 +12,8 @@ tempo and pitch of an audio recording independently of one another.
 
 * About Rubber Band: https://breakfastquay.com/rubberband/
 * Code repository: https://hg.sr.ht/~breakfastquay/rubberband
+* Issue tracker: https://todo.sr.ht/~breakfastquay/rubberband
+* Github mirror: https://github.com/breakfastquay/rubberband
 
 
 ## Licence
