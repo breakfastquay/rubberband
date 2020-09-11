@@ -107,6 +107,7 @@ int main(int argc, char **argv)
     std::string timeMapFile;
     std::string freqMapFile;
     std::string pitchMapFile;
+    bool freqOrPitchMapSpecified = false;
 
     enum {
         NoTransients,
@@ -190,8 +191,8 @@ int main(int argc, char **argv)
         case 'c': crispness = atoi(optarg); break;
         case 'q': quiet = true; break;
         case 'M': timeMapFile = optarg; break;
-        case 'Q': freqMapFile = optarg; break;
-        case 'C': pitchMapFile = optarg; break;
+        case 'Q': freqMapFile = optarg; freqOrPitchMapSpecified = true; break;
+        case 'C': pitchMapFile = optarg; freqOrPitchMapSpecified = true; break;
         default:  help = true; break;
         }
     }
@@ -201,7 +202,7 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    if (freqMapFile != "" || pitchMapFile != "") {
+    if (freqOrPitchMapSpecified) {
         if (freqMapFile != "" && pitchMapFile != "") {
             cerr << "ERROR: Please specify either pitch map or frequency map, not both" << endl;
             return 1;
@@ -246,13 +247,14 @@ int main(int argc, char **argv)
         cerr << "  space. These specify a varying pitch factor through the audio. The offsets" << endl;
         cerr << "  are all relative to an initial offset specified by the pitch or frequency" << endl;
         cerr << "  option, or relative to no shift if neither was specified. Offsets are" << endl;
-        cerr << "  not cumulative. This option implies realtime mode (-R)." << endl;
+        cerr << "  not cumulative. This option implies realtime mode (-R) and also enables a" << endl;
+        cerr << "  high-consistency pitch shifting mode, appropriate for dynamic pitch changes." << endl;
         cerr << endl;
         cerr << "         --freqmap <F>    Use file F as the source for frequency map" << endl;
         cerr << endl;
         cerr << "  As --pitchmap, except that the second column in the file contains frequency" << endl;
         cerr << "  multipliers rather than pitch offsets (the same as the difference between" << endl;
-        cerr << "  pitch and frequency options above). This option implies realtime mode (-R)." << endl;
+        cerr << "  pitch and frequency options above)." << endl;
         cerr << endl;
         cerr << "The following options provide a simple way to adjust the sound. See below" << endl;
         cerr << "for more details." << endl;
@@ -309,6 +311,12 @@ int main(int argc, char **argv)
     if (crispness >= 0 && crispchanged) {
         cerr << "WARNING: Both crispness option and transients, lamination or window options" << endl;
         cerr << "         provided -- crispness will override these other options" << endl;
+    }
+
+    if (hqpitch && freqOrPitchMapSpecified) {
+        cerr << "WARNING: High-quality pitch mode selected, but frequency or pitch map file is" << endl;
+        cerr << "         provided -- pitch mode will be overridden by high-consistency mode" << endl;
+        hqpitch = false;
     }
 
     switch (crispness) {
@@ -378,7 +386,8 @@ int main(int argc, char **argv)
     }
 
     std::map<size_t, double> freqMap;
-    if (freqMapFile != "" || pitchMapFile != "") {
+
+    if (freqOrPitchMapSpecified) {
         std::string file = freqMapFile;
         bool convertFromPitch = false;
         if (pitchMapFile != "") {
@@ -485,6 +494,10 @@ int main(int argc, char **argv)
     if (hqpitch)     options |= RubberBandStretcher::OptionPitchHighQuality;
     if (together)    options |= RubberBandStretcher::OptionChannelsTogether;
 
+    if (freqOrPitchMapSpecified) {
+        options |= RubberBandStretcher::OptionPitchHighConsistency;
+    }
+    
     switch (threading) {
     case 0:
         options |= RubberBandStretcher::OptionThreadingAuto;
@@ -527,7 +540,7 @@ int main(int argc, char **argv)
 
     cerr << "Using time ratio " << ratio;
 
-    if (freqMap.empty()) {
+    if (!freqOrPitchMapSpecified) {
         cerr << " and frequency ratio " << frequencyshift << endl;
     } else {
         cerr << " and initial frequency ratio " << frequencyshift << endl;
