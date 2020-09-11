@@ -630,8 +630,10 @@ int main(int argc, char **argv)
             if (nextFreqFrame <= countIn) {
                 double s = frequencyshift * freqMapItr->second;
                 if (debug > 0) {
-                    cerr << "at latency-adjusted frame " << countIn
-                         << " updating frequency ratio to " << s << endl;
+                    cerr << "at frame " << countIn
+                         << " (requested at " << freqMapItr->first
+                         << " plus latency " << ts.getLatency()
+                         << ") updating frequency ratio to " << s << endl;
                 }
                 ts.setPitchScale(s);
                 ++freqMapItr;
