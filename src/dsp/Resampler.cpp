@@ -634,9 +634,10 @@ D_SRC::resample(const float *const R__ *const R__ in,
 
     data.src_ratio = ratio;
 
+    int err = 0;
+
 #ifdef PERFORM_LIBSAMPLERATE_XFADE
     const int xfade = 10;
-    int err = 0;
     if (ratio != m_lastRatio && outcount > xfade) {
         int xin = lrintf(ceilf(xfade / ratio));
         SRC_STATE *xsrc = src_clone(m_src, &err);
