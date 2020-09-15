@@ -725,6 +725,14 @@ int main(int argc, char **argv)
                          << "reduced gain of " << gain
                          << " (supply --ignore-clipping to avoid this)" << endl;
                 }
+                const float mingain = 0.75f;
+                if (gain < mingain) {
+                    cerr << "WARNING: Clipped values were implausibly high: "
+                         << "something wrong with input or process - "
+                         << "not reducing gain below " << mingain << endl;
+                    gain = mingain;
+                    ignoreClipping = true;
+                }
                 successful = false;
                 break;
             }
