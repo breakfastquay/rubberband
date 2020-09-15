@@ -677,7 +677,9 @@ inline void v_abs(float *const R__ dst,
                   const int count)
 {
     float tmp[count];
-#if (defined(MAC_OS_X_VERSION_MIN_REQUIRED) && MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
+#if TARGET_OS_IPHONE
+    vvfabsf(tmp, dst, &count);
+#elif (defined(MAC_OS_X_VERSION_MIN_REQUIRED) && MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
     vvfabf(tmp, dst, &count);
 #else
     vvfabsf(tmp, dst, &count);
