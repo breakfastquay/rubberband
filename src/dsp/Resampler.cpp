@@ -609,6 +609,10 @@ D_SRC::resample(const float *const R__ *const R__ in,
 {
     SRC_DATA data;
 
+    static size_t n_in = 0, n_out = 0;
+
+    std::cerr << "Resampler::process: at input sample " << n_in << ", output sample " << n_out << ", incount = " << incount << ", ratio = " << ratio << ", incount * ratio = " << incount * ratio << std::endl;
+
     int outcount = lrintf(ceilf(incount * ratio));
 
     if (m_channels == 1) {
@@ -628,12 +632,57 @@ D_SRC::resample(const float *const R__ *const R__ in,
         data.data_out = m_iout;
     }
 
-    data.input_frames = incount;
-    data.output_frames = outcount;
     data.src_ratio = ratio;
-    data.end_of_input = (final ? 1 : 0);
 
-    int err = src_process(m_src, &data);
+#ifdef PERFORM_LIBSAMPLERATE_XFADE
+    const int xfade = 10;
+    int err = 0;
+    if (ratio != m_lastRatio && outcount > xfade) {
+        int xin = lrintf(ceilf(xfade / ratio));
+        SRC_STATE *xsrc = src_clone(m_src, &err);
+        float *xbuf = 0;
+        if (err) {
+            std::cerr << "Resampler::process: libsamplerate error: "
+                      << src_strerror(err) << ", skipping xfade" << std::endl;
+        } else {
+
+            data.input_frames = xin;
+            data.output_frames = xfade;
+            data.end_of_input = false;
+            
+            err = src_process(xsrc, &data);
+            xbuf = allocate<float>(xfade * m_channels);
+            v_copy(xbuf, data.data_out, xfade * m_channels);
+            src_delete(xsrc);
+        }
+        
+        data.input_frames = incount;
+        data.output_frames = outcount;
+        data.end_of_input = (final ? 1 : 0);
+        
+        src_set_ratio(m_src, ratio);
+        err = src_process(m_src, &data);
+
+        if (xbuf) {
+            for (int i = 0; i < xfade; ++i) {
+                for (int c = 0; c < m_channels; ++c) {
+                    float g = float(i+1) / float(xfade);
+                    float f = data.data_out[i * m_channels + c] * g +
+                        xbuf[i * m_channels + c] * (1.f - g);
+                    data.data_out[i * m_channels + c] = f;
+                }
+            }
+            deallocate<float>(xbuf);
+        }
+    } else {
+#endif
+        data.input_frames = incount;
+        data.output_frames = outcount;
+        data.end_of_input = (final ? 1 : 0);
+        err = src_process(m_src, &data);
+#ifdef PERFORM_LIBSAMPLERATE_XFADE
+    }
+#endif
 
     if (err) {
         std::cerr << "Resampler::process: libsamplerate error: "
@@ -649,6 +698,13 @@ D_SRC::resample(const float *const R__ *const R__ in,
 
     m_lastRatio = ratio;
 
+    n_in += incount;
+    n_out += data.output_frames_gen;
+
+    std::cerr << "outcount = " << data.output_frames_gen << std::endl;
+
+//    out[0][0] = 1.0;
+    
     return data.output_frames_gen;
 }
 
@@ -670,7 +726,7 @@ D_SRC::resampleInterleaved(const float *const R__ in,
     data.output_frames = outcount;
     data.src_ratio = ratio;
     data.end_of_input = (final ? 1 : 0);
-
+    
     int err = src_process(m_src, &data);
 
     if (err) {
@@ -942,6 +998,8 @@ D_Speex::D_Speex(Resampler::Quality quality, int channels, int maxBufferSize,
                   << std::endl;
     }
 
+    q = 10; //!!!
+    
     int err = 0;
     m_resampler = speex_resampler_init_frac(m_channels,
                                             1, 1,
@@ -1030,7 +1088,10 @@ D_Speex::resample(const float *const R__ *const R__ in,
     }
 
     unsigned int uincount = incount;
-    unsigned int outcount = lrintf(ceilf(incount * ratio)); //!!! inexact now
+
+    // This doesn't have to be exact, but it does have to be
+    // sufficient, hence going over by one
+    unsigned int outcount = lrintf(ceilf((incount + 1) * ratio));
 
     float *data_in, *data_out;
 
@@ -1057,16 +1118,16 @@ D_Speex::resample(const float *const R__ *const R__ in,
                                                         data_out,
                                                         &outcount);
 
-//    if (incount != int(uincount)) {
-//        std::cerr << "Resampler: NOTE: Consumed " << uincount
-//                  << " of " << incount << " frames" << std::endl;
-//    }
+    if (incount != int(uincount)) {
+        std::cerr << "Resampler: NOTE: Consumed " << uincount
+                  << " of " << incount << " frames" << std::endl;
+    }
 
-//    if (outcount != lrintf(ceilf(incount * ratio))) {
-//        std::cerr << "Resampler: NOTE: Obtained " << outcount
-//                  << " of " << lrintf(ceilf(incount * ratio)) << " frames"
-//                  << std::endl;
-//    }
+    if (outcount != lrintf(ceilf(incount * ratio))) {
+        std::cerr << "Resampler: NOTE: Obtained " << outcount
+                  << " of " << lrintf(ceilf(incount * ratio)) << " frames"
+                  << std::endl;
+    }
         
     //!!! check err, respond appropriately
 
