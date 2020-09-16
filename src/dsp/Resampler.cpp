@@ -613,7 +613,7 @@ D_SRC::resample(const float *const R__ *const R__ in,
 
     std::cerr << "Resampler::process: at input sample " << n_in << ", output sample " << n_out << ", incount = " << incount << ", ratio = " << ratio << ", incount * ratio = " << incount * ratio << std::endl;
 
-    int outcount = lrintf(ceilf(incount * ratio));
+    int outcount = lrintf(ceilf(incount * ratio) + 10);
 
     if (m_channels == 1) {
         data.data_in = const_cast<float *>(*in); //!!!???
