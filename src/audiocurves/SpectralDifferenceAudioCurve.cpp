@@ -62,7 +62,7 @@ SpectralDifferenceAudioCurve::setFftSize(int newSize)
 }
 
 float
-SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, int increment)
+SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, int)
 {
     double result = 0.0;
 
@@ -83,7 +83,7 @@ SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, int increment)
 }
 
 double
-SpectralDifferenceAudioCurve::processDouble(const double *R__ mag, int increment)
+SpectralDifferenceAudioCurve::processDouble(const double *R__ mag, int)
 {
     double result = 0.0;
 

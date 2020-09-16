@@ -42,7 +42,7 @@ HighFrequencyAudioCurve::reset()
 }
 
 float
-HighFrequencyAudioCurve::processFloat(const float *R__ mag, int increment)
+HighFrequencyAudioCurve::processFloat(const float *R__ mag, int)
 {
     float result = 0.0;
 
@@ -56,7 +56,7 @@ HighFrequencyAudioCurve::processFloat(const float *R__ mag, int increment)
 }
 
 double
-HighFrequencyAudioCurve::processDouble(const double *R__ mag, int increment)
+HighFrequencyAudioCurve::processDouble(const double *R__ mag, int)
 {
     float result = 0.0;
 
