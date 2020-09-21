@@ -661,7 +661,7 @@ D_SRC::resampleInterleaved(const float *const R__ in,
 {
     SRC_DATA data;
 
-    int outcount = lrintf(ceilf(incount * ratio));
+    int outcount = lrintf(ceilf(incount * ratio) + 10);
 
     data.data_in = const_cast<float *>(in);
     data.data_out = out;
