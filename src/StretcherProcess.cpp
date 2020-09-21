@@ -1018,7 +1018,7 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel,
 
     m_swindow->cut(fltbuf);
     v_add(accumulator, fltbuf, wsz);
-    cd.accumulatorFill = wsz;
+    cd.accumulatorFill = std::max(cd.accumulatorFill, size_t(wsz));
 
     if (wsz > fsz) {
         // reuse fltbuf to calculate interpolating window shape for
@@ -1041,7 +1041,7 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
     float *const R__ accumulator = cd.accumulator;
     float *const R__ windowAccumulator = cd.windowAccumulator;
 
-    const int sz = m_sWindowSize;
+    const int sz = cd.accumulatorFill;
     const int si = shiftIncrement;
 
     if (m_debugLevel > 2) {
