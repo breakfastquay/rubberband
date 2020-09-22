@@ -521,7 +521,14 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         // This is an unhappy situation.
 
         RingBuffer<float> *oldbuf = cd.outbuf;
-        cd.outbuf = oldbuf->resized(oldbuf->getSize() + (required - ws));
+        cd.outbuf = oldbuf->resized(oldbuf->getSize() * 2);
+
+        if (m_debugLevel > 1) {
+            cerr << "(Write space was " << ws << ", needed " << required
+                 << ": resized output buffer from " << oldbuf->getSize()
+                 << " to " << cd.outbuf->getSize() << ")" << endl;
+        }
+
         m_emergencyScavenger.claim(oldbuf);
     }
 
