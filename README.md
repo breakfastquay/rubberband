@@ -200,6 +200,8 @@ Name           Flags required        Notes
 ----           --------------        -----   
 
 libsamplerate  -DHAVE_LIBSAMPLERATE  GPL until v0.1.8, BSD for v0.1.9 and later.
+                                     This is the preferred choice in almost
+                                     all cases.
 
 libresample    -DHAVE_LIBRESAMPLE    LGPL.
 
