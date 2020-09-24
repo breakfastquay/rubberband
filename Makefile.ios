@@ -4,10 +4,10 @@ CC		:= clang
 OPTFLAGS	:= -ffast-math -freciprocal-math -O3 -ftree-vectorize 
 
 # For the device
-ARCHFLAGS_DEV	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch armv7 -arch arm64 
+ARCHFLAGS_DEV	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch armv7 -arch arm64 -fembed-bitcode
 
 # Or for the simulator
-ARCHFLAGS_SIM	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch i386 -arch x86_64
+ARCHFLAGS_SIM	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch i386 -arch x86_64 -fembed-bitcode
 
 CXXFLAGS_ANY	:= $(OPTFLAGS) -I. -Isrc -Irubberband -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DUSE_POMMIER_MATHFUN -DNO_THREADING -DNO_THREAD_CHECKS -DNO_TIMING -DNO_TIMING_COMPLETE_NOOP -DNDEBUG
 
