@@ -1147,11 +1147,11 @@ Resampler::Resampler(Resampler::Quality quality, int channels,
 #ifdef HAVE_LIBRESAMPLE
         m_method = 3;
 #endif
-#ifdef HAVE_LIBSAMPLERATE
-        m_method = 1;
-#endif
 #ifdef USE_SPEEX
         m_method = 2;
+#endif
+#ifdef HAVE_LIBSAMPLERATE
+        m_method = 1;
 #endif
         break;
 
