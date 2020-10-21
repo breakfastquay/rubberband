@@ -699,9 +699,23 @@ D_SRC::resampleInterleaved(float *const R__ out,
 
     data.input_frames = incount;
     data.output_frames = outcount;
+
+    // libsamplerate smooths the filter change over the duration of
+    // the processing block to avoid artifacts due to sudden changes,
+    // and it uses outcount to determine how long to smooth the change
+    // over. This is a good thing in principle, but it does mean (a)
+    // we should never pass outcount significantly longer than the
+    // actual expected output, and (b) when the ratio has just
+    // changed, we should aim to supply a shortish block next (this
+    // part still todo!)
+    
+    if (data.output_frames > int(ceil(incount * ratio) + 10)) {
+        data.output_frames = int(ceil(incount * ratio) + 10);
+    }
+    
     data.src_ratio = ratio;
     data.end_of_input = (final ? 1 : 0);
-
+    
     int err = src_process(m_src, &data);
 
     if (err) {
@@ -711,7 +725,7 @@ D_SRC::resampleInterleaved(float *const R__ out,
         throw Resampler::ImplementationError;
 #endif
     }
-
+    
     return (int)data.output_frames_gen;
 }
 
