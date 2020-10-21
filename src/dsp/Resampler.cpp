@@ -605,6 +605,7 @@ protected:
     int m_channels;
     int m_iinsize;
     int m_ioutsize;
+    double m_prevRatio;
     int m_debugLevel;
 };
 
@@ -616,6 +617,7 @@ D_SRC::D_SRC(Resampler::Quality quality, int channels, double,
     m_channels(channels),
     m_iinsize(0),
     m_ioutsize(0),
+    m_prevRatio(1.0),
     m_debugLevel(debugLevel)
 {
     if (m_debugLevel > 0) {
@@ -693,25 +695,54 @@ D_SRC::resampleInterleaved(float *const R__ out,
                            bool final)
 {
     SRC_DATA data;
+        
+    // libsamplerate smooths the filter change over the duration of
+    // the processing block to avoid artifacts due to sudden changes,
+    // and it uses outcount to determine how long to smooth the change
+    // over. This is a good thing, but it does mean (a) we should
+    // never pass outcount significantly longer than the actual
+    // expected output, and (b) when the ratio has just changed, we
+    // should aim to supply a shortish block next
+    
+    if (outcount > int(ceil(incount * ratio) + 5)) {
+        outcount = int(ceil(incount * ratio) + 5);
+    }
+
+    if (ratio != m_prevRatio) {
+
+        // If we are processing a block of appreciable length, turn it
+        // into two recursive calls, one for the short smoothing block
+        // and the other for the rest. Update m_prevRatio before doing
+        // this so that the calls don't themselves recurse!
+        m_prevRatio = ratio;
+
+        int shortBlock = 200;
+        if (outcount > shortBlock * 2) {
+            int shortIn = int(floor(shortBlock / ratio));
+            if (shortIn >= 10) {
+                int shortOut =
+                    resampleInterleaved(out, shortBlock,
+                                        in, shortIn,
+                                        ratio, false);
+                int remainingOut = 0;
+                if (shortOut < outcount) {
+                    remainingOut =
+                        resampleInterleaved(out + shortOut * m_channels,
+                                            outcount - shortOut,
+                                            in + shortIn * m_channels,
+                                            incount - shortIn,
+                                            ratio, final);
+                }
+                return shortOut + remainingOut;
+            }
+        }
+    }
 
     data.data_in = const_cast<float *>(in);
     data.data_out = out;
 
     data.input_frames = incount;
     data.output_frames = outcount;
-
-    // libsamplerate smooths the filter change over the duration of
-    // the processing block to avoid artifacts due to sudden changes,
-    // and it uses outcount to determine how long to smooth the change
-    // over. This is a good thing in principle, but it does mean (a)
-    // we should never pass outcount significantly longer than the
-    // actual expected output, and (b) when the ratio has just
-    // changed, we should aim to supply a shortish block next (this
-    // part still todo!)
-    
-    if (data.output_frames > int(ceil(incount * ratio) + 10)) {
-        data.output_frames = int(ceil(incount * ratio) + 10);
-    }
     
     data.src_ratio = ratio;
     data.end_of_input = (final ? 1 : 0);
