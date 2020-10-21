@@ -466,6 +466,10 @@ RubberBandStretcher::Impl::calculateSizes()
                 outputIncrement /= 2;
                 inputIncrement = int(outputIncrement / r);
             }
+            while (inputIncrement < 1) {
+                outputIncrement *= 2;
+                inputIncrement = int(outputIncrement / r);
+            }
             size_t minwin = roundUp(lrint(outputIncrement * windowIncrRatio));
             if (windowSize < minwin) windowSize = minwin;
 
@@ -499,6 +503,10 @@ RubberBandStretcher::Impl::calculateSizes()
             inputIncrement = int(outputIncrement / r);
             while (outputIncrement > 1024 && inputIncrement > 1) {
                 outputIncrement /= 2;
+                inputIncrement = int(outputIncrement / r);
+            }
+            while (inputIncrement < 1) {
+                outputIncrement *= 2;
                 inputIncrement = int(outputIncrement / r);
             }
             windowSize = std::max(windowSize, roundUp(outputIncrement * 6));

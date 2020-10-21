@@ -58,7 +58,7 @@ PercussiveAudioCurve::setFftSize(int newSize)
 }
 
 float
-PercussiveAudioCurve::processFloat(const float *R__ mag, int increment)
+PercussiveAudioCurve::processFloat(const float *R__ mag, int)
 {
     static float threshold = powf(10.f, 0.15f); // 3dB rise in square of magnitude
     static float zeroThresh = powf(10.f, -8);
@@ -84,7 +84,7 @@ PercussiveAudioCurve::processFloat(const float *R__ mag, int increment)
 }
 
 double
-PercussiveAudioCurve::processDouble(const double *R__ mag, int increment)
+PercussiveAudioCurve::processDouble(const double *R__ mag, int)
 {
     static double threshold = pow(10., 0.15); // 3dB rise in square of magnitude
     static double zeroThresh = pow(10., -8);

@@ -32,6 +32,8 @@ DYNAMIC_EXTENSION	:= .dylib
 DYNAMIC_FULL_VERSION	:= 2.1.2
 DYNAMIC_ABI_VERSION	:= 2
 DYNAMIC_LDFLAGS		:= -dynamiclib -install_name $(INSTALL_LIBDIR)/$(LIBNAME).$(DYNAMIC_ABI_VERSION)$(DYNAMIC_EXTENSION) -current_version $(DYNAMIC_FULL_VERSION) -compatibility_version $(DYNAMIC_ABI_VERSION)
+VAMP_LDFLAGS		:= -dynamiclib -install_name vamp-rubberband.dylib -exported_symbols_list vamp/vamp-plugin.list
+LADSPA_LDFLAGS		:= -dynamiclib -install_name ladspa-rubberband.dylib -exported_symbols_list ladspa/ladspa-plugin.list
 
 PROGRAM_TARGET 		:= bin/rubberband
 STATIC_TARGET  		:= lib/$(LIBNAME).a

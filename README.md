@@ -12,6 +12,13 @@ tempo and pitch of an audio recording independently of one another.
 
 * About Rubber Band: https://breakfastquay.com/rubberband/
 * Code repository: https://hg.sr.ht/~breakfastquay/rubberband
+* Issue tracker: https://todo.sr.ht/~breakfastquay/rubberband
+* Github mirror: https://github.com/breakfastquay/rubberband
+
+CI builds:
+
+* [![Build Status](https://travis-ci.org/breakfastquay/rubberband.svg?branch=master)](https://travis-ci.org/breakfastquay/rubberband) (Linux, macOS, iOS)
+* [![Build Status](https://ci.appveyor.com/api/projects/status/hhhhpf718jwhpyf6?svg=true)](https://ci.appveyor.com/project/breakfastquay/rubberband) (Windows)
 
 
 ## Licence
@@ -193,6 +200,8 @@ Name           Flags required        Notes
 ----           --------------        -----   
 
 libsamplerate  -DHAVE_LIBSAMPLERATE  GPL until v0.1.8, BSD for v0.1.9 and later.
+                                     This is the preferred choice in almost
+                                     all cases.
 
 libresample    -DHAVE_LIBRESAMPLE    LGPL.
 

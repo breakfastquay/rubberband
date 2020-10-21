@@ -718,7 +718,7 @@ D_SRC::resampleInterleaved(const float *const R__ in,
 {
     SRC_DATA data;
 
-    int outcount = lrintf(ceilf(incount * ratio));
+    int outcount = lrintf(ceilf(incount * ratio) + 10);
 
     data.data_in = const_cast<float *>(in);
     data.data_out = out;
@@ -1209,11 +1209,11 @@ Resampler::Resampler(Resampler::Quality quality, int channels,
 #ifdef HAVE_LIBRESAMPLE
         m_method = 3;
 #endif
-#ifdef HAVE_LIBSAMPLERATE
-        m_method = 1;
-#endif
 #ifdef USE_SPEEX
         m_method = 2;
+#endif
+#ifdef HAVE_LIBSAMPLERATE
+        m_method = 1;
 #endif
         break;
 

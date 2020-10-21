@@ -38,6 +38,7 @@
 
 #ifdef HAVE_VDSP
 #include <Accelerate/Accelerate.h>
+#include <alloca.h>
 #endif
 
 #include <cstring>
@@ -521,7 +522,7 @@ template<>
 inline void v_log(float *const R__ dst,
                   const int count)
 {
-    float tmp[count];
+    float *tmp = (float *)alloca(count * sizeof(float));
     vvlogf(tmp, dst, &count);
     v_copy(dst, tmp, count);
 }
@@ -529,7 +530,7 @@ template<>
 inline void v_log(double *const R__ dst,
                   const int count)
 {
-    double tmp[count];
+    double *tmp = (double *)alloca(count * sizeof(double));
     vvlog(tmp, dst, &count);
     v_copy(dst, tmp, count);
 }
@@ -566,7 +567,7 @@ template<>
 inline void v_exp(float *const R__ dst,
                   const int count)
 {
-    float tmp[count];
+    float *tmp = (float *)alloca(count * sizeof(float));
     vvexpf(tmp, dst, &count);
     v_copy(dst, tmp, count);
 }
@@ -574,7 +575,7 @@ template<>
 inline void v_exp(double *const R__ dst,
                   const int count)
 {
-    double tmp[count];
+    double *tmp = (double *)alloca(count * sizeof(double));
     vvexp(tmp, dst, &count);
     v_copy(dst, tmp, count);
 }
@@ -611,7 +612,7 @@ template<>
 inline void v_sqrt(float *const R__ dst,
                    const int count)
 {
-    float tmp[count];
+    float *tmp = (float *)alloca(count * sizeof(float));
     vvsqrtf(tmp, dst, &count);
     v_copy(dst, tmp, count);
 }
@@ -619,7 +620,7 @@ template<>
 inline void v_sqrt(double *const R__ dst,
                    const int count)
 {
-    double tmp[count];
+    double *tmp = (double *)alloca(count * sizeof(double));
     vvsqrt(tmp, dst, &count);
     v_copy(dst, tmp, count);
 }
@@ -676,8 +677,10 @@ template<>
 inline void v_abs(float *const R__ dst,
                   const int count)
 {
-    float tmp[count];
-#if (defined(MACOSX_DEPLOYMENT_TARGET) && MACOSX_DEPLOYMENT_TARGET <= 1070 && MAC_OS_X_VERSION_MIN_REQUIRED <= 1070)
+    float *tmp = (float *)alloca(count * sizeof(float));
+#if TARGET_OS_IPHONE
+    vvfabsf(tmp, dst, &count);
+#elif (defined(MAC_OS_X_VERSION_MIN_REQUIRED) && MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
     vvfabf(tmp, dst, &count);
 #else
     vvfabsf(tmp, dst, &count);
