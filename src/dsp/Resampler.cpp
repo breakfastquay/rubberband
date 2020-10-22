@@ -143,7 +143,8 @@ protected:
     void setBufSize(int);
 };
 
-D_IPP::D_IPP(Resampler::Quality quality, int channels, double initialSampleRate,
+D_IPP::D_IPP(Resampler::Quality /* quality */,
+             int channels, double initialSampleRate,
              int maxBufferSize, int debugLevel) :
     m_state(0),
     m_initialSampleRate(initialSampleRate),
@@ -151,36 +152,13 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, double initialSampleRate,
     m_debugLevel(debugLevel)
 {
     if (m_debugLevel > 0) {
-        cerr << "Resampler::Resampler: using IPP implementation"
-                  << endl;
+        cerr << "Resampler::Resampler: using IPP implementation" << endl;
     }
 
     int nStep = 16;
     IppHintAlgorithm hint = ippAlgHintFast;
-
-    //!!! todo: make use of initialSampleRate to calculate parameters
-    
-    switch (quality) {
-
-    case Resampler::Best:
-        m_window = 64;
-        nStep = 80;
-        hint = ippAlgHintAccurate;
-        break;
-
-    case Resampler::FastestTolerable:
-        nStep = 16;
-        m_window = 16;
-        hint = ippAlgHintFast;
-        break;
-
-    case Resampler::Fastest:
-        m_window = 24;
-        nStep = 64;
-        hint = ippAlgHintFast;
-        break;
-    }
-
+    m_window = 48;
+    nStep = 80;
     m_factor = 8; // initial upper bound on m_ratio, may be amended later
 
     // This is largely based on the IPP docs and examples. Adapted
