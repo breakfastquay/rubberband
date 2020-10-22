@@ -215,7 +215,7 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, double initialSampleRate,
     setBufSize(maxBufferSize + m_history);
 
     if (m_debugLevel > 1) {
-        cerr << "bufsize = " << m_bufsize << ", window = " << m_window << ", nStep = " << nStep << ", history = " << m_history << endl;
+        cerr << "D_IPP: bufsize = " << m_bufsize << ", window = " << m_window << ", nStep = " << nStep << ", history = " << m_history << endl;
     }
 
 #if (IPP_VERSION_MAJOR >= 7)
@@ -249,6 +249,11 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, double initialSampleRate,
                                       9.0f,
                                       m_state[c],
                                       hint);
+
+        if (m_debugLevel > 1) {
+            cerr << "D_IPP: Resampler state size = " << specSize << ", allocated at "
+                 << m_state[c] << endl;
+        }
 #endif
         
         m_lastread[c] = m_history;
@@ -256,7 +261,7 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, double initialSampleRate,
     }
 
     if (m_debugLevel > 1) {
-        cerr << "Resampler init done" << endl;
+        cerr << "D_IPP: Resampler init done" << endl;
     }
 }
 
@@ -285,9 +290,9 @@ D_IPP::setBufSize(int sz)
 {
     if (m_debugLevel > 1) {
         if (m_bufsize > 0) {
-            cerr << "resize bufsize " << m_bufsize << " -> ";
+            cerr << "D_IPP: resize bufsize " << m_bufsize << " -> ";
         } else {
-            cerr << "initialise bufsize to ";
+            cerr << "D_IPP: initialise bufsize to ";
         }
     }
 
@@ -300,13 +305,13 @@ D_IPP::setBufSize(int sz)
     int n1 = m_bufsize + m_history + 2;
 
     if (m_debugLevel > 1) {
-        cerr << "inbuf allocating " << m_bufsize << " + " << m_history << " + 2 = " << n1 << endl;
+        cerr << "D_IPP: inbuf allocating " << m_bufsize << " + " << m_history << " + 2 = " << n1 << endl;
     }
 
     int n2 = (int)lrintf(ceil((m_bufsize - m_history) * m_factor + 2));
 
     if (m_debugLevel > 1) {
-        cerr << "outbuf allocating (" << m_bufsize << " - " << m_history << ") * " << m_factor << " + 2 = " << n2 << endl;
+        cerr << "D_IPP: outbuf allocating (" << m_bufsize << " - " << m_history << ") * " << m_factor << " + 2 = " << n2 << endl;
     }
 
     m_inbuf = reallocate_and_zero_extend_channels
@@ -314,9 +319,24 @@ D_IPP::setBufSize(int sz)
 
     m_outbuf = reallocate_and_zero_extend_channels
         (m_outbuf, m_channels, m_outbufsz, m_channels, n2);
-            
+    
     m_inbufsz = n1;
     m_outbufsz = n2;
+
+    if (m_debugLevel > 2) {
+
+        cerr << "D_IPP: inbuf ptr = " << m_inbuf << ", channel inbufs ";
+        for (int c = 0; c < m_channels; ++c) {
+            cerr << m_inbuf[c] << " ";
+        }
+        cerr << "at " << m_inbufsz * sizeof(float) << " bytes each" << endl;
+
+        cerr << "D_IPP: outbuf ptr = " << m_outbuf << ", channel outbufs ";
+        for (int c = 0; c < m_channels; ++c) {
+            cerr << m_outbuf[c] << " ";
+        }
+        cerr << "at " << m_outbufsz * sizeof(float) << " bytes each" << endl;
+    }        
 }
 
 int
@@ -333,7 +353,7 @@ D_IPP::resample(float *const R__ *const R__ out,
     }
 
     if (m_debugLevel > 2) {
-        cerr << "incount = " << incount << ", ratio = " << ratio << ", est space = " << lrintf(ceil(incount * ratio)) << ", outspace = " << outspace << ", final = " << final << endl;
+        cerr << "D_IPP: incount = " << incount << ", ratio = " << ratio << ", est space = " << lrintf(ceil(incount * ratio)) << ", outspace = " << outspace << ", final = " << final << endl;
     }
 
     for (int c = 0; c < m_channels; ++c) {
@@ -350,7 +370,7 @@ D_IPP::resample(float *const R__ *const R__ out,
     }
 
     if (m_debugLevel > 2) {
-        cerr << "lastread advanced to " << m_lastread[0] << endl;
+        cerr << "D_IPP: lastread advanced to " << m_lastread[0] << endl;
     }
 
     int got = doResample(outspace, ratio, final);
@@ -376,7 +396,7 @@ D_IPP::resampleInterleaved(float *const R__ out,
     }
 
     if (m_debugLevel > 2) {
-        cerr << "incount = " << incount << ", ratio = " << ratio << ", est space = " << lrintf(ceil(incount * ratio)) << ", outspace = " << outspace << ", final = " << final << endl;
+        cerr << "D_IPP: incount = " << incount << ", ratio = " << ratio << ", est space = " << lrintf(ceil(incount * ratio)) << ", outspace = " << outspace << ", final = " << final << endl;
     }
 
     for (int c = 0; c < m_channels; ++c) {
@@ -393,7 +413,7 @@ D_IPP::resampleInterleaved(float *const R__ out,
     }
 
     if (m_debugLevel > 2) {
-        cerr << "lastread advanced to " << m_lastread[0] << " after injection of "
+        cerr << "D_IPP: lastread advanced to " << m_lastread[0] << " after injection of "
              << incount << " samples" << endl;
     }
 
@@ -414,20 +434,20 @@ D_IPP::doResample(int outspace, double ratio, bool final)
         int n = m_lastread[c] - m_history - int(m_time[c]);
 
         if (c == 0 && m_debugLevel > 2) {
-            cerr << "at start, lastread = " << m_lastread[c] << ", history = "
+            cerr << "D_IPP: at start, lastread = " << m_lastread[c] << ", history = "
                  << m_history << ", time = " << m_time[c] << ", therefore n = "
                  << n << endl;
         }
 
         if (n <= 0) {
             if (c == 0 && m_debugLevel > 1) {
-                cerr << "not enough input samples to do anything" << endl;
+                cerr << "D_IPP: not enough input samples to do anything" << endl;
             }
             continue;
         }
         
         if (c == 0 && m_debugLevel > 2) {
-            cerr << "before resample call, time = " << m_time[c] << endl;
+            cerr << "D_IPP: before resample call, time = " << m_time[c] << endl;
         }
 
         // We're committed to not overrunning outspace, so we need to
@@ -436,7 +456,7 @@ D_IPP::doResample(int outspace, double ratio, bool final)
         int limit = int(floor(outspace / ratio));
         if (n > limit) {
             if (c == 0 && m_debugLevel > 1) {
-                cerr << "trimming input samples from " << n << " to " << limit
+                cerr << "D_IPP: trimming input samples from " << n << " to " << limit
                      << " to avoid overrunning " << outspace << " at output"
                      << endl;
             }
@@ -463,25 +483,41 @@ D_IPP::doResample(int outspace, double ratio, bool final)
                                   m_state[c]);
 #endif
 
-        int t = int(round(m_time[c]));
-        
+        int t = int(floor(m_time[c]));
+
+        int moveFrom = t - m_history;
+
         if (c == 0 && m_debugLevel > 2) {
-            cerr << "converted " << n << " samples to " << outcount
-                 << ", time advanced to " << t << endl;
-            cerr << "will move " << m_lastread[c] + m_history - t
-                 << " unconverted samples back from index " << t - m_history
+            cerr << "D_IPP: converted " << n << " samples to " << outcount
+                 << " (nb outbufsz = " << m_outbufsz
+                 << "), time advanced to " << m_time[c] << endl;
+            cerr << "D_IPP: rounding time to " << t << ", lastread = "
+                 << m_lastread[c] << ", history = " << m_history << endl;
+            cerr << "D_IPP: will move " << m_lastread[c] - moveFrom
+                 << " unconverted samples back from index " << moveFrom
                  << " to 0" << endl;
         }
+        
+        if (moveFrom >= m_lastread[c]) {
 
-        v_move(m_inbuf[c],
-               m_inbuf[c] + t - m_history,
-               m_lastread[c] + m_history - t);
+            moveFrom = m_lastread[c];
 
-        m_lastread[c] -= t - m_history;
-        m_time[c] -= t - m_history;
+            if (c == 0 && m_debugLevel > 2) {
+                cerr << "D_IPP: number of samples to move is <= 0, "
+                     << "not actually moving any" << endl;
+            }
+        } else {
+        
+            v_move(m_inbuf[c],
+                   m_inbuf[c] + moveFrom,
+                   m_lastread[c] - moveFrom);
+        }
+
+        m_lastread[c] -= moveFrom;
+        m_time[c] -= moveFrom;
 
         if (c == 0 && m_debugLevel > 2) {
-            cerr << "lastread reduced to " << m_lastread[c]
+            cerr << "D_IPP: lastread reduced to " << m_lastread[c]
                  << ", time reduced to " << m_time[c]
                  << endl;
         }
@@ -500,7 +536,7 @@ D_IPP::doResample(int outspace, double ratio, bool final)
             int additionalcount = 0;
 
             if (c == 0 && m_debugLevel > 2) {
-                cerr << "final call, padding input with " << m_history
+                cerr << "D_IPP: final call, padding input with " << m_history
                      << " zeros (symmetrical with m_history)" << endl;
             }
             
@@ -509,14 +545,14 @@ D_IPP::doResample(int outspace, double ratio, bool final)
             }
 
             if (c == 0 && m_debugLevel > 2) {
-                cerr << "before resample call, time = " << m_time[c] << endl;
+                cerr << "D_IPP: before resample call, time = " << m_time[c] << endl;
             }
 
             int nAdditional = m_lastread[c] - int(m_time[c]);
 
             if (n + nAdditional > limit) {
                 if (c == 0 && m_debugLevel > 1) {
-                    cerr << "trimming final input samples from " << nAdditional
+                    cerr << "D_IPP: trimming final input samples from " << nAdditional
                          << " to " << (limit - n)
                          << " to avoid overrunning " << outspace << " at output"
                          << endl;
@@ -545,9 +581,9 @@ D_IPP::doResample(int outspace, double ratio, bool final)
 #endif
         
             if (c == 0 && m_debugLevel > 2) {
-                cerr << "converted " << n << " samples to " << additionalcount
+                cerr << "D_IPP: converted " << n << " samples to " << additionalcount
                      << ", time advanced to " << m_time[c] << endl;
-                cerr << "outcount = " << outcount << ", additionalcount = " << additionalcount << ", sum " << outcount + additionalcount << endl;
+                cerr << "D_IPP: outcount = " << outcount << ", additionalcount = " << additionalcount << ", sum " << outcount + additionalcount << endl;
             }
 
             if (c == 0) {
@@ -557,7 +593,7 @@ D_IPP::doResample(int outspace, double ratio, bool final)
     }
 
     if (m_debugLevel > 2) {
-        cerr << "returning " << outcount << " samples" << endl;
+        cerr << "D_IPP: returning " << outcount << " samples" << endl;
     }
     
     return outcount;
