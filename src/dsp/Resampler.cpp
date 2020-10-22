@@ -155,10 +155,9 @@ D_IPP::D_IPP(Resampler::Quality /* quality */,
         cerr << "Resampler::Resampler: using IPP implementation" << endl;
     }
 
-    int nStep = 16;
+    m_window = 32;
+    int nStep = 64;
     IppHintAlgorithm hint = ippAlgHintFast;
-    m_window = 48;
-    nStep = 80;
     m_factor = 8; // initial upper bound on m_ratio, may be amended later
 
     // This is largely based on the IPP docs and examples. Adapted
