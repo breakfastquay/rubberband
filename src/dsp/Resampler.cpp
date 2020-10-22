@@ -36,9 +36,7 @@
 #ifdef HAVE_IPP
 #include <ippversion.h>
 #if (IPP_VERSION_MAJOR < 7)
-#include <ipps.h>
-#include <ippsr.h>
-#include <ippac.h>
+#error Unsupported IPP version, must be >= 7
 #else
 #include <ipps.h>
 #endif
@@ -218,7 +216,6 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, double initialSampleRate,
         cerr << "D_IPP: bufsize = " << m_bufsize << ", window = " << m_window << ", nStep = " << nStep << ", history = " << m_history << endl;
     }
 
-#if (IPP_VERSION_MAJOR >= 7)
     int specSize = 0;
     ippsResamplePolyphaseGetSize_32f(float(m_window),
                                      nStep,
@@ -231,17 +228,8 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, double initialSampleRate,
         abort();
 #endif
     }
-#endif
 
     for (int c = 0; c < m_channels; ++c) {
-#if (IPP_VERSION_MAJOR < 7)
-        ippsResamplePolyphaseInitAlloc_32f(&m_state[c],
-                                           float(m_window),
-                                           nStep,
-                                           0.95f,
-                                           9.0f,
-                                           hint);
-#else
         m_state[c] = (IppsResamplingPolyphase_32f *)ippsMalloc_8u(specSize);
         ippsResamplePolyphaseInit_32f(float(m_window),
                                       nStep,
@@ -254,7 +242,6 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, double initialSampleRate,
             cerr << "D_IPP: Resampler state size = " << specSize << ", allocated at "
                  << m_state[c] << endl;
         }
-#endif
         
         m_lastread[c] = m_history;
         m_time[c] = m_history;
@@ -267,15 +254,9 @@ D_IPP::D_IPP(Resampler::Quality quality, int channels, double initialSampleRate,
 
 D_IPP::~D_IPP()
 {
-#if (IPP_VERSION_MAJOR < 7)
-    for (int c = 0; c < m_channels; ++c) {
-        ippsResamplePolyphaseFree_32f(m_state[c]);
-    }
-#else
     for (int c = 0; c < m_channels; ++c) {
         ippsFree(m_state[c]);
     }
-#endif
 
     deallocate_channels(m_inbuf, m_channels);
     deallocate_channels(m_outbuf, m_channels);
@@ -463,16 +444,6 @@ D_IPP::doResample(int outspace, double ratio, bool final)
             n = limit;
         }
         
-#if (IPP_VERSION_MAJOR < 7)
-        ippsResamplePolyphase_32f(m_state[c],
-                                  m_inbuf[c],
-                                  n,
-                                  m_outbuf[c],
-                                  ratio,
-                                  1.0f,
-                                  &m_time[c],
-                                  &outcount);
-#else
         ippsResamplePolyphase_32f(m_inbuf[c],
                                   n,
                                   m_outbuf[c],
@@ -481,7 +452,6 @@ D_IPP::doResample(int outspace, double ratio, bool final)
                                   &m_time[c],
                                   &outcount,
                                   m_state[c]);
-#endif
 
         int t = int(floor(m_time[c]));
 
@@ -560,16 +530,6 @@ D_IPP::doResample(int outspace, double ratio, bool final)
                 nAdditional = limit - n;
             }
             
-#if (IPP_VERSION_MAJOR < 7)
-            ippsResamplePolyphase_32f(m_state[c],
-                                      m_inbuf[c],
-                                      nAdditional,
-                                      m_outbuf[c],
-                                      ratio,
-                                      1.0f,
-                                      &m_time[c],
-                                      &additionalcount);
-#else
             ippsResamplePolyphase_32f(m_inbuf[c],
                                       nAdditional,
                                       m_outbuf[c],
@@ -578,7 +538,6 @@ D_IPP::doResample(int outspace, double ratio, bool final)
                                       &m_time[c],
                                       &additionalcount,
                                       m_state[c]);
-#endif
         
             if (c == 0 && m_debugLevel > 2) {
                 cerr << "D_IPP: converted " << n << " samples to " << additionalcount
