@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_ALLOCATORS_H_
-#define _RUBBERBAND_ALLOCATORS_H_
+#ifndef RUBBERBAND_ALLOCATORS_H
+#define RUBBERBAND_ALLOCATORS_H
 
 #include "VectorOps.h"
 
