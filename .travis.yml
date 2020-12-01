@@ -8,17 +8,7 @@ sudo:
   - false
 
 os:
-  - linux
   - osx
-
-addons:
-  apt:
-    packages:
-      - libsndfile-dev
-      - libsamplerate-dev
-      - libfftw3-dev
-      - vamp-plugin-sdk
-      - ladspa-sdk
 
 cache:
   directories:

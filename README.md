@@ -17,7 +17,8 @@ tempo and pitch of an audio recording independently of one another.
 
 CI builds:
 
-* [![Build Status](https://travis-ci.org/breakfastquay/rubberband.svg?branch=master)](https://travis-ci.org/breakfastquay/rubberband) (Linux, macOS, iOS)
+* [![Build status](https://builds.sr.ht/~breakfastquay/rubberband.svg)](https://builds.sr.ht/~breakfastquay/rubberband?) (Linux)
+* [![Build Status](https://travis-ci.org/breakfastquay/rubberband.svg?branch=master)](https://travis-ci.org/breakfastquay/rubberband) (macOS, iOS)
 * [![Build Status](https://ci.appveyor.com/api/projects/status/hhhhpf718jwhpyf6?svg=true)](https://ci.appveyor.com/project/breakfastquay/rubberband) (Windows)
 
 
