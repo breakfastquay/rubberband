@@ -15,4 +15,8 @@ tasks:
   - build: |
       cd rubberband
       make
-
+triggers:
+  - action: email
+    condition: always
+    to: chris.cannam@breakfastquay.com
+    
