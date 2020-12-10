@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 // Ugh --cc
 #define snprintf sprintf_s
 #endif

@@ -237,7 +237,7 @@ system_get_process_status(int pid)
 #ifdef _WIN32
 void system_memorybarrier()
 {
-#ifdef __MSVC__
+#ifdef _MSC_VER
     MemoryBarrier();
 #else /* (mingw) */
     LONG Barrier = 0;

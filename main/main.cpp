@@ -35,7 +35,7 @@
 
 #include "system/sysutils.h"
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 #include "getopt/getopt.h"
 #else
 #include <getopt.h>
@@ -52,7 +52,7 @@ using namespace RubberBand;
 using RubberBand::gettimeofday;
 #endif
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 using RubberBand::usleep;
 #endif
 

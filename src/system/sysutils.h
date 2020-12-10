@@ -24,7 +24,7 @@
 #ifndef _RUBBERBAND_SYSUTILS_H_
 #define _RUBBERBAND_SYSUTILS_H_
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 #  if _MSC_VER < 1800
 #    include "float_cast/float_cast.h"
 #  endif
@@ -43,7 +43,7 @@
 #  define R__
 #endif
 
-#if defined(__MSVC__)
+#if defined(_MSC_VER)
 #  include <malloc.h>
 #  include <process.h>
 #  define alloca _alloca
@@ -65,11 +65,11 @@
 #  endif
 #endif
 
-#if defined(__MSVC__) && _MSC_VER < 1700
+#if defined(_MSC_VER) && _MSC_VER < 1700
 #  define uint8_t unsigned __int8
 #  define uint16_t unsigned __int16
 #  define uint32_t unsigned __int32
-#elif defined(__MSVC__)
+#elif defined(_MSC_VER)
 #  define ssize_t long
 #  include <stdint.h>
 #else
@@ -93,9 +93,9 @@ struct timeval { long tv_sec; long tv_usec; };
 void gettimeofday(struct timeval *p, void *tz);
 #endif // _WIN32
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 void usleep(unsigned long);
-#endif // __MSVC__
+#endif // _MSC_VER
 
 inline double mod(double x, double y) { return x - (y * floor(x / y)); }
 inline float modf(float x, float y) { return x - (y * float(floor(x / y))); }
