@@ -1,5 +1,5 @@
 
-AC_INIT(RubberBand, 1.9.0, chris.cannam@breakfastquay.com)
+AC_INIT([RubberBand],[1.9.0],[chris.cannam@breakfastquay.com])
 
 AC_ARG_ENABLE(programs,
   [  --disable-programs      disable compilation of programs],
@@ -34,8 +34,6 @@ AC_SUBST(WITH_LADSPA)
 AC_CONFIG_SRCDIR(src/StretcherImpl.h)
 AC_PROG_CXX
 AC_PROG_CC
-AC_HEADER_STDC
-AC_C_BIGENDIAN
 
 PKG_CHECK_MODULES([SRC],[samplerate])
 AC_SUBST(SRC_CFLAGS)
@@ -52,7 +50,9 @@ AC_SUBST(FFTW_CFLAGS)
 AC_SUBST(FFTW_LIBS)
 
 if test "x$WITH_LADSPA" = "xyes"; then
-  AC_CHECK_HEADERS(ladspa.h)
+  AC_CHECK_HEADERS(ladspa.h, [], [AC_MSG_ERROR([LADSPA header not found
+
+Consider installing the LADSPA SDK or configure with --disable-ladspa])])
 fi
 AC_CHECK_HEADERS(pthread.h)
 
@@ -75,5 +75,6 @@ if test "x$GCC" = "xyes"; then
 fi
 changequote([,])dnl
 
-AC_OUTPUT([Makefile])
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
 
