@@ -2,8 +2,9 @@
 PREFIX		:= /usr/local
 CXX		:= clang++ -stdlib=libc++
 CC		:= clang
-ARCHFLAGS	:= -arch x86_64 -mmacosx-version-min=10.7
-OPTFLAGS	:= -DNDEBUG -ffast-math -mfpmath=sse -msse -msse2 -O3 -ftree-vectorize
+
+ARCHFLAGS	:= -mmacosx-version-min=10.7
+OPTFLAGS	:= -DNDEBUG -ffast-math -O3 -ftree-vectorize
 
 CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -I/usr/local/include -DUSE_PTHREADS -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DNO_THREAD_CHECKS -DNO_TIMING
 
