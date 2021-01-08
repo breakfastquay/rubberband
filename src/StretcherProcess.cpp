@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2020 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -217,8 +217,9 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
             input = inputs[c] + offset;
         }
 
-        toWrite = cd.resampler->resample(&input,
-                                         &cd.resamplebuf,
+        toWrite = cd.resampler->resample(&cd.resamplebuf,
+                                         cd.resamplebufSize,
+                                         &input,
                                          samples,
                                          1.0 / m_pitchScale,
                                          final);
@@ -1090,8 +1091,9 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
 #endif
 #endif
 
-        size_t outframes = cd.resampler->resample(&cd.accumulator,
-                                                  &cd.resamplebuf,
+        size_t outframes = cd.resampler->resample(&cd.resamplebuf,
+                                                  cd.resamplebufSize,
+                                                  &cd.accumulator,
                                                   si,
                                                   1.0 / m_pitchScale,
                                                   last);

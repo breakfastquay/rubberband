@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2020 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -21,14 +21,12 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_RESAMPLER_H_
-#define _RUBBERBAND_RESAMPLER_H_
+#ifndef RUBBERBAND_RESAMPLER_H
+#define RUBBERBAND_RESAMPLER_H
 
 #include "system/sysutils.h"
 
 namespace RubberBand {
-
-class ResamplerImpl;
 
 class Resampler
 {
@@ -36,45 +34,105 @@ public:
     enum Quality { Best, FastestTolerable, Fastest };
     enum Exception { ImplementationError };
 
+    struct Parameters {
+
+        /**
+         * Resampler filter quality level.
+         */
+        Quality quality;
+
+        /** 
+         * Rate of expected input prior to resampling: may be used to
+         * determine the filter bandwidth for the quality setting. If
+         * you don't know what this will be, you can provide an
+         * arbitrary rate (such as the default) and the resampler will
+         * work fine, but quality may not be as designed.
+         */
+        double initialSampleRate;
+
+        /** 
+         * Bound on the maximum incount size that may be passed to the
+         * resample function before the resampler needs to reallocate
+         * its internal buffers. Default is zero, so that buffer
+         * allocation will happen on the first call and any subsequent
+         * call with a greater incount.
+         */
+        int maxBufferSize;
+
+        /**
+         * Debug output level, from 0 to 3. Controls the amount of
+         * debug information printed to stderr.
+         */
+        int debugLevel;
+
+        Parameters() :
+            quality(FastestTolerable),
+            initialSampleRate(44100),
+            maxBufferSize(0),
+            debugLevel(0) { }
+    };
+    
     /**
-     * Construct a resampler with the given quality level and channel
-     * count.  maxBufferSize gives a bound on the maximum incount size
-     * that may be passed to the resample function before the
-     * resampler needs to reallocate its internal buffers.
+     * Construct a resampler to process the given number of channels,
+     * with the given quality level, initial sample rate, and other
+     * parameters.
      */
-    Resampler(Quality quality, int channels, int maxBufferSize = 0,
-              int debugLevel = 0);
+    Resampler(Parameters parameters, int channels);
+    
     ~Resampler();
 
     /**
      * Resample the given multi-channel buffers, where incount is the
-     * number of frames in the input buffers.  Returns the number of
-     * frames written to the output buffers.
+     * number of frames in the input buffers and outspace is the space
+     * available in the output buffers. Generally you want outspace to
+     * be at least ceil(incount * ratio).
+     *
+     * Returns the number of frames written to the output
+     * buffers. This may be smaller than outspace even where the ratio
+     * suggests otherwise, particularly at the start of processing
+     * where there may be a filter tail to allow for.
      */
-    int resample(const float *const R__ *const R__ in,
-                 float *const R__ *const R__ out,
+#ifdef __GNUC__
+    __attribute__((warn_unused_result))
+#endif
+    int resample(float *const R__ *const R__ out,
+                 int outspace,
+                 const float *const R__ *const R__ in,
                  int incount,
-                 float ratio,
+                 double ratio,
                  bool final = false);
 
     /**
      * Resample the given interleaved buffer, where incount is the
      * number of frames in the input buffer (i.e. it has incount *
-     * getChannelCount() samples).  Returns the number of frames
-     * written to the output buffer.
+     * getChannelCount() samples) and outspace is the space available
+     * in frames in the output buffer (i.e. it has space for at least
+     * outspace * getChannelCount() samples). Generally you want
+     * outspace to be at least ceil(incount * ratio).
+     *
+     * Returns the number of frames written to the output buffer. This
+     * may be smaller than outspace even where the ratio suggests
+     * otherwise, particularly at the start of processing where there
+     * may be a filter tail to allow for.
      */
-    int resampleInterleaved(const float *const R__ in,
-                            float *const R__ out,
+#ifdef __GNUC__
+    __attribute__((warn_unused_result))
+#endif
+    int resampleInterleaved(float *const R__ out,
+                            int outspace,
+                            const float *const R__ in,
                             int incount,
-                            float ratio,
+                            double ratio,
                             bool final = false);
 
     int getChannelCount() const;
 
     void reset();
 
+    class Impl;
+
 protected:
-    ResamplerImpl *d;
+    Impl *d;
     int m_method;
 };
 
