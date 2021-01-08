@@ -35,7 +35,7 @@
 
 #include "system/sysutils.h"
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 #include "getopt/getopt.h"
 #else
 #include <getopt.h>
@@ -52,7 +52,7 @@ using namespace RubberBand;
 using RubberBand::gettimeofday;
 #endif
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 using RubberBand::usleep;
 #endif
 
@@ -104,10 +104,7 @@ int main(int argc, char **argv)
 
     bool haveRatio = false;
 
-    std::string timeMapFile;
-    std::string freqMapFile;
-    std::string pitchMapFile;
-    bool freqOrPitchMapSpecified = false;
+    std::string mapfile;
 
     enum {
         NoTransients,
@@ -120,8 +117,6 @@ int main(int argc, char **argv)
         PercussiveDetector,
         SoftDetector
     } detector = CompoundDetector;
-
-    bool ignoreClipping = false;
 
     while (1) {
         int optionIndex = 0;
@@ -155,9 +150,6 @@ int main(int argc, char **argv)
             { "threads",       0, 0, '@' },
             { "quiet",         0, 0, 'q' },
             { "timemap",       1, 0, 'M' },
-            { "freqmap",       1, 0, 'Q' },
-            { "pitchmap",      1, 0, 'C' },
-            { "ignore-clipping", 0, 0, 'i' },
             { 0, 0, 0, 0 }
         };
 
@@ -178,7 +170,7 @@ int main(int argc, char **argv)
         case 'R': realtime = true; break;
         case 'L': precise = false; break;
         case 'P': precise = true; break;
-        case 'F': formant = true; break;
+	case 'F': formant = true; break;
         case '0': threading = 1; break;
         case '@': threading = 2; break;
         case '1': transients = NoTransients; crispchanged = true; break;
@@ -193,10 +185,7 @@ int main(int argc, char **argv)
         case '%': hqpitch = true; break;
         case 'c': crispness = atoi(optarg); break;
         case 'q': quiet = true; break;
-        case 'M': timeMapFile = optarg; break;
-        case 'Q': freqMapFile = optarg; freqOrPitchMapSpecified = true; break;
-        case 'C': pitchMapFile = optarg; freqOrPitchMapSpecified = true; break;
-        case 'i': ignoreClipping = true; break;
+        case 'M': mapfile = optarg; break;
         default:  help = true; break;
         }
     }
@@ -206,22 +195,13 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    if (freqOrPitchMapSpecified) {
-        if (freqMapFile != "" && pitchMapFile != "") {
-            cerr << "ERROR: Please specify either pitch map or frequency map, not both" << endl;
-            return 1;
-        }
-        haveRatio = true;
-        realtime = true;
-    }
-    
     if (help || !haveRatio || optind + 2 != argc) {
         cerr << endl;
-        cerr << "Rubber Band" << endl;
+	cerr << "Rubber Band" << endl;
         cerr << "An audio time-stretching and pitch-shifting library and utility program." << endl;
-        cerr << "Copyright 2007-2020 Particular Programs Ltd." << endl;
+	cerr << "Copyright 2007-2020 Particular Programs Ltd." << endl;
         cerr << endl;
-        cerr << "   Usage: " << argv[0] << " [options] <infile.wav> <outfile.wav>" << endl;
+	cerr << "   Usage: " << argv[0] << " [options] <infile.wav> <outfile.wav>" << endl;
         cerr << endl;
         cerr << "You must specify at least one of the following time and pitch ratio options." << endl;
         cerr << endl;
@@ -233,45 +213,23 @@ int main(int argc, char **argv)
         cerr << "  -p<X>, --pitch <X>      Raise pitch by X semitones, or" << endl;
         cerr << "  -f<X>, --frequency <X>  Change frequency by multiple X" << endl;
         cerr << endl;
-        cerr << "The following options provide ways of making the time and frequency ratios" << endl;
-        cerr << "change during the audio." << endl;
+        cerr << "  -M<F>, --timemap <F>    Use file F as the source for key frame map" << endl;
         cerr << endl;
-        cerr << "  -M<F>, --timemap <F>    Use file F as the source for time map" << endl;
+        cerr << "A map file consists of a series of lines each having two numbers separated" << endl;
+        cerr << "by a single space.  These are source and target sample frame numbers for fixed" << endl;
+        cerr << "time points within the audio data, defining a varying stretch factor through" << endl;
+        cerr << "the audio.  You must specify an overall stretch factor using e.g. -t as well." << endl;
         cerr << endl;
-        cerr << "  A time map (or key-frame map) file contains a series of lines, each with two" << endl;
-        cerr << "  sample frame numbers separated by a single space. These are source and" << endl;
-        cerr << "  target frames for fixed time points within the audio data, defining a varying" << endl;
-        cerr << "  stretch factor through the audio. When supplying a time map you must specify" << endl;
-        cerr << "  an overall stretch factor using -t, -T, or -D as well, to determine the" << endl;
-        cerr << "  total output duration." << endl;
-        cerr << endl;
-        cerr << "         --pitchmap <F>   Use file F as the source for pitch map" << endl;
-        cerr << endl;
-        cerr << "  A pitch map file contains a series of lines, each with two values: the input" << endl;
-        cerr << "  sample frame number and a pitch offset in semitones, separated by a single" << endl;
-        cerr << "  space. These specify a varying pitch factor through the audio. The offsets" << endl;
-        cerr << "  are all relative to an initial offset specified by the pitch or frequency" << endl;
-        cerr << "  option, or relative to no shift if neither was specified. Offsets are" << endl;
-        cerr << "  not cumulative. This option implies realtime mode (-R) and also enables a" << endl;
-        cerr << "  high-consistency pitch shifting mode, appropriate for dynamic pitch changes." << endl;
-        cerr << "  Because of the use of realtime mode, the overall duration will not be exact." << endl;
-        cerr << endl;
-        cerr << "         --freqmap <F>    Use file F as the source for frequency map" << endl;
-        cerr << endl;
-        cerr << "  As --pitchmap, except that the second column in the file contains frequency" << endl;
-        cerr << "  multipliers rather than pitch offsets (the same as the difference between" << endl;
-        cerr << "  pitch and frequency options above)." << endl;
-        cerr << endl;
-        cerr << "The following options provide a simple way to adjust the sound. See below" << endl;
+        cerr << "The following options provide a simple way to adjust the sound.  See below" << endl;
         cerr << "for more details." << endl;
         cerr << endl;
         cerr << "  -c<N>, --crisp <N>      Crispness (N = 0,1,2,3,4,5,6); default 5 (see below)" << endl;
-        cerr << "  -F,    --formant        Enable formant preservation when pitch shifting" << endl;
+	cerr << "  -F,    --formant        Enable formant preservation when pitch shifting" << endl;
         cerr << endl;
         cerr << "The remaining options fine-tune the processing mode and stretch algorithm." << endl;
         cerr << "These are mostly included for test purposes; the default settings and standard" << endl;
         cerr << "crispness parameter are intended to provide the best sounding set of options" << endl;
-        cerr << "for most situations. The default is to use none of these options." << endl;
+        cerr << "for most situations.  The default is to use none of these options." << endl;
         cerr << endl;
         cerr << "  -L,    --loose          Relax timing in hope of better transient preservation" << endl;
         cerr << "  -P,    --precise        Ignored: The opposite of -L, this is default from 1.6" << endl;
@@ -289,8 +247,6 @@ int main(int argc, char **argv)
         cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
         cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
         cerr << "                          (at a cost in width and individual channel quality)" << endl;
-        cerr << "         --ignore-clipping Ignore clipping at output; the default is to restart" << endl;
-        cerr << "                           with reduced gain if clipping occurs" << endl;
         cerr << endl;
         cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 0, full 3" << endl;
         cerr << "                          (N.B. debug level 3 includes audible ticks in output)" << endl;
@@ -308,7 +264,7 @@ int main(int argc, char **argv)
         cerr << "  -c 5   default processing options" << endl;
         cerr << "  -c 6   equivalent to --no-lamination --window-short (may be good for drums)" << endl;
         cerr << endl;
-        return 2;
+	return 2;
     }
 
     if (ratio <= 0.0) {
@@ -319,12 +275,6 @@ int main(int argc, char **argv)
     if (crispness >= 0 && crispchanged) {
         cerr << "WARNING: Both crispness option and transients, lamination or window options" << endl;
         cerr << "         provided -- crispness will override these other options" << endl;
-    }
-
-    if (hqpitch && freqOrPitchMapSpecified) {
-        cerr << "WARNING: High-quality pitch mode selected, but frequency or pitch map file is" << endl;
-        cerr << "         provided -- pitch mode will be overridden by high-consistency mode" << endl;
-        hqpitch = false;
     }
 
     switch (crispness) {
@@ -352,35 +302,34 @@ int main(int argc, char **argv)
         cerr << ")" << endl;
     }
 
-    std::map<size_t, size_t> timeMap;
-    if (timeMapFile != "") {
-        std::ifstream ifile(timeMapFile.c_str());
+    std::map<size_t, size_t> mapping;
+    
+    if (mapfile != "") {
+        std::ifstream ifile(mapfile.c_str());
         if (!ifile.is_open()) {
-            cerr << "ERROR: Failed to open time map file \""
-                 << timeMapFile << "\"" << endl;
+            cerr << "ERROR: Failed to open time map file \"" << mapfile << "\""
+                 << endl;
             return 1;
         }
         std::string line;
         int lineno = 0;
         while (!ifile.eof()) {
             std::getline(ifile, line);
-            while (line.length() > 0 && line[0] == ' ') {
-                line = line.substr(1);
-            }
+            while (line.length() > 0 && line[0] == ' ') line = line.substr(1);
             if (line == "") {
                 ++lineno;
                 continue;
             }
             std::string::size_type i = line.find_first_of(" ");
             if (i == std::string::npos) {
-                cerr << "ERROR: Time map file \"" << timeMapFile
+                cerr << "ERROR: Time map file \"" << mapfile
                      << "\" is malformed at line " << lineno << endl;
                 return 1;
             }
             size_t source = atoi(line.substr(0, i).c_str());
             while (i < line.length() && line[i] == ' ') ++i;
             size_t target = atoi(line.substr(i).c_str());
-            timeMap[source] = target;
+            mapping[source] = target;
             if (debug > 0) {
                 cerr << "adding mapping from " << source << " to " << target << endl;
             }
@@ -389,57 +338,7 @@ int main(int argc, char **argv)
         ifile.close();
 
         if (!quiet) {
-            cerr << "Read " << timeMap.size() << " line(s) from time map file" << endl;
-        }
-    }
-
-    std::map<size_t, double> freqMap;
-
-    if (freqOrPitchMapSpecified) {
-        std::string file = freqMapFile;
-        bool convertFromPitch = false;
-        if (pitchMapFile != "") {
-            file = pitchMapFile;
-            convertFromPitch = true;
-        }
-        std::ifstream ifile(file.c_str());
-        if (!ifile.is_open()) {
-            cerr << "ERROR: Failed to open map file \"" << file << "\"" << endl;
-            return 1;
-        }
-        std::string line;
-        int lineno = 0;
-        while (!ifile.eof()) {
-            std::getline(ifile, line);
-            while (line.length() > 0 && line[0] == ' ') {
-                line = line.substr(1);
-            }
-            if (line == "") {
-                ++lineno;
-                continue;
-            }
-            std::string::size_type i = line.find_first_of(" ");
-            if (i == std::string::npos) {
-                cerr << "ERROR: Map file \"" << file
-                     << "\" is malformed at line " << lineno << endl;
-                return 1;
-            }
-            size_t source = atoi(line.substr(0, i).c_str());
-            while (i < line.length() && line[i] == ' ') ++i;
-            double freq = atof(line.substr(i).c_str());
-            if (convertFromPitch) {
-                freq = pow(2.0, freq / 12.0);
-            }
-            freqMap[source] = freq;
-            if (debug > 0) {
-                cerr << "adding mapping for source frame " << source << " of frequency multiplier " << freq << endl;
-            }
-            ++lineno;
-        }
-        ifile.close();
-
-        if (!quiet) {
-            cerr << "Read " << freqMap.size() << " line(s) from frequency map file" << endl;
+            cerr << "Read " << mapping.size() << " line(s) from map file" << endl;
         }
     }
 
@@ -455,9 +354,9 @@ int main(int argc, char **argv)
 
     sndfile = sf_open(fileName, SFM_READ, &sfinfo);
     if (!sndfile) {
-        cerr << "ERROR: Failed to open input file \"" << fileName << "\": "
-             << sf_strerror(sndfile) << endl;
-        return 1;
+	cerr << "ERROR: Failed to open input file \"" << fileName << "\": "
+	     << sf_strerror(sndfile) << endl;
+	return 1;
     }
 
     if (sfinfo.samplerate == 0) {
@@ -483,9 +382,9 @@ int main(int argc, char **argv)
     
     sndfileOut = sf_open(fileNameOut, SFM_WRITE, &sfinfoOut) ;
     if (!sndfileOut) {
-        cerr << "ERROR: Failed to open output file \"" << fileNameOut << "\" for writing: "
-             << sf_strerror(sndfileOut) << endl;
-        return 1;
+	cerr << "ERROR: Failed to open output file \"" << fileNameOut << "\" for writing: "
+	     << sf_strerror(sndfileOut) << endl;
+	return 1;
     }
     
     int ibs = 1024;
@@ -502,10 +401,6 @@ int main(int argc, char **argv)
     if (hqpitch)     options |= RubberBandStretcher::OptionPitchHighQuality;
     if (together)    options |= RubberBandStretcher::OptionChannelsTogether;
 
-    if (freqOrPitchMapSpecified) {
-        options |= RubberBandStretcher::OptionPitchHighConsistency;
-    }
-    
     switch (threading) {
     case 0:
         options |= RubberBandStretcher::OptionThreadingAuto;
@@ -543,134 +438,46 @@ int main(int argc, char **argv)
     }
 
     if (pitchshift != 0.0) {
-        frequencyshift *= pow(2.0, pitchshift / 12.0);
+        frequencyshift *= pow(2.0, pitchshift / 12);
     }
 
     cerr << "Using time ratio " << ratio;
+    cerr << " and frequency ratio " << frequencyshift << endl;
 
-    if (!freqOrPitchMapSpecified) {
-        cerr << " and frequency ratio " << frequencyshift << endl;
-    } else {
-        cerr << " and initial frequency ratio " << frequencyshift << endl;
-    }
-    
 #ifdef _WIN32
     RubberBand::
 #endif
     timeval tv;
     (void)gettimeofday(&tv, 0);
-    
+
     RubberBandStretcher::setDefaultDebugLevel(debug);
 
-    size_t countIn = 0, countOut = 0;
+    RubberBandStretcher ts(sfinfo.samplerate, channels, options,
+                           ratio, frequencyshift);
 
-    float gain = 1.f;
-    bool successful = false;
+    ts.setExpectedInputDuration(sfinfo.frames);
 
-    while (!successful) { // we may have to repeat with a modified
-                          // gain, if clipping occurs
-        successful = true;
+    float *fbuf = new float[channels * ibs];
+    float **ibuf = new float *[channels];
+    for (size_t i = 0; i < channels; ++i) ibuf[i] = new float[ibs];
 
-        RubberBandStretcher ts(sfinfo.samplerate, channels, options,
-                               ratio, frequencyshift);
-        ts.setExpectedInputDuration(sfinfo.frames);
+    int frame = 0;
+    int percent = 0;
 
-        float *fbuf = new float[channels * ibs];
-        float **ibuf = new float *[channels];
-        for (size_t i = 0; i < channels; ++i) {
-            ibuf[i] = new float[ibs];
+    sf_seek(sndfile, 0, SEEK_SET);
+
+    if (!realtime) {
+
+        if (!quiet) {
+            cerr << "Pass 1: Studying..." << endl;
         }
 
-        int frame = 0;
-        int percent = 0;
-
-        sf_seek(sndfile, 0, SEEK_SET);
-
-        if (!realtime) {
-
-            if (!quiet) {
-                cerr << "Pass 1: Studying..." << endl;
-            }
-
-            while (frame < sfinfo.frames) {
-
-                int count = -1;
-
-                if ((count = sf_readf_float(sndfile, fbuf, ibs)) <= 0) break;
-        
-                for (size_t c = 0; c < channels; ++c) {
-                    for (int i = 0; i < count; ++i) {
-                        float value = fbuf[i * channels + c];
-                        ibuf[c][i] = value;
-                    }
-                }
-
-                bool final = (frame + ibs >= sfinfo.frames);
-
-                ts.study(ibuf, count, final);
-
-                int p = int((double(frame) * 100.0) / sfinfo.frames);
-                if (p > percent || frame == 0) {
-                    percent = p;
-                    if (!quiet) {
-                        cerr << "\r" << percent << "% ";
-                    }
-                }
-
-                frame += ibs;
-            }
-
-            if (!quiet) {
-                cerr << "\rCalculating profile..." << endl;
-            }
-
-            sf_seek(sndfile, 0, SEEK_SET);
-        }
-
-        frame = 0;
-        percent = 0;
-
-        if (!timeMap.empty()) {
-            ts.setKeyFrameMap(timeMap);
-        }
-
-        std::map<size_t, double>::const_iterator freqMapItr = freqMap.begin();
-    
-        countIn = 0;
-        countOut = 0;
-        bool clipping = false;
-        
         while (frame < sfinfo.frames) {
 
             int count = -1;
-            int thisBlockSize = ibs;
 
-            while (freqMapItr != freqMap.end()) {
-                size_t nextFreqFrame = freqMapItr->first + ts.getLatency();
-                if (nextFreqFrame <= countIn) {
-                    double s = frequencyshift * freqMapItr->second;
-                    if (debug > 0) {
-                        cerr << "at frame " << countIn
-                             << " (requested at " << freqMapItr->first
-                             << " plus latency " << ts.getLatency()
-                             << ") updating frequency ratio to " << s << endl;
-                    }
-                    ts.setPitchScale(s);
-                    ++freqMapItr;
-                } else {
-                    if (nextFreqFrame < countIn + thisBlockSize) {
-                        thisBlockSize = nextFreqFrame - countIn;
-                    }
-                    break;
-                }
-            }
+            if ((count = sf_readf_float(sndfile, fbuf, ibs)) <= 0) break;
         
-            if ((count = sf_readf_float(sndfile, fbuf, thisBlockSize)) < 0) {
-                break;
-            }
-        
-            countIn += count;
-
             for (size_t c = 0; c < channels; ++c) {
                 for (int i = 0; i < count; ++i) {
                     float value = fbuf[i * channels + c];
@@ -678,70 +485,9 @@ int main(int argc, char **argv)
                 }
             }
 
-            bool final = (frame + thisBlockSize >= sfinfo.frames);
+            bool final = (frame + ibs >= sfinfo.frames);
 
-            if (debug > 2) {
-                cerr << "count = " << count << ", ibs = " << thisBlockSize << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
-            }
-
-            ts.process(ibuf, count, final);
-
-            int avail = ts.available();
-            if (debug > 1) cerr << "available = " << avail << endl;
-
-            if (avail > 0) {
-                float **obf = new float *[channels];
-                for (size_t i = 0; i < channels; ++i) {
-                    obf[i] = new float[avail];
-                }
-                ts.retrieve(obf, avail);
-                countOut += avail;
-                float *fobf = new float[channels * avail];
-                for (size_t c = 0; c < channels; ++c) {
-                    for (int i = 0; i < avail; ++i) {
-                        float value = gain * obf[c][i];
-                        if (ignoreClipping) { // i.e. just clamp, don't bail out
-                            if (value > 1.f) value = 1.f;
-                            if (value < -1.f) value = -1.f;
-                        } else {
-                            if (value >= 1.f || value < -1.f) {
-                                clipping = true;
-                                gain = (0.999f / fabsf(obf[c][i]));
-                            }
-                        }
-                        fobf[i * channels + c] = value;
-                    }
-                }
-                sf_writef_float(sndfileOut, fobf, avail);
-                delete[] fobf;
-                for (size_t i = 0; i < channels; ++i) {
-                    delete[] obf[i];
-                }
-                delete[] obf;
-            }
-
-            if (clipping) {
-                if (!quiet) {
-                    cerr << "NOTE: Clipping detected at output sample "
-                         << countOut << ", restarting with "
-                         << "reduced gain of " << gain
-                         << " (supply --ignore-clipping to avoid this)" << endl;
-                }
-                const float mingain = 0.75f;
-                if (gain < mingain) {
-                    cerr << "WARNING: Clipped values were implausibly high: "
-                         << "something wrong with input or process - "
-                         << "not reducing gain below " << mingain << endl;
-                    gain = mingain;
-                    ignoreClipping = true;
-                }
-                successful = false;
-                break;
-            }
-            
-            if (frame == 0 && !realtime && !quiet) {
-                cerr << "Pass 2: Processing..." << endl;
-            }
+            ts.study(ibuf, count, final);
 
             int p = int((double(frame) * 100.0) / sfinfo.frames);
             if (p > percent || frame == 0) {
@@ -751,55 +497,136 @@ int main(int argc, char **argv)
                 }
             }
 
-            frame += thisBlockSize;
+            frame += ibs;
         }
 
-        if (!successful) {
-            sf_seek(sndfile, 0, SEEK_SET);
-            sf_seek(sndfileOut, 0, SEEK_SET);
-            continue;
-        }
-    
         if (!quiet) {
-            cerr << "\r    " << endl;
+            cerr << "\rCalculating profile..." << endl;
         }
-        int avail;
 
-        while ((avail = ts.available()) >= 0) {
+        sf_seek(sndfile, 0, SEEK_SET);
+    }
 
-            if (debug > 1) {
-                cerr << "(completing) available = " << avail << endl;
-            }
-            
-            if (avail > 0) {
-                float **obf = new float *[channels];
-                for (size_t i = 0; i < channels; ++i) {
-                    obf[i] = new float[avail];
-                }
-                ts.retrieve(obf, avail);
-                countOut += avail;
-                float *fobf = new float[channels * avail];
-                for (size_t c = 0; c < channels; ++c) {
-                    for (int i = 0; i < avail; ++i) {
-                        float value = gain * obf[c][i];
-                        if (value > 1.f) value = 1.f;
-                        if (value < -1.f) value = -1.f;
-                        fobf[i * channels + c] = value;
-                    }
-                }
-                
-                sf_writef_float(sndfileOut, fobf, avail);
-                delete[] fobf;
-                for (size_t i = 0; i < channels; ++i) {
-                    delete[] obf[i];
-                }
-                delete[] obf;
-            } else {
-                usleep(10000);
-            }
-        }
+    frame = 0;
+    percent = 0;
+
+    if (!mapping.empty()) {
+        ts.setKeyFrameMap(mapping);
     }
     
+    size_t countIn = 0, countOut = 0;
+
+    while (frame < sfinfo.frames) {
+
+        int count = -1;
+
+	if ((count = sf_readf_float(sndfile, fbuf, ibs)) < 0) break;
+        
+        countIn += count;
+
+        for (size_t c = 0; c < channels; ++c) {
+            for (int i = 0; i < count; ++i) {
+                float value = fbuf[i * channels + c];
+                ibuf[c][i] = value;
+            }
+        }
+
+        bool final = (frame + ibs >= sfinfo.frames);
+
+        if (debug > 2) {
+            cerr << "count = " << count << ", ibs = " << ibs << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
+        }
+
+        ts.process(ibuf, count, final);
+
+        int avail = ts.available();
+        if (debug > 1) cerr << "available = " << avail << endl;
+
+        if (avail > 0) {
+            float **obf = new float *[channels];
+            for (size_t i = 0; i < channels; ++i) {
+                obf[i] = new float[avail];
+            }
+            ts.retrieve(obf, avail);
+            countOut += avail;
+            float *fobf = new float[channels * avail];
+            for (size_t c = 0; c < channels; ++c) {
+                for (int i = 0; i < avail; ++i) {
+                    float value = obf[c][i];
+                    if (value > 1.f) value = 1.f;
+                    if (value < -1.f) value = -1.f;
+                    fobf[i * channels + c] = value;
+                }
+            }
+//            cout << "fobf mean: ";
+//    double d = 0;
+//    for (int i = 0; i < avail; ++i) {
+//        d += fobf[i];
+//    }
+//    d /= avail;
+//    cout << d << endl;
+            sf_writef_float(sndfileOut, fobf, avail);
+            delete[] fobf;
+            for (size_t i = 0; i < channels; ++i) {
+                delete[] obf[i];
+            }
+            delete[] obf;
+        }
+
+        if (frame == 0 && !realtime && !quiet) {
+            cerr << "Pass 2: Processing..." << endl;
+        }
+
+	int p = int((double(frame) * 100.0) / sfinfo.frames);
+	if (p > percent || frame == 0) {
+	    percent = p;
+            if (!quiet) {
+                cerr << "\r" << percent << "% ";
+            }
+	}
+
+        frame += ibs;
+    }
+
+    if (!quiet) {
+        cerr << "\r    " << endl;
+    }
+    int avail;
+
+    while ((avail = ts.available()) >= 0) {
+
+        if (debug > 1) {
+            cerr << "(completing) available = " << avail << endl;
+        }
+
+        if (avail > 0) {
+            float **obf = new float *[channels];
+            for (size_t i = 0; i < channels; ++i) {
+                obf[i] = new float[avail];
+            }
+            ts.retrieve(obf, avail);
+            countOut += avail;
+            float *fobf = new float[channels * avail];
+            for (size_t c = 0; c < channels; ++c) {
+                for (int i = 0; i < avail; ++i) {
+                    float value = obf[c][i];
+                    if (value > 1.f) value = 1.f;
+                    if (value < -1.f) value = -1.f;
+                    fobf[i * channels + c] = value;
+                }
+            }
+
+            sf_writef_float(sndfileOut, fobf, avail);
+            delete[] fobf;
+            for (size_t i = 0; i < channels; ++i) {
+                delete[] obf[i];
+            }
+            delete[] obf;
+        } else {
+            usleep(10000);
+        }
+    }
+
     sf_close(sndfile);
     sf_close(sndfileOut);
 
@@ -810,7 +637,7 @@ int main(int argc, char **argv)
 #ifdef _WIN32
         RubberBand::
 #endif
-            timeval etv;
+        timeval etv;
         (void)gettimeofday(&etv, 0);
         
         etv.tv_sec -= tv.tv_sec;
@@ -821,7 +648,10 @@ int main(int argc, char **argv)
         etv.tv_usec -= tv.tv_usec;
         
         double sec = double(etv.tv_sec) + (double(etv.tv_usec) / 1000000.0);
-        cerr << "elapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
+        cerr << "elapsed time: " << sec
+             << " sec, in frames/sec: " << int64_t(round(countIn/sec))
+             << ", out frames/sec: " << int64_t(round(countOut/sec))
+             << endl;
     }
 
     RubberBand::Profiler::dump();
