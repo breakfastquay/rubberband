@@ -9,20 +9,14 @@ on:
 jobs:
   build:
 
-    # This did say "macos-latest", but it turns out "latest" is
-    # still 10.15 even though 11.0 is out. I know that feeling
-    runs-on: macos-11.0
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: deps
       run: brew install libsndfile vamp-plugin-sdk
-    - name: make macos universal library
-      run: make -f Makefile.macos-universal clean library
-    - name: make macos native binaries
-      # (these depend on things installed from Homebrew, which I think
-      # doesn't install universal anything, so let's just make them native)
-      run: make -f Makefile.macos program vamp
+    - name: make macos
+      run: make -f Makefile.macos clean library program vamp
     - name: make ios
       run: make -f Makefile.ios clean all
 
