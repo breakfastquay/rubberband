@@ -45,12 +45,12 @@ default:	bin lib $(STATIC_TARGET) $(DYNAMIC_TARGET) $(PROGRAM_TARGET)
 
 all:		bin lib $(STATIC_TARGET) $(DYNAMIC_TARGET) $(PROGRAM_TARGET) $(VAMP_TARGET) $(LADSPA_TARGET)
 
-static:		$(STATIC_TARGET)
-dynamic:	$(DYNAMIC_TARGET)
-library:	$(STATIC_TARGET) $(DYNAMIC_TARGET)
-program:	$(PROGRAM_TARGET)
-vamp:		$(VAMP_TARGET)
-ladspa:		$(LADSPA_TARGET)
+static:		lib $(STATIC_TARGET)
+dynamic:	lib $(DYNAMIC_TARGET)
+library:	static dynamic
+program:	bin $(PROGRAM_TARGET)
+vamp:		lib $(VAMP_TARGET)
+ladspa:		lib $(LADSPA_TARGET)
 
 PUBLIC_INCLUDES := \
 	rubberband/rubberband-c.h \

@@ -31,7 +31,7 @@ default:	lib $(STATIC_TARGET)
 
 all:		lib $(STATIC_TARGET)
 
-static:		$(STATIC_TARGET)
+static:		lib $(STATIC_TARGET)
 
 PUBLIC_INCLUDES := \
 	rubberband/rubberband-c.h \
