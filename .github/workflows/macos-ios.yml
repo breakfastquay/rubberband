@@ -16,7 +16,7 @@ jobs:
     - name: deps
       run: brew install libsndfile vamp-plugin-sdk
     - name: make macos
-      run: make -f Makefile.osx clean all
+      run: make -f Makefile.osx clean library program vamp
     - name: make ios
       run: make -f Makefile.ios clean all
 
