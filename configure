@@ -4359,7 +4359,7 @@ then :
 else $as_nop
   as_fn_error $? "LADSPA header not found
 
-Consider installing the LADSPA SDK or configuring with --disable-ladspa" "$LINENO" 5
+Consider installing the LADSPA SDK or configure with --disable-ladspa" "$LINENO" 5
 fi
 
 done
