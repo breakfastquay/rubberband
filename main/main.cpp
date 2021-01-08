@@ -648,7 +648,10 @@ int main(int argc, char **argv)
         etv.tv_usec -= tv.tv_usec;
         
         double sec = double(etv.tv_sec) + (double(etv.tv_usec) / 1000000.0);
-        cerr << "elapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
+        cerr << "elapsed time: " << sec
+             << " sec, in frames/sec: " << int64_t(round(countIn/sec))
+             << ", out frames/sec: " << int64_t(round(countOut/sec))
+             << endl;
     }
 
     RubberBand::Profiler::dump();
