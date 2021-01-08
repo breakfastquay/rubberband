@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: deps
-      run: brew install libsndfile
+      run: brew install libsndfile ladspa-sdk vamp-plugin-sdk
     - name: make macos
       run: make -f Makefile.osx clean all
     - name: make ios
