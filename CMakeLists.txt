@@ -66,6 +66,24 @@ target_include_directories(rubberband
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 )
 
+if(WIN32)
+    target_compile_definitions(rubberband PRIVATE _WINDOWS)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        target_compile_definitions(rubberband PRIVATE WIN32)
+    endif()
+
+    if(MSVC AND BUILD_SHARED_LIBS)
+        target_sources(rubberband PRIVATE
+            rubberband-dll/dllmain.cpp
+            rubberband-dll/rubberband-dll.cpp
+            rubberband-dll/stdafx.cpp
+        )
+        target_include_directories(rubberband PRIVATE rubberband-dll)
+        target_compile_definitions(rubberband PRIVATE RUBBERBANDDLL_EXPORTS _USRDLL)
+    endif()
+    target_include_directories(rubberband PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rubberband-dll>)
+endif()
+
 target_link_libraries(rubberband
   PRIVATE
     Threads::Threads
