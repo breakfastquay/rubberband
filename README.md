@@ -1,17 +1,25 @@
 
-Rubber Band
-===========
+# Rubber Band
 
 An audio time-stretching and pitch-shifting library and utility program.
 
 Written by Chris Cannam, chris.cannam@breakfastquay.com.
 Published by Particular Programs Ltd t/a Breakfast Quay.
-Copyright 2007-2020 Particular Programs Ltd.
+Copyright 2007-2021 Particular Programs Ltd.
 
 Rubber Band is a library and utility program that permits changing the
 tempo and pitch of an audio recording independently of one another.
 
-See http://breakfastquay.com/rubberband/ for more information.
+* About Rubber Band: https://breakfastquay.com/rubberband/
+* Code repository: https://hg.sr.ht/~breakfastquay/rubberband
+* Issue tracker: https://todo.sr.ht/~breakfastquay/rubberband
+* Github mirror: https://github.com/breakfastquay/rubberband
+
+CI builds:
+
+* [![Build status](https://builds.sr.ht/~breakfastquay/rubberband.svg)](https://builds.sr.ht/~breakfastquay/rubberband?) (Linux)
+* [![Build Status](https://github.com/breakfastquay/rubberband/workflows/macOS%20and%20iOS%20CI/badge.svg)](https://github.com/breakfastquay/rubberband/actions?query=workflow%3A%22macOS+and+iOS+CI%22) (macOS, iOS)
+* [![Build Status](https://ci.appveyor.com/api/projects/status/hhhhpf718jwhpyf6?svg=true)](https://ci.appveyor.com/project/breakfastquay/rubberband) (Windows)
 
 
 ## Licence
@@ -23,7 +31,7 @@ If you wish to distribute code using the Rubber Band Library under
 terms other than those of the GNU General Public License, you must
 obtain a commercial licence from us before doing so. In particular,
 you may not legally distribute through any Apple App Store unless you
-have a commercial licence.  See http://breakfastquay.com/rubberband/
+have a commercial licence.  See https://breakfastquay.com/rubberband/
 for licence terms.
 
 If you have obtained a valid commercial licence, your licence
@@ -91,7 +99,7 @@ Rubber Band consists of:
  * A Vamp audio analysis plugin which may be used to inspect the
    dynamic stretch ratios and other decisions taken by the Rubber Band
    Library when in use.  This is in vamp/.  It requires the Vamp
-   plugin SDK (http://www.vamp-plugins.org/develop.html) (not included).
+   plugin SDK (https://www.vamp-plugins.org/develop.html) (not included).
 
 
 ## 2. Using the Rubber Band command-line tool
@@ -193,6 +201,8 @@ Name           Flags required        Notes
 ----           --------------        -----   
 
 libsamplerate  -DHAVE_LIBSAMPLERATE  GPL until v0.1.8, BSD for v0.1.9 and later.
+                                     This is the preferred choice in almost
+                                     all cases.
 
 libresample    -DHAVE_LIBRESAMPLE    LGPL.
 
@@ -262,16 +272,23 @@ The default target is "all".
 
 ### 4d. Building on macOS
 
-A Makefile for macOS is provided as `Makefile.osx`.
+Two Makefiles for macOS are provided, as `Makefile.macos` and
+`Makefile.macos-universal`. `Makefile.macos` will build for your
+native machine architecture; `Makefile.macos-universal` will build a
+universal binary with both x86_64 and arm64 slices. The latter
+requires macOS 11+, although the resulting binaries should work with
+macOS 10.7 or newer if all the dependent libraries are also built
+appropriately. You will also need the Xcode command-line tools
+installed.
 
-Adjust the Makefile according to your preference for compiler and
-platform SDK, FFT and resampler implementations.  The default is to
-use the Accelerate framework and the Speex resampler.  Then run
-e.g. `make -f Makefile.osx library` in a terminal window to build.
-You will need the Xcode command-line tools installed.
+Adjust your selected Makefile according to your preference for
+compiler and platform SDK, FFT and resampler implementations.  The
+default is to use the Accelerate framework and the Speex resampler.
+Then run e.g. `make -f Makefile.macos library` in a terminal window to
+build.
 
 (You probably don't want to use the configure script on macOS -- just
-use `Makefile.osx` directly.)
+use your preferred Makefile directly.)
 
 The following Makefile targets are available:
 
@@ -295,15 +312,15 @@ build project instead of using the Makefile, the files in `src/`
 Note that you cannot legally distribute applications using Rubber Band
 in the Mac App Store, unless you have first obtained a commercial
 licence for the Rubber Band Library.  GPL code is not permitted in the
-app store.  See http://breakfastquay.com/technology/license.html for
+app store.  See https://breakfastquay.com/technology/license.html for
 commercial terms.
 
 
 ### 4e. Building for iOS
 
-A Makefile for iOS is provided as `Makefile.ios`.  It produces a
-single static library containing both simulator and device binaries,
-in both 32- and 64-bit architectures.
+A Makefile for iOS (compiling on macOS) is provided as `Makefile.ios`.
+It produces a single static library containing both simulator and
+device binaries, in both 32- and 64-bit architectures.
 
 Run e.g. `make -f Makefile.ios` in a terminal window to build.  You
 will need the Xcode command-line tools installed.
@@ -316,7 +333,7 @@ build project instead of using the Makefile, the files in `src/`
 Note that you cannot legally distribute applications using Rubber Band
 in the iOS App Store, unless you have a first obtained a commercial
 licence for the Rubber Band Library. GPL code is not permitted in the
-app store.  See http://breakfastquay.com/technology/license.html for
+app store.  See https://breakfastquay.com/technology/license.html for
 commercial terms.
 
 

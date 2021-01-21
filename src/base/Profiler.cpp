@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2018 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 // Ugh --cc
 #define snprintf sprintf_s
 #endif

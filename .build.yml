@@ -1,0 +1,22 @@
+image: ubuntu/18.04
+packages:
+  - pkg-config
+  - libsamplerate0-dev
+  - libsndfile1-dev
+  - libfftw3-dev
+  - ladspa-sdk
+  - vamp-plugin-sdk
+sources:
+  - hg+https://hg.sr.ht/~breakfastquay/rubberband
+tasks:
+  - setup: |
+      cd rubberband
+      ./configure
+  - build: |
+      cd rubberband
+      make
+triggers:
+  - action: email
+    condition: always
+    to: chris.cannam@breakfastquay.com
+    

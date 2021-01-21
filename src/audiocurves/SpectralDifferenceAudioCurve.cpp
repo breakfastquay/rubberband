@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2018 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -62,7 +62,7 @@ SpectralDifferenceAudioCurve::setFftSize(int newSize)
 }
 
 float
-SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, int increment)
+SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, int)
 {
     double result = 0.0;
 
@@ -83,7 +83,7 @@ SpectralDifferenceAudioCurve::processFloat(const float *R__ mag, int increment)
 }
 
 double
-SpectralDifferenceAudioCurve::processDouble(const double *R__ mag, int increment)
+SpectralDifferenceAudioCurve::processDouble(const double *R__ mag, int)
 {
     double result = 0.0;
 
