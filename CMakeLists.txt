@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 project(rubberband VERSION 2.1.1)
 
 option(BUILD_EXECUTABLE "Build the Rubberband executable" OFF)
+option(BUILD_JNI "Build the Java Native Interface (JNI)" OFF)
 option(OPTIMIZE "Build Rubberband optimized for the build machine's CPU" OFF)
 option(USE_FFTW "Use FFTW instead of kissFFT" OFF)
 option(USE_LIBSAMPLERATE "Use libsamplerate instead of Speex" ON)
@@ -28,6 +29,16 @@ add_library(rubberband
   src/system/VectorOpsComplex.cpp
   src/system/sysutils.cpp
 )
+
+if(BUILD_JNI)
+  add_library(rubberband-jni src/jni/RubberBandStretcherJNI.cpp)
+  target_include_directories(rubberband-jni PRIVATE src)
+
+  find_package(JNI REQUIRED)
+  target_include_directories(rubberband-jni PRIVATE ${JNI_INCLUDE_DIRS})
+  target_link_libraries(rubberband-jni PRIVATE ${JNI_LIBRARIES})
+endif()
+
 
 #
 # Dependencies
