@@ -174,7 +174,7 @@ install:	default
 	cp $(LADSPA_TARGET) $(DESTDIR)$(INSTALL_LADSPADIR)
 	cp ladspa/ladspa-rubberband.cat $(DESTDIR)$(INSTALL_LADSPADIR)
 	cp ladspa/ladspa-rubberband.rdf $(DESTDIR)$(INSTALL_LRDFDIR)
-	sed "s,%PREFIX%,$(PREFIX)," rubberband.pc.in \
+	sed "s,@PREFIX@,$(PREFIX)," rubberband.pc.in \
 	  > $(DESTDIR)$(INSTALL_PKGDIR)/rubberband.pc
 
 clean:
