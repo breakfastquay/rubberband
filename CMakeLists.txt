@@ -209,6 +209,16 @@ install(
     TYPE INCLUDE
 )
 
+# pkg-config file
+if(UNIX)
+    set(PREFIX "${CMAKE_INSTALL_PREFIX}")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/rubberband.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/rubberband.pc" @ONLY)
+    install(
+        FILES "${CMAKE_CURRENT_BINARY_DIR}/rubberband.pc"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig"
+    )
+endif()
+
 install(EXPORT rubberband-exports
         DESTINATION lib/cmake/rubberband)
 export(EXPORT rubberband-exports)
