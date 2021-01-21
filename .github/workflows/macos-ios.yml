@@ -1,0 +1,22 @@
+name: macOS and iOS CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: deps
+      run: brew install libsndfile vamp-plugin-sdk
+    - name: make macos
+      run: make -f Makefile.macos clean library program vamp
+    - name: make ios
+      run: make -f Makefile.ios clean all
+

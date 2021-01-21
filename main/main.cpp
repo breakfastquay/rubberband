@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2018 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -35,7 +35,7 @@
 
 #include "system/sysutils.h"
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 #include "getopt/getopt.h"
 #else
 #include <getopt.h>
@@ -52,7 +52,7 @@ using namespace RubberBand;
 using RubberBand::gettimeofday;
 #endif
 
-#ifdef __MSVC__
+#ifdef _MSC_VER
 using RubberBand::usleep;
 #endif
 
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
         cerr << endl;
 	cerr << "Rubber Band" << endl;
         cerr << "An audio time-stretching and pitch-shifting library and utility program." << endl;
-	cerr << "Copyright 2007-2018 Particular Programs Ltd." << endl;
+	cerr << "Copyright 2007-2021 Particular Programs Ltd." << endl;
         cerr << endl;
 	cerr << "   Usage: " << argv[0] << " [options] <infile.wav> <outfile.wav>" << endl;
         cerr << endl;
@@ -265,6 +265,11 @@ int main(int argc, char **argv)
         cerr << "  -c 6   equivalent to --no-lamination --window-short (may be good for drums)" << endl;
         cerr << endl;
 	return 2;
+    }
+
+    if (ratio <= 0.0) {
+        cerr << "ERROR: Invalid time ratio " << ratio << endl;
+        return 1;
     }
 
     if (crispness >= 0 && crispchanged) {
@@ -345,6 +350,7 @@ int main(int argc, char **argv)
     SF_INFO sfinfo;
     SF_INFO sfinfoOut;
     memset(&sfinfo, 0, sizeof(SF_INFO));
+    memset(&sfinfoOut, 0, sizeof(SF_INFO));
 
     sndfile = sf_open(fileName, SFM_READ, &sfinfo);
     if (!sndfile) {
@@ -353,22 +359,27 @@ int main(int argc, char **argv)
 	return 1;
     }
 
+    if (sfinfo.samplerate == 0) {
+        cerr << "ERROR: File lacks sample rate in header" << endl;
+        return 1;
+    }
+
     if (duration != 0.0) {
-        if (sfinfo.frames == 0 || sfinfo.samplerate == 0) {
-            cerr << "ERROR: File lacks frame count or sample rate in header, cannot use --duration" << endl;
+        if (sfinfo.frames == 0) {
+            cerr << "ERROR: File lacks frame count in header, cannot use --duration" << endl;
             return 1;
         }
         double induration = double(sfinfo.frames) / double(sfinfo.samplerate);
         if (induration != 0.0) ratio = duration / induration;
     }
-
+    
     sfinfoOut.channels = sfinfo.channels;
     sfinfoOut.format = sfinfo.format;
     sfinfoOut.frames = int(sfinfo.frames * ratio + 0.1);
     sfinfoOut.samplerate = sfinfo.samplerate;
     sfinfoOut.sections = sfinfo.sections;
     sfinfoOut.seekable = sfinfo.seekable;
-
+    
     sndfileOut = sf_open(fileNameOut, SFM_WRITE, &sfinfoOut) ;
     if (!sndfileOut) {
 	cerr << "ERROR: Failed to open output file \"" << fileNameOut << "\" for writing: "
@@ -637,7 +648,10 @@ int main(int argc, char **argv)
         etv.tv_usec -= tv.tv_usec;
         
         double sec = double(etv.tv_sec) + (double(etv.tv_usec) / 1000000.0);
-        cerr << "elapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
+        cerr << "elapsed time: " << sec
+             << " sec, in frames/sec: " << int64_t(round(countIn/sec))
+             << ", out frames/sec: " << int64_t(round(countOut/sec))
+             << endl;
     }
 
     RubberBand::Profiler::dump();

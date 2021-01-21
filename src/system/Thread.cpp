@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2018 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -200,7 +200,11 @@ Mutex::trylock()
     }
 }
 
-Condition::Condition(string name) :
+Condition::Condition(string
+#ifdef DEBUG_CONDITION
+                     name
+#endif
+    ) :
     m_locked(false)
 #ifdef DEBUG_CONDITION
     , m_name(name)
@@ -456,7 +460,11 @@ Mutex::trylock()
     }
 }
 
-Condition::Condition(string name) :
+Condition::Condition(string
+#ifdef DEBUG_CONDITION
+                     name
+#endif
+    ) :
     m_locked(false)
 #ifdef DEBUG_CONDITION
     , m_name(name)

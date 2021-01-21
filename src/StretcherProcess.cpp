@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2018 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -33,10 +33,7 @@
 #include "dsp/Resampler.h"
 #include "base/Profiler.h"
 #include "system/VectorOps.h"
-
-#ifndef _WIN32
-#include <alloca.h>
-#endif
+#include "system/sysutils.h"
 
 #include <cassert>
 #include <cmath>
@@ -220,8 +217,9 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
             input = inputs[c] + offset;
         }
 
-        toWrite = cd.resampler->resample(&input,
-                                         &cd.resamplebuf,
+        toWrite = cd.resampler->resample(&cd.resamplebuf,
+                                         cd.resamplebufSize,
+                                         &input,
                                          samples,
                                          1.0 / m_pitchScale,
                                          final);
@@ -524,7 +522,14 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         // This is an unhappy situation.
 
         RingBuffer<float> *oldbuf = cd.outbuf;
-        cd.outbuf = oldbuf->resized(oldbuf->getSize() + (required - ws));
+        cd.outbuf = oldbuf->resized(oldbuf->getSize() * 2);
+
+        if (m_debugLevel > 1) {
+            cerr << "(Write space was " << ws << ", needed " << required
+                 << ": resized output buffer from " << oldbuf->getSize()
+                 << " to " << cd.outbuf->getSize() << ")" << endl;
+        }
+
         m_emergencyScavenger.claim(oldbuf);
     }
 
@@ -1021,7 +1026,7 @@ RubberBandStretcher::Impl::synthesiseChunk(size_t channel,
 
     m_swindow->cut(fltbuf);
     v_add(accumulator, fltbuf, wsz);
-    cd.accumulatorFill = wsz;
+    cd.accumulatorFill = std::max(cd.accumulatorFill, size_t(wsz));
 
     if (wsz > fsz) {
         // reuse fltbuf to calculate interpolating window shape for
@@ -1044,7 +1049,7 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
     float *const R__ accumulator = cd.accumulator;
     float *const R__ windowAccumulator = cd.windowAccumulator;
 
-    const int sz = m_sWindowSize;
+    const int sz = cd.accumulatorFill;
     const int si = shiftIncrement;
 
     if (m_debugLevel > 2) {
@@ -1086,8 +1091,9 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
 #endif
 #endif
 
-        size_t outframes = cd.resampler->resample(&cd.accumulator,
-                                                  &cd.resamplebuf,
+        size_t outframes = cd.resampler->resample(&cd.resamplebuf,
+                                                  cd.resamplebufSize,
+                                                  &cd.accumulator,
                                                   si,
                                                   1.0 / m_pitchScale,
                                                   last);

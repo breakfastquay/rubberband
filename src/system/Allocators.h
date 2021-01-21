@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2018 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_ALLOCATORS_H_
-#define _RUBBERBAND_ALLOCATORS_H_
+#ifndef RUBBERBAND_ALLOCATORS_H
+#define RUBBERBAND_ALLOCATORS_H
 
 #include "VectorOps.h"
 
@@ -271,9 +271,13 @@ T **reallocate_channels(T **ptr,
 {
     T **newptr = allocate_channels<T>(channels, count);
     if (oldcount && ptr) {
-        v_copy_channels(newptr, ptr, channels, oldcount < count ? oldcount : count);
+        for (size_t c = 0; c < oldchannels && c < channels; ++c) {
+            for (size_t i = 0; i < oldcount && i < count; ++i) {
+                newptr[c][i] = ptr[c][i];
+            }
+        }
     } 
-    if (ptr) deallocate_channels<T>(ptr, channels);
+    if (ptr) deallocate_channels<T>(ptr, oldchannels);
     return newptr;
 }
 	
@@ -284,9 +288,13 @@ T **reallocate_and_zero_extend_channels(T **ptr,
 {
     T **newptr = allocate_and_zero_channels<T>(channels, count);
     if (oldcount && ptr) {
-        v_copy_channels(newptr, ptr, channels, oldcount < count ? oldcount : count);
+        for (size_t c = 0; c < oldchannels && c < channels; ++c) {
+            for (size_t i = 0; i < oldcount && i < count; ++i) {
+                newptr[c][i] = ptr[c][i];
+            }
+        }
     } 
-    if (ptr) deallocate_channels<T>(ptr, channels);
+    if (ptr) deallocate_channels<T>(ptr, oldchannels);
     return newptr;
 }
 

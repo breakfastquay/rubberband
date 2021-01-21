@@ -1,4 +1,26 @@
 
+Changes in Rubber Band v1.9
+
+ * Fix incorrect numbering of pitch speed/quality flags in the
+   auxiliary C wrapper header. The effect of this was that code using
+   the C wrapper that intended to select the higher-quality
+   pitch-shift mode was actually choosing the higher-speed mode, and
+   vice versa. (The third mode - high-consistency, commonly used in
+   real-time applications - was correct.) Thanks to Michael Bradshaw
+   for reporting this.
+ * Add a .NET interface, generously contributed by Jonathan Gilbert
+   under a BSD-like licence
+ * Improve error handling in command-line utility
+ * Fix failure to build with FFTW_SINGLE_ONLY defined
+ * Fix some compiler warnings
+ * Install the JNI target (with make install) only if it has actually
+   been built, avoiding an error otherwise
+
+The API is unchanged except for the fix noted above, as a result of
+which the minor version number has been increased. The library is
+binary compatible with version 1.7.
+
+
 Changes in Rubber Band v1.8.2
 
  * Fix a number of small memory leaks
