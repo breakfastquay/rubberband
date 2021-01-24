@@ -94,10 +94,11 @@ if(OPTIMIZE)
   endif()
 endif()
 
+include(GNUInstallDirs)
 target_include_directories(rubberband
   PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rubberband>
-      $<INSTALL_INTERFACE:rubberband>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/rubberband>
   PRIVATE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
@@ -150,7 +151,6 @@ endif()
 #
 # Installation
 #
-include(GNUInstallDirs)
 install(
   TARGETS rubberband
   EXPORT rubberband-targets
