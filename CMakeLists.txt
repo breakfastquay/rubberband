@@ -76,12 +76,6 @@ else()
   target_sources(rubberband PRIVATE src/speex/resample.c)
 endif()
 
-# Accelerate framework
-if(APPLE)
-  find_library(ACCELERATE_FRAMEWORK NAMES Accelerate REQUIRED)
-  target_link_libraries(rubberband PUBLIC ${ACCELERATE_FRAMEWORK})
-endif()
-
 #
 # Handle general flags, include paths, etc.
 #
@@ -117,6 +111,9 @@ if(APPLE)
     message(FATAL_ERROR "macOS deployment target must be >= 10.11")
   endif()
   target_compile_definitions(rubberband PRIVATE HAVE_VDSP)
+
+  find_library(ACCELERATE_FRAMEWORK NAMES Accelerate REQUIRED)
+  target_link_libraries(rubberband PUBLIC ${ACCELERATE_FRAMEWORK})
 endif()
 
 if(WIN32)
