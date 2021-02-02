@@ -114,9 +114,7 @@ if(APPLE)
 
   find_library(ACCELERATE_FRAMEWORK NAMES Accelerate REQUIRED)
   target_link_libraries(rubberband PUBLIC ${ACCELERATE_FRAMEWORK})
-endif()
-
-if(WIN32)
+elseif(WIN32)
     target_compile_definitions(rubberband PRIVATE _WINDOWS)
     if(CMAKE_SIZEOF_VOID_P EQUAL 4)
         target_compile_definitions(rubberband PRIVATE WIN32)
