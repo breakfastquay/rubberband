@@ -1,0 +1,79 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu 20.04
+            os: ubuntu-20.04
+            install_dir: ~/rubberband
+            cmake_extras: -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          - name: macOS 10.15
+            os: macos-10.15
+            install_dir: ~/rubberband
+            cmake_extras: -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          - name: Windows 2019
+            os: windows-2019
+            install_dir: C:\rubberband
+            cmake_extras: >-
+              -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+              -DCMAKE_PREFIX_PATH=C:\vcpkg\installed\x64-windows-static
+            cmake_config: --config RelWithDebInfo
+            ctest_config: --build-config RelWithDebInfo
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Check out Git repository
+      uses: actions/checkout@v2
+    - name: "[Ubuntu] Install dependencies"
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends fftw3-dev libsamplerate-dev
+    - name: "[macOS] Install dependencies"
+      if: startsWith(matrix.os, 'macos')
+      run: brew install fftw libsamplerate
+    - name: "[Windows] Set up vcpkg cache"
+      uses: actions/cache@v2
+      if: runner.os == 'Windows'
+      with:
+        path: C:\Users\runneradmin\AppData\Local\vcpkg\archives
+        key: vcpkg-${{ github.head_ref }}-${{ github.run_number }}
+        restore-keys: |
+          vcpkg-${{ github.head_ref }}
+          vcpkg
+    - name: "[Windows] Install dependencies"
+      if: startsWith(matrix.os, 'windows')
+      run: vcpkg install fftw3 libsamplerate
+      env:
+        VCPKG_DEFAULT_TRIPLET: x64-windows-static
+    - name: Configure
+      run: cmake
+           -DCMAKE_INSTALL_PREFIX=${{ matrix.install_dir }}
+           ${{ matrix.cmake_extras }}
+           -DUSE_FFTW=ON
+           -DUSE_LIBSAMPLERATE=ON
+           -S . -B build
+    - name: Build
+      run: cmake --build build ${{ matrix.cmake_config }}
+      env:
+        CMAKE_BUILD_PARALLEL_LEVEL: 2
+    - name: Install
+      run: cmake --install build ${{ matrix.cmake_config }}
+    - name: Run Tests
+      run: ctest ${{ matrix.ctest_config }} --output-on-failure
+      working-directory: build
+      env:
+        CTEST_PARALLEL_LEVEL: 2
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.name }} rubberband build
+        path: ${{ matrix.install_dir }}
