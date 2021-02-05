@@ -97,6 +97,7 @@ feature_defines = []
 feature_libraries = []
 feature_sources = []
 pkgconfig_requirements = []
+arch_flags = []
 
 resampler = get_option('resampler')
 fft = get_option('fft')
@@ -238,13 +239,26 @@ if system == 'darwin'
   vamp_symbol_args += [
     '-exported_symbols_list', meson.source_root() / 'vamp/vamp-plugin.list'
   ]
+  if architecture == 'aarch64'
+    arch_flags = [
+      '-mmacosx-version-min=11',
+      '-arch', 'arm64'
+    ]
+  elif architecture == 'x86_64'
+    arch_flags = [
+      '-mmacosx-version-min=10.11',
+      '-arch', 'x86_64',
+    ]
+  endif # architecture
+
 elif system == 'windows'
   if meson.get_compiler('cpp').get_id() == 'msvc'
     feature_defines += ['-D__MSVC__', '-DNOMINMAX', '-D_USE_MATH_DEFINES']
     ladspa_symbol_args += ['-EXPORT:ladspa_descriptor']
     vamp_symbol_args += ['-EXPORT:vampGetPluginDescriptor']
   endif
-else
+
+else # system not darwin or windows
   feature_defines += ['-DUSE_PTHREADS', '-DHAVE_POSIX_MEMALIGN']
   ladspa_symbol_args += [
     '-Wl,--version-script=' + meson.source_root() / 'ladspa/ladspa-plugin.map'
@@ -252,7 +266,7 @@ else
   vamp_symbol_args += [
     '-Wl,--version-script=' + meson.source_root() / 'vamp/vamp-plugin.map'
   ]
-endif
+endif # system
 
 
 # And the build targets: Static and dynamic libraries, command-line
@@ -267,9 +281,11 @@ rubberband_static = static_library(
     general_include_dirs,
   ],
   cpp_args: [
+    arch_flags,
     feature_defines,
   ],
   c_args: [
+    arch_flags,
     feature_defines,
   ],
   dependencies: [
@@ -290,6 +306,7 @@ if system != 'windows'
     'rubberband',
     objects: rubberband_static.extract_all_objects(),
     link_args: [
+      arch_flags,
       feature_libraries,
     ],
     dependencies: [
@@ -310,12 +327,15 @@ if have_ladspa
       general_include_dirs,
     ],
     cpp_args: [
+      arch_flags,
       feature_defines,
     ],
     c_args: [
+      arch_flags,
       feature_defines,
     ],
     link_args: [
+      arch_flags,
       feature_libraries,
       ladspa_symbol_args,
     ],
@@ -349,12 +369,15 @@ if vamp_dep.found()
       general_include_dirs,
     ],
     cpp_args: [
+      arch_flags,
       feature_defines,
     ],
     c_args: [
+      arch_flags,
       feature_defines,
     ],
     link_args: [
+      arch_flags,
       feature_libraries,
       vamp_symbol_args,
     ],
@@ -385,12 +408,15 @@ if sndfile_dep.found()
       general_include_dirs,
     ],
     cpp_args: [
+      arch_flags,
       feature_defines,
     ],
     c_args: [
+      arch_flags,
       feature_defines,
     ],
     link_args: [
+      arch_flags,
       feature_libraries,
     ],
     dependencies: [
