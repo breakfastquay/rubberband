@@ -175,11 +175,13 @@ endif()
 
 ### Installation ###
 
+include(GNUInstallDirs)
 install(
   TARGETS rubberband
   EXPORT rubberband-exports
-  RUNTIME DESTINATION lib
-  ARCHIVE DESTINATION lib)
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(EXPORT rubberband-exports
         DESTINATION lib/cmake/rubberband)
