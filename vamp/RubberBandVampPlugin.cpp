@@ -441,7 +441,7 @@ RubberBandVampPlugin::getRemainingFeatures()
 
 RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::processOffline(const float *const *inputBuffers,
-                                           Vamp::RealTime timestamp)
+                                           Vamp::RealTime /* timestamp */)
 {
     if (!m_stretcher) {
 	cerr << "ERROR: RubberBandVampPlugin::processOffline: "
@@ -480,7 +480,7 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
 
 RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::processRealTime(const float *const *inputBuffers,
-                                            Vamp::RealTime timestamp)
+                                            Vamp::RealTime /* timestamp */)
 {
     // This function is not in any way a real-time function (i.e. it
     // has no requirement to be RT safe); it simply operates the
