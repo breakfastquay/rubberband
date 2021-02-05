@@ -83,7 +83,7 @@ enum RubberBandOption {
     RubberBandOptionPitchHighConsistency = 0x04000000,
 
     RubberBandOptionChannelsApart        = 0x00000000,
-    RubberBandOptionChannelsTogether     = 0x10000000,
+    RubberBandOptionChannelsTogether     = 0x10000000
 };
 
 typedef int RubberBandOptions;
