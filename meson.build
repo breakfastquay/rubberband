@@ -5,8 +5,7 @@ project(
   version: '1.9.0',
   license: 'GPL-2.0',
   default_options: [
-    'cpp_std=c++98',
-    'warning_level=2',
+    'cpp_std=c++11',
     'buildtype=release',
     'b_ndebug=if-release',
     'b_lundef=true',
@@ -146,7 +145,7 @@ elif fft == 'vdsp'
   
 elif fft == 'ipp'
   if ipp_path != ''
-    message('For FFT: IPP selected')
+    message('For FFT: using IPP')
     message('IPP path defined as ' + ipp_path)
   else 
     error('For FFT: IPP selected, but ipp_path not specified')
@@ -169,14 +168,14 @@ if resampler == 'libsamplerate'
   pkgconfig_requirements += samplerate_dep
   
 elif resampler == 'speex'
-  message('For resampler: speex selected')
+  message('For resampler: using Speex')
   message('(consider libsamplerate if time-varying pitch shift is required)')
   feature_sources += ['src/speex/resample.c']
   feature_defines += ['-DUSE_SPEEX']
   
 elif resampler == 'ipp'
   if ipp_path != ''
-    message('For resampler: IPP selected')
+    message('For resampler: using IPP')
     message('(consider libsamplerate if time-varying pitch shift is required)')
     message('IPP path defined as ' + ipp_path)
   else 
@@ -227,6 +226,9 @@ endif # ipp_needed
 ladspa_symbol_args = []
 vamp_symbol_args = []
 
+platform_static_name_prefix = []
+platform_static_name_suffix = []
+
 if get_option('buildtype').startswith('release')
   feature_defines += ['-DNO_THREAD_CHECKS', '-DNO_TIMING', '-DNDEBUG']
 endif
@@ -253,9 +255,13 @@ if system == 'darwin'
 
 elif system == 'windows'
   if meson.get_compiler('cpp').get_id() == 'msvc'
-    feature_defines += ['-D__MSVC__', '-DNOMINMAX', '-D_USE_MATH_DEFINES']
+    feature_defines += ['-DWIN32', '-D__MSVC__', '-DNOMINMAX', '-D_USE_MATH_DEFINES']
     ladspa_symbol_args += ['-EXPORT:ladspa_descriptor']
     vamp_symbol_args += ['-EXPORT:vampGetPluginDescriptor']
+    # Meson likes libxxx.a even on Windows, and so might we for a
+    # new library, but not here
+    platform_static_name_prefix = ''
+    platform_static_name_suffix = 'lib'
   endif
 
 else # system not darwin or windows
@@ -292,6 +298,8 @@ rubberband_static = static_library(
     feature_dependencies,
     thread_dep,
   ],
+  name_prefix: platform_static_name_prefix,
+  name_suffix: platform_static_name_suffix,
   pic: true,
   install: true,
 )
