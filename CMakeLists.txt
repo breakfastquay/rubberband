@@ -101,7 +101,9 @@ target_compile_definitions(rubberband
 )
 
 if(APPLE)
-  target_compile_options(rubberband PRIVATE -mmacosx-version-min=10.11)
+  if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.11)
+    message(FATAL_ERROR "macOS deployment target must be >= 10.11")
+  endif()
   target_compile_definitions(rubberband PRIVATE HAVE_VDSP)
 endif()
 
