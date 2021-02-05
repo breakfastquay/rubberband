@@ -1,8 +1,14 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
-find_dependency(FFTW3)
-find_dependency(samplerate)
+
+if(@USE_FFTW@)
+  find_dependency(FFTW3)
+endif()
+
+if(@USE_LIBSAMPLERATE@)
+  find_dependency(samplerate)
+endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/rubberband-targets.cmake")
 
