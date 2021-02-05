@@ -1,0 +1,18 @@
+
+option('fft',
+       type: 'combo',
+       choices: ['auto', 'kissfft', 'fftw', 'vdsp', 'ipp'],
+       value: 'auto',
+       description: 'FFT library to use. The default (auto) will use vDSP if available, KissFFT otherwise.')
+
+option('resampler',
+       type: 'combo',
+       choices: ['auto', 'libsamplerate', 'speex', 'ipp'],
+       value: 'auto',
+       description: 'Resampler library to use. Recommended is libsamplerate. The default (auto) will use libsamplerate if available, speex otherwise.')
+
+option('ipp_path',
+       type: 'string',
+       value: '',
+       description: 'Path to Intel IPP libraries, if selected for any of the other options.')
+
