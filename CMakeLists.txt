@@ -196,7 +196,7 @@ endif()
 include(GNUInstallDirs)
 install(
   TARGETS rubberband
-  EXPORT rubberband-exports
+  EXPORT rubberband-targets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -219,6 +219,26 @@ if(UNIX)
     )
 endif()
 
-install(EXPORT rubberband-exports
-        DESTINATION lib/cmake/rubberband)
-export(EXPORT rubberband-exports)
+# CMake config
+include(CMakePackageConfigHelpers)
+set(RUBBERBAND_INSTALL_CMAKEDIR "lib/cmake/rubberband")
+install(
+  EXPORT rubberband-targets
+  FILE rubberband-targets.cmake
+  NAMESPACE rubberband::
+  DESTINATION "${RUBBERBAND_INSTALL_CMAKEDIR}"
+)
+configure_package_config_file(rubberband-config.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/rubberband-config.cmake"
+  INSTALL_DESTINATION "${RUBBERBAND_INSTALL_CMAKEDIR}"
+)
+write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/rubberband-config-version.cmake"
+  VERSION "${CMAKE_PROJECT_VERSION}"
+  COMPATIBILITY SameMajorVersion
+)
+install(
+  FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/rubberband-config.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/rubberband-config-version.cmake"
+  DESTINATION "${RUBBERBAND_INSTALL_CMAKEDIR}"
+)
