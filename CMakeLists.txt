@@ -120,18 +120,8 @@ if(WIN32)
           $<$<CONFIG:Release>:NDEBUG>
           $<$<CONFIG:Debug>:_DEBUG NO_TIMING NO_THREAD_CHECKS>
       )
-      if(BUILD_SHARED_LIBS)
-        target_sources(rubberband
-          PRIVATE
-            rubberband-dll/dllmain.cpp
-            rubberband-dll/rubberband-dll.cpp
-            rubberband-dll/stdafx.cpp
-        )
-        target_include_directories(rubberband PRIVATE rubberband-dll)
-        target_compile_definitions(rubberband PRIVATE RUBBERBANDDLL_EXPORTS _USRDLL)
-      endif()
+      set_target_properties(rubberband PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
     endif()
-    target_include_directories(rubberband PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rubberband-dll>)
 endif()
 
 #
