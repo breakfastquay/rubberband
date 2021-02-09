@@ -17,6 +17,8 @@ rubberband_dynamic_library_version = '2.1.2'
 
 system = build_machine.system()
 architecture = host_machine.cpu_family()
+cpp = meson.get_compiler('cpp')
+
 pkg = import('pkgconfig')
 
 
@@ -86,7 +88,7 @@ samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
 sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
 thread_dep = dependency('threads')
-have_ladspa = meson.get_compiler('cpp').has_header('ladspa.h')
+have_ladspa = cpp.has_header('ladspa.h')
 
 
 # Check FFT and resampler options and set up dependencies and paths
@@ -254,7 +256,7 @@ if system == 'darwin'
   endif # architecture
 
 elif system == 'windows'
-  if meson.get_compiler('cpp').get_id() == 'msvc'
+  if cpp.get_id() == 'msvc'
     feature_defines += ['-DWIN32', '-D__MSVC__', '-DNOMINMAX', '-D_USE_MATH_DEFINES']
     ladspa_symbol_args += ['-EXPORT:ladspa_descriptor']
     vamp_symbol_args += ['-EXPORT:vampGetPluginDescriptor']
@@ -308,23 +310,21 @@ rubberband_static_dep = declare_dependency(
   link_with: rubberband_static,
 )
 
-if system != 'windows'
-  message('Will build Rubber Band Library dynamic library')
-  rubberband_dynamic = shared_library(
-    'rubberband',
-    objects: rubberband_static.extract_all_objects(),
-    link_args: [
-      arch_flags,
-      feature_libraries,
-    ],
-    dependencies: [
-      feature_dependencies,
-      thread_dep,
-    ],
-    version: rubberband_dynamic_library_version,
-    install: true,
-  )
-endif
+message('Will build Rubber Band Library dynamic library')
+rubberband_dynamic = shared_library(
+  'rubberband',
+  objects: rubberband_static.extract_all_objects(),
+  link_args: [
+    arch_flags,
+    feature_libraries,
+  ],
+  dependencies: [
+    feature_dependencies,
+    thread_dep,
+  ],
+  version: rubberband_dynamic_library_version,
+  install: true,
+)
 
 if have_ladspa
   message('Will build LADSPA plugin')
@@ -436,7 +436,7 @@ if sndfile_dep.found()
     install: true,
   )
 else 
-  message('Not building command-line utility: dependency libsndfile not found')
+  message('Not building command-line utility: libsndfile dependency not found')
 endif
 
 pkg.generate(
