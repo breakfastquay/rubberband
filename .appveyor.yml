@@ -1,4 +1,7 @@
 
+image:
+  - Visual Studio 2019
+
 configuration:
   - Release
 
@@ -11,10 +14,7 @@ install:
   - c:\ProgramData\chocolatey\bin\wget.exe http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.28-w64-setup.exe
   - ps: .\libsndfile-1.0.28-w64-setup.exe /silent /sp- /norestart
 
-environment:
-  CC: cl
-  CXX: cl
-
 build_script:
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
   - meson build
   - ninja -C build
