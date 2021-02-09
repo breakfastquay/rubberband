@@ -8,11 +8,15 @@ platform:
 
 install:
   - cinst wget
+  - cinst meson
   - c:\ProgramData\chocolatey\bin\wget.exe http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.28-w32-setup.exe
   - c:\ProgramData\chocolatey\bin\wget.exe http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.28-w64-setup.exe
   - ps: .\libsndfile-1.0.28-w32-setup.exe /silent /sp- /norestart
   - ps: .\libsndfile-1.0.28-w64-setup.exe /silent /sp- /norestart
 
 build_script:
-  - msbuild rubberband.sln
+  - meson build
+  - ninja -C build
+
+
   
