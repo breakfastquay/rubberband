@@ -3,20 +3,18 @@ configuration:
   - Release
 
 platform:
-  - x86
   - x64
 
 install:
   - cinst wget
   - cinst meson
-  - c:\ProgramData\chocolatey\bin\wget.exe http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.28-w32-setup.exe
   - c:\ProgramData\chocolatey\bin\wget.exe http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.28-w64-setup.exe
-  - ps: .\libsndfile-1.0.28-w32-setup.exe /silent /sp- /norestart
   - ps: .\libsndfile-1.0.28-w64-setup.exe /silent /sp- /norestart
+
+environment:
+  CC: cl
+  CXX: cl
 
 build_script:
   - meson build
   - ninja -C build
-
-
-  
