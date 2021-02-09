@@ -22,4 +22,6 @@ re:^x64/Debug/
 re:^x64/Release/
 re:^Release/
 re:^Debug/
-build/
+build
+build_*
+UpgradeLog*
