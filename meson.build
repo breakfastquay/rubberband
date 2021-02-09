@@ -10,7 +10,7 @@ project(
     'b_ndebug=if-release',
     'b_lundef=true',
   ],
-  meson_version: '>= 0.54.0'
+  meson_version: '>= 0.53.0'
 )
 
 rubberband_dynamic_library_version = '2.1.2'
