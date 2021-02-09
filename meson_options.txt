@@ -16,3 +16,18 @@ option('ipp_path',
        value: '',
        description: 'Path to Intel IPP libraries, if selected for any of the other options.')
 
+option('extra_include_dirs',
+       type: 'array',
+       value: [],
+       description: 'Additional local header directories to search for dependencies.')
+
+option('extra_lib_dirs',
+       type: 'array',
+       value: [],
+       description: 'Additional local library directories to search for dependencies.')
+
+option('no_shared',
+       type: 'boolean',
+       value: 'false',
+       description: 'Do not build shared libraries. On Windows this will also ensure that the static library is called simply rubberband.lib, not rubberband-static.lib as it is in the default build.')
+

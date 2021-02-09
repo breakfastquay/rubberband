@@ -63,6 +63,13 @@ program_sources = [
   'main/main.cpp',
 ]
 
+if system == 'windows'
+  program_sources += [
+    'src/getopt/getopt.c',
+    'src/getopt/getopt_long.c'
+  ]
+endif
+
 vamp_sources = [
   'vamp/RubberBandVampPlugin.cpp',
   'vamp/libmain.cpp',
@@ -103,6 +110,7 @@ arch_flags = []
 resampler = get_option('resampler')
 fft = get_option('fft')
 ipp_path = get_option('ipp_path')
+ipp_needed = false
 
 if fft == 'auto'
   if system == 'darwin'
@@ -120,7 +128,10 @@ if resampler == 'auto'
   endif
 endif
 
-ipp_needed = false
+extra_include_args = []
+foreach d: get_option('extra_include_dirs')
+  extra_include_args += '-I' + d
+endforeach
 
 if fft == 'kissfft'
   message('For FFT: using KissFFT')
@@ -133,12 +144,16 @@ if fft == 'kissfft'
 elif fft == 'fftw'
   if fftw3_dep.found()
     message('For FFT: using FFTW')
+    pkgconfig_requirements += fftw3_dep
   else 
-    error('For FFT: FFTW selected, but dependency not found')
+    fftw_dep = cpp.find_library('fftw3',
+				dirs: get_option('extra_lib_dirs'),
+				has_headers: ['fftw3.h'],
+				header_args: extra_include_args,
+				required: true)
   endif
   feature_dependencies += fftw3_dep
   feature_defines += ['-DHAVE_FFTW3', '-DFFTW_DOUBLE_ONLY']
-  pkgconfig_requirements += fftw3_dep
 
 elif fft == 'vdsp'
   message('For FFT: using vDSP')
@@ -162,12 +177,16 @@ endif # fft
 if resampler == 'libsamplerate'
   if samplerate_dep.found()
     message('For resampler: using libsamplerate')
+    pkgconfig_requirements += samplerate_dep
   else 
-    error('For resampler: libsamplerate selected, but dependency not found')
+    samplerate_dep = cpp.find_library('samplerate',
+				      dirs: get_option('extra_lib_dirs'),
+				      has_headers: ['samplerate.h'],
+				      header_args: extra_include_args,
+				      required: true)
   endif
   feature_dependencies += samplerate_dep
   feature_defines += ['-DHAVE_LIBSAMPLERATE']
-  pkgconfig_requirements += samplerate_dep
   
 elif resampler == 'speex'
   message('For resampler: using Speex')
@@ -222,6 +241,31 @@ if ipp_needed
   endif
 endif # ipp_needed
 
+if not vamp_dep.found()
+  vamp_dep = cpp.find_library('VampPluginSDK',
+			      dirs: get_option('extra_lib_dirs'),
+			      has_headers: ['vamp-sdk.h'],
+			      header_args: extra_include_args,
+			      required: false)
+  if not vamp_dep.found()
+    vamp_dep = cpp.find_library('vamp-sdk',
+				dirs: get_option('extra_lib_dirs'),
+				has_headers: ['vamp-sdk.h'],
+				header_args: extra_include_args,
+				required: false)
+  endif
+endif
+have_vamp = vamp_dep.found()
+
+if not sndfile_dep.found()
+  sndfile_dep = cpp.find_library('sndfile',
+				 dirs: get_option('extra_lib_dirs'),
+				 has_headers: ['sndfile.h'],
+				 header_args: extra_include_args,
+				 required: false)
+endif
+have_sndfile = sndfile_dep.found()
+
 
 # General platform and compiler expectations
 
@@ -257,13 +301,9 @@ if system == 'darwin'
 
 elif system == 'windows'
   if cpp.get_id() == 'msvc'
-    feature_defines += ['-DWIN32', '-D__MSVC__', '-DNOMINMAX', '-D_USE_MATH_DEFINES']
+    feature_defines += ['-DWIN32', '-D__MSVC__', '-DNOMINMAX', '-D_USE_MATH_DEFINES', '-DGETOPT_API=']
     ladspa_symbol_args += ['-EXPORT:ladspa_descriptor']
     vamp_symbol_args += ['-EXPORT:vampGetPluginDescriptor']
-    # Meson likes libxxx.a even on Windows, and so might we for a
-    # new library, but not here
-    platform_static_name_prefix = ''
-    platform_static_name_suffix = 'lib'
   endif
 
 else # system not darwin or windows
@@ -277,29 +317,41 @@ else # system not darwin or windows
 endif # system
 
 
+general_include_dirs += get_option('extra_include_dirs')
+general_compile_args = [ arch_flags, feature_defines ]
+general_dependencies = [ feature_dependencies, thread_dep ]
+
+if system == 'windows'
+  if get_option('no_shared')
+    rubberband_static_name = 'rubberband'
+  else
+    rubberband_static_name = 'rubberband-static'
+  endif    
+  rubberband_dynamic_name = 'rubberband'
+  rubberband_program_name = 'rubberband-program'
+  # Meson likes libxxx.a even on Windows, and so might we for a
+  # new library, but not here
+  platform_static_name_prefix = ''
+  platform_static_name_suffix = 'lib'
+else
+  rubberband_static_name = 'rubberband'
+  rubberband_dynamic_name = 'rubberband'
+  rubberband_program_name = 'rubberband'
+endif  
+
+
 # And the build targets: Static and dynamic libraries, command-line
 # utility, LADSPA plugin, Vamp plugin
 
 message('Will build Rubber Band Library static library')
 rubberband_static = static_library(
-  'rubberband',
+  rubberband_static_name,
   library_sources,
   feature_sources,
-  include_directories: [
-    general_include_dirs,
-  ],
-  cpp_args: [
-    arch_flags,
-    feature_defines,
-  ],
-  c_args: [
-    arch_flags,
-    feature_defines,
-  ],
-  dependencies: [
-    feature_dependencies,
-    thread_dep,
-  ],
+  include_directories: general_include_dirs,
+  cpp_args: general_compile_args,
+  c_args: general_compile_args,
+  dependencies: general_dependencies,
   name_prefix: platform_static_name_prefix,
   name_suffix: platform_static_name_suffix,
   pic: true,
@@ -310,38 +362,31 @@ rubberband_static_dep = declare_dependency(
   link_with: rubberband_static,
 )
 
-message('Will build Rubber Band Library dynamic library')
-rubberband_dynamic = shared_library(
-  'rubberband',
-  objects: rubberband_static.extract_all_objects(),
-  link_args: [
-    arch_flags,
-    feature_libraries,
-  ],
-  dependencies: [
-    feature_dependencies,
-    thread_dep,
-  ],
-  version: rubberband_dynamic_library_version,
-  install: true,
-)
+if not get_option('no_shared')
+  message('Will build Rubber Band Library dynamic library')
+  rubberband_dynamic = shared_library(
+    rubberband_dynamic_name,
+    objects: rubberband_static.extract_all_objects(),
+    link_args: [
+      arch_flags,
+      feature_libraries,
+    ],
+    dependencies: general_dependencies,
+    version: rubberband_dynamic_library_version,
+    install: true,
+  )
+else
+  message('Not building Rubber Band Library dynamic library: no_shared option set')
+endif
 
 if have_ladspa
   message('Will build LADSPA plugin')
   rubberband_ladspa = shared_library(
     'ladspa-rubberband',
     ladspa_sources,
-    include_directories: [
-      general_include_dirs,
-    ],
-    cpp_args: [
-      arch_flags,
-      feature_defines,
-    ],
-    c_args: [
-      arch_flags,
-      feature_defines,
-    ],
+    include_directories: general_include_dirs,
+    cpp_args: general_compile_args,
+    c_args: general_compile_args,
     link_args: [
       arch_flags,
       feature_libraries,
@@ -349,8 +394,7 @@ if have_ladspa
     ],
     dependencies: [
       rubberband_static_dep,
-      feature_dependencies,
-      thread_dep,
+      general_dependencies,
     ],
     name_prefix: '',
     install: true,
@@ -368,22 +412,14 @@ else
   message('Not building LADSPA plugin: ladspa.h header not found')
 endif
 
-if vamp_dep.found()
+if have_vamp
   message('Will build Vamp plugin')
   rubberband_vamp = shared_library(
     'vamp-rubberband',
     vamp_sources,
-    include_directories: [
-      general_include_dirs,
-    ],
-    cpp_args: [
-      arch_flags,
-      feature_defines,
-    ],
-    c_args: [
-      arch_flags,
-      feature_defines,
-    ],
+    include_directories: general_include_dirs,
+    cpp_args: general_compile_args,
+    c_args: general_compile_args,
     link_args: [
       arch_flags,
       feature_libraries,
@@ -391,9 +427,8 @@ if vamp_dep.found()
     ],
     dependencies: [
       rubberband_static_dep,
-      feature_dependencies,
+      general_dependencies,
       vamp_dep,
-      thread_dep,
     ],
     name_prefix: '',
     install: true,
@@ -407,31 +442,22 @@ else
   message('Not building Vamp plugin: Vamp dependency not found')
 endif
 
-if sndfile_dep.found()
+if have_sndfile
   message('Will build command-line utility')
   rubberband_program = executable(
-    'rubberband',
+    rubberband_program_name,
     program_sources,
-    include_directories: [
-      general_include_dirs,
-    ],
-    cpp_args: [
-      arch_flags,
-      feature_defines,
-    ],
-    c_args: [
-      arch_flags,
-      feature_defines,
-    ],
+    include_directories: general_include_dirs,
+    cpp_args: general_compile_args,
+    c_args: general_compile_args,
     link_args: [
       arch_flags,
       feature_libraries,
     ],
     dependencies: [
       rubberband_static_dep,
-      feature_dependencies,
+      general_dependencies,
       sndfile_dep,
-      thread_dep,
     ],
     install: true,
   )
