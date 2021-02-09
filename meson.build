@@ -130,7 +130,7 @@ endif
 
 extra_include_args = []
 foreach d: get_option('extra_include_dirs')
-  extra_include_args += '-I' + d
+  extra_include_args += [ '-I' + d ]
 endforeach
 
 if fft == 'kissfft'
@@ -272,9 +272,6 @@ have_sndfile = sndfile_dep.found()
 ladspa_symbol_args = []
 vamp_symbol_args = []
 
-platform_static_name_prefix = []
-platform_static_name_suffix = []
-
 if get_option('buildtype').startswith('release')
   feature_defines += ['-DNO_THREAD_CHECKS', '-DNO_TIMING', '-DNDEBUG']
 endif
@@ -337,6 +334,8 @@ else
   rubberband_static_name = 'rubberband'
   rubberband_dynamic_name = 'rubberband'
   rubberband_program_name = 'rubberband'
+  platform_static_name_prefix = 'lib'
+  platform_static_name_suffix = 'a'
 endif  
 
 
