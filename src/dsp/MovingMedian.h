@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _MOVING_MEDIAN_H_
-#define _MOVING_MEDIAN_H_
+#ifndef RUBBERBAND_MOVING_MEDIAN_H
+#define RUBBERBAND_MOVING_MEDIAN_H
 
 #include "SampleFilter.h"
 

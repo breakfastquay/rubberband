@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _HIGHFREQUENCY_AUDIO_CURVE_H_
-#define _HIGHFREQUENCY_AUDIO_CURVE_H_
+#ifndef RUBBERBAND_HIGHFREQUENCY_AUDIO_CURVE_H
+#define RUBBERBAND_HIGHFREQUENCY_AUDIO_CURVE_H
 
 #include "dsp/AudioCurveCalculator.h"
 

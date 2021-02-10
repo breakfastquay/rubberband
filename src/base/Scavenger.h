@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_SCAVENGER_H_
-#define _RUBBERBAND_SCAVENGER_H_
+#ifndef RUBBERBAND_SCAVENGER_H
+#define RUBBERBAND_SCAVENGER_H
 
 #include <vector>
 #include <list>

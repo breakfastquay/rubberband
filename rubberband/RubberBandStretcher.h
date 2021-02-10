@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBANDSTRETCHER_H_
-#define _RUBBERBANDSTRETCHER_H_
+#ifndef RUBBERBAND_STRETCHER_H
+#define RUBBERBAND_STRETCHER_H
     
 #define RUBBERBAND_VERSION "1.9.0"
 #define RUBBERBAND_API_MAJOR_VERSION 2

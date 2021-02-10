@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_FFT_H_
-#define _RUBBERBAND_FFT_H_
+#ifndef RUBBERBAND_FFT_H
+#define RUBBERBAND_FFT_H
 
 #include "system/sysutils.h"
 

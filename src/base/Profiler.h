@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _PROFILER_H_
-#define _PROFILER_H_
+#ifndef RUBBERBAND_PROFILER_H
+#define RUBBERBAND_PROFILER_H
 
 //#define NO_TIMING 1
 //#define WANT_TIMING 1

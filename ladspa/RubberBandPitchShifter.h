@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_PITCH_SHIFTER_H_
-#define _RUBBERBAND_PITCH_SHIFTER_H_
+#ifndef RUBBERBAND_PITCH_SHIFTER_H
+#define RUBBERBAND_PITCH_SHIFTER_H
 
 #include <ladspa.h>
 

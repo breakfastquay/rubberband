@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_SYSUTILS_H_
-#define _RUBBERBAND_SYSUTILS_H_
+#ifndef RUBBERBAND_SYSUTILS_H
+#define RUBBERBAND_SYSUTILS_H
 
 #ifdef _MSC_VER
 #  if _MSC_VER < 1800

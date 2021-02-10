@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _PERCUSSIVE_AUDIO_CURVE_H_
-#define _PERCUSSIVE_AUDIO_CURVE_H_
+#ifndef RUBBERBAND_PERCUSSIVE_AUDIO_CURVE_H
+#define RUBBERBAND_PERCUSSIVE_AUDIO_CURVE_H
 
 #include "dsp/AudioCurveCalculator.h"
 

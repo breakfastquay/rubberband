@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _AUDIO_CURVE_CALCULATOR_H_
-#define _AUDIO_CURVE_CALCULATOR_H_
+#ifndef RUBBERBAND_AUDIO_CURVE_CALCULATOR_H
+#define RUBBERBAND_AUDIO_CURVE_CALCULATOR_H
 
 #include <sys/types.h>
 
