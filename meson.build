@@ -295,19 +295,32 @@ if system == 'darwin'
   vamp_symbol_args += [
     '-exported_symbols_list', meson.source_root() / 'vamp/vamp-plugin.list'
   ]
+
+  have_version_min = false
+  foreach arg: get_option('cpp_args')
+    message('arg is ' + arg)
+    if arg.contains('version-min')
+      have_version_min = true
+    endif
+  endforeach
+
   if architecture == 'aarch64'
-    config_summary += { 'Architecture': 'ARM (macOS 11 or newer)' }
-    arch_flags = [
-      '-mmacosx-version-min=11',
-      '-arch', 'arm64'
+    mac_platform_arguments = [
+      '-arch', 'arm64',
     ]
+    if not have_version_min
+      mac_platform_arguments += [ '-mmacosx-version-min=11' ]
+    endif
   elif architecture == 'x86_64'
-    config_summary += { 'Architecture': 'Intel (macOS 10.11 or newer)' }
-    arch_flags = [
-      '-mmacosx-version-min=10.11',
+    mac_platform_arguments = [
       '-arch', 'x86_64',
     ]
-  endif # architecture
+    if not have_version_min
+      mac_platform_arguments += [ '-mmacosx-version-min=10.13' ]
+    endif
+  else # begin architecture != 'aarch64' or 'x86_64'
+    error('Build for architecture ' + architecture + ' is not supported on this platform')
+  endif # end architecture
 
 elif system == 'windows'
   if cpp.get_id() == 'msvc'
@@ -506,5 +519,6 @@ summary({'prefix': get_option('prefix'),
          'datadir': get_option('datadir'),
         }, section: 'Directories')
 
-summary(config_summary, section: 'Configuration', bool_yn: true)
+summary(config_summary + { 'Architecture': architecture },
+	section: 'Configuration', bool_yn: true)
 summary(target_summary, section: 'Build targets', bool_yn: true)
