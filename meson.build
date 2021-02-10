@@ -87,8 +87,6 @@ general_include_dirs = [
 
 
 # Scan for any dependencies we may use later; all are optional
-# We collect these first so our summary messages about selected build
-# features all appear together at the end
 
 fftw3_dep = dependency('fftw3', version: '>= 3.0.0', required: false)
 samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
@@ -106,6 +104,9 @@ feature_libraries = []
 feature_sources = []
 pkgconfig_requirements = []
 arch_flags = []
+
+config_summary = {}
+target_summary = {}
 
 resampler = get_option('resampler')
 fft = get_option('fft')
@@ -134,6 +135,7 @@ foreach d: get_option('extra_include_dirs')
 endforeach
 
 if fft == 'kissfft'
+  config_summary += { 'FFT': 'KissFFT' }
   message('For FFT: using KissFFT')
   if fftw3_dep.found()
     message('(to use FFTW instead, reconfigure with -Dfft=fftw)')
@@ -143,6 +145,7 @@ if fft == 'kissfft'
 
 elif fft == 'fftw'
   if fftw3_dep.found()
+    config_summary += { 'FFT': 'FFTW' }
     message('For FFT: using FFTW')
     pkgconfig_requirements += fftw3_dep
   else 
@@ -156,12 +159,14 @@ elif fft == 'fftw'
   feature_defines += ['-DHAVE_FFTW3', '-DFFTW_DOUBLE_ONLY']
 
 elif fft == 'vdsp'
+  config_summary += { 'FFT': 'vDSP' }
   message('For FFT: using vDSP')
   feature_defines += ['-DHAVE_VDSP']
   feature_libraries += ['-framework', 'Accelerate']
   
 elif fft == 'ipp'
   if ipp_path != ''
+    config_summary += { 'FFT': 'Intel IPP' }
     message('For FFT: using IPP')
     message('IPP path defined as ' + ipp_path)
   else 
@@ -176,6 +181,7 @@ endif # fft
 
 if resampler == 'libsamplerate'
   if samplerate_dep.found()
+    config_summary += { 'Resampler': 'libsamplerate' }
     message('For resampler: using libsamplerate')
     pkgconfig_requirements += samplerate_dep
   else 
@@ -189,6 +195,7 @@ if resampler == 'libsamplerate'
   feature_defines += ['-DHAVE_LIBSAMPLERATE']
   
 elif resampler == 'speex'
+  config_summary += { 'Resampler': 'Speex' }
   message('For resampler: using Speex')
   message('(consider libsamplerate if time-varying pitch shift is required)')
   feature_sources += ['src/speex/resample.c']
@@ -196,6 +203,7 @@ elif resampler == 'speex'
   
 elif resampler == 'ipp'
   if ipp_path != ''
+    config_summary += { 'Resampler': 'Intel IPP' }
     message('For resampler: using IPP')
     message('(consider libsamplerate if time-varying pitch shift is required)')
     message('IPP path defined as ' + ipp_path)
@@ -273,7 +281,10 @@ ladspa_symbol_args = []
 vamp_symbol_args = []
 
 if get_option('buildtype').startswith('release')
+  config_summary += { 'Build type': 'Release' }
   feature_defines += ['-DNO_THREAD_CHECKS', '-DNO_TIMING', '-DNDEBUG']
+else
+  config_summary += { 'Build type': 'Debug' }
 endif
 
 if system == 'darwin'
@@ -285,11 +296,13 @@ if system == 'darwin'
     '-exported_symbols_list', meson.source_root() / 'vamp/vamp-plugin.list'
   ]
   if architecture == 'aarch64'
+    config_summary += { 'Architecture': 'ARM (macOS 11 or newer)' }
     arch_flags = [
       '-mmacosx-version-min=11',
       '-arch', 'arm64'
     ]
   elif architecture == 'x86_64'
+    config_summary += { 'Architecture': 'Intel (macOS 10.11 or newer)' }
     arch_flags = [
       '-mmacosx-version-min=10.11',
       '-arch', 'x86_64',
@@ -326,6 +339,8 @@ if system == 'windows'
   endif    
   rubberband_dynamic_name = 'rubberband'
   rubberband_program_name = 'rubberband-program'
+  rubberband_ladspa_name = 'ladspa-rubberband'
+  rubberband_vamp_name = 'vamp-rubberband'
   # Meson likes libxxx.a even on Windows, and so might we for a
   # new library, but not here
   platform_static_name_prefix = ''
@@ -334,6 +349,8 @@ else
   rubberband_static_name = 'rubberband'
   rubberband_dynamic_name = 'rubberband'
   rubberband_program_name = 'rubberband'
+  rubberband_ladspa_name = 'ladspa-rubberband'
+  rubberband_vamp_name = 'vamp-rubberband'
   platform_static_name_prefix = 'lib'
   platform_static_name_suffix = 'a'
 endif  
@@ -343,6 +360,7 @@ endif
 # utility, LADSPA plugin, Vamp plugin
 
 message('Will build Rubber Band Library static library')
+target_summary += { 'Static library': [ true, 'Name: ' + rubberband_static_name ] }
 rubberband_static = static_library(
   rubberband_static_name,
   library_sources,
@@ -362,7 +380,8 @@ rubberband_static_dep = declare_dependency(
 )
 
 if not get_option('no_shared')
-  message('Will build Rubber Band Library dynamic library')
+  target_summary += { 'Shared library': [ true, 'Name: ' + rubberband_dynamic_name ] }
+  message('Will build Rubber Band Library shared library')
   rubberband_dynamic = shared_library(
     rubberband_dynamic_name,
     objects: rubberband_static.extract_all_objects(),
@@ -375,13 +394,15 @@ if not get_option('no_shared')
     install: true,
   )
 else
+  target_summary += { 'Shared library': false }
   message('Not building Rubber Band Library dynamic library: no_shared option set')
 endif
 
 if have_ladspa
+  target_summary += { 'LADSPA plugin': [ true, 'Name: ' + rubberband_ladspa_name ] }
   message('Will build LADSPA plugin')
   rubberband_ladspa = shared_library(
-    'ladspa-rubberband',
+    rubberband_ladspa_name,
     ladspa_sources,
     include_directories: general_include_dirs,
     cpp_args: general_compile_args,
@@ -408,13 +429,15 @@ if have_ladspa
     install_dir: get_option('datadir') / 'ladspa/rdf',
   )
 else
+  target_summary += { 'LADSPA plugin': false }
   message('Not building LADSPA plugin: ladspa.h header not found')
 endif
 
 if have_vamp
+  target_summary += { 'Vamp plugin': [ true, 'Name: ' + rubberband_vamp_name ] }
   message('Will build Vamp plugin')
   rubberband_vamp = shared_library(
-    'vamp-rubberband',
+    rubberband_vamp_name,
     vamp_sources,
     include_directories: general_include_dirs,
     cpp_args: general_compile_args,
@@ -438,10 +461,12 @@ if have_vamp
     install_dir: get_option('libdir') / 'vamp',
   )
 else
+  target_summary += { 'Vamp plugin': false }
   message('Not building Vamp plugin: Vamp dependency not found')
 endif
 
 if have_sndfile
+  target_summary += { 'Command-line utility': [ true, 'Name: ' + rubberband_program_name ] }
   message('Will build command-line utility')
   rubberband_program = executable(
     rubberband_program_name,
@@ -461,6 +486,7 @@ if have_sndfile
     install: true,
   )
 else 
+  target_summary += { 'Command-line utility': false }
   message('Not building command-line utility: libsndfile dependency not found')
 endif
 
@@ -473,3 +499,12 @@ pkg.generate(
   libraries: '-L${libdir} -lrubberband',
   extra_cflags: '-I${includedir}',
 )
+
+summary({'prefix': get_option('prefix'),
+         'bindir': get_option('bindir'),
+         'libdir': get_option('libdir'),
+         'datadir': get_option('datadir'),
+        }, section: 'Directories')
+
+summary(config_summary, section: 'Configuration', bool_yn: true)
+summary(target_summary, section: 'Build targets', bool_yn: true)
