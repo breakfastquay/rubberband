@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_VAMP_PLUGIN_H_
-#define _RUBBERBAND_VAMP_PLUGIN_H_
+#ifndef RUBBERBAND_VAMP_PLUGIN_H
+#define RUBBERBAND_VAMP_PLUGIN_H
 
 #include <vamp-sdk/Plugin.h>
 

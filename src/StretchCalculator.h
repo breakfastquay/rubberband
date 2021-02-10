@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_STRETCH_CALCULATOR_H_
-#define _RUBBERBAND_STRETCH_CALCULATOR_H_
+#ifndef RUBBERBAND_STRETCH_CALCULATOR_H
+#define RUBBERBAND_STRETCH_CALCULATOR_H
 
 #include <sys/types.h>
 

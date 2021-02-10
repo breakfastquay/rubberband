@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_STRETCHERIMPL_H_
-#define _RUBBERBAND_STRETCHERIMPL_H_
+#ifndef RUBBERBAND_STRETCHERIMPL_H
+#define RUBBERBAND_STRETCHERIMPL_H
 
 #include "rubberband/RubberBandStretcher.h"
 

@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_STRETCHERCHANNELDATA_H_
-#define _RUBBERBAND_STRETCHERCHANNELDATA_H_
+#ifndef RUBBERBAND_STRETCHERCHANNELDATA_H
+#define RUBBERBAND_STRETCHERCHANNELDATA_H
 
 #include "StretcherImpl.h"
 

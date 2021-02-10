@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_C_API_H_
-#define _RUBBERBAND_C_API_H_
+#ifndef RUBBERBAND_C_API_H
+#define RUBBERBAND_C_API_H
 
 #ifdef __cplusplus
 extern "C" {

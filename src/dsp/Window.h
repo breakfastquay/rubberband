@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_WINDOW_H_
-#define _RUBBERBAND_WINDOW_H_
+#ifndef RUBBERBAND_WINDOW_H
+#define RUBBERBAND_WINDOW_H
 
 #include <cmath>
 #include <cstdlib>

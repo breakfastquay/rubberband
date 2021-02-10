@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_VECTOR_OPS_H_
-#define _RUBBERBAND_VECTOR_OPS_H_
+#ifndef RUBBERBAND_VECTOR_OPS_H
+#define RUBBERBAND_VECTOR_OPS_H
 
 #ifdef HAVE_IPP
 #ifndef _MSC_VER

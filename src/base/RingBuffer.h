@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_RINGBUFFER_H_
-#define _RUBBERBAND_RINGBUFFER_H_
+#ifndef RUBBERBAND_RINGBUFFER_H
+#define RUBBERBAND_RINGBUFFER_H
 
 #include <sys/types.h>
 
@@ -524,4 +524,4 @@ RingBuffer<T>::zero(int n)
 
 }
 
-#endif // _RINGBUFFER_H_
+#endif // _RINGBUFFER_H

@@ -24,8 +24,10 @@ CI builds:
 
 ## Licence
 
-Rubber Band is distributed under the GNU General Public License. See
-the file COPYING for more information.
+Rubber Band Library is distributed under the GNU General Public
+License (GPL). You can redistribute it and/or modify it under the
+terms of the GPL; either version 2 of the License, or (at your option)
+any later version. See the file COPYING for more information.
 
 If you wish to distribute code using the Rubber Band Library under
 terms other than those of the GNU General Public License, you must
