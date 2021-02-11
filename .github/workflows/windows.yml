@@ -19,7 +19,6 @@ jobs:
         .\libsndfile-1.0.28-w64-setup.exe /silent /sp- /norestart
     - name: configure
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
         meson build
     - name: make
       run: |
