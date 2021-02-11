@@ -16,5 +16,5 @@ install:
 
 build_script:
   - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-  - meson build -Dextra_include_dirs="C:\Program Files (x86)\Mega-Nerd\libsndfile\include" -Dextra_lib_dirs="C:\Program Files (x86)\Mega-Nerd\libsndfile\lib\"
+  - meson build -Dextra_include_dirs="C:\Program Files\Mega-Nerd\libsndfile\include" -Dextra_lib_dirs="C:\Program Files\Mega-Nerd\libsndfile\lib\"
   - ninja -C build

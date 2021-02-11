@@ -19,8 +19,8 @@ jobs:
         .\libsndfile-1.0.28-w64-setup.exe /silent /sp- /norestart
     - name: configure
       run: |
-        meson build
+        c:\ProgramData\chocolatey\bin\meson build
     - name: make
       run: |
-        ninja -C build
+        c:\ProgramData\chocolatey\bin\ninja -C build
 
