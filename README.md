@@ -43,9 +43,9 @@ that licence. Please refer to your licence agreement for more details.
 
 Rubber Band includes a .NET interface generously contributed by
 Jonathan Gilbert under a BSD-like licence. The files in the
-rubberband-dll and rubberband-sharp directories fall under this
-licence. If you make use of this interface, please ensure you comply
-with the terms of its licence.
+dotnet/rubberband-dll and dotnet/rubberband-sharp directories fall
+under this licence. If you make use of this interface, please ensure
+you comply with the terms of its licence.
 
 Rubber Band may link with other libraries or be compiled with other
 source code, depending on its build configuration. It is your
