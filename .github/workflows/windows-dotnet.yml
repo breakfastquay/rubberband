@@ -14,5 +14,5 @@ jobs:
     - name: make
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-	msbuild dotnet\rubberband.sln
+        msbuild dotnet\rubberband.sln
 
