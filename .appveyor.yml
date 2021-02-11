@@ -18,5 +18,5 @@ build_script:
   - meson build "-Dextra_include_dirs=C:\Program Files\libsndfile\include" "-Dextra_lib_dirs=C:\Program Files\libsndfile\lib"
   - ninja -C build
   # And test the .NET FFI interface build, which is completely separate
-  - msbuild dotnet\rubberband.sln
+  - msbuild dotnet\rubberband.sln /t:Restore;Build
   
