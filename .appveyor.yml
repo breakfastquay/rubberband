@@ -11,10 +11,12 @@ platform:
 install:
   - cinst wget
   - cinst meson
-  - c:\ProgramData\chocolatey\bin\wget.exe http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.28-w64-setup.exe
-  - ps: .\libsndfile-1.0.28-w64-setup.exe /silent /sp- /norestart
+  - cinst libsndfile
 
 build_script:
   - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-  - meson build -Dextra_include_dirs='C:\Program Files\Mega-Nerd\libsndfile\include' -Dextra_lib_dirs='C:\Program Files\Mega-Nerd\libsndfile\lib'
+  - meson build "-Dextra_include_dirs=C:\Program Files\libsndfile\include" "-Dextra_lib_dirs=C:\Program Files\libsndfile\lib"
   - ninja -C build
+  # And test the .NET FFI interface build, which is completely separate
+  - msbuild dotnet\rubberband.sln
+  
