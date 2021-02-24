@@ -1,57 +1,27 @@
 
-PREFIX		:= /usr/local
 CXX		:= clang++ -stdlib=libc++
 CC		:= clang
 
+OPTFLAGS	:= -DNDEBUG -ffast-math -O3 -ftree-vectorize
+
 ARCHFLAGS	:= -arch arm64 -arch x86_64 -mmacosx-version-min=10.7
-OPTFLAGS	:= -DNDEBUG -ffast-math -O3
 
 CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -I/usr/local/include -DUSE_PTHREADS -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DNO_THREAD_CHECKS -DNO_TIMING
 
 CFLAGS		:= $(ARCHFLAGS) $(OPTFLAGS)
-LDFLAGS		:= $(ARCHFLAGS) -lpthread $(LDFLAGS)
 
-LIBRARY_LIBS		:= -framework Accelerate
-PROGRAM_LIBS		:= -L$(PREFIX)/lib -lsndfile $(LIBRARY_LIBS)
-VAMP_PLUGIN_LIBS	:= -L$(PREFIX)/lib -lvamp-sdk $(LIBRARY_LIBS)
-LADSPA_PLUGIN_LIBS	:= $(LIBRARY_LIBS)
-
-MKDIR			:= mkdir
 AR			:= ar
-
-INSTALL_BINDIR		:= $(PREFIX)/bin
-INSTALL_INCDIR		:= $(PREFIX)/include/rubberband
-INSTALL_LIBDIR		:= $(PREFIX)/lib
-INSTALL_VAMPDIR		:= $(PREFIX)/lib/vamp
-INSTALL_LADSPADIR	:= $(PREFIX)/lib/ladspa
-INSTALL_LRDFDIR		:= $(PREFIX)/share/ladspa/rdf
-INSTALL_PKGDIR		:= $(PREFIX)/lib/pkgconfig
+MKDIR			:= mkdir
 
 LIBNAME			:= librubberband
 
-DYNAMIC_EXTENSION	:= .dylib
-DYNAMIC_FULL_VERSION	:= 2.1.2
-DYNAMIC_ABI_VERSION	:= 2
-DYNAMIC_LDFLAGS		:= -dynamiclib -install_name $(INSTALL_LIBDIR)/$(LIBNAME).$(DYNAMIC_ABI_VERSION)$(DYNAMIC_EXTENSION) -current_version $(DYNAMIC_FULL_VERSION) -compatibility_version $(DYNAMIC_ABI_VERSION)
-VAMP_LDFLAGS		:= -dynamiclib -install_name vamp-rubberband.dylib -exported_symbols_list vamp/vamp-plugin.list
-LADSPA_LDFLAGS		:= -dynamiclib -install_name ladspa-rubberband.dylib -exported_symbols_list ladspa/ladspa-plugin.list
-
-PROGRAM_TARGET 		:= bin/rubberband
 STATIC_TARGET  		:= lib/$(LIBNAME).a
-DYNAMIC_TARGET 		:= lib/$(LIBNAME)$(DYNAMIC_EXTENSION)
-VAMP_TARGET    		:= lib/vamp-rubberband$(DYNAMIC_EXTENSION)
-LADSPA_TARGET  		:= lib/ladspa-rubberband$(DYNAMIC_EXTENSION)
 
-default:	bin lib $(STATIC_TARGET) $(DYNAMIC_TARGET) $(PROGRAM_TARGET)
+default:	$(STATIC_TARGET)
 
-all:		bin lib $(STATIC_TARGET) $(DYNAMIC_TARGET) $(PROGRAM_TARGET) $(VAMP_TARGET) $(LADSPA_TARGET)
+all:		$(STATIC_TARGET)
 
-static:		lib $(STATIC_TARGET)
-dynamic:	lib $(DYNAMIC_TARGET)
-library:	static dynamic
-program:	bin $(PROGRAM_TARGET)
-vamp:		lib $(VAMP_TARGET)
-ladspa:		lib $(LADSPA_TARGET)
+static:		$(STATIC_TARGET)
 
 PUBLIC_INCLUDES := \
 	rubberband/rubberband-c.h \
@@ -111,83 +81,24 @@ LIBRARY_INCLUDES := $(LIBRARY_INCLUDES) \
 LIBRARY_SOURCES := $(LIBRARY_SOURCES) \
 	src/speex/resample.c
 
-PROGRAM_SOURCES := \
-	main/main.cpp
-
-VAMP_HEADERS := \
-	vamp/RubberBandVampPlugin.h
-
-VAMP_SOURCES := \
-	vamp/RubberBandVampPlugin.cpp \
-	vamp/libmain.cpp
-
-LADSPA_HEADERS := \
-	ladspa/RubberBandPitchShifter.h
-
-LADSPA_SOURCES := \
-	ladspa/RubberBandPitchShifter.cpp \
-	ladspa/libmain.cpp
-
 LIBRARY_OBJECTS := $(LIBRARY_SOURCES:.cpp=.o)
 LIBRARY_OBJECTS := $(LIBRARY_OBJECTS:.c=.o)
-
-PROGRAM_OBJECTS := $(PROGRAM_SOURCES:.cpp=.o)
-VAMP_OBJECTS    := $(VAMP_SOURCES:.cpp=.o)
-LADSPA_OBJECTS  := $(LADSPA_SOURCES:.cpp=.o)
-
-$(PROGRAM_TARGET):	$(LIBRARY_OBJECTS) $(PROGRAM_OBJECTS)
-	$(CXX) -o $@ $^ $(PROGRAM_LIBS) $(LDFLAGS)
 
 $(STATIC_TARGET):	$(LIBRARY_OBJECTS)
 	rm -f $@
 	$(AR) rsc $@ $^
 
-$(DYNAMIC_TARGET):	$(LIBRARY_OBJECTS)
-	$(CXX) $(DYNAMIC_LDFLAGS) $^ -o $@ $(LIBRARY_LIBS) $(LDFLAGS)
-
-$(VAMP_TARGET):		$(LIBRARY_OBJECTS) $(VAMP_OBJECTS)
-	$(CXX) $(VAMP_LDFLAGS) -o $@ $^ $(VAMP_PLUGIN_LIBS) $(LDFLAGS)
-
-$(LADSPA_TARGET):	$(LIBRARY_OBJECTS) $(LADSPA_OBJECTS)
-	$(CXX) $(LADSPA_LDFLAGS) -o $@ $^ $(LADSPA_PLUGIN_LIBS) $(LDFLAGS)
-
-bin:
-	$(MKDIR) $@
 lib:
 	$(MKDIR) $@
 
-install:	default
-	$(MKDIR) -p $(DESTDIR)$(INSTALL_BINDIR)
-	$(MKDIR) -p $(DESTDIR)$(INSTALL_INCDIR)
-	$(MKDIR) -p $(DESTDIR)$(INSTALL_LIBDIR)
-	$(MKDIR) -p $(DESTDIR)$(INSTALL_VAMPDIR)
-	$(MKDIR) -p $(DESTDIR)$(INSTALL_LADSPADIR)
-	$(MKDIR) -p $(DESTDIR)$(INSTALL_LRDFDIR)
-	$(MKDIR) -p $(DESTDIR)$(INSTALL_PKGDIR)
-	cp $(PROGRAM_TARGET) $(DESTDIR)$(INSTALL_BINDIR)
-	cp $(PUBLIC_INCLUDES) $(DESTDIR)$(INSTALL_INCDIR)
-	cp $(STATIC_TARGET) $(DESTDIR)$(INSTALL_LIBDIR)
-	rm -f $(DESTDIR)$(INSTALL_LIBDIR)/$(LIBNAME).$(DYNAMIC_ABI_VERSION)$(DYNAMIC_EXTENSION)
-	rm -f $(DESTDIR)$(INSTALL_LIBDIR)/$(LIBNAME)$(DYNAMIC_EXTENSION)
-	cp $(DYNAMIC_TARGET) $(DESTDIR)$(INSTALL_LIBDIR)/$(LIBNAME).$(DYNAMIC_FULL_VERSION)$(DYNAMIC_EXTENSION)
-	ln -s $(LIBNAME).$(DYNAMIC_FULL_VERSION)$(DYNAMIC_EXTENSION) $(DESTDIR)$(INSTALL_LIBDIR)/$(LIBNAME).$(DYNAMIC_ABI_VERSION)$(DYNAMIC_EXTENSION)
-	ln -s $(LIBNAME).$(DYNAMIC_FULL_VERSION)$(DYNAMIC_EXTENSION) $(DESTDIR)$(INSTALL_LIBDIR)/$(LIBNAME)$(DYNAMIC_EXTENSION)
-	cp $(VAMP_TARGET) $(DESTDIR)$(INSTALL_VAMPDIR)
-	cp vamp/vamp-rubberband.cat $(DESTDIR)$(INSTALL_VAMPDIR)
-	cp $(LADSPA_TARGET) $(DESTDIR)$(INSTALL_LADSPADIR)
-	cp ladspa/ladspa-rubberband.cat $(DESTDIR)$(INSTALL_LADSPADIR)
-	cp ladspa/ladspa-rubberband.rdf $(DESTDIR)$(INSTALL_LRDFDIR)
-	sed "s,%PREFIX%,$(PREFIX)," rubberband.pc.in \
-	  > $(DESTDIR)$(INSTALL_PKGDIR)/rubberband.pc
-
 clean:
-	rm -f $(LIBRARY_OBJECTS) $(PROGRAM_OBJECTS) $(LADSPA_OBJECTS) $(VAMP_OBJECTS)
+	rm -f $(LIBRARY_OBJECTS)
 
 distclean:	clean
-	rm -f $(PROGRAM_TARGET) $(STATIC_TARGET) $(DYNAMIC_TARGET) $(VAMP_TARGET) $(LADSPA_TARGET)
+	rm -f $(STATIC_TARGET)
 
 depend:
-	makedepend -f Makefile.osx -Y $(LIBRARY_SOURCES) $(PROGRAM_SOURCES)
+	makedepend -f otherbuilds/Makefile.macos-universal -Y $(LIBRARY_SOURCES) $(PROGRAM_SOURCES)
 
 
 # DO NOT DELETE
