@@ -17,6 +17,7 @@ tasks:
   - build: |
       cd rubberband
       ninja -C build
+      ./otherbuilds/check.sh
 triggers:
   - action: email
     condition: always

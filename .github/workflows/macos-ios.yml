@@ -21,4 +21,7 @@ jobs:
       run: ninja -C build_macos
     - name: make ios
       run: ninja -C build_ios
+    - name: check otherbuilds
+      run: otherbuilds/check.sh
+
 
