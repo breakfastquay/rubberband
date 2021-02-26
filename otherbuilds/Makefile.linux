@@ -10,18 +10,16 @@ CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -DHAVE_LIBSAMPLERATE
 
 CFLAGS		:= $(ARCHFLAGS) $(OPTFLAGS)
 
-AR			:= ar
-MKDIR			:= mkdir
+AR		:= ar
+MKDIR		:= mkdir -p
 
-LIBNAME			:= librubberband
+LIBNAME		:= librubberband
 
-STATIC_TARGET  		:= lib/$(LIBNAME).a
+STATIC_TARGET  	:= lib/$(LIBNAME).a
 
-default:	$(STATIC_TARGET)
-
-all:		$(STATIC_TARGET)
-
-static:		$(STATIC_TARGET)
+default:	lib $(STATIC_TARGET)
+all:		lib $(STATIC_TARGET)
+static:		lib $(STATIC_TARGET)
 
 PUBLIC_INCLUDES := \
 	rubberband/rubberband-c.h \

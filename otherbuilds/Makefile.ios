@@ -20,7 +20,7 @@ CFLAGS_SIM	:= $(ARCHFLAGS_SIM) $(OPTFLAGS)
 
 AR			:= ar
 LIPO			:= lipo
-MKDIR			:= mkdir
+MKDIR			:= mkdir -p
 
 LIBNAME			:= librubberband
 
@@ -29,9 +29,7 @@ STATIC_TARGET_DEV	:= lib/$(LIBNAME).dev.a
 STATIC_TARGET_SIM	:= lib/$(LIBNAME).sim.a
 
 default:	lib $(STATIC_TARGET)
-
 all:		lib $(STATIC_TARGET)
-
 static:		lib $(STATIC_TARGET)
 
 PUBLIC_INCLUDES := \

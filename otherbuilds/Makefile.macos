@@ -10,17 +10,15 @@ CXXFLAGS	:= $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -I/usr/local/include
 
 CFLAGS		:= $(ARCHFLAGS) $(OPTFLAGS)
 
-AR			:= ar
-MKDIR			:= mkdir
+AR		:= ar
+MKDIR		:= mkdir -p
 
-LIBNAME			:= librubberband
+LIBNAME		:= librubberband
 
-STATIC_TARGET  		:= lib/$(LIBNAME).a
+STATIC_TARGET  	:= lib/$(LIBNAME).a
 
 default:	lib $(STATIC_TARGET)
-
 all:		lib $(STATIC_TARGET)
-
 static:		lib $(STATIC_TARGET)
 
 PUBLIC_INCLUDES := \
