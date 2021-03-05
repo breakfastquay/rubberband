@@ -152,10 +152,10 @@ elif fft == 'fftw'
     pkgconfig_requirements += fftw3_dep
   else 
     fftw_dep = cpp.find_library('fftw3',
-				dirs: get_option('extra_lib_dirs'),
-				has_headers: ['fftw3.h'],
-				header_args: extra_include_args,
-				required: true)
+                                dirs: get_option('extra_lib_dirs'),
+                                has_headers: ['fftw3.h'],
+                                header_args: extra_include_args,
+                                required: true)
   endif
   feature_dependencies += fftw3_dep
   feature_defines += ['-DHAVE_FFTW3', '-DFFTW_DOUBLE_ONLY']
@@ -188,10 +188,10 @@ if resampler == 'libsamplerate'
     pkgconfig_requirements += samplerate_dep
   else 
     samplerate_dep = cpp.find_library('samplerate',
-				      dirs: get_option('extra_lib_dirs'),
-				      has_headers: ['samplerate.h'],
-				      header_args: extra_include_args,
-				      required: true)
+                                      dirs: get_option('extra_lib_dirs'),
+                                      has_headers: ['samplerate.h'],
+                                      header_args: extra_include_args,
+                                      required: true)
   endif
   feature_dependencies += samplerate_dep
   feature_defines += ['-DHAVE_LIBSAMPLERATE']
@@ -253,32 +253,32 @@ endif # ipp_needed
 
 if not vamp_dep.found()
   vamp_dep = cpp.find_library('VampPluginSDK',
-			      dirs: get_option('extra_lib_dirs'),
-			      has_headers: ['vamp-sdk.h'],
-			      header_args: extra_include_args,
-			      required: false)
+                              dirs: get_option('extra_lib_dirs'),
+                              has_headers: ['vamp-sdk.h'],
+                              header_args: extra_include_args,
+                              required: false)
   if not vamp_dep.found()
     vamp_dep = cpp.find_library('vamp-sdk',
-				dirs: get_option('extra_lib_dirs'),
-				has_headers: ['vamp-sdk.h'],
-				header_args: extra_include_args,
-				required: false)
+                                dirs: get_option('extra_lib_dirs'),
+                                has_headers: ['vamp-sdk.h'],
+                                header_args: extra_include_args,
+                                required: false)
   endif
 endif
 have_vamp = vamp_dep.found()
 
 if not sndfile_dep.found()
   sndfile_dep = cpp.find_library('sndfile',
-				 dirs: get_option('extra_lib_dirs'),
-				 has_headers: ['sndfile.h'],
-				 header_args: extra_include_args,
-				 required: false)
+                                 dirs: get_option('extra_lib_dirs'),
+                                 has_headers: ['sndfile.h'],
+                                 header_args: extra_include_args,
+                                 required: false)
   if not sndfile_dep.found()
     sndfile_dep = cpp.find_library('sndfile-1',
-    				   dirs: get_option('extra_lib_dirs'),
-				   has_headers: ['sndfile.h'],
-				   header_args: extra_include_args,
-				   required: false)
+                                   dirs: get_option('extra_lib_dirs'),
+                                   has_headers: ['sndfile.h'],
+                                   header_args: extra_include_args,
+                                   required: false)
   endif
 endif
 have_sndfile = sndfile_dep.found()
@@ -529,5 +529,5 @@ summary({'prefix': get_option('prefix'),
         }, section: 'Directories')
 
 summary(config_summary + { 'Architecture': architecture },
-	section: 'Configuration', bool_yn: true)
+        section: 'Configuration', bool_yn: true)
 summary(target_summary, section: 'Build targets', bool_yn: true)
