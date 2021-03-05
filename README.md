@@ -138,7 +138,7 @@ documented separately from the C++ header.  You should include only
 one of the two headers, not both.
 
 A .NET interface is also included, contributed by Jonathan Gilbert;
-see the files in the `rubberband-sharp/` directory for details.
+see the files in the `dotnet` directory for details.
 
 The source code for the command-line utility (`main/main.cpp`)
 provides a good example of how to use Rubber Band in offline mode; the
