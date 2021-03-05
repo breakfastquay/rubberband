@@ -54,6 +54,7 @@ using RubberBand::gettimeofday;
 
 #ifdef _MSC_VER
 using RubberBand::usleep;
+#define strdup _strdup
 #endif
 
 double tempo_convert(const char *str)

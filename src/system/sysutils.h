@@ -24,13 +24,6 @@
 #ifndef RUBBERBAND_SYSUTILS_H
 #define RUBBERBAND_SYSUTILS_H
 
-#ifdef _MSC_VER
-#  if _MSC_VER < 1800
-#    include "float_cast/float_cast.h"
-#  endif
-#  define R__ __restrict
-#endif 
-
 #ifdef __clang__
 #  define R__ __restrict__
 #else
@@ -38,6 +31,15 @@
 #    define R__ __restrict__
 #  endif
 #endif
+
+#ifdef _MSC_VER
+#  if _MSC_VER < 1800
+#    include "float_cast/float_cast.h"
+#  endif
+#  ifndef R__
+#    define R__ __restrict
+#  endif
+#endif 
 
 #ifndef R__
 #  define R__

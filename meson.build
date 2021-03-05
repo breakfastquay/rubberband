@@ -5,7 +5,9 @@ project(
   version: '1.9.0',
   license: 'GPL-2.0-or-later',
   default_options: [
-    'cpp_std=c++11',
+    # All Rubber Band code is actually C++98, but some compilers no
+    # longer support that
+    'cpp_std=c++14',
     'buildtype=release',
     'b_ndebug=if-release',
     'b_lundef=true',
@@ -271,6 +273,13 @@ if not sndfile_dep.found()
 				 has_headers: ['sndfile.h'],
 				 header_args: extra_include_args,
 				 required: false)
+  if not sndfile_dep.found()
+    sndfile_dep = cpp.find_library('sndfile-1',
+    				   dirs: get_option('extra_lib_dirs'),
+				   has_headers: ['sndfile.h'],
+				   header_args: extra_include_args,
+				   required: false)
+  endif
 endif
 have_sndfile = sndfile_dep.found()
 
@@ -323,8 +332,8 @@ if system == 'darwin'
   endif # end architecture
 
 elif system == 'windows'
+  feature_defines += ['-D_WIN32', '-DNOMINMAX', '-D_USE_MATH_DEFINES', '-DGETOPT_API=']
   if cpp.get_id() == 'msvc'
-    feature_defines += ['-DWIN32', '-D__MSVC__', '-DNOMINMAX', '-D_USE_MATH_DEFINES', '-DGETOPT_API=']
     ladspa_symbol_args += ['-EXPORT:ladspa_descriptor']
     vamp_symbol_args += ['-EXPORT:vampGetPluginDescriptor']
   endif
