@@ -307,7 +307,6 @@ if system == 'darwin'
 
   have_version_min = false
   foreach arg: get_option('cpp_args')
-    message('arg is ' + arg)
     if arg.contains('version-min')
       have_version_min = true
     endif
@@ -531,3 +530,12 @@ summary({'prefix': get_option('prefix'),
 summary(config_summary + { 'Architecture': architecture },
         section: 'Configuration', bool_yn: true)
 summary(target_summary, section: 'Build targets', bool_yn: true)
+
+if system == 'darwin'
+  foreach arg: get_option('cpp_args')
+    if arg.contains('iPhone')
+      summary({'Please note': 'You cannot legally distribute the Rubber Band Library\n             in an iOS app on the App Store, unless you have first obtained a\n             commercial licence.'}, section: '***')
+      break
+    endif
+  endforeach
+endif
