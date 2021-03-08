@@ -1,4 +1,24 @@
 
+Changes in Rubber Band v1.9.1
+
+ * Switch build system from Makefiles and Visual Studio project to
+   Meson/Ninja for all platforms. There are still Makefiles and VS
+   projects included in otherbuilds/ for those who wish to use them to
+   build the static library directly
+ * Make various fixes to improve sound quality when pitch-shifting
+   dynamically in real-time (requires libsamplerate)
+ * Fix floating-point exception when a very very long stretch factor
+   is presented
+ * Move the two directories that together provide the .NET interface
+   (rubberband-sharp and rubberband-dll) into their own subdir (dotnet)
+ * Ensure the library builds and runs correctly on ARM Mac (Apple
+   Silicon, M1), and also on Windows using the Visual C++ Clang
+   front-end
+
+The API is unchanged and the library is binary compatible with
+version 1.7.
+
+
 Changes in Rubber Band v1.9
 
  * Fix incorrect numbering of pitch speed/quality flags in the
