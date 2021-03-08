@@ -205,6 +205,8 @@ Vamp plugin headers so they can be found using `pkg-config`. Then
 $ meson build && ninja -C build
 ```
 
+See "FFT and resampler selection" below for further build options.
+
 Alternatively, if you only need the static library and prefer a
 Makefile, try
 
@@ -256,6 +258,8 @@ $ make -f otherbuilds/Makefile.macos-universal
 This produces only a static library, but it's a universal binary that
 is compatible with macOS 10.7 onwards on the Intel side.
 
+See "FFT and resampler selection" below for further build options.
+
 Note that you cannot legally distribute applications using Rubber Band
 in the Mac App Store, unless you have first obtained a commercial
 licence for the Rubber Band Library.  GPL code is not permitted in the
@@ -271,7 +275,7 @@ Ensure the Xcode command-line tools are installed, and
 $ meson build_ios --cross-file cross/ios.txt && ninja -C build
 ```
 
-The resulting outputs will be found in `build_ios/`
+The output files will be found in the `build_ios` directory.
 
 To build for the simulator,
 
@@ -279,7 +283,9 @@ To build for the simulator,
 $ meson build_sim --cross-file cross/ios-simulator.txt && ninja -C build
 ```
 
-The resulting outputs will be found in `build_sim/`.
+The output files will be found in the `build_sim` directory.
+
+See "FFT and resampler selection" below for further build options.
 
 Note that you cannot legally distribute applications using Rubber Band
 in the iOS App Store, unless you have a first obtained a commercial
@@ -290,22 +296,27 @@ commercial terms.
 
 ### 4d. Building on Windows
 
-A Visual Studio solution, targeted to VC 2015, with two projects is
-supplied. The `rubberband-library` project builds the Rubber Band
-static libraries only. The `rubberband-program` project builds the
-Rubber Band command-line tool (which requires the Rubber Band Library
-and libsndfile).
+The default build on Windows also uses Meson, so ensure Meson and
+Ninja are installed and available. Then, in a terminal window with the
+compiler tools available in the path (e.g. a Visual Studio
+command-line prompt for the relevant build architecture) run
 
-You will need to adjust the project settings so as to set the compile
-flags according to your preference for FFT and resampler
-implementation, and set the include path and library path
-appropriately.  The default is to use the bundled KissFFT and the
-Speex resampler.
+```
+> meson build
+> ninja -C build
+```
 
-If you prefer to add the Rubber Band Library files to an existing
-build project instead of using the supplied one, the files in `src/`
-(except for `RubberBandStretcherJNI.cpp`) and the API headers in
-`rubberband/` should be all you need.
+The output files will be found in the `build` directory.
+
+The Rubber Band code is compatible with both the traditional Visual
+C++ compiler (`cl`) and the Clang front-end (`clang`), and the build
+system will use whichever appears (first) in your path.
+
+See "FFT and resampler selection" below for further build options.
+
+Alternatively, if you only need the static library and prefer a Visual
+Studio project file, there is one targeted for VC 2015 in
+`otherbuilds\rubberband-library.vcxproj`.
 
 
 ### 4e. Building for Android and Java integration
