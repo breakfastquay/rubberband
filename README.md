@@ -189,6 +189,11 @@ For those who don't wish to use Meson, some alternative build files
 (Makefiles and Visual C++ projects) are included in the `otherbuilds`
 directory. These build only the static library.
 
+The Rubber Band Library is written entirely in C++ to the C++98
+standard. It is unlikely to make any difference (performance or
+otherwise) which C++ standard your compiler uses - as long as it's no
+older than C++98!
+
 If you are building this software using one of the bundled library
 options (Speex or KissFFT), please be sure to review the terms for
 those libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
