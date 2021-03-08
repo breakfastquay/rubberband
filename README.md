@@ -109,11 +109,15 @@ Rubber Band consists of:
 The Rubber Band command-line tool builds as bin/rubberband.  The basic
 incantation is
 
+```
   $ rubberband -t <timeratio> -p <pitchratio> <infile.wav> <outfile.wav>
+```
 
 For example,
 
+```
   $ rubberband -t 1.5 -p 2.0 test.wav output.wav
+```
 
 stretches the file test.wav to 50% longer than its original duration,
 shifts it up in pitch by one octave, and writes the output to output.wav.
@@ -193,16 +197,16 @@ applicable.
 
 ### 4a. Building on Linux
 
-For best results, and to make sure the command-line tool and plugins
-are built, first ensure libsamplerate, libsndfile, and the LADSPA and
-Vamp plugin headers are installed and can be found using
-`pkg-config`. Then
+For best results, and to ensure the command-line tool and plugins are
+built, first install libsamplerate, libsndfile, and the LADSPA and
+Vamp plugin headers so they can be found using `pkg-config`. Then
 
 ```
 $ meson build && ninja -C build
 ```
 
-If you only need the static library and prefer a Makefile, try
+Alternatively, if you only need the static library and prefer a
+Makefile, try
 
 ```
 $ make -f otherbuilds/Makefile.linux
@@ -249,8 +253,8 @@ handles this explicitly is also provided:
 $ make -f otherbuilds/Makefile.macos-universal
 ```
 
-This produces only a static library, but as a universal binary that is
-compatible with macOS 10.7 onwards on Intel.
+This produces only a static library, but it's a universal binary that
+is compatible with macOS 10.7 onwards on the Intel side.
 
 Note that you cannot legally distribute applications using Rubber Band
 in the Mac App Store, unless you have first obtained a commercial
