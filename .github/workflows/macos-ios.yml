@@ -2,9 +2,7 @@ name: macOS and iOS CI
 
 on:
   push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
 
 jobs:
   build:
@@ -14,9 +12,16 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: deps
-      run: brew install libsndfile vamp-plugin-sdk
+      run: brew install libsndfile libsamplerate vamp-plugin-sdk meson ninja
+    - name: configure macos
+      run: meson build_macos
+    - name: configure ios
+      run: meson build_ios --cross-file cross/ios.txt
     - name: make macos
-      run: make -f Makefile.macos clean library program vamp
+      run: ninja -C build_macos
     - name: make ios
-      run: make -f Makefile.ios clean all
+      run: ninja -C build_ios
+    - name: check otherbuilds
+      run: otherbuilds/check.sh
+
 

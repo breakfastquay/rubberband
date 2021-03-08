@@ -1,4 +1,4 @@
-image: ubuntu/18.04
+image: ubuntu/20.04
 packages:
   - pkg-config
   - libsamplerate0-dev
@@ -6,15 +6,18 @@ packages:
   - libfftw3-dev
   - ladspa-sdk
   - vamp-plugin-sdk
+  - meson
+  - ninja-build
 sources:
   - hg+https://hg.sr.ht/~breakfastquay/rubberband
 tasks:
   - setup: |
       cd rubberband
-      ./configure
+      meson build
   - build: |
       cd rubberband
-      make
+      ninja -C build
+      ./otherbuilds/check.sh
 triggers:
   - action: email
     condition: always

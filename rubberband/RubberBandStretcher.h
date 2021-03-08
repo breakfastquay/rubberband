@@ -28,6 +28,13 @@
 #define RUBBERBAND_API_MAJOR_VERSION 2
 #define RUBBERBAND_API_MINOR_VERSION 6
 
+#undef RUBBERBAND_DLLEXPORT
+#ifdef _MSC_VER
+#define RUBBERBAND_DLLEXPORT __declspec(dllexport)
+#else
+#define RUBBERBAND_DLLEXPORT
+#endif
+
 #include <vector>
 #include <map>
 #include <cstddef>
@@ -60,7 +67,8 @@
 namespace RubberBand
 {
 
-class RubberBandStretcher
+class RUBBERBAND_DLLEXPORT
+RubberBandStretcher
 {
 public:
     /**
