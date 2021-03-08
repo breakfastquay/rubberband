@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2020 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -21,12 +21,19 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBANDSTRETCHER_H_
-#define _RUBBERBANDSTRETCHER_H_
+#ifndef RUBBERBAND_STRETCHER_H
+#define RUBBERBAND_STRETCHER_H
     
 #define RUBBERBAND_VERSION "1.9.0"
 #define RUBBERBAND_API_MAJOR_VERSION 2
 #define RUBBERBAND_API_MINOR_VERSION 6
+
+#undef RUBBERBAND_DLLEXPORT
+#ifdef _MSC_VER
+#define RUBBERBAND_DLLEXPORT __declspec(dllexport)
+#else
+#define RUBBERBAND_DLLEXPORT
+#endif
 
 #include <vector>
 #include <map>
@@ -60,7 +67,8 @@
 namespace RubberBand
 {
 
-class RubberBandStretcher
+class RUBBERBAND_DLLEXPORT
+RubberBandStretcher
 {
 public:
     /**
@@ -310,7 +318,7 @@ public:
         OptionPitchHighConsistency = 0x04000000,
 
         OptionChannelsApart        = 0x00000000,
-        OptionChannelsTogether     = 0x10000000,
+        OptionChannelsTogether     = 0x10000000
 
         // n.b. Options is int, so we must stop before 0x80000000
     };

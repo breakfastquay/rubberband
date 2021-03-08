@@ -1,7 +1,8 @@
 
 CXX		:= clang++
 CC		:= clang
-OPTFLAGS	:= -ffast-math -freciprocal-math -O3 -ftree-vectorize 
+
+OPTFLAGS	:= -DNDEBUG -ffast-math -freciprocal-math -O3 -ftree-vectorize 
 
 # For the device
 ARCHFLAGS_DEV	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch armv7 -arch arm64 -fembed-bitcode
@@ -19,7 +20,7 @@ CFLAGS_SIM	:= $(ARCHFLAGS_SIM) $(OPTFLAGS)
 
 AR			:= ar
 LIPO			:= lipo
-MKDIR			:= mkdir
+MKDIR			:= mkdir -p
 
 LIBNAME			:= librubberband
 
@@ -28,10 +29,8 @@ STATIC_TARGET_DEV	:= lib/$(LIBNAME).dev.a
 STATIC_TARGET_SIM	:= lib/$(LIBNAME).sim.a
 
 default:	lib $(STATIC_TARGET)
-
 all:		lib $(STATIC_TARGET)
-
-static:		$(STATIC_TARGET)
+static:		lib $(STATIC_TARGET)
 
 PUBLIC_INCLUDES := \
 	rubberband/rubberband-c.h \
@@ -137,9 +136,9 @@ distclean:	clean
 	rm -f $(STATIC_TARGET_DEV) $(STATIC_TARGET_SIM)
 
 depend:
-	touch Makefile.dev_depends Makefile.sim_depends
-	makedepend -f Makefile.dev_depends -o.dev.o -Y $(LIBRARY_SOURCES)
-	makedepend -f Makefile.sim_depends -o.sim.o -Y $(LIBRARY_SOURCES)
+	touch otherbuilds/Makefile.dev_depends otherbuilds/Makefile.sim_depends
+	makedepend -f otherbuilds/Makefile.dev_depends -o.dev.o -Y $(LIBRARY_SOURCES)
+	makedepend -f otherbuilds/Makefile.sim_depends -o.sim.o -Y $(LIBRARY_SOURCES)
 
--include Makefile.dev_depends
--include Makefile.sim_depends
+-include otherbuilds/Makefile.dev_depends
+-include otherbuilds/Makefile.sim_depends

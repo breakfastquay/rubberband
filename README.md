@@ -5,7 +5,7 @@ An audio time-stretching and pitch-shifting library and utility program.
 
 Written by Chris Cannam, chris.cannam@breakfastquay.com.
 Published by Particular Programs Ltd t/a Breakfast Quay.
-Copyright 2007-2020 Particular Programs Ltd.
+Copyright 2007-2021 Particular Programs Ltd.
 
 Rubber Band is a library and utility program that permits changing the
 tempo and pitch of an audio recording independently of one another.
@@ -17,14 +17,17 @@ tempo and pitch of an audio recording independently of one another.
 
 CI builds:
 
-* [![Build Status](https://travis-ci.org/breakfastquay/rubberband.svg?branch=master)](https://travis-ci.org/breakfastquay/rubberband) (Linux, macOS, iOS)
+* [![Build status](https://builds.sr.ht/~breakfastquay/rubberband.svg)](https://builds.sr.ht/~breakfastquay/rubberband?) (Linux)
+* [![Build Status](https://github.com/breakfastquay/rubberband/workflows/macOS%20and%20iOS%20CI/badge.svg)](https://github.com/breakfastquay/rubberband/actions?query=workflow%3A%22macOS+and+iOS+CI%22) (macOS, iOS)
 * [![Build Status](https://ci.appveyor.com/api/projects/status/hhhhpf718jwhpyf6?svg=true)](https://ci.appveyor.com/project/breakfastquay/rubberband) (Windows)
 
 
 ## Licence
 
-Rubber Band is distributed under the GNU General Public License. See
-the file COPYING for more information.
+Rubber Band Library is distributed under the GNU General Public
+License (GPL). You can redistribute it and/or modify it under the
+terms of the GPL; either version 2 of the License, or (at your option)
+any later version. See the file COPYING for more information.
 
 If you wish to distribute code using the Rubber Band Library under
 terms other than those of the GNU General Public License, you must
@@ -40,9 +43,9 @@ that licence. Please refer to your licence agreement for more details.
 
 Rubber Band includes a .NET interface generously contributed by
 Jonathan Gilbert under a BSD-like licence. The files in the
-rubberband-dll and rubberband-sharp directories fall under this
-licence. If you make use of this interface, please ensure you comply
-with the terms of its licence.
+dotnet/rubberband-dll and dotnet/rubberband-sharp directories fall
+under this licence. If you make use of this interface, please ensure
+you comply with the terms of its licence.
 
 Rubber Band may link with other libraries or be compiled with other
 source code, depending on its build configuration. It is your
@@ -67,13 +70,13 @@ our knowledge. See also the end of this README for detailed terms.
 2. Using the Rubber Band command-line tool
 3. Using the Rubber Band Library
 4. Compiling Rubber Band
-   a. FFT and resampler selection
-   b. Other supported #defines
-   c. Building on Linux
-   d. Building on macOS
-   e. Building for iOS
-   f. Building on Windows with Visual C++
-   g. Building for Android and Java integration
+    a. Building on Linux
+    b. Building on macOS
+    c. Building for iOS
+    d. Building on Windows
+    e. Building for Android and Java integration
+    f. FFT and resampler selection
+    g. Other supported #defines
 5. Copyright notes for bundled libraries
 
 
@@ -106,11 +109,15 @@ Rubber Band consists of:
 The Rubber Band command-line tool builds as bin/rubberband.  The basic
 incantation is
 
+```
   $ rubberband -t <timeratio> -p <pitchratio> <infile.wav> <outfile.wav>
+```
 
 For example,
 
+```
   $ rubberband -t 1.5 -p 2.0 test.wav output.wav
+```
 
 stretches the file test.wav to 50% longer than its original duration,
 shifts it up in pitch by one octave, and writes the output to output.wav.
@@ -135,7 +142,7 @@ documented separately from the C++ header.  You should include only
 one of the two headers, not both.
 
 A .NET interface is also included, contributed by Jonathan Gilbert;
-see the files in the `rubberband-sharp/` directory for details.
+see the files in the `dotnet` directory for details.
 
 The source code for the command-line utility (`main/main.cpp`)
 provides a good example of how to use Rubber Band in offline mode; the
@@ -153,19 +160,199 @@ acquired a commercial licence from the author.
 
 ## 4. Compiling the Rubber Band Library
 
-### 4a. FFT and resampler selection
+The primary supported build system for the Rubber Band Library on all
+platforms is Meson (https://mesonbuild.com). To build, ensure Meson
+and Ninja are installed and run:
+
+```
+$ meson build && ninja -C build
+```
+
+This checks for necessary dependencies, reports what it finds, and if
+all is well, builds the code into a subdirectory called `build`. It
+will build everything it can find the requisite dependencies for:
+static and dynamic libraries, LADSPA and Vamp plugins, and
+command-line utility.
+
+Some configuration options are provided, described in the
+`meson_options.txt` file. To set one of these, add a `-D` option to
+Meson:
+
+```
+$ meson build -Dipp_path=/opt/intel/ipp
+```
+
+The options are documented in the library- and platform-specific
+sections below.
+
+For those who don't wish to use Meson, some alternative build files
+(Makefiles and Visual C++ projects) are included in the `otherbuilds`
+directory. These build only the static library.
+
+The Rubber Band Library is written entirely in C++ to the C++98
+standard. It is unlikely to make any difference (performance or
+otherwise) which C++ standard your compiler uses - as long as it's no
+older than C++98!
+
+If you are building this software using one of the bundled library
+options (Speex or KissFFT), please be sure to review the terms for
+those libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
+applicable.
+
+
+### 4a. Building on Linux
+
+For best results, and to ensure the command-line tool and plugins are
+built, first install libsamplerate, libsndfile, and the LADSPA and
+Vamp plugin headers so they can be found using `pkg-config`. Then
+
+```
+$ meson build && ninja -C build
+```
+
+See "FFT and resampler selection" below for further build options.
+
+Alternatively, if you only need the static library and prefer a
+Makefile, try
+
+```
+$ make -f otherbuilds/Makefile.linux
+```
+
+
+### 4b. Building on macOS
+
+Ensure the Xcode command-line tools are installed, and ideally also
+install libsamplerate and libsndfile.
+
+To build for the native architecture of the build machine:
+
+```
+$ meson build && ninja -C build
+```
+
+To build for Intel (x86_64) regardless of the native architecture:
+
+```
+$ meson build --cross-file cross/macos-x86_64.txt && ninja -C build
+```
+
+To build for Apple Silicon (arm64) regardless of the native
+architecture:
+
+```
+$ meson build --cross-file cross/macos-arm64.txt && ninja -C build
+```
+
+You can build a universal binary library for both architectures like
+this:
+
+```
+$ meson build --cross-file cross/macos-universal.txt && ninja -C build
+```
+
+However, the resulting binary will be marked as loadable on macOS 11+
+only, even for Intel, which is probably not what you want (ideally the
+Intel slice would support older versions of the OS). A Makefile that
+handles this explicitly is also provided:
+
+```
+$ make -f otherbuilds/Makefile.macos-universal
+```
+
+This produces only a static library, but it's a universal binary that
+is compatible with macOS 10.7 onwards on the Intel side.
+
+See "FFT and resampler selection" below for further build options.
+
+Note that you cannot legally distribute applications using Rubber Band
+in the Mac App Store, unless you have first obtained a commercial
+licence for the Rubber Band Library.  GPL code is not permitted in the
+app store.  See https://breakfastquay.com/technology/license.html for
+commercial terms.
+
+
+### 4c. Building for iOS
+
+Ensure the Xcode command-line tools are installed, and
+
+```
+$ meson build_ios --cross-file cross/ios.txt && ninja -C build
+```
+
+The output files will be found in the `build_ios` directory.
+
+To build for the simulator,
+
+```
+$ meson build_sim --cross-file cross/ios-simulator.txt && ninja -C build
+```
+
+The output files will be found in the `build_sim` directory.
+
+See "FFT and resampler selection" below for further build options.
+
+Note that you cannot legally distribute applications using Rubber Band
+in the iOS App Store, unless you have a first obtained a commercial
+licence for the Rubber Band Library. GPL code is not permitted in the
+app store.  See https://breakfastquay.com/technology/license.html for
+commercial terms.
+
+
+### 4d. Building on Windows
+
+The default build on Windows also uses Meson, so ensure Meson and
+Ninja are installed and available. Then, in a terminal window with the
+compiler tools available in the path (e.g. a Visual Studio
+command-line prompt for the relevant build architecture) run
+
+```
+> meson build
+> ninja -C build
+```
+
+The output files will be found in the `build` directory.
+
+The Rubber Band code is compatible with both the traditional Visual
+C++ compiler (`cl`) and the Clang front-end (`clang`), and the build
+system will use whichever appears (first) in your path.
+
+See "FFT and resampler selection" below for further build options.
+
+Alternatively, if you only need the static library and prefer a Visual
+Studio project file, there is one targeted for VC 2015 in
+`otherbuilds\rubberband-library.vcxproj`.
+
+
+### 4e. Building for Android and Java integration
+
+Currently only a very old Android NDK build file is provided, as
+`otherbuilds/Android.mk`. This includes compile definitions for a
+shared library built for ARM architectures which can be loaded from a
+Java application using the Java native interface (i.e. the Android
+NDK).
+
+The Java side of the interface can be found in
+`com/breakfastquay/rubberband/RubberBandStretcher.java`.
+
+See
+https://hg.sr.ht/~breakfastquay/rubberband-android-simple-sample
+for a very trivial example of integration with Android Java code.
+
+The supplied `.mk` file uses KissFFT and the Speex resampler.
+
+
+### 4f. FFT and resampler selection
 
 Rubber Band requires additional library code for FFT calculation and
 resampling.  Several libraries are supported.  The selection is
-controlled using preprocessor flags at compile time, as detailed in
-the tables below.
+controlled (in Meson) using `-D` options and (in the code itself)
+using preprocessor flags set by the build system. These options and
+flags are detailed in the tables below.
 
-Flags that declare that you want to use an external library begin with
-`HAVE_`; flags that select from the bundled options begin with `USE_`.
-
-You must enable one resampler implementation and one FFT
-implementation.  Do not enable more than one of either unless you know
-what you're doing.
+At least one resampler implementation and one FFT implementation must
+be enabled. It is technically possible to enable more than one, but
+it's confusing and not often useful.
 
 If you are building this software using one of the bundled library
 options (Speex or KissFFT), please be sure to review the terms for
@@ -175,44 +362,42 @@ applicable.
 #### FFT libraries supported
 
 ```
-Name           Flags required        Notes
-----           --------------        -----   
+Library     Build option    CPP define     Notes
+----        ------------    ----------     -----
 
-FFTW3          -DHAVE_FFTW3          GPL.
+KissFFT     -Dfft=kissfft   -DUSE_KISSFFT  Default except on macOS/iOS.
+                                           Bundled, can be distributed with
+                                           either the Rubber Band GPL or
+                                           commercial licence.
 
-Accelerate     -DHAVE_VDSP           Platform library on macOS and iOS.
+Accelerate  -Dfft=vdsp      -DHAVE_VDSP    Default on macOS/iOS.
+                                           Best option on these platforms.
 
-Intel IPP      -DHAVE_IPP            Proprietary library, can only be used with
-                                     Rubber Band commercial licence. Define
-                                     USE_IPP_STATIC as well to build with static
-                                     IPP libraries.
+FFTW3       -Dfft=fftw      -DHAVE_FFTW3   GPL.
 
-KissFFT        -DUSE_KISSFFT         Bundled, can be distributed with either the
-                                     Rubber Band GPL or commercial licence.
-                                     Single-precision. Slower than the above
-                                     options.
+Intel IPP   -Dfft=ipp       -DHAVE_IPP     Proprietary, can only be used with
+                                           Rubber Band commercial licence.
 ```
 
 #### Resampler libraries supported
 
 ```
-Name           Flags required        Notes
-----           --------------        -----   
+Library     Build option    CPP define     Notes
+----        ------------    ----------     -----
 
-libsamplerate  -DHAVE_LIBSAMPLERATE  GPL until v0.1.8, BSD for v0.1.9 and later.
-                                     This is the preferred choice in almost
-                                     all cases.
+libsamplerate               -DHAVE_LIBSAMPLERATE
+            -Dresampler=libsamplerate      Best choice in most cases.
 
-libresample    -DHAVE_LIBRESAMPLE    LGPL.
-
-Speex          -DUSE_SPEEX           Bundled, can be distributed with either the
-                                     Rubber Band GPL or commercial licence.
+Speex                       -DUSE_SPEEX
+            -Dresampler=speex              Bundled, can be distributed with
+	    				   either the Rubber Band GPL or
+					   commercial licence.
 ```
 
-### 4b. Other supported #defines
+### 4g. Other supported #defines
 
-Other symbols you may define at compile time are as follows. (Usually
-the supplied build files will handle these for you.)
+Other known preprocessor symbols are as follows. (Usually the supplied
+build files will handle these for you.)
 
     -DLACK_BAD_ALLOC
     Define on systems lacking std::bad_alloc in the C++ library.
@@ -245,125 +430,6 @@ the supplied build files will handle these for you.)
     NEON or x86 SSE architectures. These are usually faster but may be
     of lower precision than system implementations. Consider using this
     for mobile architectures.
-
-
-### 4c. Building on Linux
-
-A GNU-style configure script is included for use on Linux and similar
-systems.
-
-Run `./configure`, then adjust the generated Makefile according to
-your preference for FFT and resampler implementations.  The default is
-to use FFTW3 and libsamplerate.
-
-The following Makefile targets are available:
-
-    static  -- build static libraries only
-    dynamic -- build dynamic libraries only
-    library -- build static and dynamic libraries only
-    program -- build the command-line tool
-    vamp    -- build Vamp plugin
-    ladspa  -- build LADSPA plugin
-    all     -- build everything.
-
-The default target is "all".
-
-
-### 4d. Building on macOS
-
-A Makefile for macOS is provided as `Makefile.osx`.
-
-Adjust the Makefile according to your preference for compiler and
-platform SDK, FFT and resampler implementations.  The default is to
-use the Accelerate framework and the Speex resampler.  Then run
-e.g. `make -f Makefile.osx library` in a terminal window to build.
-You will need the Xcode command-line tools installed.
-
-(You probably don't want to use the configure script on macOS -- just
-use `Makefile.osx` directly.)
-
-The following Makefile targets are available:
-
-    static  -- build static libraries only
-    dynamic -- build dynamic libraries only
-    library -- build static and dynamic libraries only
-    program -- build the command-line tool
-    vamp    -- build Vamp plugin
-    ladspa  -- build LADSPA plugin
-    all     -- build everything.
-
-The default target is to build the static and dynamic libraries and
-the command line tool.  The sndfile library is required for the
-command line tool.
-
-If you prefer to add the Rubber Band Library files to an existing
-build project instead of using the Makefile, the files in `src/`
-(except for `RubberBandStretcherJNI.cpp`) and the API headers in
-`rubberband/` should be all you need.
-
-Note that you cannot legally distribute applications using Rubber Band
-in the Mac App Store, unless you have first obtained a commercial
-licence for the Rubber Band Library.  GPL code is not permitted in the
-app store.  See https://breakfastquay.com/technology/license.html for
-commercial terms.
-
-
-### 4e. Building for iOS
-
-A Makefile for iOS is provided as `Makefile.ios`.  It produces a
-single static library containing both simulator and device binaries,
-in both 32- and 64-bit architectures.
-
-Run e.g. `make -f Makefile.ios` in a terminal window to build.  You
-will need the Xcode command-line tools installed.
-
-If you prefer to add the Rubber Band Library files to an existing
-build project instead of using the Makefile, the files in `src/`
-(except for `RubberBandStretcherJNI.cpp`) and the API headers in
-`rubberband/` should be all you need.
-
-Note that you cannot legally distribute applications using Rubber Band
-in the iOS App Store, unless you have a first obtained a commercial
-licence for the Rubber Band Library. GPL code is not permitted in the
-app store.  See https://breakfastquay.com/technology/license.html for
-commercial terms.
-
-
-### 4f. Building on Windows with Visual C++
-
-A Visual Studio solution, targeted to VC 2015, with two projects is
-supplied. The `rubberband-library` project builds the Rubber Band
-static libraries only. The `rubberband-program` project builds the
-Rubber Band command-line tool (which requires the Rubber Band Library
-and libsndfile).
-
-You will need to adjust the project settings so as to set the compile
-flags according to your preference for FFT and resampler
-implementation, and set the include path and library path
-appropriately.  The default is to use the bundled KissFFT and the
-Speex resampler.
-
-If you prefer to add the Rubber Band Library files to an existing
-build project instead of using the supplied one, the files in `src/`
-(except for `RubberBandStretcherJNI.cpp`) and the API headers in
-`rubberband/` should be all you need.
-
-
-### 4g. Building for Android and Java integration
-
-An Android NDK build file is provided as `Android.mk`. This includes
-compile definitions for a shared library built for ARM architectures
-which can be loaded from a Java application using the Java native
-interface (i.e. the Android NDK).
-
-The Java side of the interface can be found in
-`com/breakfastquay/rubberband/RubberBandStretcher.java`.
-
-See
-https://hg.sr.ht/~breakfastquay/rubberband-android-simple-sample
-for a very trivial example of integration with Android Java code.
-
-The supplied `.mk` file uses KissFFT and the Speex resampler.
 
 
 ## 5. Copyright notes for bundled libraries

@@ -1,0 +1,25 @@
+image: ubuntu/20.04
+packages:
+  - pkg-config
+  - libsamplerate0-dev
+  - libsndfile1-dev
+  - libfftw3-dev
+  - ladspa-sdk
+  - vamp-plugin-sdk
+  - meson
+  - ninja-build
+sources:
+  - hg+https://hg.sr.ht/~breakfastquay/rubberband
+tasks:
+  - setup: |
+      cd rubberband
+      meson build
+  - build: |
+      cd rubberband
+      ninja -C build
+      ./otherbuilds/check.sh
+triggers:
+  - action: email
+    condition: always
+    to: chris.cannam@breakfastquay.com
+    
