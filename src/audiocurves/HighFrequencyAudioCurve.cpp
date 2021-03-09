@@ -58,14 +58,14 @@ HighFrequencyAudioCurve::processFloat(const float *R__ mag, int)
 double
 HighFrequencyAudioCurve::processDouble(const double *R__ mag, int)
 {
-    float result = 0.0;
+    double result = 0.0;
 
     const int sz = m_lastPerceivedBin;
 
     for (int n = 0; n <= sz; ++n) {
         result = result + mag[n] * n;
     }
-
+    
     return result;
 }
 
