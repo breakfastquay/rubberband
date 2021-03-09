@@ -1851,7 +1851,7 @@ public:
                 dbuf[i] = realIn[i];
             }
         fftw_execute(m_dplanf);
-        v_convert(complexOut, (fft_double_type *)m_dpacked, sz + 2);
+        v_convert(complexOut, (const fft_double_type *)m_dpacked, sz + 2);
     }
 
     void forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut) {
@@ -1866,7 +1866,7 @@ public:
             }
         fftw_execute(m_dplanf);
         v_cartesian_interleaved_to_polar
-            (magOut, phaseOut, (fft_double_type *)m_dpacked, m_size/2+1);
+            (magOut, phaseOut, (const fft_double_type *)m_dpacked, m_size/2+1);
     }
 
     void forwardMagnitude(const double *R__ realIn, double *R__ magOut) {
@@ -1880,11 +1880,8 @@ public:
                 dbuf[i] = realIn[i];
             }
         fftw_execute(m_dplanf);
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrt(m_dpacked[i][0] * m_dpacked[i][0] +
-                             m_dpacked[i][1] * m_dpacked[i][1]);
-        }
+        v_cartesian_interleaved_to_magnitudes
+            (magOut, (const fft_double_type *)m_dpacked, m_size/2+1);
     }
 
     void forward(const float *R__ realIn, float *R__ realOut, float *R__ imagOut) {
@@ -1912,7 +1909,7 @@ public:
                 fbuf[i] = realIn[i];
             }
         fftwf_execute(m_fplanf);
-        v_convert(complexOut, (fft_float_type *)m_fpacked, sz + 2);
+        v_convert(complexOut, (const fft_float_type *)m_fpacked, sz + 2);
     }
 
     void forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut) {
@@ -1941,11 +1938,8 @@ public:
                 fbuf[i] = realIn[i];
             }
         fftwf_execute(m_fplanf);
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrtf(m_fpacked[i][0] * m_fpacked[i][0] +
-                              m_fpacked[i][1] * m_fpacked[i][1]);
-        }
+        v_cartesian_interleaved_to_magnitudes
+            (magOut, (const fft_float_type *)m_fpacked, m_size/2+1);
     }
 
     void inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ realOut) {
@@ -1978,14 +1972,8 @@ public:
 
     void inversePolar(const double *R__ magIn, const double *R__ phaseIn, double *R__ realOut) {
         if (!m_dplanf) initDouble();
-        const int hs = m_size/2;
-        fftw_complex *const R__ dpacked = m_dpacked;
-        for (int i = 0; i <= hs; ++i) {
-            dpacked[i][0] = magIn[i] * cos(phaseIn[i]);
-        }
-        for (int i = 0; i <= hs; ++i) {
-            dpacked[i][1] = magIn[i] * sin(phaseIn[i]);
-        }
+        v_polar_to_cartesian_interleaved
+            ((fft_double_type *)m_dpacked, magIn, phaseIn, m_size/2+1);
         fftw_execute(m_dplani);
         const int sz = m_size;
         fft_double_type *const R__ dbuf = m_dbuf;
@@ -2048,14 +2036,8 @@ public:
 
     void inversePolar(const float *R__ magIn, const float *R__ phaseIn, float *R__ realOut) {
         if (!m_fplanf) initFloat();
-        const int hs = m_size/2;
-        fftwf_complex *const R__ fpacked = m_fpacked;
-        for (int i = 0; i <= hs; ++i) {
-            fpacked[i][0] = magIn[i] * cosf(phaseIn[i]);
-        }
-        for (int i = 0; i <= hs; ++i) {
-            fpacked[i][1] = magIn[i] * sinf(phaseIn[i]);
-        }
+        v_polar_to_cartesian_interleaved
+            ((fft_float_type *)m_fpacked, magIn, phaseIn, m_size/2+1);
         fftwf_execute(m_fplani);
         const int sz = m_size;
         fft_float_type *const R__ fbuf = m_fbuf;
