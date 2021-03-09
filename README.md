@@ -225,23 +225,26 @@ $ make -f otherbuilds/Makefile.linux
 Ensure the Xcode command-line tools are installed, and ideally also
 install libsamplerate and libsndfile.
 
-To build for the native architecture of the build machine:
+To build for the default architecture:
 
 ```
 $ meson build && ninja -C build
 ```
 
-To build for Intel (x86_64) regardless of the native architecture:
+Which architecture is the default may depend on the version of Meson
+and/or the current shell. To force a particular architecture you can
+use a Meson cross-file, as follows.
 
-```
-$ meson build --cross-file cross/macos-x86_64.txt && ninja -C build
-```
-
-To build for Apple Silicon (arm64) regardless of the native
-architecture:
+To build for Apple Silicon (arm64):
 
 ```
 $ meson build --cross-file cross/macos-arm64.txt && ninja -C build
+```
+
+To build for Intel (x86_64):
+
+```
+$ meson build --cross-file cross/macos-x86_64.txt && ninja -C build
 ```
 
 You can build a universal binary library for both architectures like
