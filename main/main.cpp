@@ -628,8 +628,16 @@ int main(int argc, char **argv)
         }
     }
 
+    delete[] fbuf;
+
+    for (size_t i = 0; i < channels; ++i) delete[] ibuf[i];
+    delete[] ibuf;
+
     sf_close(sndfile);
     sf_close(sndfileOut);
+
+    free(fileName);
+    free(fileNameOut);
 
     if (!quiet) {
 
@@ -656,7 +664,7 @@ int main(int argc, char **argv)
     }
 
     RubberBand::Profiler::dump();
-
+    
     return 0;
 }
 
