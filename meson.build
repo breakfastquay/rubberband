@@ -419,6 +419,13 @@ else
   message('Not building Rubber Band Library dynamic library: no_shared option set')
 endif
 
+install_headers(
+  [ 'rubberband/RubberBandStretcher.h',
+    'rubberband/rubberband-c.h'
+  ],
+  subdir: 'rubberband'
+)
+
 if have_ladspa
   target_summary += { 'LADSPA plugin': [ true, 'Name: ' + rubberband_ladspa_name ] }
   message('Will build LADSPA plugin')
