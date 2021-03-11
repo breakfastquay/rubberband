@@ -23,6 +23,8 @@
 
 #include "Profiler.h"
 
+#include "system/Thread.h"
+
 #include <algorithm>
 #include <set>
 #include <string>
@@ -45,9 +47,13 @@ Profiler::m_profiles;
 Profiler::WorstCallMap
 Profiler::m_worstCalls;
 
+static Mutex profileMutex;
+
 void
 Profiler::add(const char *id, float ms)
 {
+    profileMutex.lock();
+    
     ProfileMap::iterator pmi = m_profiles.find(id);
     if (pmi != m_profiles.end()) {
         ++pmi->second.first;
@@ -62,6 +68,8 @@ Profiler::add(const char *id, float ms)
     } else {
         m_worstCalls[id] = ms;
     }
+
+    profileMutex.unlock();
 }
 
 void
@@ -74,6 +82,8 @@ Profiler::dump()
 std::string
 Profiler::getReport()
 {
+    profileMutex.lock();
+    
     static const int buflen = 256;
     char buffer[buflen];
     std::string report;
@@ -167,6 +177,8 @@ Profiler::getReport()
         report += buffer;
     }
 
+    profileMutex.unlock();
+    
     return report;
 }
 
