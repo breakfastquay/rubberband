@@ -103,8 +103,8 @@ thread_dep = dependency('threads')
 have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
 have_jni = cpp.has_header('jni.h', args: extra_include_args)
 
-javac = find_program('javac')
-jar = find_program('jar')
+javac = find_program('javac', required: false)
+jar = find_program('jar', required: false)
 
 
 # Check FFT and resampler options and set up dependencies and paths
