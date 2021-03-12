@@ -320,6 +320,13 @@ The Rubber Band code is compatible with both the traditional Visual
 C++ compiler (`cl`) and the Clang front-end (`clang`), and the build
 system will use whichever appears (first) in your path.
 
+To build against a specific Visual C++ runtime, use the built-in Meson
+option `b_vscrt`:
+
+```
+> meson build -Db_vscrt=mt
+```
+
 See "FFT and resampler selection" below for further build options.
 
 Alternatively, if you only need the static library and prefer a Visual
