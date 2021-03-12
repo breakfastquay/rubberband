@@ -90,12 +90,21 @@ general_include_dirs = [
 
 # Scan for any dependencies we may use later; all are optional
 
+extra_include_args = []
+foreach d: get_option('extra_include_dirs')
+  extra_include_args += [ '-I' + d ]
+endforeach
+
 fftw3_dep = dependency('fftw3', version: '>= 3.0.0', required: false)
 samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
 sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
 thread_dep = dependency('threads')
-have_ladspa = cpp.has_header('ladspa.h')
+have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
+have_jni = cpp.has_header('jni.h', args: extra_include_args)
+
+javac = find_program('javac')
+jar = find_program('jar')
 
 
 # Check FFT and resampler options and set up dependencies and paths
@@ -130,11 +139,6 @@ if resampler == 'auto'
     resampler = 'speex'
   endif
 endif
-
-extra_include_args = []
-foreach d: get_option('extra_include_dirs')
-  extra_include_args += [ '-I' + d ]
-endforeach
 
 if fft == 'kissfft'
   config_summary += { 'FFT': 'KissFFT' }
@@ -362,6 +366,7 @@ if system == 'windows'
   rubberband_program_name = 'rubberband-program'
   rubberband_ladspa_name = 'ladspa-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
+  rubberband_jni_name = 'rubberband-jni'
   # Meson likes libxxx.a even on Windows, and so might we for a
   # new library, but not here
   platform_static_name_prefix = ''
@@ -372,13 +377,14 @@ else
   rubberband_program_name = 'rubberband'
   rubberband_ladspa_name = 'ladspa-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
+  rubberband_jni_name = 'rubberband-jni'
   platform_static_name_prefix = 'lib'
   platform_static_name_suffix = 'a'
 endif  
 
 
 # And the build targets: Static and dynamic libraries, command-line
-# utility, LADSPA plugin, Vamp plugin
+# utility, LADSPA plugin, Vamp plugin, JNI library
 
 message('Will build Rubber Band Library static library')
 target_summary += { 'Static library': [ true, 'Name: ' + rubberband_static_name ] }
@@ -417,6 +423,48 @@ if not get_option('no_shared')
 else
   target_summary += { 'Shared library': false }
   message('Not building Rubber Band Library dynamic library: no_shared option set')
+endif
+
+if have_jni and javac.found() and jar.found()
+  target_summary += { 'JNI library': [ true, 'Name: ' + rubberband_jni_name ] }
+  message('Will build Java Native Interface')
+  rubberband_jni = shared_library(
+    rubberband_jni_name,
+    jni_sources,
+    include_directories: general_include_dirs,
+    cpp_args: general_compile_args,
+    c_args: general_compile_args,
+    link_args: [
+      arch_flags,
+      feature_libraries,
+    ],
+    dependencies: [
+      rubberband_static_dep,
+      general_dependencies,
+    ],
+    # NB the JNI library is not versioned
+    install: true,
+  )
+  rubberband_class = custom_target(
+    'rubberband_class',
+    input: 'com/breakfastquay/rubberband/RubberBandStretcher.java',
+    output: 'RubberBandStretcher.class',
+    command: [ javac, '@INPUT@', '-d', '@OUTDIR@' ],
+  )
+  rubberband_jar = custom_target(
+    'rubberband_jar',
+    input: rubberband_class,
+    output: 'rubberband.jar',
+    command: [ jar, 'cvf', '@OUTPUT@', 'com/breakfastquay/rubberband/@INPUT@' ],
+    build_by_default: true,
+  )
+else
+  target_summary += { 'JNI library': false }
+  if not have_jni
+    message('Not building Java Native Interface: jni.h header not found')
+  else 
+    message('Not building Java Native Interface: Java compiler not found')
+  endif
 endif
 
 install_headers(
