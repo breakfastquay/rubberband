@@ -39,7 +39,7 @@ echo
 echo "Going ahead..."
 mkdir -p packages
 output="packages/rubberband-$version.tar.bz2"
-hg archive "$output"
+hg archive --exclude otherbuilds/deploy "$output"
 
 echo "Checking that the package compiles..."
 tmpdir=$(mktemp -d)
