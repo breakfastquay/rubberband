@@ -17,7 +17,7 @@ project(
 
 rubberband_dynamic_library_version = '2.1.3'
 
-system = build_machine.system()
+system = host_machine.system()
 architecture = host_machine.cpu_family()
 cpp = meson.get_compiler('cpp')
 
