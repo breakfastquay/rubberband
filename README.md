@@ -369,6 +369,9 @@ options (Speex or KissFFT), please be sure to review the terms for
 those libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
 applicable.
 
+If you are proposing to package Rubber Band for a Linux distribution,
+using other packaged libraries, please select FFTW and libsamplerate.
+
 #### FFT libraries supported
 
 ```
