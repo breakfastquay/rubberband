@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2020 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _RUBBERBAND_VECTOR_OPS_COMPLEX_H_
-#define _RUBBERBAND_VECTOR_OPS_COMPLEX_H_
+#ifndef RUBBERBAND_VECTOR_OPS_COMPLEX_H
+#define RUBBERBAND_VECTOR_OPS_COMPLEX_H
 
 #include "VectorOps.h"
 
@@ -245,6 +245,63 @@ void v_cartesian_to_polar_interleaved_inplace(T *const R__ srcdst,
         srcdst[i+1] = phase;
     }
 }
+
+template<typename S, typename T> // S source, T target
+void v_cartesian_to_magnitudes(T *const R__ mag,
+                               const S *const R__ real,
+                               const S *const R__ imag,
+                               const int count)
+{
+    for (int i = 0; i < count; ++i) {
+        mag[i] = T(sqrt(real[i] * real[i] + imag[i] * imag[i]));
+    }
+}
+
+template<typename S, typename T> // S source, T target
+void v_cartesian_interleaved_to_magnitudes(T *const R__ mag,
+                                           const S *const R__ src,
+                                           const int count)
+{
+    for (int i = 0; i < count; ++i) {
+        mag[i] = T(sqrt(src[i*2] * src[i*2] + src[i*2+1] * src[i*2+1]));
+    }
+}
+
+#ifdef HAVE_IPP
+template<>
+inline void v_cartesian_to_magnitudes(float *const R__ mag,
+                                      const float *const R__ real,
+                                      const float *const R__ imag,
+                                      const int count)
+{
+    ippsMagnitude_32f(real, imag, mag, count);
+}
+
+template<>
+inline void v_cartesian_to_magnitudes(double *const R__ mag,
+                                      const double *const R__ real,
+                                      const double *const R__ imag,
+                                      const int count)
+{
+    ippsMagnitude_64f(real, imag, mag, count);
+}
+
+template<>
+inline void v_cartesian_interleaved_to_magnitudes(float *const R__ mag,
+                                                  const float *const R__ src,
+                                                  const int count)
+{
+    ippsMagnitude_32fc((const Ipp32fc *)src, mag, count);
+}
+
+template<>
+inline void v_cartesian_interleaved_to_magnitudes(double *const R__ mag,
+                                                  const double *const R__ src,
+                                                  const int count)
+{
+    ippsMagnitude_64fc((const Ipp64fc *)src, mag, count);
+}
+#endif
 
 }
 

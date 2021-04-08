@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2020 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#ifndef _MOVING_MEDIAN_H_
-#define _MOVING_MEDIAN_H_
+#ifndef RUBBERBAND_MOVING_MEDIAN_H
+#define RUBBERBAND_MOVING_MEDIAN_H
 
 #include "SampleFilter.h"
 

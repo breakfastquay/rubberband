@@ -1,12 +1,32 @@
+/*
+ *  Copyright (c) 2003-2010, Mark Borgerding. All rights reserved.
+ *  This file is part of KISS FFT - https://github.com/mborgerding/kissfft
+ *
+ *  SPDX-License-Identifier: BSD-3-Clause
+ *  See COPYING file for more information.
+ */
+
 #ifndef KISS_FFT_H
 #define KISS_FFT_H
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <memory.h>
-#ifndef __APPLE__
-#include <malloc.h>
+#include <string.h>
+
+// Define KISS_FFT_SHARED macro to properly export symbols
+#ifdef KISS_FFT_SHARED
+# ifdef _WIN32
+#  ifdef KISS_FFT_BUILD
+#   define KISS_FFT_API __declspec(dllexport)
+#  else
+#   define KISS_FFT_API __declspec(dllimport)
+#  endif
+# else
+#  define KISS_FFT_API __attribute__ ((visibility ("default")))
+# endif
+#else
+# define KISS_FFT_API
 #endif
 
 #ifdef __cplusplus
@@ -26,17 +46,32 @@ extern "C" {
   in the tools/ directory.
 */
 
+/* User may override KISS_FFT_MALLOC and/or KISS_FFT_FREE. */
 #ifdef USE_SIMD
 # include <xmmintrin.h>
 # define kiss_fft_scalar __m128
-#define KISS_FFT_MALLOC(nbytes) memalign(16,nbytes)
-#else	
-#define KISS_FFT_MALLOC malloc
-#endif	
+# ifndef KISS_FFT_MALLOC
+#  define KISS_FFT_MALLOC(nbytes) _mm_malloc(nbytes,16)
+#  define KISS_FFT_ALIGN_CHECK(ptr) 
+#  define KISS_FFT_ALIGN_SIZE_UP(size) ((size + 15UL) & ~0xFUL)
+# endif
+# ifndef KISS_FFT_FREE
+#  define KISS_FFT_FREE _mm_free
+# endif
+#else
+# define KISS_FFT_ALIGN_CHECK(ptr)
+# define KISS_FFT_ALIGN_SIZE_UP(size) (size)
+# ifndef KISS_FFT_MALLOC
+#  define KISS_FFT_MALLOC malloc
+# endif
+# ifndef KISS_FFT_FREE
+#  define KISS_FFT_FREE free
+# endif
+#endif
 
 
 #ifdef FIXED_POINT
-#include <sys/types.h>	
+#include <stdint.h>
 # if (FIXED_POINT == 32)
 #  define kiss_fft_scalar int32_t
 # else	
@@ -79,7 +114,7 @@ typedef struct kiss_fft_state* kiss_fft_cfg;
  *      buffer size in *lenmem.
  * */
 
-kiss_fft_cfg kiss_fft_alloc(int nfft,int inverse_fft,void * mem,size_t * lenmem); 
+kiss_fft_cfg KISS_FFT_API kiss_fft_alloc(int nfft,int inverse_fft,void * mem,size_t * lenmem);
 
 /*
  * kiss_fft(cfg,in_out_buf)
@@ -91,28 +126,32 @@ kiss_fft_cfg kiss_fft_alloc(int nfft,int inverse_fft,void * mem,size_t * lenmem)
  * Note that each element is complex and can be accessed like
     f[k].r and f[k].i
  * */
-void kiss_fft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout);
+void KISS_FFT_API kiss_fft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout);
 
 /*
  A more generic version of the above function. It reads its input from every Nth sample.
  * */
-void kiss_fft_stride(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int fin_stride);
+void KISS_FFT_API kiss_fft_stride(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int fin_stride);
 
 /* If kiss_fft_alloc allocated a buffer, it is one contiguous 
    buffer and can be simply free()d when no longer needed*/
-#define kiss_fft_free free
+#define kiss_fft_free KISS_FFT_FREE
 
 /*
  Cleans up some memory that gets managed internally. Not necessary to call, but it might clean up 
  your compiler output to call this before you exit.
 */
-void kiss_fft_cleanup(void);
+void KISS_FFT_API kiss_fft_cleanup(void);
 	
 
 /*
  * Returns the smallest integer k, such that k>=n and k has only "fast" factors (2,3,5)
  */
-int kiss_fft_next_fast_size(int n);
+int KISS_FFT_API kiss_fft_next_fast_size(int n);
+
+/* for real ffts, we need an even size */
+#define kiss_fftr_next_fast_size_real(n) \
+        (kiss_fft_next_fast_size( ((n)+1)>>1)<<1)
 
 #ifdef __cplusplus
 } 

@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2020 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -578,6 +578,7 @@ protected:
     int m_iinsize;
     int m_ioutsize;
     double m_prevRatio;
+    bool m_ratioUnset;
     int m_debugLevel;
 };
 
@@ -590,6 +591,7 @@ D_SRC::D_SRC(Resampler::Quality quality, int channels, double,
     m_iinsize(0),
     m_ioutsize(0),
     m_prevRatio(1.0),
+    m_ratioUnset(true),
     m_debugLevel(debugLevel)
 {
     if (m_debugLevel > 0) {
@@ -680,7 +682,14 @@ D_SRC::resampleInterleaved(float *const R__ out,
         outcount = int(ceil(incount * ratio) + 5);
     }
 
-    if (ratio != m_prevRatio) {
+    if (m_ratioUnset) {
+
+        // The first time we set a ratio, we want to do it directly
+        src_set_ratio(m_src, ratio);
+        m_ratioUnset = false;
+        m_prevRatio = ratio;
+
+    } else if (ratio != m_prevRatio) {
 
         // If we are processing a block of appreciable length, turn it
         // into two recursive calls, one for the short smoothing block
@@ -736,6 +745,7 @@ void
 D_SRC::reset()
 {
     src_reset(m_src);
+    m_ratioUnset = true;
 }
 
 #endif /* HAVE_LIBSAMPLERATE */

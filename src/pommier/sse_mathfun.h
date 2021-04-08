@@ -1,6 +1,6 @@
 
-#ifndef _POMMIER_SSE_MATHFUN_H_
-#define _POMMIER_SSE_MATHFUN_H_
+#ifndef POMMIER_SSE_MATHFUN_H
+#define POMMIER_SSE_MATHFUN_H
 
 /* SIMD (SSE1+MMX or SSE2) implementation of sin, cos, exp and log
 

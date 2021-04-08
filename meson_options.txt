@@ -1,0 +1,33 @@
+
+option('fft',
+       type: 'combo',
+       choices: ['auto', 'kissfft', 'fftw', 'vdsp', 'ipp'],
+       value: 'auto',
+       description: 'FFT library to use. The default (auto) will use vDSP if available, KissFFT otherwise.')
+
+option('resampler',
+       type: 'combo',
+       choices: ['auto', 'libsamplerate', 'speex', 'ipp'],
+       value: 'auto',
+       description: 'Resampler library to use. Recommended is libsamplerate. The default (auto) will use libsamplerate if available, speex otherwise.')
+
+option('ipp_path',
+       type: 'string',
+       value: '',
+       description: 'Path to Intel IPP libraries, if selected for any of the other options.')
+
+option('extra_include_dirs',
+       type: 'array',
+       value: [],
+       description: 'Additional local header directories to search for dependencies.')
+
+option('extra_lib_dirs',
+       type: 'array',
+       value: [],
+       description: 'Additional local library directories to search for dependencies.')
+
+option('no_shared',
+       type: 'boolean',
+       value: 'false',
+       description: 'Do not build shared libraries. On Windows this will also ensure that the static library is called simply rubberband.lib, not rubberband-static.lib as it is in the default build.')
+

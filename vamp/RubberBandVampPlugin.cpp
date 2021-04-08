@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2020 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -441,7 +441,7 @@ RubberBandVampPlugin::getRemainingFeatures()
 
 RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::processOffline(const float *const *inputBuffers,
-                                           Vamp::RealTime timestamp)
+                                           Vamp::RealTime /* timestamp */)
 {
     if (!m_stretcher) {
 	cerr << "ERROR: RubberBandVampPlugin::processOffline: "
@@ -480,7 +480,7 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
 
 RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::processRealTime(const float *const *inputBuffers,
-                                            Vamp::RealTime timestamp)
+                                            Vamp::RealTime /* timestamp */)
 {
     // This function is not in any way a real-time function (i.e. it
     // has no requirement to be RT safe); it simply operates the

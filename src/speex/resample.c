@@ -90,10 +90,7 @@ static void *speex_alloc (int count, int size)
 #ifdef HAVE_IPP
     void *rv;
 #endif
-
-//	fprintf(stderr, "speex_alloc(%d,%d)\n", count, size);
-	if (count * size < ALLOC_MINIMUM) {
-//		fprintf(stderr, "upgrading count from %d to %d\n", count, ALLOC_MINIMUM / size);
+    if (count * size < ALLOC_MINIMUM) {
         count = ALLOC_MINIMUM / size;
     }
 
@@ -105,9 +102,7 @@ static void *speex_alloc (int count, int size)
     } else {
         rv = ippsMalloc_8u(count * size);
     }
-//	fprintf(stderr, "allocated at %p; now setting %d bytes to zero\n", rv, count*size);
-    memset(rv, count * size, 0);
-//	fprintf(stderr, "returning %p\n",rv);
+    memset(rv, 0, count * size);
     return rv;
 #else
     return calloc(count, size);

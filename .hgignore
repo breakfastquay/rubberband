@@ -18,7 +18,10 @@ doc/html
 *.rej
 cov-int
 *~
-re:^x64/Debug/
-re:^x64/Release/
-re:^Release/
-re:^Debug/
+x64/Debug/
+x64/Release/
+Release/
+Debug/
+build
+build_*
+UpgradeLog*

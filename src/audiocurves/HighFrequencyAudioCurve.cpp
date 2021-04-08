@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2020 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -58,14 +58,14 @@ HighFrequencyAudioCurve::processFloat(const float *R__ mag, int)
 double
 HighFrequencyAudioCurve::processDouble(const double *R__ mag, int)
 {
-    float result = 0.0;
+    double result = 0.0;
 
     const int sz = m_lastPerceivedBin;
 
     for (int n = 0; n <= sz; ++n) {
         result = result + mag[n] * n;
     }
-
+    
     return result;
 }
 

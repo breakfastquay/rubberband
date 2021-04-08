@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2020 Particular Programs Ltd.
+    Copyright 2007-2021 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -1851,7 +1851,7 @@ public:
                 dbuf[i] = realIn[i];
             }
         fftw_execute(m_dplanf);
-        v_convert(complexOut, (fft_double_type *)m_dpacked, sz + 2);
+        v_convert(complexOut, (const fft_double_type *)m_dpacked, sz + 2);
     }
 
     void forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut) {
@@ -1865,8 +1865,8 @@ public:
                 dbuf[i] = realIn[i];
             }
         fftw_execute(m_dplanf);
-        v_cartesian_interleaved_to_polar(magOut, phaseOut,
-                                         (double *)m_dpacked, m_size/2+1);
+        v_cartesian_interleaved_to_polar
+            (magOut, phaseOut, (const fft_double_type *)m_dpacked, m_size/2+1);
     }
 
     void forwardMagnitude(const double *R__ realIn, double *R__ magOut) {
@@ -1880,11 +1880,8 @@ public:
                 dbuf[i] = realIn[i];
             }
         fftw_execute(m_dplanf);
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrt(m_dpacked[i][0] * m_dpacked[i][0] +
-                             m_dpacked[i][1] * m_dpacked[i][1]);
-        }
+        v_cartesian_interleaved_to_magnitudes
+            (magOut, (const fft_double_type *)m_dpacked, m_size/2+1);
     }
 
     void forward(const float *R__ realIn, float *R__ realOut, float *R__ imagOut) {
@@ -1912,7 +1909,7 @@ public:
                 fbuf[i] = realIn[i];
             }
         fftwf_execute(m_fplanf);
-        v_convert(complexOut, (fft_float_type *)m_fpacked, sz + 2);
+        v_convert(complexOut, (const fft_float_type *)m_fpacked, sz + 2);
     }
 
     void forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut) {
@@ -1926,8 +1923,8 @@ public:
                 fbuf[i] = realIn[i];
             }
         fftwf_execute(m_fplanf);
-        v_cartesian_interleaved_to_polar(magOut, phaseOut,
-                                         (float *)m_fpacked, m_size/2+1);
+        v_cartesian_interleaved_to_polar
+            (magOut, phaseOut, (fft_float_type *)m_fpacked, m_size/2+1);
     }
 
     void forwardMagnitude(const float *R__ realIn, float *R__ magOut) {
@@ -1941,11 +1938,8 @@ public:
                 fbuf[i] = realIn[i];
             }
         fftwf_execute(m_fplanf);
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrtf(m_fpacked[i][0] * m_fpacked[i][0] +
-                              m_fpacked[i][1] * m_fpacked[i][1]);
-        }
+        v_cartesian_interleaved_to_magnitudes
+            (magOut, (const fft_float_type *)m_fpacked, m_size/2+1);
     }
 
     void inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ realOut) {
@@ -1964,7 +1958,7 @@ public:
 
     void inverseInterleaved(const double *R__ complexIn, double *R__ realOut) {
         if (!m_dplanf) initDouble();
-        v_convert((double *)m_dpacked, complexIn, m_size + 2);
+        v_convert((fft_double_type *)m_dpacked, complexIn, m_size + 2);
         fftw_execute(m_dplani);
         const int sz = m_size;
         fft_double_type *const R__ dbuf = m_dbuf;
@@ -1978,14 +1972,8 @@ public:
 
     void inversePolar(const double *R__ magIn, const double *R__ phaseIn, double *R__ realOut) {
         if (!m_dplanf) initDouble();
-        const int hs = m_size/2;
-        fftw_complex *const R__ dpacked = m_dpacked;
-        for (int i = 0; i <= hs; ++i) {
-            dpacked[i][0] = magIn[i] * cos(phaseIn[i]);
-        }
-        for (int i = 0; i <= hs; ++i) {
-            dpacked[i][1] = magIn[i] * sin(phaseIn[i]);
-        }
+        v_polar_to_cartesian_interleaved
+            ((fft_double_type *)m_dpacked, magIn, phaseIn, m_size/2+1);
         fftw_execute(m_dplani);
         const int sz = m_size;
         fft_double_type *const R__ dbuf = m_dbuf;
@@ -2034,7 +2022,7 @@ public:
 
     void inverseInterleaved(const float *R__ complexIn, float *R__ realOut) {
         if (!m_fplanf) initFloat();
-        v_copy((float *)m_fpacked, complexIn, m_size + 2);
+        v_convert((fft_float_type *)m_fpacked, complexIn, m_size + 2);
         fftwf_execute(m_fplani);
         const int sz = m_size;
         fft_float_type *const R__ fbuf = m_fbuf;
@@ -2048,14 +2036,8 @@ public:
 
     void inversePolar(const float *R__ magIn, const float *R__ phaseIn, float *R__ realOut) {
         if (!m_fplanf) initFloat();
-        const int hs = m_size/2;
-        fftwf_complex *const R__ fpacked = m_fpacked;
-        for (int i = 0; i <= hs; ++i) {
-            fpacked[i][0] = magIn[i] * cosf(phaseIn[i]);
-        }
-        for (int i = 0; i <= hs; ++i) {
-            fpacked[i][1] = magIn[i] * sinf(phaseIn[i]);
-        }
+        v_polar_to_cartesian_interleaved
+            ((fft_float_type *)m_fpacked, magIn, phaseIn, m_size/2+1);
         fftwf_execute(m_fplani);
         const int sz = m_size;
         fft_float_type *const R__ fbuf = m_fbuf;
@@ -3258,6 +3240,7 @@ FFT::~FFT()
 void
 FFT::forward(const double *R__ realIn, double *R__ realOut, double *R__ imagOut)
 {
+    Profiler profiler("FFT::forward");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(realOut);
     CHECK_NOT_NULL(imagOut);
@@ -3267,6 +3250,7 @@ FFT::forward(const double *R__ realIn, double *R__ realOut, double *R__ imagOut)
 void
 FFT::forwardInterleaved(const double *R__ realIn, double *R__ complexOut)
 {
+    Profiler profiler("FFT::forwardInterleaved");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(complexOut);
     d->forwardInterleaved(realIn, complexOut);
@@ -3275,6 +3259,7 @@ FFT::forwardInterleaved(const double *R__ realIn, double *R__ complexOut)
 void
 FFT::forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut)
 {
+    Profiler profiler("FFT::forwardPolar");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(magOut);
     CHECK_NOT_NULL(phaseOut);
@@ -3284,6 +3269,7 @@ FFT::forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phas
 void
 FFT::forwardMagnitude(const double *R__ realIn, double *R__ magOut)
 {
+    Profiler profiler("FFT::forwardMagnitude");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(magOut);
     d->forwardMagnitude(realIn, magOut);
@@ -3292,6 +3278,7 @@ FFT::forwardMagnitude(const double *R__ realIn, double *R__ magOut)
 void
 FFT::forward(const float *R__ realIn, float *R__ realOut, float *R__ imagOut)
 {
+    Profiler profiler("FFT::forward[float]");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(realOut);
     CHECK_NOT_NULL(imagOut);
@@ -3301,6 +3288,7 @@ FFT::forward(const float *R__ realIn, float *R__ realOut, float *R__ imagOut)
 void
 FFT::forwardInterleaved(const float *R__ realIn, float *R__ complexOut)
 {
+    Profiler profiler("FFT::forwardInterleaved[float]");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(complexOut);
     d->forwardInterleaved(realIn, complexOut);
@@ -3309,6 +3297,7 @@ FFT::forwardInterleaved(const float *R__ realIn, float *R__ complexOut)
 void
 FFT::forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut)
 {
+    Profiler profiler("FFT::forwardPolar[float]");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(magOut);
     CHECK_NOT_NULL(phaseOut);
@@ -3318,6 +3307,7 @@ FFT::forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOu
 void
 FFT::forwardMagnitude(const float *R__ realIn, float *R__ magOut)
 {
+    Profiler profiler("FFT::forwardMagnitude[float]");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(magOut);
     d->forwardMagnitude(realIn, magOut);
@@ -3326,6 +3316,7 @@ FFT::forwardMagnitude(const float *R__ realIn, float *R__ magOut)
 void
 FFT::inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ realOut)
 {
+    Profiler profiler("FFT::inverse");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(imagIn);
     CHECK_NOT_NULL(realOut);
@@ -3335,6 +3326,7 @@ FFT::inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ rea
 void
 FFT::inverseInterleaved(const double *R__ complexIn, double *R__ realOut)
 {
+    Profiler profiler("FFT::inverseInterleaved");
     CHECK_NOT_NULL(complexIn);
     CHECK_NOT_NULL(realOut);
     d->inverseInterleaved(complexIn, realOut);
@@ -3343,6 +3335,7 @@ FFT::inverseInterleaved(const double *R__ complexIn, double *R__ realOut)
 void
 FFT::inversePolar(const double *R__ magIn, const double *R__ phaseIn, double *R__ realOut)
 {
+    Profiler profiler("FFT::inversePolar");
     CHECK_NOT_NULL(magIn);
     CHECK_NOT_NULL(phaseIn);
     CHECK_NOT_NULL(realOut);
@@ -3352,6 +3345,7 @@ FFT::inversePolar(const double *R__ magIn, const double *R__ phaseIn, double *R_
 void
 FFT::inverseCepstral(const double *R__ magIn, double *R__ cepOut)
 {
+    Profiler profiler("FFT::inverseCepstral");
     CHECK_NOT_NULL(magIn);
     CHECK_NOT_NULL(cepOut);
     d->inverseCepstral(magIn, cepOut);
@@ -3360,6 +3354,7 @@ FFT::inverseCepstral(const double *R__ magIn, double *R__ cepOut)
 void
 FFT::inverse(const float *R__ realIn, const float *R__ imagIn, float *R__ realOut)
 {
+    Profiler profiler("FFT::inverse[float]");
     CHECK_NOT_NULL(realIn);
     CHECK_NOT_NULL(imagIn);
     CHECK_NOT_NULL(realOut);
@@ -3369,6 +3364,7 @@ FFT::inverse(const float *R__ realIn, const float *R__ imagIn, float *R__ realOu
 void
 FFT::inverseInterleaved(const float *R__ complexIn, float *R__ realOut)
 {
+    Profiler profiler("FFT::inverseInterleaved[float]");
     CHECK_NOT_NULL(complexIn);
     CHECK_NOT_NULL(realOut);
     d->inverseInterleaved(complexIn, realOut);
@@ -3377,6 +3373,7 @@ FFT::inverseInterleaved(const float *R__ complexIn, float *R__ realOut)
 void
 FFT::inversePolar(const float *R__ magIn, const float *R__ phaseIn, float *R__ realOut)
 {
+    Profiler profiler("FFT::inversePolar[float]");
     CHECK_NOT_NULL(magIn);
     CHECK_NOT_NULL(phaseIn);
     CHECK_NOT_NULL(realOut);
@@ -3386,6 +3383,7 @@ FFT::inversePolar(const float *R__ magIn, const float *R__ phaseIn, float *R__ r
 void
 FFT::inverseCepstral(const float *R__ magIn, float *R__ cepOut)
 {
+    Profiler profiler("FFT::inverseCepstral[float]");
     CHECK_NOT_NULL(magIn);
     CHECK_NOT_NULL(cepOut);
     d->inverseCepstral(magIn, cepOut);
