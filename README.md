@@ -87,8 +87,8 @@ Rubber Band consists of:
  * The Rubber Band Library code.  This is the code that will normally
    be used by your applications.  The headers for this are in the
    rubberband/ directory, and the source code is in src/.
-   The Rubber Band Library depends upon resampler and FFT code; see
-   section 3a below for details.
+   The Rubber Band Library may also depend upon external resampler
+   and FFT code; see section 3a below for details.
 
  * The Rubber Band command-line tool.  This is in main/main.cpp.
    This program uses the Rubber Band Library and also requires libsndfile
@@ -194,9 +194,9 @@ standard. It is unlikely to make any difference (performance or
 otherwise) which C++ standard your compiler uses - as long as it's no
 older than C++98!
 
-If you are building this software using one of the bundled library
-options (Speex or KissFFT), please be sure to review the terms for
-those libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
+If you are building this software using either of the Speex or KissFFT
+library options, please be sure to review the terms for those
+libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
 applicable.
 
 
@@ -369,7 +369,7 @@ options (Speex or KissFFT), please be sure to review the terms for
 those libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
 applicable.
 
-If you are proposing to package Rubber Band for a Linux distribution,
+If you are proposing to package Rubber Band for a Linux distribution
 using other packaged libraries, please select FFTW and libsamplerate.
 
 #### FFT libraries supported
@@ -378,7 +378,17 @@ using other packaged libraries, please select FFTW and libsamplerate.
 Library     Build option    CPP define     Notes
 ----        ------------    ----------     -----
 
-KissFFT     -Dfft=kissfft   -DUSE_KISSFFT  Default except on macOS/iOS.
+Built-in    -Dfft=builtin   -DUSE_BUILTIN_FFT
+                                           Default except on macOS/iOS.
+                                           Can be distributed with either
+                                           the Rubber Band GPL or
+                                           commercial licence.
+
+KissFFT     -Dfft=kissfft   -DHAVE_KISSFFT
+                                           Single precision.
+                                           Only indicated for use with
+                                           single-precision sample type
+                                           (see below).
                                            Bundled, can be distributed with
                                            either the Rubber Band GPL or
                                            commercial licence.
@@ -435,8 +445,9 @@ build files will handle these for you.)
 
     -DPROCESS_SAMPLE_TYPE=float
     Select single precision for internal calculations. The default is
-    double precision. Consider using for mobile architectures with
-    slower double-precision support.
+    double precision. Consider in conjunction with single-precision
+    KissFFT for mobile architectures with slower double-precision
+    support.
 
     -DUSE_POMMIER_MATHFUN
     Select the Julien Pommier implementations of trig functions for ARM
