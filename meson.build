@@ -101,6 +101,9 @@ sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
 thread_dep = dependency('threads')
 have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
+have_sincos = cpp.has_function('sincos',
+                               prefix: '#define _GNU_SOURCE\n#include <math.h>',
+                               args: '-lm')
 have_jni = cpp.has_header('jni.h', args: extra_include_args)
 
 javac = find_program('javac', required: false)
@@ -231,6 +234,10 @@ else
   error('Unknown or unsupported resampler option: ' + resampler)
 
 endif # resampler
+
+if not have_sincos
+  feature_defines += [ '-DLACK_SINCOS' ]
+endif
 
 if ipp_needed
   feature_defines += [
