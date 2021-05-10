@@ -7,7 +7,7 @@ option('fft',
 
 option('resampler',
        type: 'combo',
-       choices: ['auto', 'libsamplerate', 'speex', 'ipp'],
+       choices: ['auto', 'builtin', 'libsamplerate', 'speex', 'ipp'],
        value: 'auto',
        description: 'Resampler library to use. Recommended is libsamplerate. The default (auto) will use libsamplerate if available, speex otherwise.')
 

@@ -199,7 +199,13 @@ else
 
 endif # fft
 
-if resampler == 'libsamplerate'
+if resampler == 'builtin'
+  config_summary += { 'Resampler': 'Built-in' }
+  message('For resampler: using built-in implementation')
+  library_sources += 'src/dsp/BQResampler.cpp'
+  feature_defines += ['-DUSE_BQRESAMPLER']
+
+elif resampler == 'libsamplerate'
   if samplerate_dep.found()
     config_summary += { 'Resampler': 'libsamplerate' }
     message('For resampler: using libsamplerate')
