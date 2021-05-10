@@ -2,7 +2,7 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '1.9.1',
+  version: '1.9.2-pre',
   license: 'GPL-2.0-or-later',
   default_options: [
     # All Rubber Band code is actually C++98, but some compilers no
@@ -132,7 +132,7 @@ if fft == 'auto'
   if system == 'darwin'
     fft = 'vdsp'
   else
-    fft = 'kissfft'
+    fft = 'builtin'
   endif
 endif
 
@@ -144,14 +144,23 @@ if resampler == 'auto'
   endif
 endif
 
-if fft == 'kissfft'
+if fft == 'builtin'
+  config_summary += { 'FFT': 'Built-in' }
+  message('For FFT: using built-in implementation')
+  if fftw3_dep.found()
+    message('(to use FFTW instead, reconfigure with -Dfft=fftw)')
+  endif
+  feature_defines += ['-DUSE_BUILTIN_FFT']
+
+elif fft == 'kissfft'
   config_summary += { 'FFT': 'KissFFT' }
   message('For FFT: using KissFFT')
   if fftw3_dep.found()
     message('(to use FFTW instead, reconfigure with -Dfft=fftw)')
   endif
   feature_sources += ['src/kissfft/kiss_fft.c', 'src/kissfft/kiss_fftr.c']
-  feature_defines += ['-DUSE_KISSFFT']
+  feature_defines += ['-DHAVE_KISSFFT']
+  general_include_dirs += 'src/kissfft'
 
 elif fft == 'fftw'
   if fftw3_dep.found()
