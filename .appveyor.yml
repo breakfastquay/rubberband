@@ -10,7 +10,6 @@ platform:
 
 install:
   - cinst wget
-  - cinst meson
   - cinst libsndfile
 
 build_script:
