@@ -117,6 +117,7 @@ feature_defines = []
 feature_libraries = []
 feature_sources = []
 pkgconfig_requirements = []
+pkgconfig_libraries = []
 arch_flags = []
 
 config_summary = {}
@@ -172,6 +173,7 @@ elif fft == 'vdsp'
   message('For FFT: using vDSP')
   feature_defines += ['-DHAVE_VDSP']
   feature_libraries += ['-framework', 'Accelerate']
+  pkgconfig_libraries += ['-framework', 'Accelerate']
   
 elif fft == 'ipp'
   if ipp_path != ''
@@ -579,7 +581,7 @@ pkg.generate(
   url: 'https://breakfastquay.com/rubberband/',
   version: meson.project_version(),
   requires: pkgconfig_requirements,
-  libraries: '-L${libdir} -lrubberband',
+  libraries: ['-L${libdir} -lrubberband'] + pkgconfig_libraries,
   extra_cflags: '-I${includedir}',
 )
 
