@@ -2,7 +2,7 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '1.9.1',
+  version: '1.9.2-pre',
   license: 'GPL-2.0-or-later',
   default_options: [
     # All Rubber Band code is actually C++98, but some compilers no
@@ -101,6 +101,9 @@ sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
 thread_dep = dependency('threads')
 have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
+have_sincos = cpp.has_function('sincos',
+                               prefix: '#define _GNU_SOURCE\n#include <math.h>',
+                               args: '-lm')
 have_jni = cpp.has_header('jni.h', args: extra_include_args)
 
 javac = find_program('javac', required: false)
@@ -114,6 +117,7 @@ feature_defines = []
 feature_libraries = []
 feature_sources = []
 pkgconfig_requirements = []
+pkgconfig_libraries = []
 arch_flags = []
 
 config_summary = {}
@@ -128,7 +132,7 @@ if fft == 'auto'
   if system == 'darwin'
     fft = 'vdsp'
   else
-    fft = 'kissfft'
+    fft = 'builtin'
   endif
 endif
 
@@ -140,14 +144,23 @@ if resampler == 'auto'
   endif
 endif
 
-if fft == 'kissfft'
+if fft == 'builtin'
+  config_summary += { 'FFT': 'Built-in' }
+  message('For FFT: using built-in implementation')
+  if fftw3_dep.found()
+    message('(to use FFTW instead, reconfigure with -Dfft=fftw)')
+  endif
+  feature_defines += ['-DUSE_BUILTIN_FFT']
+
+elif fft == 'kissfft'
   config_summary += { 'FFT': 'KissFFT' }
   message('For FFT: using KissFFT')
   if fftw3_dep.found()
     message('(to use FFTW instead, reconfigure with -Dfft=fftw)')
   endif
   feature_sources += ['src/kissfft/kiss_fft.c', 'src/kissfft/kiss_fftr.c']
-  feature_defines += ['-DUSE_KISSFFT']
+  feature_defines += ['-DHAVE_KISSFFT']
+  general_include_dirs += 'src/kissfft'
 
 elif fft == 'fftw'
   if fftw3_dep.found()
@@ -169,6 +182,7 @@ elif fft == 'vdsp'
   message('For FFT: using vDSP')
   feature_defines += ['-DHAVE_VDSP']
   feature_libraries += ['-framework', 'Accelerate']
+  pkgconfig_libraries += ['-framework', 'Accelerate']
   
 elif fft == 'ipp'
   if ipp_path != ''
@@ -185,7 +199,13 @@ else
 
 endif # fft
 
-if resampler == 'libsamplerate'
+if resampler == 'builtin'
+  config_summary += { 'Resampler': 'Built-in' }
+  message('For resampler: using built-in implementation')
+  library_sources += 'src/dsp/BQResampler.cpp'
+  feature_defines += ['-DUSE_BQRESAMPLER']
+
+elif resampler == 'libsamplerate'
   if samplerate_dep.found()
     config_summary += { 'Resampler': 'libsamplerate' }
     message('For resampler: using libsamplerate')
@@ -222,6 +242,10 @@ else
   error('Unknown or unsupported resampler option: ' + resampler)
 
 endif # resampler
+
+if not have_sincos
+  feature_defines += [ '-DLACK_SINCOS' ]
+endif
 
 if ipp_needed
   feature_defines += [
@@ -572,7 +596,7 @@ pkg.generate(
   url: 'https://breakfastquay.com/rubberband/',
   version: meson.project_version(),
   requires: pkgconfig_requirements,
-  libraries: '-L${libdir} -lrubberband',
+  libraries: ['-L${libdir} -lrubberband'] + pkgconfig_libraries,
   extra_cflags: '-I${includedir}',
 )
 

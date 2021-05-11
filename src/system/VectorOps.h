@@ -366,32 +366,32 @@ inline void v_scale(double *const R__ dst,
 }
 #endif
 
-template<typename T>
-inline void v_multiply(T *const R__ dst,
-                       const T *const R__ src,
+template<typename T, typename S>
+inline void v_multiply(T *const R__ srcdst,
+                       const S *const R__ src,
                        const int count)
 {
     for (int i = 0; i < count; ++i) {
-        dst[i] *= src[i];
+        srcdst[i] *= src[i];
     }
 }
 
 #if defined HAVE_IPP 
 template<>
-inline void v_multiply(float *const R__ dst,
+inline void v_multiply(float *const R__ srcdst,
                        const float *const R__ src,
                        const int count)
 {
-    ippsMul_32f_I(src, dst, count);
+    ippsMul_32f_I(src, srcdst, count);
 }
 template<>
-inline void v_multiply(double *const R__ dst,
+inline void v_multiply(double *const R__ srcdst,
                        const double *const R__ src,
                        const int count)
 {
-    ippsMul_64f_I(src, dst, count);
+    ippsMul_64f_I(src, srcdst, count);
 }
-#endif
+#endif // HAVE_IPP
 
 template<typename T>
 inline void v_multiply(T *const R__ dst,
@@ -490,6 +490,58 @@ inline T v_sum(const T *const R__ src,
     }
     return result;
 }
+
+template<typename T>
+inline T v_multiply_and_sum(const T *const R__ src1,
+                            const T *const R__ src2,
+                            const int count)
+{
+    T result = T();
+    for (int i = 0; i < count; ++i) {
+        result += src1[i] * src2[i];
+    }
+    return result;
+}
+
+#if defined HAVE_IPP
+template<>
+inline float v_multiply_and_sum(const float *const R__ src1,
+                                const float *const R__ src2,
+                                const int count)
+{
+    float dp;
+    ippsDotProd_32f(src1, src2, count, &dp);
+    return dp;
+}
+template<>
+inline double v_multiply_and_sum(const double *const R__ src1,
+                                 const double *const R__ src2,
+                                 const int count)
+{
+    double dp;
+    ippsDotProd_64f(src1, src2, count, &dp);
+    return dp;
+}
+#elif defined HAVE_VDSP
+template<>
+inline float v_multiply_and_sum(const float *const R__ src1,
+                                const float *const R__ src2,
+                                const int count)
+{
+    float dp;
+    vDSP_dotpr(src1, 1, src2, 1, &dp, count);
+    return dp;
+}
+template<>
+inline double v_multiply_and_sum(const double *const R__ src1,
+                                 const double *const R__ src2,
+                                 const int count)
+{
+    double dp;
+    vDSP_dotprD(src1, 1, src2, 1, &dp, count);
+    return dp;
+}
+#endif
 
 template<typename T>
 inline void v_log(T *const R__ dst,

@@ -64,6 +64,8 @@ public:
     FFT(int size, int debugLevel = 0); // may throw InvalidSize
     ~FFT();
 
+    int getSize() const;
+    
     void forward(const double *R__ realIn, double *R__ realOut, double *R__ imagOut);
     void forwardInterleaved(const double *R__ realIn, double *R__ complexOut);
     void forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut);
@@ -121,6 +123,10 @@ protected:
     FFTImpl *d;
     static std::string m_implementation;
     static void pickDefaultImplementation();
+    
+private:
+    FFT(const FFT &); // not provided
+    FFT &operator=(const FFT &); // not provided
 };
 
 }

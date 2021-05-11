@@ -77,7 +77,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MSVC__;WIN32;_DEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_KISSFFT;USE_SPEEX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MSVC__;WIN32;_DEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;USE_SPEEX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -91,7 +91,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MSVC__;WIN32;_DEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_KISSFFT;USE_SPEEX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MSVC__;WIN32;_DEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;USE_SPEEX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -109,7 +109,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <AdditionalIncludeDirectories>..;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MSVC__;WIN32;NDEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_KISSFFT;NO_TIMING;USE_SPEEX;NO_THREAD_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MSVC__;WIN32;NDEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;NO_TIMING;USE_SPEEX;NO_THREAD_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
@@ -127,7 +127,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <AdditionalIncludeDirectories>..;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MSVC__;WIN32;NDEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_KISSFFT;NO_TIMING;USE_SPEEX;NO_THREAD_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MSVC__;WIN32;NDEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;NO_TIMING;USE_SPEEX;NO_THREAD_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
@@ -178,8 +178,6 @@
     <ClCompile Include="..\src\dsp\AudioCurveCalculator.cpp" />
     <ClCompile Include="..\src\dsp\FFT.cpp" />
     <ClCompile Include="..\src\dsp\Resampler.cpp" />
-    <ClCompile Include="..\src\kissfft\kiss_fft.c" />
-    <ClCompile Include="..\src\kissfft\kiss_fftr.c" />
     <ClCompile Include="..\src\rubberband-c.cpp" />
     <ClCompile Include="..\src\RubberBandStretcher.cpp" />
     <ClCompile Include="..\src\speex\resample.c" />
