@@ -674,6 +674,8 @@ RubberBandStretcher::Impl::configure()
 
             Resampler::Parameters params;
             params.quality = Resampler::FastestTolerable;
+            params.dynamism = Resampler::RatioOftenChanging;
+            params.ratioChange = Resampler::SmoothRatioChange;
             params.maxBufferSize = 4096 * 16;
             params.debugLevel = m_debugLevel;
             
@@ -818,6 +820,8 @@ RubberBandStretcher::Impl::reconfigure()
 
             Resampler::Parameters params;
             params.quality = Resampler::FastestTolerable;
+            params.dynamism = Resampler::RatioOftenChanging;
+            params.ratioChange = Resampler::SmoothRatioChange;
             params.maxBufferSize = m_sWindowSize;
             params.debugLevel = m_debugLevel;
             
