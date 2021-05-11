@@ -24,7 +24,7 @@
 #ifndef RUBBERBAND_STRETCHER_H
 #define RUBBERBAND_STRETCHER_H
     
-#define RUBBERBAND_VERSION "1.9.0"
+#define RUBBERBAND_VERSION "1.9.1"
 #define RUBBERBAND_API_MAJOR_VERSION 2
 #define RUBBERBAND_API_MINOR_VERSION 6
 
@@ -186,7 +186,7 @@ public:
      *   one processing thread per audio channel in offline mode if
      *   the stretcher is able to determine that more than one CPU is
      *   available, and one thread only in realtime mode.  This is the
-     *   defafult.
+     *   default.
      *
      *   \li \c OptionThreadingNever - Never use more than one thread.
      *  
@@ -464,7 +464,7 @@ public:
     /**
      * Change an OptionPitch configuration setting.  This may be
      * called at any time in RealTime mode.  It may not be called in
-     * Offline mode (for which the transients option is fixed on
+     * Offline mode (for which the pitch option is fixed on
      * construction).
      */
     void setPitchOption(Options options);

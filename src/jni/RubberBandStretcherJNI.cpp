@@ -329,7 +329,6 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_study(JNIEnv *env, jobject
     int channels = env->GetArrayLength(data);
     float **arr = allocate<float *>(channels);
     float **input = allocate<float *>(channels);
-    int samples = 0;
     for (int c = 0; c < channels; ++c) {
         jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(data, c);
         arr[c] = env->GetFloatArrayElements(cdata, 0);
@@ -350,7 +349,6 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_process(JNIEnv *env, jobje
     int channels = env->GetArrayLength(data);
     float **arr = allocate<float *>(channels);
     float **input = allocate<float *>(channels);
-    int samples = 0;
     for (int c = 0; c < channels; ++c) {
         jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(data, c);
         arr[c] = env->GetFloatArrayElements(cdata, 0);
@@ -383,7 +381,7 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_retrieve(JNIEnv *env, jobj
     float **outbuf = allocate_channels<float>(channels, n);
     size_t retrieved = stretcher->retrieve(outbuf, n);
 
-    for (int c = 0; c < channels; ++c) {
+    for (size_t c = 0; c < channels; ++c) {
         jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(output, c);
         env->SetFloatArrayRegion(cdata, offset, retrieved, outbuf[c]);
     }

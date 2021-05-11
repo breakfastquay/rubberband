@@ -246,6 +246,63 @@ void v_cartesian_to_polar_interleaved_inplace(T *const R__ srcdst,
     }
 }
 
+template<typename S, typename T> // S source, T target
+void v_cartesian_to_magnitudes(T *const R__ mag,
+                               const S *const R__ real,
+                               const S *const R__ imag,
+                               const int count)
+{
+    for (int i = 0; i < count; ++i) {
+        mag[i] = T(sqrt(real[i] * real[i] + imag[i] * imag[i]));
+    }
+}
+
+template<typename S, typename T> // S source, T target
+void v_cartesian_interleaved_to_magnitudes(T *const R__ mag,
+                                           const S *const R__ src,
+                                           const int count)
+{
+    for (int i = 0; i < count; ++i) {
+        mag[i] = T(sqrt(src[i*2] * src[i*2] + src[i*2+1] * src[i*2+1]));
+    }
+}
+
+#ifdef HAVE_IPP
+template<>
+inline void v_cartesian_to_magnitudes(float *const R__ mag,
+                                      const float *const R__ real,
+                                      const float *const R__ imag,
+                                      const int count)
+{
+    ippsMagnitude_32f(real, imag, mag, count);
+}
+
+template<>
+inline void v_cartesian_to_magnitudes(double *const R__ mag,
+                                      const double *const R__ real,
+                                      const double *const R__ imag,
+                                      const int count)
+{
+    ippsMagnitude_64f(real, imag, mag, count);
+}
+
+template<>
+inline void v_cartesian_interleaved_to_magnitudes(float *const R__ mag,
+                                                  const float *const R__ src,
+                                                  const int count)
+{
+    ippsMagnitude_32fc((const Ipp32fc *)src, mag, count);
+}
+
+template<>
+inline void v_cartesian_interleaved_to_magnitudes(double *const R__ mag,
+                                                  const double *const R__ src,
+                                                  const int count)
+{
+    ippsMagnitude_64fc((const Ipp64fc *)src, mag, count);
+}
+#endif
+
 }
 
 #endif

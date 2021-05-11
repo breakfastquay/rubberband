@@ -11,6 +11,7 @@ needs_exe_wrapper = false
 c = 'cc'
 cpp = 'c++'
 strip = 'strip'
+pkgconfig = 'pkg-config'
 
 [built-in options]
 c_args = ['-arch', 'arm64', '-arch', 'x86_64']
