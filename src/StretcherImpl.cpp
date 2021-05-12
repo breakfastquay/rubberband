@@ -674,8 +674,16 @@ RubberBandStretcher::Impl::configure()
 
             Resampler::Parameters params;
             params.quality = Resampler::FastestTolerable;
-            params.dynamism = Resampler::RatioMostlyFixed;
-            params.ratioChange = Resampler::SmoothRatioChange;
+
+            if (m_realtime) {
+                params.dynamism = Resampler::RatioOftenChanging;
+                params.ratioChange = Resampler::SmoothRatioChange;
+            } else {
+                // ratio can't be changed in offline mode
+                params.dynamism = Resampler::RatioMostlyFixed;
+                params.ratioChange = Resampler::SuddenRatioChange;
+            }
+            
             params.maxBufferSize = 4096 * 16;
             params.debugLevel = m_debugLevel;
             
@@ -820,7 +828,7 @@ RubberBandStretcher::Impl::reconfigure()
 
             Resampler::Parameters params;
             params.quality = Resampler::FastestTolerable;
-            params.dynamism = Resampler::RatioMostlyFixed;
+            params.dynamism = Resampler::RatioOftenChanging;
             params.ratioChange = Resampler::SmoothRatioChange;
             params.maxBufferSize = m_sWindowSize;
             params.debugLevel = m_debugLevel;
