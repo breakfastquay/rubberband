@@ -27,8 +27,7 @@
 #include "StretcherImpl.h"
 
 #include <set>
-
-//#define EXPERIMENT 1
+#include <atomic>
 
 namespace RubberBand
 {
@@ -124,11 +123,11 @@ public:
 
     size_t chunkCount;
     size_t inCount;
-    long inputSize; // set only after known (when data ended); -1 previously
+    std::atomic<int64_t> inputSize; // set only after known (when data ended); -1 previously
     size_t outCount;
 
-    bool draining;
-    bool outputComplete;
+    std::atomic<bool> draining;
+    std::atomic<bool> outputComplete;
 
     FFT *fft;
     std::map<size_t, FFT *> ffts;
