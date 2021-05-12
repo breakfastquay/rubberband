@@ -354,8 +354,8 @@ The supplied `.mk` file uses KissFFT and the Speex resampler.
 
 ### 4f. FFT and resampler selection
 
-Rubber Band requires additional library code for FFT calculation and
-resampling.  Several libraries are supported.  The selection is
+Rubber Band requires the selection of library code for FFT calculation
+and resampling.  Several libraries are supported.  The selection is
 controlled (in Meson) using `-D` options and (in the code itself)
 using preprocessor flags set by the build system. These options and
 flags are detailed in the tables below.
@@ -364,13 +364,13 @@ At least one resampler implementation and one FFT implementation must
 be enabled. It is technically possible to enable more than one, but
 it's confusing and not often useful.
 
-If you are building this software using one of the bundled library
-options (Speex or KissFFT), please be sure to review the terms for
-those libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
-applicable.
+If you are building this software using the bundled Speex or KissFFT
+library code, please be sure to review the terms for those libraries
+in `src/speex/COPYING` and `src/kissfft/COPYING` as applicable.
 
-If you are proposing to package Rubber Band for a Linux distribution
-using other packaged libraries, please select FFTW and libsamplerate.
+If you are proposing to package Rubber Band for a Linux distribution,
+please select either the built-in FFT (simpler for you) or FFTW (a bit
+faster) and use libsamplerate.
 
 #### FFT libraries supported
 
