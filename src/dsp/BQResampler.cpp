@@ -581,15 +581,17 @@ BQResampler::reconstruct_one(state *s) const
     int phase_length = pr.length;
     double result = 0.0;
 
+    int dot_length = min(phase_length, int(s->buffer.size()) - s->left);
+
     if (m_dynamism == RatioMostlyFixed) {
         int phase_start = pr.start_index;
         if (m_channels == 1) {
             result = v_multiply_and_sum
                 (s->phase_sorted_filter.data() + phase_start,
                  s->buffer.data() + s->left,
-                 phase_length);
+                 dot_length);
         } else {
-            for (int i = 0; i < phase_length; ++i) {
+            for (int i = 0; i < dot_length; ++i) {
                 result +=
                     s->phase_sorted_filter[phase_start + i] *
                     s->buffer[s->left + i * m_channels + s->current_channel];
@@ -597,7 +599,7 @@ BQResampler::reconstruct_one(state *s) const
         }
     } else {
         double m = double(m_proto_length - 1) / double(s->filter_length - 1);
-        for (int i = 0; i < phase_length; ++i) {
+        for (int i = 0; i < dot_length; ++i) {
             double sample =
                 s->buffer[s->left + i * m_channels + s->current_channel];
             int filter_index = i * s->parameters.numerator + s->current_phase;

@@ -33,6 +33,8 @@
 
 #include <iostream>
 
+#include <atomic>
+
 namespace RubberBand {
 
 /**
@@ -174,11 +176,11 @@ public:
     int zero(int n);
 
 protected:
-    T *const R__ m_buffer;
-    int          m_writer;
-    int          m_reader;
-    const int    m_size;
-    bool         m_mlocked;
+    T *const R__      m_buffer;
+    std::atomic<int>  m_writer;
+    std::atomic<int>  m_reader;
+    const int         m_size;
+    bool              m_mlocked;
 
     int readSpaceFor(int w, int r) const {
         int space;
@@ -243,7 +245,8 @@ RingBuffer<T> *
 RingBuffer<T>::resized(int newSize) const
 {
     RingBuffer<T> *newBuffer = new RingBuffer<T>(newSize);
-
+    
+    MBARRIER();
     int w = m_writer;
     int r = m_reader;
 
@@ -273,7 +276,8 @@ RingBuffer<T>::reset()
     std::cerr << "RingBuffer<T>[" << this << "]::reset" << std::endl;
 #endif
 
-    m_reader = m_writer;
+    int r = m_reader;
+    m_writer = r;
 }
 
 template <typename T>
@@ -302,7 +306,6 @@ RingBuffer<T>::read(S *const R__ destination, int n)
     if (n > available) {
 	std::cerr << "WARNING: RingBuffer::read: " << n << " requested, only "
                   << available << " available" << std::endl;
-//!!!        v_zero(destination + available, n - available);
 	n = available;
     }
     if (n == 0) return n;
@@ -320,7 +323,6 @@ RingBuffer<T>::read(S *const R__ destination, int n)
     r += n;
     while (r >= m_size) r -= m_size;
 
-    MBARRIER();
     m_reader = r;
 
     return n;
@@ -355,7 +357,6 @@ RingBuffer<T>::readAdding(S *const R__ destination, int n)
     r += n;
     while (r >= m_size) r -= m_size;
 
-    MBARRIER();
     m_reader = r;
 
     return n;
@@ -377,7 +378,6 @@ RingBuffer<T>::readOne()
     T value = m_buffer[r];
     if (++r == m_size) r = 0;
 
-    MBARRIER();
     m_reader = r;
 
     return value;
@@ -447,7 +447,6 @@ RingBuffer<T>::skip(int n)
     r += n;
     while (r >= m_size) r -= m_size;
 
-    // No memory barrier required, because we didn't read any data
     m_reader = r;
 
     return n;
