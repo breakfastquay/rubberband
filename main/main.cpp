@@ -500,11 +500,12 @@ int main(int argc, char **argv)
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;
     if (smoothing)   options |= RubberBandStretcher::OptionSmoothingOn;
     if (formant)     options |= RubberBandStretcher::OptionFormantPreserved;
-    if (hqpitch)     options |= RubberBandStretcher::OptionPitchHighQuality;
     if (together)    options |= RubberBandStretcher::OptionChannelsTogether;
 
     if (freqOrPitchMapSpecified) {
         options |= RubberBandStretcher::OptionPitchHighConsistency;
+    } else if (hqpitch) {
+        options |= RubberBandStretcher::OptionPitchHighQuality;
     }
     
     switch (threading) {
@@ -647,13 +648,13 @@ int main(int argc, char **argv)
             int thisBlockSize = ibs;
 
             while (freqMapItr != freqMap.end()) {
-                size_t nextFreqFrame = freqMapItr->first + ts.getLatency();
+                size_t nextFreqFrame = freqMapItr->first; // + ts.getLatency();
                 if (nextFreqFrame <= countIn) {
                     double s = frequencyshift * freqMapItr->second;
                     if (debug > 0) {
                         cerr << "at frame " << countIn
                              << " (requested at " << freqMapItr->first
-                             << " plus latency " << ts.getLatency()
+                             << " [NOT] plus latency " << ts.getLatency()
                              << ") updating frequency ratio to " << s << endl;
                     }
                     ts.setPitchScale(s);

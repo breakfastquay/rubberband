@@ -99,6 +99,7 @@ public:
                                     bool final) = 0;
 
     virtual int getChannelCount() const = 0;
+    virtual double getEffectiveRatio(double ratio) const = 0;
 
     virtual void reset() = 0;
 };
@@ -130,6 +131,7 @@ public:
                             bool final = false);
 
     int getChannelCount() const { return m_channels; }
+    double getEffectiveRatio(double ratio) const { return ratio; }
 
     void reset();
 
@@ -561,6 +563,7 @@ public:
                             bool final = false);
 
     int getChannelCount() const { return m_channels; }
+    double getEffectiveRatio(double ratio) const { return ratio; }
 
     void reset();
 
@@ -785,6 +788,7 @@ public:
                             bool final);
 
     int getChannelCount() const { return m_channels; }
+    double getEffectiveRatio(double ratio) const { return ratio; }
 
     void reset();
 
@@ -970,7 +974,13 @@ public:
                             double ratio,
                             bool final = false);
 
-    int getChannelCount() const { return m_channels; }
+    int getChannelCount() const {
+        return m_channels;
+    }
+
+    double getEffectiveRatio(double ratio) const {
+        return m_resampler->getEffectiveRatio(ratio);
+    }
 
     void reset();
 
@@ -1121,6 +1131,7 @@ public:
                             bool final = false);
 
     int getChannelCount() const { return m_channels; }
+    double getEffectiveRatio(double ratio) const { return ratio; }
 
     void reset();
 
@@ -1543,6 +1554,12 @@ int
 Resampler::getChannelCount() const
 {
     return d->getChannelCount();
+}
+
+double
+Resampler::getEffectiveRatio(double ratio) const
+{
+    return d->getEffectiveRatio(ratio);
 }
 
 void

@@ -148,6 +148,8 @@ public:
 
     int getChannelCount() const;
 
+    double getEffectiveRatio(double ratio) const;
+    
     void reset();
 
     class Impl;

@@ -220,6 +220,15 @@ BQResampler::resampleInterleaved(float *const out,
     return o / m_channels;
 }
 
+double
+BQResampler::getEffectiveRatio(double ratio) const {
+    if (m_initialised && ratio == m_s->parameters.ratio) {
+        return m_s->parameters.effective;
+    } else {
+        return pick_params(ratio).effective;
+    }
+}
+    
 int
 BQResampler::gcd(int a, int b) const
 {

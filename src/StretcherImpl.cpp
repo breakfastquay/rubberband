@@ -738,11 +738,12 @@ RubberBandStretcher::Impl::configure()
     // number of onset detector chunks will be the number of audio
     // samples input, divided by the input increment, plus one.
 
+    //!!!
     // In real-time mode, we don't do this prefill -- it's better to
     // start with a swoosh than introduce more latency, and we don't
     // want gaps when the ratio changes.
 
-    if (!m_realtime) {
+//    if (!m_realtime) {
         if (m_debugLevel > 1) {
             cerr << "Not real time mode: prefilling" << endl;
         }
@@ -750,7 +751,7 @@ RubberBandStretcher::Impl::configure()
             m_channelData[c]->reset();
             m_channelData[c]->inbuf->zero(m_aWindowSize/2);
         }
-    }
+//    }
 }
 
 
@@ -777,6 +778,8 @@ RubberBandStretcher::Impl::reconfigure()
 
     calculateSizes();
 
+    bool somethingChanged = false;
+    
     // There are various allocations in this function, but they should
     // never happen in normal use -- they just recover from the case
     // where not all of the things we need were correctly created when
@@ -811,12 +814,15 @@ RubberBandStretcher::Impl::reconfigure()
             m_channelData[c]->setSizes(std::max(m_aWindowSize, m_sWindowSize),
                                        m_fftSize);
         }
+
+        somethingChanged = true;
     }
 
     if (m_outbufSize != prevOutbufSize) {
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData[c]->setOutbufSize(m_outbufSize);
         }
+        somethingChanged = true;
     }
 
     if (m_pitchScale != 1.0) {
@@ -839,11 +845,22 @@ RubberBandStretcher::Impl::reconfigure()
                 lrintf(ceil((m_increment * m_timeRatio * 2) / m_pitchScale));
             if (rbs < m_increment * 16) rbs = m_increment * 16;
             m_channelData[c]->setResampleBufSize(rbs);
+
+            somethingChanged = true;
         }
     }
 
     if (m_fftSize != prevFftSize) {
         m_phaseResetAudioCurve->setFftSize(m_fftSize);
+        somethingChanged = true;
+    }
+
+    if (m_debugLevel > 0) {
+        if (somethingChanged) {
+            std::cerr << "reconfigure: at least one parameter changed" << std::endl;
+        } else {
+            std::cerr << "reconfigure: nothing changed" << std::endl;
+        }
     }
 }
 

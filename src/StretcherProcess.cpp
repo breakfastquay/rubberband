@@ -616,8 +616,14 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
         }
     }
 
+    double effectivePitchRatio = 1.0 / m_pitchScale;
+    if (cd.resampler) {
+        effectivePitchRatio = cd.resampler->getEffectiveRatio(effectivePitchRatio);
+    }
+    
     int incr = m_stretchCalculator->calculateSingle
-        (getEffectiveRatio(), df, m_increment);
+        (m_timeRatio, effectivePitchRatio, df, m_increment,
+         m_aWindowSize, m_sWindowSize);
 
     if (m_lastProcessPhaseResetDf.getWriteSpace() > 0) {
         m_lastProcessPhaseResetDf.write(&df, 1);
@@ -1142,11 +1148,13 @@ RubberBandStretcher::Impl::writeOutput(RingBuffer<float> &to, float *from, size_
     // samples, because the first chunk is centred on the start of the
     // output.  In RT mode we didn't apply any pre-padding in
     // configure(), so we don't want to remove any here.
-
+//!!!
     size_t startSkip = 0;
-    if (!m_realtime) {
+//    if (!m_realtime) {
+    //!!! lock down the latency to this initial value in RT mode
         startSkip = lrintf((m_sWindowSize/2) / m_pitchScale);
-    }
+//    startSkip = m_sWindowSize/2;
+//    }
 
     if (outCount > startSkip) {
         

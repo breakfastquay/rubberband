@@ -68,8 +68,12 @@ public:
      * If increment is non-zero, use it for the input increment for
      * this block in preference to m_increment.
      */
-    int calculateSingle(double ratio, float curveValue,
-                        size_t increment = 0);
+    int calculateSingle(double timeRatio,
+                        double effectivePitchRatio,
+                        float curveValue,
+                        size_t increment,
+                        size_t analysisWindowSize,
+                        size_t synthesisWindowSize);
 
     void setUseHardPeaks(bool use) { m_useHardPeaks = use; }
 
@@ -105,11 +109,16 @@ protected:
     size_t m_increment;
     float m_prevDf;
     double m_divergence;
-    float m_recovery;
-    float m_prevRatio;
+    double m_recovery;
+    double m_prevRatio;
+    double m_prevTimeRatio;
     int m_transientAmnesty; // only in RT mode; handled differently offline
     int m_debugLevel;
     bool m_useHardPeaks;
+    int64_t m_inFrameCounter;
+    std::pair<int64_t, int64_t> m_frameCheckpoint;
+    int64_t expectedOutFrame(int64_t inFrame, double timeRatio);
+    double m_outFrameCounter;
 
     std::map<size_t, size_t> m_keyFrameMap;
     std::vector<Peak> m_peaks;
