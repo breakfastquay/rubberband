@@ -146,10 +146,25 @@ public:
                             double ratio,
                             bool final = false);
 
+    /**
+     * Return the channel count provided on construction.
+     */
     int getChannelCount() const;
 
+    /**
+     * Return the ratio that will be actually used when the given
+     * ratio is requested. For example, if the resampler internally
+     * uses a rational approximation of the given ratio, this will
+     * return the closest double to that approximation. Not all
+     * implementations support this; an implementation that does not
+     * will just return the given ratio.
+     */
     double getEffectiveRatio(double ratio) const;
     
+    /**
+     * Reset the internal processing state so that the next call
+     * behaves as if the resampler had just been constructed.
+     */
     void reset();
 
     class Impl;
