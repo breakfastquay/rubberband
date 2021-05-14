@@ -284,7 +284,7 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
     while (!last) {
 
         if (!testInbufReadSpace(c)) {
-            if (m_debugLevel > 2) {
+            if (m_debugLevel > 1) {
                 cerr << "processChunks: out of input" << endl;
             }
             break;
@@ -349,7 +349,7 @@ RubberBandStretcher::Impl::processOneChunk()
 
     for (size_t c = 0; c < m_channels; ++c) {
         if (!testInbufReadSpace(c)) {
-            if (m_debugLevel > 2) {
+            if (m_debugLevel > 1) {
                 cerr << "processOneChunk: out of input" << endl;
             }
             return false;
@@ -404,7 +404,7 @@ RubberBandStretcher::Impl::testInbufReadSpace(size_t c)
             if (!m_threaded) {
 #endif
                 if (m_debugLevel > 1) {
-                    cerr << "WARNING: RubberBandStretcher: read space < chunk size ("
+                    cerr << "Note: RubberBandStretcher: read space < chunk size ("
                          << inbuf.getReadSpace() << " < " << m_aWindowSize
                          << ") when not all input written, on processChunks for channel " << c << endl;
                 }

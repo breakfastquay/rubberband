@@ -112,7 +112,7 @@ RubberBandPitchShifter::hintsMono[PortCountMono] =
       LADSPA_HINT_BOUNDED_BELOW |
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_INTEGER,
-      -3.0, 3.0 },
+      -2.0, 2.0 },
     { LADSPA_HINT_DEFAULT_MAXIMUM |     // crispness
       LADSPA_HINT_BOUNDED_BELOW |
       LADSPA_HINT_BOUNDED_ABOVE |
@@ -148,7 +148,7 @@ RubberBandPitchShifter::hintsStereo[PortCountStereo] =
       LADSPA_HINT_BOUNDED_BELOW |
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_INTEGER,
-      -3.0, 3.0 },
+      -2.0, 2.0 },
     { LADSPA_HINT_DEFAULT_MAXIMUM |     // crispness
       LADSPA_HINT_BOUNDED_BELOW |
       LADSPA_HINT_BOUNDED_ABOVE |
@@ -241,7 +241,8 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_currentCrispness(-1),
     m_currentFormant(false),
     m_blockSize(1024),
-    m_reserve(1024),
+    m_reserve(8192),
+    m_bufsize(0),
     m_minfill(0),
     m_stretcher(new RubberBandStretcher
                 (sampleRate, channels,
@@ -257,18 +258,20 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_delayMixBuffer = new RingBuffer<float> *[m_channels];
     m_scratch = new float *[m_channels];
     
+    m_bufsize = m_blockSize + m_reserve + 8192;
+
     for (size_t c = 0; c < m_channels; ++c) {
 
         m_input[c] = 0;
         m_output[c] = 0;
 
-        int bufsize = m_blockSize + m_reserve + 8192;
+        m_outputBuffer[c] = new RingBuffer<float>(m_bufsize);
+        m_delayMixBuffer[c] = new RingBuffer<float>(m_bufsize);
 
-        m_outputBuffer[c] = new RingBuffer<float>(bufsize);
-        m_delayMixBuffer[c] = new RingBuffer<float>(bufsize);
-
-        m_scratch[c] = new float[bufsize];
-        for (int i = 0; i < bufsize; ++i) m_scratch[c][i] = 0.f;
+        m_scratch[c] = new float[m_bufsize];
+        for (int i = 0; i < m_bufsize; ++i) {
+            m_scratch[c][i] = 0.f;
+        }
     }
 
     activateImpl();
@@ -366,6 +369,12 @@ RubberBandPitchShifter::activateImpl()
     for (size_t c = 0; c < m_channels; ++c) {
         m_delayMixBuffer[c]->reset();
         m_delayMixBuffer[c]->zero(getLatency());
+    }
+    
+    for (size_t c = 0; c < m_channels; ++c) {
+        for (int i = 0; i < m_bufsize; ++i) {
+            m_scratch[c][i] = 0.f;
+        }
     }
 
     m_minfill = 0;
@@ -496,7 +505,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
         m_stretcher->setPitchScale(m_ratio);
         m_prevRatio = m_ratio;
     }
-/*
+
     if (m_latency) {
         float latencyWas = *m_latency;
         *m_latency = getLatency();
@@ -506,7 +515,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
                  << " to " << *m_latency << endl;
         }
     }
-*/
+
     updateCrispness();
     updateFormant();
 
@@ -535,7 +544,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
 
         int outchunk = avail;
         if (outchunk > writable) {
-            cerr << "RubberBandPitchShifter::runImpl: buffer is not large enough: chunk = " << outchunk << ", space = " << writable << endl;
+            cerr << "RubberBandPitchShifter::runImpl: buffer is not large enough: size = " << m_outputBuffer[0]->getSize() << ", chunk = " << outchunk << ", space = " << writable << " (buffer contains " << m_outputBuffer[0]->getReadSpace() << " unread)" << endl;
             outchunk = writable;
         }
         
@@ -556,8 +565,12 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
         m_outputBuffer[c]->read(&(m_output[c][offset]), chunk);
     }
 
-    if (m_minfill == 0) {
-        m_minfill = m_outputBuffer[0]->getReadSpace();
+    int fill = m_outputBuffer[0]->getReadSpace();
+
+//    cerr << "fill = " << fill << endl;
+    
+    if (fill < m_minfill || m_minfill == 0) {
+        m_minfill = fill;
         cerr << "minfill = " << m_minfill << endl;
     }
 }

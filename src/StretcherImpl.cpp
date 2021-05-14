@@ -64,7 +64,7 @@ const size_t
 RubberBandStretcher::Impl::m_defaultFftSize = 2048;
 
 int
-RubberBandStretcher::Impl::m_defaultDebugLevel = 0;
+RubberBandStretcher::Impl::m_defaultDebugLevel = 2;
 
 static bool _initialised = false;
 
@@ -544,8 +544,8 @@ RubberBandStretcher::Impl::calculateSizes()
     // ratio) for any chunk.
 
     if (m_debugLevel > 0) {
-        cerr << "configure: time ratio = " << m_timeRatio << ", pitch scale = " << m_pitchScale << ", effective ratio = " << getEffectiveRatio() << endl;
-        cerr << "configure: analysis window size = " << m_aWindowSize << ", synthesis window size = " << m_sWindowSize << ", fft size = " << m_fftSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
+        cerr << "calculateSizes: time ratio = " << m_timeRatio << ", pitch scale = " << m_pitchScale << ", effective ratio = " << getEffectiveRatio() << endl;
+        cerr << "calculateSizes: analysis window size = " << m_aWindowSize << ", synthesis window size = " << m_sWindowSize << ", fft size = " << m_fftSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
     }
 
     if (std::max(m_aWindowSize, m_sWindowSize) > m_maxProcessSize) {
@@ -575,15 +575,17 @@ RubberBandStretcher::Impl::calculateSizes()
     }
 
     if (m_debugLevel > 0) {
-        cerr << "configure: outbuf size = " << m_outbufSize << endl;
+        cerr << "calculateSizes: outbuf size = " << m_outbufSize << endl;
     }
 }
 
 void
 RubberBandStretcher::Impl::configure()
 {
-//    std::cerr << "configure[" << this << "]: realtime = " << m_realtime << ", pitch scale = "
-//              << m_pitchScale << ", channels = " << m_channels << std::endl;
+    if (m_debugLevel > 0) {
+        std::cerr << "configure[" << this << "]: realtime = " << m_realtime << ", pitch scale = "
+                  << m_pitchScale << ", channels = " << m_channels << std::endl;
+    }
 
     size_t prevFftSize = m_fftSize;
     size_t prevAWindowSize = m_aWindowSize;
@@ -745,7 +747,7 @@ RubberBandStretcher::Impl::configure()
 
 //    if (!m_realtime) {
         if (m_debugLevel > 1) {
-            cerr << "Not real time mode: prefilling" << endl;
+            cerr << "Not real time mode: prefilling with " << m_aWindowSize/2 << " samples" << endl;
         }
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData[c]->reset();
@@ -1373,12 +1375,12 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
         }
 #endif
 
-        if (m_debugLevel > 2) {
+        if (m_debugLevel > 1) {
             if (!allConsumed) cerr << "process looping" << endl;
         }
     }
 
-    if (m_debugLevel > 2) {
+    if (m_debugLevel > 1) {
         cerr << "process returning" << endl;
     }
 
