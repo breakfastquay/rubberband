@@ -432,7 +432,13 @@ StretchCalculator::calculateSingle(double timeRatio,
 //    if (ratio > 1) transientThreshold = 0.25f;
 
     if (m_useHardPeaks && df > m_prevDf * 1.1f && df > transientThreshold) {
-        isTransient = true;
+        if (divergence > 1000 || divergence < -1000) {
+            if (m_debugLevel > 1) {
+                std::cerr << "StretchCalculator::calculateSingle: transient, but we're not permitting it because the divergence (" << divergence << ") is too great" << std::endl;
+            }
+        } else {
+            isTransient = true;
+        }
     }
 
     if (m_debugLevel > 2) {
@@ -479,7 +485,7 @@ StretchCalculator::calculateSingle(double timeRatio,
             std::cerr << "divergence = " << divergence << ", recovery = " << recovery << ", incr = " << incr << ", ";
         }
 
-        int minIncr = lrint(increment * ratio * 0.5);
+        int minIncr = lrint(increment * ratio * 0.3);
         int maxIncr = lrint(increment * ratio * 2);
         
         if (incr < minIncr) {
