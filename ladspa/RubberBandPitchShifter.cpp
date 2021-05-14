@@ -269,7 +269,7 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
         m_delayMixBuffer[c] = new RingBuffer<float>(m_bufsize);
 
         m_scratch[c] = new float[m_bufsize];
-        for (int i = 0; i < m_bufsize; ++i) {
+        for (size_t i = 0; i < m_bufsize; ++i) {
             m_scratch[c][i] = 0.f;
         }
     }
@@ -339,11 +339,7 @@ RubberBandPitchShifter::connectPort(LADSPA_Handle handle,
 int
 RubberBandPitchShifter::getLatency() const
 {
-    if (m_stretcher) {
-        return m_stretcher->getLatency() + m_reserve;
-    } else {
-        return 0;
-    }
+    return m_reserve;
 }
 
 void
@@ -363,7 +359,6 @@ RubberBandPitchShifter::activateImpl()
 
     for (size_t c = 0; c < m_channels; ++c) {
         m_outputBuffer[c]->reset();
-        m_outputBuffer[c]->zero(m_reserve);
     }
 
     for (size_t c = 0; c < m_channels; ++c) {
@@ -372,22 +367,14 @@ RubberBandPitchShifter::activateImpl()
     }
     
     for (size_t c = 0; c < m_channels; ++c) {
-        for (int i = 0; i < m_bufsize; ++i) {
+        for (size_t i = 0; i < m_bufsize; ++i) {
             m_scratch[c][i] = 0.f;
         }
     }
 
     m_minfill = 0;
 
-    // prime stretcher
-//    for (int i = 0; i < 8; ++i) {
-//        int reqd = m_stretcher->getSamplesRequired();
-//        m_stretcher->process(m_scratch, reqd, false);
-//        int avail = m_stretcher->available();
-//        if (avail > 0) {
-//            m_stretcher->retrieve(m_scratch, avail);
-//        }
-//    }
+    m_stretcher->process(m_scratch, m_reserve, false);
 }
 
 void
@@ -496,10 +483,6 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
 void
 RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
 {
-//    cerr << "RubberBandPitchShifter::runImpl(" << insamples << ")" << endl;
-
-//    static int incount = 0, outcount = 0;
-
     updateRatio();
     if (m_ratio != m_prevRatio) {
         m_stretcher->setPitchScale(m_ratio);
@@ -507,13 +490,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
     }
 
     if (m_latency) {
-        float latencyWas = *m_latency;
         *m_latency = getLatency();
-        cerr << "latency = " << *m_latency << endl;
-        if (*m_latency != latencyWas) {
-            cerr << "NOTE: latency changed from " << latencyWas
-                 << " to " << *m_latency << endl;
-        }
     }
 
     updateCrispness();
@@ -565,13 +542,10 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
         m_outputBuffer[c]->read(&(m_output[c][offset]), chunk);
     }
 
-    int fill = m_outputBuffer[0]->getReadSpace();
-
-//    cerr << "fill = " << fill << endl;
-    
+    size_t fill = m_outputBuffer[0]->getReadSpace();
     if (fill < m_minfill || m_minfill == 0) {
         m_minfill = fill;
-        cerr << "minfill = " << m_minfill << endl;
+//        cerr << "minfill = " << m_minfill << endl;
     }
 }
 
