@@ -64,7 +64,7 @@ const size_t
 RubberBandStretcher::Impl::m_defaultFftSize = 2048;
 
 int
-RubberBandStretcher::Impl::m_defaultDebugLevel = 2;
+RubberBandStretcher::Impl::m_defaultDebugLevel = 0;
 
 static bool _initialised = false;
 
@@ -740,12 +740,11 @@ RubberBandStretcher::Impl::configure()
     // number of onset detector chunks will be the number of audio
     // samples input, divided by the input increment, plus one.
 
-    //!!!
     // In real-time mode, we don't do this prefill -- it's better to
     // start with a swoosh than introduce more latency, and we don't
     // want gaps when the ratio changes.
 
-//    if (!m_realtime) {
+    if (!m_realtime) {
         if (m_debugLevel > 1) {
             cerr << "Not real time mode: prefilling with " << m_aWindowSize/2 << " samples" << endl;
         }
@@ -753,7 +752,7 @@ RubberBandStretcher::Impl::configure()
             m_channelData[c]->reset();
             m_channelData[c]->inbuf->zero(m_aWindowSize/2);
         }
-//    }
+    }
 }
 
 
