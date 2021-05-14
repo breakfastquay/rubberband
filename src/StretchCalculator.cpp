@@ -41,8 +41,6 @@ StretchCalculator::StretchCalculator(size_t sampleRate,
     m_sampleRate(sampleRate),
     m_increment(inputIncrement),
     m_prevDf(0),
-    m_divergence(0),
-    m_recovery(0),
     m_prevRatio(1.0),
     m_prevTimeRatio(1.0),
     m_transientAmnesty(0),
@@ -417,10 +415,11 @@ StretchCalculator::calculateSingle(double timeRatio,
         (m_inFrameCounter + analysisWindowSize/4, timeRatio);
     int64_t projected = int64_t
         (round(m_outFrameCounter + (synthesisWindowSize/4 * effectivePitchRatio)));
-    m_divergence = projected - intended;
+
+    int64_t divergence = projected - intended;
 
     if (m_debugLevel > 2) {
-        std::cerr << "for current frame + quarter frame: intended " << intended << ", projected " << projected << ", divergence " << m_divergence << std::endl;
+        std::cerr << "for current frame + quarter frame: intended " << intended << ", projected " << projected << ", divergence " << divergence << std::endl;
     }
     
     // In principle, the threshold depends on chunk size: larger chunk
@@ -462,37 +461,36 @@ StretchCalculator::calculateSingle(double timeRatio,
         m_transientAmnesty =
             lrint(ceil(double(m_sampleRate) / (20 * double(increment))));
 
-        m_recovery = m_divergence / ((m_sampleRate / 10.0) / increment);
-
         outIncrement = increment;
 
     } else {
 
-        if (ratioChanged) {
-            m_recovery = m_divergence / ((m_sampleRate / 10.0) / increment);
+        double recovery = 0.0;
+        if (divergence > 1000 || divergence < -1000) {
+            recovery = divergence / ((m_sampleRate / 10.0) / increment);
+        } else if (divergence > 100 || divergence < -100) {
+            recovery = divergence / ((m_sampleRate / 25.0) / increment);
+        } else {
+            recovery = divergence / 4.0;
         }
 
-        int incr = lrint(outIncrement - m_recovery);
-        if (m_debugLevel > 2 || (m_debugLevel > 1 && m_divergence != 0)) {
-            std::cerr << "divergence = " << m_divergence << ", recovery = " << m_recovery << ", incr = " << incr << ", ";
-        }
-        if (incr < lrint((increment * ratio) / 2)) {
-            incr = lrint((increment * ratio) / 2);
-        } else if (incr > lrint(increment * ratio * 2)) {
-            incr = lrint(increment * ratio * 2);
+        int incr = lrint(outIncrement - recovery);
+        if (m_debugLevel > 2 || (m_debugLevel > 1 && divergence != 0)) {
+            std::cerr << "divergence = " << divergence << ", recovery = " << recovery << ", incr = " << incr << ", ";
         }
 
-        double divdiff = (increment * ratio) - incr;
-
-        if (m_debugLevel > 2 || (m_debugLevel > 1 && m_divergence != 0)) {
-            std::cerr << "possibly clamped to " << incr << ", divdiff = " << divdiff << std::endl;
+        int minIncr = lrint(increment * ratio * 0.5);
+        int maxIncr = lrint(increment * ratio * 2);
+        
+        if (incr < minIncr) {
+            incr = minIncr;
+        } else if (incr > maxIncr) {
+            incr = maxIncr;
         }
 
-        double prevDivergence = m_divergence;
-        m_divergence -= divdiff;
-        if ((prevDivergence < 0 && m_divergence > 0) ||
-            (prevDivergence > 0 && m_divergence < 0)) {
-            m_recovery = m_divergence / ((m_sampleRate / 10.0) / increment);
+        if (m_debugLevel > 2 || (m_debugLevel > 1 && divergence != 0)) {
+            std::cerr << "clamped into [" << minIncr << ", " << maxIncr
+                      << "] becomes " << incr << std::endl;
         }
 
         if (incr < 0) {
@@ -524,9 +522,11 @@ void
 StretchCalculator::reset()
 {
     m_prevDf = 0;
-    m_divergence = 0;
-    m_recovery = 0;
     m_prevRatio = 1.0;
+    m_prevTimeRatio = 1.0;
+    m_inFrameCounter = 0;
+    m_frameCheckpoint = std::pair<int64_t, int64_t>(0, 0);
+    m_outFrameCounter = 0.0;
     m_transientAmnesty = 0;
     m_keyFrameMap.clear();
 }

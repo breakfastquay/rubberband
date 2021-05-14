@@ -685,7 +685,7 @@ RubberBandStretcher::Impl::configure()
             }
             
             params.maxBufferSize = 4096 * 16;
-            params.debugLevel = m_debugLevel;
+            params.debugLevel = (m_debugLevel > 0 ? m_debugLevel-1 : 0);
             
             m_channelData[c]->resampler = new Resampler(params, 1);
 
@@ -837,7 +837,7 @@ RubberBandStretcher::Impl::reconfigure()
             params.dynamism = Resampler::RatioOftenChanging;
             params.ratioChange = Resampler::SmoothRatioChange;
             params.maxBufferSize = m_sWindowSize;
-            params.debugLevel = m_debugLevel;
+            params.debugLevel = (m_debugLevel > 0 ? m_debugLevel-1 : 0);
             
             m_channelData[c]->resampler = new Resampler(params, 1);
 

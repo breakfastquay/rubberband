@@ -189,6 +189,8 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
 
     if (resampling) {
 
+        Profiler profiler2("RubberBandStretcher::Impl::resample");
+        
         toWrite = int(ceil(samples / m_pitchScale));
         if (writable < toWrite) {
             samples = int(floor(writable * m_pitchScale));
@@ -1076,6 +1078,8 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
     if (!resampledAlready &&
         (m_pitchScale != 1.0 || m_options & OptionPitchHighConsistency) &&
         cd.resampler) {
+
+        Profiler profiler2("RubberBandStretcher::Impl::resample");
 
         size_t reqSize = int(ceil(si / m_pitchScale));
         if (reqSize > cd.resamplebufSize) {

@@ -108,8 +108,6 @@ protected:
     size_t m_sampleRate;
     size_t m_increment;
     float m_prevDf;
-    double m_divergence;
-    double m_recovery;
     double m_prevRatio;
     double m_prevTimeRatio;
     int m_transientAmnesty; // only in RT mode; handled differently offline

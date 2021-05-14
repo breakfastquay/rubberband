@@ -24,4 +24,5 @@ Release/
 Debug/
 build
 build_*
+build-*
 UpgradeLog*
