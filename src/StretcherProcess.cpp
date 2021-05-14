@@ -1154,11 +1154,11 @@ RubberBandStretcher::Impl::writeOutput(RingBuffer<float> &to, float *from, size_
     // configure(), so we don't want to remove any here.
 //!!!
     size_t startSkip = 0;
-//    if (!m_realtime) {
+    if (!m_realtime) {
     //!!! lock down the latency to this initial value in RT mode
         startSkip = lrintf((m_sWindowSize/2) / m_pitchScale);
 //    startSkip = m_sWindowSize/2;
-//    }
+    }
 
     if (outCount > startSkip) {
         

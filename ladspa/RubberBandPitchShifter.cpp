@@ -44,7 +44,7 @@ RubberBandPitchShifter::portNamesMono[PortCountMono] =
     "Octaves",
     "Crispness",
     "Formant Preserving",
-    "Faster",
+    "Wet-Dry Mix",
     "Input",
     "Output"
 };
@@ -58,7 +58,7 @@ RubberBandPitchShifter::portNamesStereo[PortCountStereo] =
     "Octaves",
     "Crispness",
     "Formant Preserving",
-    "Faster",
+    "Wet-Dry Mix",
     "Input L",
     "Output L",
     "Input R",
@@ -123,10 +123,9 @@ RubberBandPitchShifter::hintsMono[PortCountMono] =
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_TOGGLED,
        0.0, 1.0 },
-    { LADSPA_HINT_DEFAULT_0 |           // fast
+    { LADSPA_HINT_DEFAULT_0 |           // wet-dry mix
       LADSPA_HINT_BOUNDED_BELOW |
-      LADSPA_HINT_BOUNDED_ABOVE |
-      LADSPA_HINT_TOGGLED,
+      LADSPA_HINT_BOUNDED_ABOVE,
        0.0, 1.0 },
     { 0, 0, 0 },
     { 0, 0, 0 }
@@ -160,10 +159,9 @@ RubberBandPitchShifter::hintsStereo[PortCountStereo] =
       LADSPA_HINT_BOUNDED_ABOVE |
       LADSPA_HINT_TOGGLED,
        0.0, 1.0 },
-    { LADSPA_HINT_DEFAULT_0 |           // fast
+    { LADSPA_HINT_DEFAULT_0 |           // wet-dry mix
       LADSPA_HINT_BOUNDED_BELOW |
-      LADSPA_HINT_BOUNDED_ABOVE |
-      LADSPA_HINT_TOGGLED,
+      LADSPA_HINT_BOUNDED_ABOVE,
        0.0, 1.0 },
     { 0, 0, 0 },
     { 0, 0, 0 },
@@ -237,12 +235,11 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_octaves(0),
     m_crispness(0),
     m_formant(0),
-    m_fast(0),
+    m_wetDry(0),
     m_ratio(1.0),
     m_prevRatio(1.0),
     m_currentCrispness(-1),
     m_currentFormant(false),
-    m_currentFast(false),
     m_blockSize(1024),
     m_reserve(1024),
     m_minfill(0),
@@ -257,6 +254,7 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
     m_output = new float *[m_channels];
 
     m_outputBuffer = new RingBuffer<float> *[m_channels];
+    m_delayMixBuffer = new RingBuffer<float> *[m_channels];
     m_scratch = new float *[m_channels];
     
     for (size_t c = 0; c < m_channels; ++c) {
@@ -267,6 +265,7 @@ RubberBandPitchShifter::RubberBandPitchShifter(int sampleRate, size_t channels) 
         int bufsize = m_blockSize + m_reserve + 8192;
 
         m_outputBuffer[c] = new RingBuffer<float>(bufsize);
+        m_delayMixBuffer[c] = new RingBuffer<float>(bufsize);
 
         m_scratch[c] = new float[bufsize];
         for (int i = 0; i < bufsize; ++i) m_scratch[c][i] = 0.f;
@@ -280,9 +279,11 @@ RubberBandPitchShifter::~RubberBandPitchShifter()
     delete m_stretcher;
     for (size_t c = 0; c < m_channels; ++c) {
         delete m_outputBuffer[c];
+        delete m_delayMixBuffer[c];
         delete[] m_scratch[c];
     }
     delete[] m_outputBuffer;
+    delete[] m_delayMixBuffer;
     delete[] m_scratch;
     delete[] m_output;
     delete[] m_input;
@@ -312,7 +313,7 @@ RubberBandPitchShifter::connectPort(LADSPA_Handle handle,
 	&shifter->m_octaves,
         &shifter->m_crispness,
 	&shifter->m_formant,
-	&shifter->m_fast,
+	&shifter->m_wetDry,
     	&shifter->m_input[0],
 	&shifter->m_output[0],
 	&shifter->m_input[1],
@@ -328,8 +329,17 @@ RubberBandPitchShifter::connectPort(LADSPA_Handle handle,
     *ports[port] = (float *)location;
 
     if (shifter->m_latency) {
-        *(shifter->m_latency) =
-            float(shifter->m_stretcher->getLatency() + shifter->m_reserve);
+        *(shifter->m_latency) = shifter->getLatency();
+    }
+}
+
+int
+RubberBandPitchShifter::getLatency() const
+{
+    if (m_stretcher) {
+        return m_stretcher->getLatency() + m_reserve;
+    } else {
+        return 0;
     }
 }
 
@@ -351,6 +361,11 @@ RubberBandPitchShifter::activateImpl()
     for (size_t c = 0; c < m_channels; ++c) {
         m_outputBuffer[c]->reset();
         m_outputBuffer[c]->zero(m_reserve);
+    }
+
+    for (size_t c = 0; c < m_channels; ++c) {
+        m_delayMixBuffer[c]->reset();
+        m_delayMixBuffer[c]->zero(getLatency());
     }
 
     m_minfill = 0;
@@ -432,23 +447,6 @@ RubberBandPitchShifter::updateFormant()
 }
 
 void
-RubberBandPitchShifter::updateFast()
-{
-    if (!m_fast) return;
-
-    bool f = (*m_fast > 0.5f);
-    if (f == m_currentFast) return;
-    
-    RubberBandStretcher *s = m_stretcher;
-    
-    s->setPitchOption(f ?
-                      RubberBandStretcher::OptionPitchHighSpeed :
-                      RubberBandStretcher::OptionPitchHighConsistency);
-
-    m_currentFast = f;
-}
-
-void
 RubberBandPitchShifter::runImpl(unsigned long insamples)
 {
     unsigned long offset = 0;
@@ -466,6 +464,24 @@ RubberBandPitchShifter::runImpl(unsigned long insamples)
 
         offset += block;
     }
+
+    if (m_wetDry) {
+        for (size_t c = 0; c < m_channels; ++c) {
+            m_delayMixBuffer[c]->write(m_input[c], insamples);
+        }
+        float mix = *m_wetDry;
+        for (size_t c = 0; c < m_channels; ++c) {
+            if (mix > 0.0) {
+                for (unsigned long i = 0; i < insamples; ++i) {
+                    float dry = m_delayMixBuffer[c]->readOne();
+                    m_output[c][i] *= (1.0 - mix);
+                    m_output[c][i] += dry * mix;
+                }
+            } else {
+                m_delayMixBuffer[c]->skip(insamples);
+            }
+        }
+    }
 }
 
 void
@@ -480,32 +496,25 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
         m_stretcher->setPitchScale(m_ratio);
         m_prevRatio = m_ratio;
     }
-
+/*
     if (m_latency) {
-        *m_latency = float(m_stretcher->getLatency() + m_reserve);
-//        cerr << "latency = " << *m_latency << endl;
+        float latencyWas = *m_latency;
+        *m_latency = getLatency();
+        cerr << "latency = " << *m_latency << endl;
+        if (*m_latency != latencyWas) {
+            cerr << "NOTE: latency changed from " << latencyWas
+                 << " to " << *m_latency << endl;
+        }
     }
-
+*/
     updateCrispness();
     updateFormant();
-    updateFast();
 
     const int samples = insamples;
     int processed = 0;
     size_t outTotal = 0;
 
     float *ptrs[2];
-
-    int rs = m_outputBuffer[0]->getReadSpace();
-    if (rs < int(m_minfill)) {
-//        cerr << "temporary expansion (have " << rs << ", want " << m_reserve << ")" << endl;
-        m_stretcher->setTimeRatio(1.1); // fill up temporarily
-    } else if (rs > 8192) {
-//        cerr << "temporary reduction (have " << rs << ", want " << m_reserve << ")" << endl;
-        m_stretcher->setTimeRatio(0.9); // reduce temporarily
-    } else {
-        m_stretcher->setTimeRatio(1.0);
-    }
 
     while (processed < samples) {
 
@@ -523,24 +532,18 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
 
         int avail = m_stretcher->available();
         int writable = m_outputBuffer[0]->getWriteSpace();
-        int outchunk = min(avail, writable);
+
+        int outchunk = avail;
+        if (outchunk > writable) {
+            cerr << "RubberBandPitchShifter::runImpl: buffer is not large enough: chunk = " << outchunk << ", space = " << writable << endl;
+            outchunk = writable;
+        }
+        
         size_t actual = m_stretcher->retrieve(m_scratch, outchunk);
         outTotal += actual;
 
-//        incount += inchunk;
-//        outcount += actual;
-
-//        cout << "avail: " << avail << ", outchunk = " << outchunk;
-//        if (actual != outchunk) cout << " (" << actual << ")";
-//        cout << endl;
-
-        outchunk = actual;
-
         for (size_t c = 0; c < m_channels; ++c) {
-            if (int(m_outputBuffer[c]->getWriteSpace()) < outchunk) {
-                cerr << "RubberBandPitchShifter::runImpl: buffer overrun: chunk = " << outchunk << ", space = " << m_outputBuffer[c]->getWriteSpace() << endl;
-            }                
-            m_outputBuffer[c]->write(m_scratch[c], outchunk);
+            m_outputBuffer[c]->write(m_scratch[c], actual);
         }
     }
     
@@ -555,7 +558,7 @@ RubberBandPitchShifter::runImpl(unsigned long insamples, unsigned long offset)
 
     if (m_minfill == 0) {
         m_minfill = m_outputBuffer[0]->getReadSpace();
-//        cerr << "minfill = " << m_minfill << endl;
+        cerr << "minfill = " << m_minfill << endl;
     }
 }
 

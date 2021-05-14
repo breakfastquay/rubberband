@@ -868,7 +868,8 @@ size_t
 RubberBandStretcher::Impl::getLatency() const
 {
     if (!m_realtime) return 0;
-    return int((m_aWindowSize/2) / m_pitchScale + 1);
+    return lrint((m_aWindowSize/2) / m_pitchScale);
+//    return int(m_aWindowSize/2);
 }
 
 void

@@ -469,7 +469,7 @@ StretchCalculator::calculateSingle(double timeRatio,
         if (divergence > 1000 || divergence < -1000) {
             recovery = divergence / ((m_sampleRate / 10.0) / increment);
         } else if (divergence > 100 || divergence < -100) {
-            recovery = divergence / ((m_sampleRate / 25.0) / increment);
+            recovery = divergence / ((m_sampleRate / 20.0) / increment);
         } else {
             recovery = divergence / 4.0;
         }
