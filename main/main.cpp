@@ -259,9 +259,9 @@ int main(int argc, char **argv)
         cerr << endl;
         cerr << "         --freqmap <F>    Use file F as the source for frequency map" << endl;
         cerr << endl;
-        cerr << "  As --pitchmap, except that the second column in the file contains frequency" << endl;
-        cerr << "  multipliers rather than pitch offsets (the same as the difference between" << endl;
-        cerr << "  pitch and frequency options above)." << endl;
+        cerr << "  A frequency map file is like a pitch map, except that its second column" << endl;
+        cerr << "  lists frequency multipliers rather than pitch offsets (like the difference" << endl;
+        cerr << "  between pitch and frequency options above)." << endl;
         cerr << endl;
         cerr << "The following options provide a simple way to adjust the sound. See below" << endl;
         cerr << "for more details." << endl;
