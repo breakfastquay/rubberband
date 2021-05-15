@@ -366,32 +366,32 @@ inline void v_scale(double *const R__ dst,
 }
 #endif
 
-template<typename T>
-inline void v_multiply(T *const R__ dst,
-                       const T *const R__ src,
+template<typename T, typename S>
+inline void v_multiply(T *const R__ srcdst,
+                       const S *const R__ src,
                        const int count)
 {
     for (int i = 0; i < count; ++i) {
-        dst[i] *= src[i];
+        srcdst[i] *= src[i];
     }
 }
 
 #if defined HAVE_IPP 
 template<>
-inline void v_multiply(float *const R__ dst,
+inline void v_multiply(float *const R__ srcdst,
                        const float *const R__ src,
                        const int count)
 {
-    ippsMul_32f_I(src, dst, count);
+    ippsMul_32f_I(src, srcdst, count);
 }
 template<>
-inline void v_multiply(double *const R__ dst,
+inline void v_multiply(double *const R__ srcdst,
                        const double *const R__ src,
                        const int count)
 {
-    ippsMul_64f_I(src, dst, count);
+    ippsMul_64f_I(src, srcdst, count);
 }
-#endif
+#endif // HAVE_IPP
 
 template<typename T>
 inline void v_multiply(T *const R__ dst,
