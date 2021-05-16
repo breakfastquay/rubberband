@@ -832,6 +832,7 @@ RubberBandStretcher::Impl::reconfigure()
 
     if (m_fftSize != prevFftSize) {
         m_phaseResetAudioCurve->setFftSize(m_fftSize);
+        m_silentAudioCurve->setFftSize(m_fftSize);
     }
 }
 
