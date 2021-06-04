@@ -19,4 +19,4 @@ build_script:
   # Test the VC++ static library build, which is separate
   - msbuild otherbuilds\rubberband-library.vcxproj /t:Build /p:Configuration=Release
   # And test the .NET FFI interface build, which is again separate
-  - msbuild dotnet\rubberband.sln /t:"Restore;Build" 
+  - msbuild dotnet\rubberband.sln /t:Restore;Build
