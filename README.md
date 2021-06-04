@@ -304,10 +304,16 @@ commercial terms.
 
 ### 4d. Building on Windows
 
-The default build on Windows also uses Meson, so ensure Meson and
-Ninja are installed and available. Then, in a terminal window with the
-compiler tools available in the path (e.g. a Visual Studio
-command-line prompt for the relevant build architecture) run
+First, if you only need to build the static library for integration
+into your project, and you prefer a Visual Studio project file, you
+can find a simple one in `otherbuilds\rubberband-library.vcxproj`.
+
+The rest of this section describes the "full" build system, which uses
+Meson just as on the other platforms. So to build this way, start by
+ensuring Meson and Ninja are installed and available. Then, in a
+terminal window with the compiler tools available in the path (e.g. a
+Visual Studio command-line prompt for the relevant build architecture)
+run
 
 ```
 > meson build
@@ -328,10 +334,6 @@ option `b_vscrt`:
 ```
 
 See "FFT and resampler selection" below for further build options.
-
-Alternatively, if you only need the static library and prefer a Visual
-Studio project file, there is one targeted for VC 2015 in
-`otherbuilds\rubberband-library.vcxproj`.
 
 
 ### 4e. Building for Android and Java integration
