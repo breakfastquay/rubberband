@@ -1,4 +1,18 @@
 
+Changes in Rubber Band v1.9.2
+
+ * Introduce a built-in FFT option to be a good default when no
+   requirements point to a particular external library preference
+ * Fix potential crash following some reconfigure options. Thanks
+   to Michael Tyson for reporting this
+ * Ensure Accelerate is listed in generated pkg-config if required
+ * Check for existence of sincos in configuration
+ * Fix host identification when cross-compiling
+
+The API is unchanged and the library is binary compatible with
+version 1.7.
+
+
 Changes in Rubber Band v1.9.1
 
  * Switch build system from Makefiles and Visual Studio project to
