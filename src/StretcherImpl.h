@@ -102,7 +102,11 @@ public:
     size_t getChannelCount() const {
         return m_channels;
     }
-    
+
+    size_t getSampleRate() const {
+        return m_sampleRate;
+    }
+
     void calculateStretch();
 
     void setDebugLevel(int level);

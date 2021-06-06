@@ -200,6 +200,12 @@ RubberBandStretcher::getChannelCount() const
     return m_d->getChannelCount();
 }
 
+size_t
+RubberBandStretcher::getSampleRate() const
+{
+    return m_d->getSampleRate();
+}
+
 void
 RubberBandStretcher::calculateStretch()
 {
