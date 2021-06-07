@@ -7,10 +7,16 @@ version=$(grep '^ *version:' meson.build | head -1 | sed "s/^.*'\([0-9][0-9.]*\)
 echo
 echo "Packaging command-line utility for Mac for Rubber Band v$version..."
 echo
+if [ -f /usr/local/lib/libsndfile.dylib ]; then
+    echo "(WARNING: libsndfile dynamic library found in /usr/local/lib, be sure that you aren't about to combine this external dependency with the hardened runtime)"
+fi
 rm -rf build
 PKG_CONFIG_PATH=/usr/local/lib/pkgconfig/ meson build --cross-file ./cross/macos-universal.txt
 ninja -C build
+echo
+echo "Check the following version number: it should read $version"
 ./build/rubberband -V
+echo
 key="Developer ID Application: Particular Programs Ltd (73F996B92S)"
 mkdir -p packages
 ( cd build
