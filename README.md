@@ -161,8 +161,16 @@ acquired a commercial licence from the author.
 ## 4. Compiling the Rubber Band Library
 
 The primary supported build system for the Rubber Band Library on all
-platforms is Meson (https://mesonbuild.com). To build, ensure Meson
-and Ninja are installed and run:
+platforms is Meson (https://mesonbuild.com). The Meson build system
+can be used to build all targets (static and dynamic library,
+command-line utility, and plugins) and to cross-compile.
+
+If you only need a static library and don't wish to use Meson, some
+alternative build files (Makefiles and Visual C++ projects) are
+included in the `otherbuilds` directory. See the platform-specific
+build sections below for more details.
+
+To build with Meson, ensure Meson and Ninja are installed and run:
 
 ```
 $ meson build && ninja -C build
@@ -184,10 +192,6 @@ $ meson build -Dipp_path=/opt/intel/ipp
 
 The options are documented in the library- and platform-specific
 sections below.
-
-For those who don't wish to use Meson, some alternative build files
-(Makefiles and Visual C++ projects) are included in the `otherbuilds`
-directory. These build only the static library.
 
 The Rubber Band Library is written entirely in C++ to the C++98
 standard. It is unlikely to make any difference (performance or
@@ -304,9 +308,9 @@ commercial terms.
 
 ### 4d. Building on Windows
 
-First, if you only need to build the static library for integration
-into your project, and you prefer a Visual Studio project file, you
-can find a simple one in `otherbuilds\rubberband-library.vcxproj`.
+If you only need to build the static library for integration into your
+project, and you prefer a Visual Studio project file, you can find a
+simple one in `otherbuilds\rubberband-library.vcxproj`.
 
 The rest of this section describes the "full" build system, which uses
 Meson just as on the other platforms. So to build this way, start by
