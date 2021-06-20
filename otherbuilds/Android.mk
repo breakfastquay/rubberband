@@ -1,6 +1,6 @@
 
 LOCAL_MODULE := rubberband
-LOCAL_MODULE_FILENAME := librubberband-jni
+LOCAL_MODULE_FILENAME := librubberband
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/rubberband $(LOCAL_PATH)/rubberband/src
 
