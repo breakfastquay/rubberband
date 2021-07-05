@@ -701,6 +701,7 @@ public:
         if (!m_dspec) initDouble();
         double *d[2] = { m_dpacked->realp, m_dpacked->imagp };
         v_deinterleave(d, complexIn, 2, m_size/2 + 1);
+        dnyq();
         vDSP_fft_zriptD(m_dspec, m_dpacked, 1, m_dbuf, m_order, FFT_INVERSE);
         unpackReal(realOut);
     }
@@ -738,6 +739,7 @@ public:
         if (!m_fspec) initFloat();
         float *f[2] = { m_fpacked->realp, m_fpacked->imagp };
         v_deinterleave(f, complexIn, 2, m_size/2 + 1);
+        fnyq();
         vDSP_fft_zript(m_fspec, m_fpacked, 1, m_fbuf, m_order, FFT_INVERSE);
         unpackReal(realOut);
     }
