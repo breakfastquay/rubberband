@@ -335,18 +335,18 @@ if system == 'darwin'
   endforeach
 
   if architecture == 'aarch64'
-    mac_platform_arguments = [
+    arch_flags += [
       '-arch', 'arm64',
     ]
     if not have_version_min
-      mac_platform_arguments += [ '-mmacosx-version-min=11' ]
+      arch_flags += [ '-mmacosx-version-min=11' ]
     endif
   elif architecture == 'x86_64'
-    mac_platform_arguments = [
+    arch_flags += [
       '-arch', 'x86_64',
     ]
     if not have_version_min
-      mac_platform_arguments += [ '-mmacosx-version-min=10.13' ]
+      arch_flags += [ '-mmacosx-version-min=10.13' ]
     endif
   else # begin architecture != 'aarch64' or 'x86_64'
     error('Build for architecture ' + architecture + ' is not supported on this platform')
