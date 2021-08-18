@@ -1,25 +1,40 @@
 #!/bin/bash
 set -eu
 if [ ! -f ../rba/deploy/macos/notarize.sh ]; then
-    echo "need notarize script in ../rba/deploy/macos"
+    echo "Need notarize script in ../rba/deploy/macos"
 fi
+
 version=$(grep '^ *version:' meson.build | head -1 | sed "s/^.*'\([0-9][0-9.]*\)'.*$/\1/")
 echo
 echo "Packaging command-line utility for Mac for Rubber Band v$version..."
 echo
 if [ -f /usr/local/lib/libsndfile.dylib ]; then
-    echo "(WARNING: libsndfile dynamic library found in /usr/local/lib, be sure that you aren't about to combine this external dependency with the hardened runtime)"
+    echo "(WARNING: libsndfile dynamic library found in /usr/local/lib!"
+    echo "Be sure that you aren't about to combine this external dependency"
+    echo "with the hardened runtime)"
 fi
-rm -rf build
-PKG_CONFIG_PATH=/usr/local/lib/pkgconfig/ meson build --cross-file ./cross/macos-universal.txt
-ninja -C build
+
+echo -n "Proceed [Yn] ? "
+read yn
+case "$yn" in "") ;; [Yy]) ;; *) exit 3;; esac
+echo "Proceeding"
+
+rm -rf build_arm64 build_x86_64 tmp_pack
+PKG_CONFIG_PATH=/usr/local/lib/pkgconfig/ meson build_arm64 --cross-file ./cross/macos-arm64.txt
+PKG_CONFIG_PATH=/usr/local/lib/pkgconfig/ meson build_x86_64 --cross-file ./cross/macos-x86_64.txt
+ninja -C build_arm64
+ninja -C build_x86_64
+mkdir tmp_pack
+lipo build_arm64/rubberband build_x86_64/rubberband -create -output tmp_pack/rubberband
+
 echo
 echo "Check the following version number: it should read $version"
-./build/rubberband -V
+tmp_pack/rubberband -V
 echo
+
 key="Developer ID Application: Particular Programs Ltd (73F996B92S)"
 mkdir -p packages
-( cd build
+( cd tmp_pack
   codesign -s "$key" -fv --options runtime rubberband
   zipfile="rubberband-$version-gpl-executable-macos.zip"
   rm -f "$zipfile"
@@ -29,7 +44,7 @@ mkdir -p packages
 package_dir="rubberband-$version-gpl-executable-macos"
 rm -rf "$package_dir"
 mkdir "$package_dir"
-cp build/rubberband "$package_dir"
+cp tmp_pack/rubberband "$package_dir"
 cp CHANGELOG README.md COPYING "$package_dir"
 tar cvjf "$package_dir.tar.bz2" "$package_dir"
 mv "$package_dir.tar.bz2" packages/
