@@ -2,7 +2,7 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '1.9.2-pre',
+  version: '1.9.2',
   license: 'GPL-2.0-or-later',
   default_options: [
     # All Rubber Band code is actually C++98, but some compilers no
@@ -15,7 +15,7 @@ project(
   meson_version: '>= 0.53.0'
 )
 
-rubberband_dynamic_library_version = '2.1.3'
+rubberband_dynamic_library_version = '2.1.4'
 
 system = host_machine.system()
 architecture = host_machine.cpu_family()
@@ -341,18 +341,18 @@ if system == 'darwin'
   endforeach
 
   if architecture == 'aarch64'
-    mac_platform_arguments = [
+    arch_flags += [
       '-arch', 'arm64',
     ]
     if not have_version_min
-      mac_platform_arguments += [ '-mmacosx-version-min=11' ]
+      arch_flags += [ '-mmacosx-version-min=11' ]
     endif
   elif architecture == 'x86_64'
-    mac_platform_arguments = [
+    arch_flags += [
       '-arch', 'x86_64',
     ]
     if not have_version_min
-      mac_platform_arguments += [ '-mmacosx-version-min=10.13' ]
+      arch_flags += [ '-mmacosx-version-min=10.13' ]
     endif
   else # begin architecture != 'aarch64' or 'x86_64'
     error('Build for architecture ' + architecture + ' is not supported on this platform')

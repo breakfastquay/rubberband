@@ -161,8 +161,16 @@ acquired a commercial licence from the author.
 ## 4. Compiling the Rubber Band Library
 
 The primary supported build system for the Rubber Band Library on all
-platforms is Meson (https://mesonbuild.com). To build, ensure Meson
-and Ninja are installed and run:
+platforms is Meson (https://mesonbuild.com). The Meson build system
+can be used to build all targets (static and dynamic library,
+command-line utility, and plugins) and to cross-compile.
+
+If you only need a static library and don't wish to use Meson, some
+alternative build files (Makefiles and Visual C++ projects) are
+included in the `otherbuilds` directory. See the platform-specific
+build sections below for more details.
+
+To build with Meson, ensure Meson and Ninja are installed and run:
 
 ```
 $ meson build && ninja -C build
@@ -184,10 +192,6 @@ $ meson build -Dipp_path=/opt/intel/ipp
 
 The options are documented in the library- and platform-specific
 sections below.
-
-For those who don't wish to use Meson, some alternative build files
-(Makefiles and Visual C++ projects) are included in the `otherbuilds`
-directory. These build only the static library.
 
 The Rubber Band Library is written entirely in C++ to the C++98
 standard. It is unlikely to make any difference (performance or
@@ -304,10 +308,16 @@ commercial terms.
 
 ### 4d. Building on Windows
 
-The default build on Windows also uses Meson, so ensure Meson and
-Ninja are installed and available. Then, in a terminal window with the
-compiler tools available in the path (e.g. a Visual Studio
-command-line prompt for the relevant build architecture) run
+If you only need to build the static library for integration into your
+project, and you prefer a Visual Studio project file, you can find a
+simple one in `otherbuilds\rubberband-library.vcxproj`.
+
+The rest of this section describes the "full" build system, which uses
+Meson just as on the other platforms. So to build this way, start by
+ensuring Meson and Ninja are installed and available. Then, in a
+terminal window with the compiler tools available in the path (e.g. a
+Visual Studio command-line prompt for the relevant build architecture)
+run
 
 ```
 > meson build
@@ -328,10 +338,6 @@ option `b_vscrt`:
 ```
 
 See "FFT and resampler selection" below for further build options.
-
-Alternatively, if you only need the static library and prefer a Visual
-Studio project file, there is one targeted for VC 2015 in
-`otherbuilds\rubberband-library.vcxproj`.
 
 
 ### 4e. Building for Android and Java integration
@@ -354,8 +360,8 @@ The supplied `.mk` file uses KissFFT and the Speex resampler.
 
 ### 4f. FFT and resampler selection
 
-Rubber Band requires additional library code for FFT calculation and
-resampling.  Several libraries are supported.  The selection is
+Rubber Band requires the selection of library code for FFT calculation
+and resampling.  Several libraries are supported.  The selection is
 controlled (in Meson) using `-D` options and (in the code itself)
 using preprocessor flags set by the build system. These options and
 flags are detailed in the tables below.
@@ -364,13 +370,13 @@ At least one resampler implementation and one FFT implementation must
 be enabled. It is technically possible to enable more than one, but
 it's confusing and not often useful.
 
-If you are building this software using one of the bundled library
-options (Speex or KissFFT), please be sure to review the terms for
-those libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
-applicable.
+If you are building this software using the bundled Speex or KissFFT
+library code, please be sure to review the terms for those libraries
+in `src/speex/COPYING` and `src/kissfft/COPYING` as applicable.
 
-If you are proposing to package Rubber Band for a Linux distribution
-using other packaged libraries, please select FFTW and libsamplerate.
+If you are proposing to package Rubber Band for a Linux distribution,
+please select either the built-in FFT (simpler for you) or FFTW (a bit
+faster) and use libsamplerate.
 
 #### FFT libraries supported
 
