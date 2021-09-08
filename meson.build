@@ -327,30 +327,42 @@ if system == 'darwin'
     '-exported_symbols_list', meson.source_root() / 'vamp/vamp-plugin.list'
   ]
 
-  have_version_min = false
-  foreach arg: get_option('cpp_args')
-    if arg.contains('version-min')
-      have_version_min = true
-    endif
-  endforeach
-
   if architecture == 'aarch64'
     arch_flags += [
       '-arch', 'arm64',
     ]
-    if not have_version_min
-      arch_flags += [ '-mmacosx-version-min=11' ]
-    endif
   elif architecture == 'x86_64'
     arch_flags += [
       '-arch', 'x86_64',
     ]
-    if not have_version_min
-      arch_flags += [ '-mmacosx-version-min=10.13' ]
-    endif
   else # begin architecture != 'aarch64' or 'x86_64'
     error('Build for architecture ' + architecture + ' is not supported on this platform')
   endif # end architecture
+
+  have_version_min = false
+  foreach arg: get_option('cpp_args')
+    if arg.contains('version-min')
+      have_version_min = true
+      bits = arg.split('=')
+      if bits.length() > 1
+	config_summary += { 'Target OS': bits[1] + '+' }
+      else
+	config_summary += { 'Target OS': '(unknown)' }
+      endif
+    endif
+  endforeach
+
+  if not have_version_min
+    message('Using default minimum target OS version')
+    message('(consider specifying this in cross-file if earlier target is desired)')
+    if architecture == 'aarch64'
+      arch_flags += [ '-mmacosx-version-min=11' ]
+      config_summary += { 'Target OS': '11+' }
+    else 
+      arch_flags += [ '-mmacosx-version-min=10.13' ]
+      config_summary += { 'Target OS': '10.13+' }
+    endif
+  endif
 
 elif system == 'windows'
   feature_defines += ['-D_WIN32', '-DNOMINMAX', '-D_USE_MATH_DEFINES', '-DGETOPT_API=']

@@ -15,6 +15,6 @@ pkgconfig = 'pkg-config'
 
 [built-in options]
 c_args = ['-arch', 'x86_64']
-cpp_args = ['-arch', 'x86_64']
-cpp_link_args = ['-arch', 'x86_64']
+cpp_args = ['-arch', 'x86_64', '-stdlib=libc++']
+cpp_link_args = ['-arch', 'x86_64', '-stdlib=libc++']
 
