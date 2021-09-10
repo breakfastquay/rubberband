@@ -258,17 +258,11 @@ this:
 $ meson build --cross-file cross/macos-universal.txt && ninja -C build
 ```
 
-However, the resulting binary will be marked as loadable on macOS 11+
-only, even for Intel, which is probably not what you want (ideally the
-Intel slice would support older versions of the OS). A Makefile that
-handles this explicitly is also provided:
-
-```
-$ make -f otherbuilds/Makefile.macos-universal
-```
-
-This produces only a static library, but it's a universal binary that
-is compatible with macOS 10.7 onwards on the Intel side.
+Note that the universal cross file also sets the minimum OS version to
+the earliest supported macOS versions for both architectures. (Note
+that actual compatibility will also depend on how any dependent
+libraries have been compiled.)  You can edit this in the
+`cross/macos-universal.txt` file if you want a specific target.
 
 See "FFT and resampler selection" below for further build options.
 
@@ -284,7 +278,7 @@ commercial terms.
 Ensure the Xcode command-line tools are installed, and
 
 ```
-$ meson build_ios --cross-file cross/ios.txt && ninja -C build
+$ meson build_ios --cross-file cross/ios.txt && ninja -C build_ios
 ```
 
 The output files will be found in the `build_ios` directory.
@@ -292,7 +286,7 @@ The output files will be found in the `build_ios` directory.
 To build for the simulator,
 
 ```
-$ meson build_sim --cross-file cross/ios-simulator.txt && ninja -C build
+$ meson build_sim --cross-file cross/ios-simulator.txt && ninja -C build_sim
 ```
 
 The output files will be found in the `build_sim` directory.
