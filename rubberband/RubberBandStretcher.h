@@ -50,9 +50,9 @@
  * offline mode, you must provide the audio block-by-block in two
  * passes: in the first pass calling study(), in the second pass
  * calling process() and receiving the output via retrieve(). In
- * real-time mode there is no study pass, just a single streaming pass
- * in which the audio is passed to process() and output received via
- * retrieve().
+ * real-time mode, there is no study pass, just a single streaming
+ * pass in which the audio is passed to process() and output received
+ * via retrieve().
  *
  * In real-time mode you can change the time and pitch ratios at any
  * time, but in offline mode they are fixed and cannot be changed
@@ -358,7 +358,7 @@ public:
      * In offline mode, you must provide the audio block-by-block in
      * two passes: in the first pass calling study(), in the second
      * pass calling process() and receiving the output via
-     * retrieve(). In real-time mode there is no study pass, just a
+     * retrieve(). In real-time mode, there is no study pass, just a
      * single streaming pass in which the audio is passed to process()
      * and output received via retrieve().
      *
