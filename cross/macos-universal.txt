@@ -14,8 +14,8 @@ strip = 'strip'
 pkgconfig = 'pkg-config'
 
 [built-in options]
-c_args = ['-arch', 'arm64', '-arch', 'x86_64']
-cpp_args = ['-arch', 'arm64', '-arch', 'x86_64']
-cpp_link_args = ['-arch', 'arm64', '-arch', 'x86_64']
+c_args = ['-arch', 'arm64', '-arch', 'x86_64', '-mmacosx-version-min=10.7']
+cpp_args = ['-arch', 'arm64', '-arch', 'x86_64', '-stdlib=libc++', '-mmacosx-version-min=10.7']
+cpp_link_args = ['-arch', 'arm64', '-arch', 'x86_64', '-stdlib=libc++', '-mmacosx-version-min=10.7']
 
 

@@ -44,7 +44,22 @@
  * 
  * The Rubber Band API is contained in the single class
  * RubberBand::RubberBandStretcher.
- * 
+ *
+ * The Rubber Band stretcher supports two processing modes, offline
+ * and real-time. The choice of mode is fixed on construction. In
+ * offline mode, you must provide the audio block-by-block in two
+ * passes: in the first pass calling study(), in the second pass
+ * calling process() and receiving the output via retrieve(). In
+ * real-time mode, there is no study pass, just a single streaming
+ * pass in which the audio is passed to process() and output received
+ * via retrieve().
+ *
+ * In real-time mode you can change the time and pitch ratios at any
+ * time, but in offline mode they are fixed and cannot be changed
+ * after the study pass has begun. (However, see setKeyFrameMap() for
+ * a way to do pre-planned variable time stretching in offline mode.)
+ * Offline mode typically produces slightly more precise results.
+ *
  * Threading notes for real-time applications:
  * 
  * Multiple instances of RubberBandStretcher may be created and used
@@ -332,11 +347,28 @@ public:
 
     /**
      * Construct a time and pitch stretcher object to run at the given
-     * sample rate, with the given number of channels.  Processing
-     * options and the time and pitch scaling ratios may be provided.
-     * The time and pitch ratios may be changed after construction,
-     * but most of the options may not.  See the option documentation
-     * above for more details.
+     * sample rate, with the given number of channels.
+     *
+     * Initial time and pitch scaling ratios and other processing
+     * options may be provided. In particular, the behaviour of the
+     * stretcher depends strongly on whether offline or real-time mode
+     * is selected on construction (via OptionProcessOffline or
+     * OptionProcessRealTime option - offline is the default).
+     * 
+     * In offline mode, you must provide the audio block-by-block in
+     * two passes: in the first pass calling study(), in the second
+     * pass calling process() and receiving the output via
+     * retrieve(). In real-time mode, there is no study pass, just a
+     * single streaming pass in which the audio is passed to process()
+     * and output received via retrieve().
+     *
+     * In real-time mode you can change the time and pitch ratios at
+     * any time, but in offline mode they are fixed and cannot be
+     * changed after the study pass has begun. (However, see
+     * setKeyFrameMap() for a way to do pre-planned variable time
+     * stretching in offline mode.)
+     *
+     * See the option documentation above for more details.
      */
     RubberBandStretcher(size_t sampleRate,
                         size_t channels,
@@ -635,8 +667,10 @@ public:
 
     /**
      * Obtain some processed output data from the stretcher.  Up to
-     * "samples" samples will be stored in the output arrays (one per
-     * channel for de-interleaved audio data) pointed to by "output".
+     * "samples" samples will be stored in each of the output arrays
+     * (one per channel for de-interleaved audio data) pointed to by
+     * "output".  The number of sample frames available to be
+     * retrieved can be queried beforehand with a call to available().
      * The return value is the actual number of sample frames
      * retrieved.
      *
