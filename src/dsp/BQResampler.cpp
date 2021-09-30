@@ -590,7 +590,9 @@ BQResampler::reconstruct_one(state *s) const
     int phase_length = pr.length;
     double result = 0.0;
 
-    int dot_length = min(phase_length, int(s->buffer.size()) - s->left);
+    int dot_length =
+        min(phase_length,
+            (int(s->buffer.size()) - s->left) / m_channels);
 
     if (m_dynamism == RatioMostlyFixed) {
         int phase_start = pr.start_index;
