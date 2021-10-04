@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#include "rubberband/rubberband-c.h"
-#include "rubberband/RubberBandStretcher.h"
+#include "../rubberband/rubberband-c.h"
+#include "../rubberband/RubberBandStretcher.h"
 
 struct RubberBandState_
 {
