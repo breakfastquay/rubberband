@@ -27,19 +27,21 @@
     This is a single-file compilation unit for Rubber Band Library.
   
     To use the library in your project without building it separately,
-    include one of the headers rubberband/RubberBandStretcher.h if
-    your project is C++ or rubberband/rubberband-c.h if you need the C
-    ABI, then add this single C++ source file to your build.
+    include in your code either rubberband/RubberBandStretcher.h for
+    use in C++ or rubberband/rubberband-c.h if you need the C
+    interface, then add this single C++ source file to your build.
  
     Don't move this file into your source tree - keep it in the same
     place relative to the other Rubber Band code, so that the relative
     include paths work, and just add it to your list of build files.
   
     This produces a build using the built-in FFT and resampler
-    implementations, except on Apple platforms where the vDSP FFT is
-    used (and you will need the Accelerate framework when linking). If
-    you want any further customisation, consider using the full build
-    system and building a standalone library.
+    implementations, except on Apple platforms, where the vDSP FFT is
+    used (and where you will need the Accelerate framework when
+    linking). It should work correctly on any supported platform, but
+    may not be the fastest configuration available. For further
+    customisation, consider using the full build system to make a
+    standalone library.
 */
 
 #define USE_BQRESAMPLER 1
