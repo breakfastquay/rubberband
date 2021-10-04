@@ -140,7 +140,7 @@ if resampler == 'auto'
   if samplerate_dep.found()
     resampler = 'libsamplerate'
   else
-    resampler = 'speex'
+    resampler = 'builtin'
   endif
 endif
 
@@ -447,7 +447,7 @@ if not get_option('no_shared')
   message('Will build Rubber Band Library shared library')
   rubberband_dynamic = shared_library(
     rubberband_dynamic_name,
-    objects: rubberband_static.extract_all_objects(),
+    objects: rubberband_static.extract_all_objects(recursive: true),
     link_args: [
       arch_flags,
       feature_libraries,
