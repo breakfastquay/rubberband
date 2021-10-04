@@ -27,8 +27,8 @@
 
 #include <iostream>
 
-#include "system/Allocators.h"
-#include "system/VectorOps.h"
+#include "../system/Allocators.h"
+#include "../system/VectorOps.h"
 
 #define BQ_R__ R__
 

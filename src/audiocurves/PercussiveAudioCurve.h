@@ -24,7 +24,7 @@
 #ifndef RUBBERBAND_PERCUSSIVE_AUDIO_CURVE_H
 #define RUBBERBAND_PERCUSSIVE_AUDIO_CURVE_H
 
-#include "dsp/AudioCurveCalculator.h"
+#include "../dsp/AudioCurveCalculator.h"
 
 namespace RubberBand
 {

@@ -33,9 +33,9 @@
 #include <sys/time.h>
 #endif
 
-#include "system/Thread.h"
-#include "system/sysutils.h"
-#include "system/Allocators.h"
+#include "../system/Thread.h"
+#include "../system/sysutils.h"
+#include "../system/Allocators.h"
 
 //#define DEBUG_SCAVENGER 1
 

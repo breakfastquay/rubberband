@@ -834,7 +834,7 @@ int main(int argc, char **argv)
         cerr << "elapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
     }
 
-    RubberBand::Profiler::dump();
+    Profiler::dump();
     
     return 0;
 }

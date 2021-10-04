@@ -24,8 +24,8 @@
 #ifndef RUBBERBAND_SPECTRALDIFFERENCE_AUDIO_CURVE_H
 #define RUBBERBAND_SPECTRALDIFFERENCE_AUDIO_CURVE_H
 
-#include "dsp/AudioCurveCalculator.h"
-#include "dsp/Window.h"
+#include "../dsp/AudioCurveCalculator.h"
+#include "../dsp/Window.h"
 
 namespace RubberBand
 {

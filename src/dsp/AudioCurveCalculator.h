@@ -26,8 +26,7 @@
 
 #include <sys/types.h>
 
-
-#include "system/sysutils.h"
+#include "../system/sysutils.h"
 
 namespace RubberBand 
 {

@@ -23,8 +23,8 @@
 
 #include "Resampler.h"
 
-#include "system/Allocators.h"
-#include "system/VectorOps.h"
+#include "../system/Allocators.h"
+#include "../system/VectorOps.h"
 
 #include <cstdlib>
 #include <cmath>

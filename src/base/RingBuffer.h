@@ -28,8 +28,8 @@
 
 //#define DEBUG_RINGBUFFER 1
 
-#include "system/sysutils.h"
-#include "system/Allocators.h"
+#include "../system/sysutils.h"
+#include "../system/Allocators.h"
 
 #include <iostream>
 

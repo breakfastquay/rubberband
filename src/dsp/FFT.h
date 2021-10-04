@@ -24,7 +24,7 @@
 #ifndef RUBBERBAND_FFT_H
 #define RUBBERBAND_FFT_H
 
-#include "system/sysutils.h"
+#include "../system/sysutils.h"
 
 #include <string>
 #include <set>
