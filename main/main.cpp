@@ -21,7 +21,7 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#include "rubberband/RubberBandStretcher.h"
+#include "../rubberband/RubberBandStretcher.h"
 
 #include <iostream>
 #include <sndfile.h>
@@ -33,17 +33,17 @@
 
 #include <fstream>
 
-#include "system/sysutils.h"
+#include "../src/system/sysutils.h"
 
 #ifdef _MSC_VER
-#include "getopt/getopt.h"
+#include "../src/getopt/getopt.h"
 #else
 #include <getopt.h>
 #include <unistd.h>
 #include <sys/time.h>
 #endif
 
-#include "base/Profiler.h"
+#include "../src/base/Profiler.h"
 
 using namespace std;
 using namespace RubberBand;
