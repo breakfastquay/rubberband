@@ -2,7 +2,7 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '1.9.2',
+  version: '2.0.0',
   license: 'GPL-2.0-or-later',
   default_options: [
     # All Rubber Band code is actually C++98, but some compilers no
@@ -15,7 +15,7 @@ project(
   meson_version: '>= 0.53.0'
 )
 
-rubberband_dynamic_library_version = '2.1.4'
+rubberband_dynamic_library_version = '2.1.5'
 
 system = host_machine.system()
 architecture = host_machine.cpu_family()
