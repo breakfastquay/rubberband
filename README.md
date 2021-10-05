@@ -59,7 +59,6 @@ our knowledge. See also the end of this README for detailed terms.
  * Intel IPP - Proprietary; licence needed for redistribution
  * KissFFT - BSD-like
  * libsamplerate - BSD-like from version 0.1.9 onwards
- * libresample - LGPL
  * Speex - BSD-like
  * Pommier math functions - BSD-like
  
