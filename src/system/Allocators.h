@@ -343,12 +343,12 @@ public:
             abort();
 #endif
         }
-        return ::RubberBand::allocate<T>(n);
+        return RubberBand::allocate<T>(n);
     }
 
     void
     deallocate(T *const p, const size_t) const {
-        ::RubberBand::deallocate(p);
+        RubberBand::deallocate(p);
     }
 
     template <typename U>
