@@ -648,7 +648,7 @@ int main(int argc, char **argv)
             int thisBlockSize = ibs;
 
             while (freqMapItr != freqMap.end()) {
-                size_t nextFreqFrame = freqMapItr->first; // + ts.getLatency();
+                size_t nextFreqFrame = freqMapItr->first;
                 if (nextFreqFrame <= countIn) {
                     double s = frequencyshift * freqMapItr->second;
                     if (debug > 0) {

@@ -200,10 +200,10 @@ $ meson build -Dipp_path=/opt/intel/ipp
 The options are documented in the library- and platform-specific
 sections below.
 
-Rubber Band Library is written entirely in C++ to the C++98
-standard. It is unlikely to make any difference (performance or
-otherwise) which C++ standard your compiler uses - as long as it's no
-older than C++98!
+Rubber Band Library is written entirely in C++ and requires a C++11
+compiler. It is unlikely to make any difference (performance or
+otherwise) which C++ standard you compile with, as long as it's no
+older than C++11.
 
 If you are building this software using either of the Speex or KissFFT
 library options, please be sure to review the terms for those
