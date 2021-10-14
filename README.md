@@ -68,7 +68,7 @@ our knowledge. See also the end of this README for detailed terms.
 1. Code components
 2. Using the Rubber Band command-line tool
 3. Using Rubber Band Library
-4. Compiling Rubber Band
+4. Compiling Rubber Band:
     a. Building on Linux
     b. Building on macOS
     c. Building for iOS
@@ -85,21 +85,21 @@ Rubber Band consists of:
 
  * The Rubber Band Library code.  This is the code that will normally
    be used by your applications.  The headers for this are in the
-   rubberband/ directory, and the source code is in src/.
+   `rubberband/` directory, and the source code is in `src/`.
    The Rubber Band Library may also depend upon external resampler
    and FFT code; see section 3a below for details.
 
- * The Rubber Band command-line tool.  This is in main/main.cpp.
+ * The Rubber Band command-line tool.  This is in `main/main.cpp`.
    This program uses Rubber Band Library and also requires libsndfile
    (http://www.mega-nerd.com/libsndfile/, licensed under the GNU Lesser
    General Public License) for audio file loading.
 
- * A pitch-shifter LADSPA audio effects plugin.  This is in ladspa/.
-   It requires the LADSPA SDK header ladspa.h (not included).
+ * A pitch-shifter LADSPA audio effects plugin.  This is in `ladspa/`.
+   It requires the LADSPA SDK header `ladspa.h` (not included).
 
  * A Vamp audio analysis plugin which may be used to inspect the
    dynamic stretch ratios and other decisions taken by the Rubber Band
-   Library when in use.  This is in vamp/.  It requires the Vamp
+   Library when in use.  This is in `vamp/`.  It requires the Vamp
    plugin SDK (https://www.vamp-plugins.org/develop.html) (not included).
 
 
@@ -121,9 +121,9 @@ For example,
 stretches the file test.wav to 50% longer than its original duration,
 shifts it up in pitch by one octave, and writes the output to output.wav.
 
-Several further options are available: run "rubberband -h" for help.
+Several further options are available: run `rubberband -h` for help.
 In particular, different types of music may benefit from different
-"crispness" options (-c flag with a numerical argument from 0 to 6).
+"crispness" options (`-c` flag, with a numerical argument from 0 to 6).
 
 
 ## 3. Using Rubber Band Library
@@ -266,8 +266,8 @@ $ meson build --cross-file cross/macos-universal.txt && ninja -C build
 ```
 
 Note that the universal cross file also sets the minimum OS version to
-the earliest supported macOS versions for both architectures. (Note
-that actual compatibility will also depend on how any dependent
+the earliest supported macOS versions for both architectures. (In
+practice, compatibility will also depend on how the dependent
 libraries have been compiled.)  You can edit this in the
 `cross/macos-universal.txt` file if you want a specific target.
 
@@ -471,7 +471,7 @@ build files will handle these for you.)
     Select the Julien Pommier implementations of trig functions for ARM
     NEON or x86 SSE architectures. These are usually faster but may be
     of lower precision than system implementations. Consider using this
-    for mobile architectures.
+    for 32-bit mobile architectures.
 
 
 ## 5. Copyright notes for bundled libraries
