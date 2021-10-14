@@ -2,7 +2,7 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '1.9.2',
+  version: '2.0.0',
   license: 'GPL-2.0-or-later',
   default_options: [
     # All Rubber Band code is actually C++98, but some compilers no
@@ -15,7 +15,7 @@ project(
   meson_version: '>= 0.53.0'
 )
 
-rubberband_dynamic_library_version = '2.1.4'
+rubberband_dynamic_library_version = '2.1.5'
 
 system = host_machine.system()
 architecture = host_machine.cpu_family()
@@ -140,7 +140,7 @@ if resampler == 'auto'
   if samplerate_dep.found()
     resampler = 'libsamplerate'
   else
-    resampler = 'speex'
+    resampler = 'builtin'
   endif
 endif
 
@@ -199,7 +199,13 @@ else
 
 endif # fft
 
-if resampler == 'libsamplerate'
+if resampler == 'builtin'
+  config_summary += { 'Resampler': 'Built-in' }
+  message('For resampler: using built-in implementation')
+  library_sources += 'src/dsp/BQResampler.cpp'
+  feature_defines += ['-DUSE_BQRESAMPLER']
+
+elif resampler == 'libsamplerate'
   if samplerate_dep.found()
     config_summary += { 'Resampler': 'libsamplerate' }
     message('For resampler: using libsamplerate')
@@ -441,7 +447,7 @@ if not get_option('no_shared')
   message('Will build Rubber Band Library shared library')
   rubberband_dynamic = shared_library(
     rubberband_dynamic_name,
-    objects: rubberband_static.extract_all_objects(),
+    objects: rubberband_static.extract_all_objects(recursive: true),
     link_args: [
       arch_flags,
       feature_libraries,

@@ -544,8 +544,8 @@ RubberBandStretcher::Impl::calculateSizes()
     // ratio) for any chunk.
 
     if (m_debugLevel > 0) {
-        cerr << "configure: time ratio = " << m_timeRatio << ", pitch scale = " << m_pitchScale << ", effective ratio = " << getEffectiveRatio() << endl;
-        cerr << "configure: analysis window size = " << m_aWindowSize << ", synthesis window size = " << m_sWindowSize << ", fft size = " << m_fftSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
+        cerr << "calculateSizes: time ratio = " << m_timeRatio << ", pitch scale = " << m_pitchScale << ", effective ratio = " << getEffectiveRatio() << endl;
+        cerr << "calculateSizes: analysis window size = " << m_aWindowSize << ", synthesis window size = " << m_sWindowSize << ", fft size = " << m_fftSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
     }
 
     if (std::max(m_aWindowSize, m_sWindowSize) > m_maxProcessSize) {
@@ -575,15 +575,17 @@ RubberBandStretcher::Impl::calculateSizes()
     }
 
     if (m_debugLevel > 0) {
-        cerr << "configure: outbuf size = " << m_outbufSize << endl;
+        cerr << "calculateSizes: outbuf size = " << m_outbufSize << endl;
     }
 }
 
 void
 RubberBandStretcher::Impl::configure()
 {
-//    std::cerr << "configure[" << this << "]: realtime = " << m_realtime << ", pitch scale = "
-//              << m_pitchScale << ", channels = " << m_channels << std::endl;
+    if (m_debugLevel > 0) {
+        std::cerr << "configure[" << this << "]: realtime = " << m_realtime << ", pitch scale = "
+                  << m_pitchScale << ", channels = " << m_channels << std::endl;
+    }
 
     size_t prevFftSize = m_fftSize;
     size_t prevAWindowSize = m_aWindowSize;
@@ -674,8 +676,18 @@ RubberBandStretcher::Impl::configure()
 
             Resampler::Parameters params;
             params.quality = Resampler::FastestTolerable;
+
+            if (m_realtime) {
+                params.dynamism = Resampler::RatioOftenChanging;
+                params.ratioChange = Resampler::SmoothRatioChange;
+            } else {
+                // ratio can't be changed in offline mode
+                params.dynamism = Resampler::RatioMostlyFixed;
+                params.ratioChange = Resampler::SuddenRatioChange;
+            }
+            
             params.maxBufferSize = 4096 * 16;
-            params.debugLevel = m_debugLevel;
+            params.debugLevel = (m_debugLevel > 0 ? m_debugLevel-1 : 0);
             
             m_channelData[c]->resampler = new Resampler(params, 1);
 
@@ -734,7 +746,7 @@ RubberBandStretcher::Impl::configure()
 
     if (!m_realtime) {
         if (m_debugLevel > 1) {
-            cerr << "Not real time mode: prefilling" << endl;
+            cerr << "Not real time mode: prefilling with " << m_aWindowSize/2 << " samples" << endl;
         }
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData[c]->reset();
@@ -767,6 +779,8 @@ RubberBandStretcher::Impl::reconfigure()
 
     calculateSizes();
 
+    bool somethingChanged = false;
+    
     // There are various allocations in this function, but they should
     // never happen in normal use -- they just recover from the case
     // where not all of the things we need were correctly created when
@@ -801,12 +815,15 @@ RubberBandStretcher::Impl::reconfigure()
             m_channelData[c]->setSizes(std::max(m_aWindowSize, m_sWindowSize),
                                        m_fftSize);
         }
+
+        somethingChanged = true;
     }
 
     if (m_outbufSize != prevOutbufSize) {
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData[c]->setOutbufSize(m_outbufSize);
         }
+        somethingChanged = true;
     }
 
     if (m_pitchScale != 1.0) {
@@ -818,8 +835,10 @@ RubberBandStretcher::Impl::reconfigure()
 
             Resampler::Parameters params;
             params.quality = Resampler::FastestTolerable;
+            params.dynamism = Resampler::RatioOftenChanging;
+            params.ratioChange = Resampler::SmoothRatioChange;
             params.maxBufferSize = m_sWindowSize;
-            params.debugLevel = m_debugLevel;
+            params.debugLevel = (m_debugLevel > 0 ? m_debugLevel-1 : 0);
             
             m_channelData[c]->resampler = new Resampler(params, 1);
 
@@ -827,6 +846,8 @@ RubberBandStretcher::Impl::reconfigure()
                 lrintf(ceil((m_increment * m_timeRatio * 2) / m_pitchScale));
             if (rbs < m_increment * 16) rbs = m_increment * 16;
             m_channelData[c]->setResampleBufSize(rbs);
+
+            somethingChanged = true;
         }
     }
 
@@ -836,6 +857,15 @@ RubberBandStretcher::Impl::reconfigure()
         if (m_stretchAudioCurve) {
             m_stretchAudioCurve->setFftSize(m_fftSize);
         }
+        somethingChanged = true;
+    }
+
+    if (m_debugLevel > 0) {
+        if (somethingChanged) {
+            std::cerr << "reconfigure: at least one parameter changed" << std::endl;
+        } else {
+            std::cerr << "reconfigure: nothing changed" << std::endl;
+        }
     }
 }
 
@@ -843,7 +873,7 @@ size_t
 RubberBandStretcher::Impl::getLatency() const
 {
     if (!m_realtime) return 0;
-    return int((m_aWindowSize/2) / m_pitchScale + 1);
+    return lrint((m_aWindowSize/2) / m_pitchScale);
 }
 
 void
@@ -1347,12 +1377,12 @@ RubberBandStretcher::Impl::process(const float *const *input, size_t samples, bo
         }
 #endif
 
-        if (m_debugLevel > 2) {
+        if (m_debugLevel > 1) {
             if (!allConsumed) cerr << "process looping" << endl;
         }
     }
 
-    if (m_debugLevel > 2) {
+    if (m_debugLevel > 1) {
         cerr << "process returning" << endl;
     }
 

@@ -189,6 +189,8 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
 
     if (resampling) {
 
+        Profiler profiler2("RubberBandStretcher::Impl::resample");
+        
         toWrite = int(ceil(samples / m_pitchScale));
         if (writable < toWrite) {
             samples = int(floor(writable * m_pitchScale));
@@ -282,7 +284,7 @@ RubberBandStretcher::Impl::processChunks(size_t c, bool &any, bool &last)
     while (!last) {
 
         if (!testInbufReadSpace(c)) {
-            if (m_debugLevel > 2) {
+            if (m_debugLevel > 1) {
                 cerr << "processChunks: out of input" << endl;
             }
             break;
@@ -347,7 +349,7 @@ RubberBandStretcher::Impl::processOneChunk()
 
     for (size_t c = 0; c < m_channels; ++c) {
         if (!testInbufReadSpace(c)) {
-            if (m_debugLevel > 2) {
+            if (m_debugLevel > 1) {
                 cerr << "processOneChunk: out of input" << endl;
             }
             return false;
@@ -402,7 +404,7 @@ RubberBandStretcher::Impl::testInbufReadSpace(size_t c)
             if (!m_threaded) {
 #endif
                 if (m_debugLevel > 1) {
-                    cerr << "WARNING: RubberBandStretcher: read space < chunk size ("
+                    cerr << "Note: RubberBandStretcher: read space < chunk size ("
                          << inbuf.getReadSpace() << " < " << m_aWindowSize
                          << ") when not all input written, on processChunks for channel " << c << endl;
                 }
@@ -616,8 +618,14 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
         }
     }
 
+    double effectivePitchRatio = 1.0 / m_pitchScale;
+    if (cd.resampler) {
+        effectivePitchRatio = cd.resampler->getEffectiveRatio(effectivePitchRatio);
+    }
+    
     int incr = m_stretchCalculator->calculateSingle
-        (getEffectiveRatio(), df, m_increment);
+        (m_timeRatio, effectivePitchRatio, df, m_increment,
+         m_aWindowSize, m_sWindowSize);
 
     if (m_lastProcessPhaseResetDf.getWriteSpace() > 0) {
         m_lastProcessPhaseResetDf.write(&df, 1);
@@ -1070,6 +1078,8 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
     if (!resampledAlready &&
         (m_pitchScale != 1.0 || m_options & OptionPitchHighConsistency) &&
         cd.resampler) {
+
+        Profiler profiler2("RubberBandStretcher::Impl::resample");
 
         size_t reqSize = int(ceil(si / m_pitchScale));
         if (reqSize > cd.resamplebufSize) {

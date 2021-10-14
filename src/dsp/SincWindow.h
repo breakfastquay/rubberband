@@ -29,9 +29,9 @@
 #include <cstdlib>
 #include <map>
 
-#include "system/sysutils.h"
-#include "system/VectorOps.h"
-#include "system/Allocators.h"
+#include "../system/sysutils.h"
+#include "../system/VectorOps.h"
+#include "../system/Allocators.h"
 
 namespace RubberBand {
 

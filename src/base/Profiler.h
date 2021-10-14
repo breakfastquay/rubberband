@@ -42,7 +42,7 @@
 #ifdef PROFILE_CLOCKS
 #include <time.h>
 #else
-#include "system/sysutils.h"
+#include "../system/sysutils.h"
 #ifndef _WIN32
 #include <sys/time.h>
 #endif

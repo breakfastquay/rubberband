@@ -29,6 +29,8 @@
 #include <new> // for std::bad_alloc
 #include <stdlib.h>
 
+#include <stdexcept>
+
 #ifndef HAVE_POSIX_MEMALIGN
 #ifndef _WIN32
 #ifndef __APPLE__
@@ -307,6 +309,96 @@ public:
     ~Deallocator() { deallocate<T>(m_t); }
 private:
     T *m_t;
+};
+
+/** Allocator for use with STL classes, e.g. vector, to ensure
+ *  alignment.  Based on example code by Stephan T. Lavavej.
+ *
+ *  e.g. std::vector<float, StlAllocator<float> > v;
+ */
+template <typename T>
+class StlAllocator
+{
+public:
+    typedef T *pointer;
+    typedef const T *const_pointer;
+    typedef T &reference;
+    typedef const T &const_reference;
+    typedef T value_type;
+    typedef size_t size_type;
+    typedef ptrdiff_t difference_type;
+
+    StlAllocator() { }
+    StlAllocator(const StlAllocator&) { }
+    template <typename U> StlAllocator(const StlAllocator<U>&) { }
+    ~StlAllocator() { }
+
+    T *
+    allocate(const size_t n) const {
+        if (n == 0) return 0;
+        if (n > max_size()) {
+#ifndef NO_EXCEPTIONS
+            throw std::length_error("Size overflow in StlAllocator::allocate()");
+#else
+            abort();
+#endif
+        }
+        return RubberBand::allocate<T>(n);
+    }
+
+    void
+    deallocate(T *const p, const size_t) const {
+        RubberBand::deallocate(p);
+    }
+
+    template <typename U>
+    T *
+    allocate(const size_t n, const U *) const {
+        return allocate(n);
+    }
+
+    T *
+    address(T &r) const {
+        return &r;
+    }
+
+    const T *
+    address(const T &s) const {
+        return &s;
+    }
+
+    size_t
+    max_size() const {
+        return (static_cast<size_t>(0) - static_cast<size_t>(1)) / sizeof(T);
+    }
+
+    template <typename U> struct rebind {
+        typedef StlAllocator<U> other;
+    };
+    
+    bool
+    operator==(const StlAllocator &) const {
+        return true;
+    }
+
+    bool
+    operator!=(const StlAllocator &) const {
+        return false;
+    }
+
+    void
+    construct(T *const p, const T &t) const {
+        void *const pv = static_cast<void *>(p);
+        new (pv) T(t);
+    }
+
+    void
+    destroy(T *const p) const {
+        p->~T();
+    }
+
+private:
+    StlAllocator& operator=(const StlAllocator&);
 };
 
 }

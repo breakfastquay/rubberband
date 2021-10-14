@@ -22,11 +22,11 @@
 */
 
 #include "FFT.h"
-#include "system/Thread.h"
-#include "base/Profiler.h"
-#include "system/Allocators.h"
-#include "system/VectorOps.h"
-#include "system/VectorOpsComplex.h"
+#include "../system/Thread.h"
+#include "../base/Profiler.h"
+#include "../system/Allocators.h"
+#include "../system/VectorOps.h"
+#include "../system/VectorOpsComplex.h"
 
 // Define USE_FFTW_WISDOM if you are defining HAVE_FFTW3 and you want
 // to use FFTW_MEASURE mode with persistent wisdom files. This will

@@ -23,7 +23,7 @@
 
 #include "Profiler.h"
 
-#include "system/Thread.h"
+#include "../system/Thread.h"
 
 #include <algorithm>
 #include <set>

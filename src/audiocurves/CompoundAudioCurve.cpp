@@ -23,7 +23,7 @@
 
 #include "CompoundAudioCurve.h"
 
-#include "dsp/MovingMedian.h"
+#include "../dsp/MovingMedian.h"
 
 #include <iostream>
 

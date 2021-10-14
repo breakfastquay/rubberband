@@ -48,7 +48,7 @@ protected:
 	CentsPort        = 3,
         CrispnessPort    = 4,
 	FormantPort      = 5,
-	FastPort         = 6,
+	WetDryPort       = 6,
 	InputPort1       = 7,
         OutputPort1      = 8,
         PortCountMono    = OutputPort1 + 1,
@@ -83,7 +83,8 @@ protected:
     void updateRatio();
     void updateCrispness();
     void updateFormant();
-    void updateFast();
+
+    int getLatency() const;
 
     float **m_input;
     float **m_output;
@@ -93,19 +94,20 @@ protected:
     float *m_octaves;
     float *m_crispness;
     float *m_formant;
-    float *m_fast;
+    float *m_wetDry;
     double m_ratio;
     double m_prevRatio;
     int m_currentCrispness;
     bool m_currentFormant;
-    bool m_currentFast;
 
     size_t m_blockSize;
     size_t m_reserve;
+    size_t m_bufsize;
     size_t m_minfill;
 
     RubberBand::RubberBandStretcher *m_stretcher;
     RubberBand::RingBuffer<float> **m_outputBuffer;
+    RubberBand::RingBuffer<float> **m_delayMixBuffer;
     float **m_scratch;
 
     int m_sampleRate;

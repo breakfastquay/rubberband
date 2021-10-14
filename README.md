@@ -1,5 +1,5 @@
 
-# Rubber Band
+# Rubber Band Library
 
 An audio time-stretching and pitch-shifting library and utility program.
 
@@ -29,12 +29,12 @@ License (GPL). You can redistribute it and/or modify it under the
 terms of the GPL; either version 2 of the License, or (at your option)
 any later version. See the file COPYING for more information.
 
-If you wish to distribute code using the Rubber Band Library under
-terms other than those of the GNU General Public License, you must
-obtain a commercial licence from us before doing so. In particular,
-you may not legally distribute through any Apple App Store unless you
-have a commercial licence.  See https://breakfastquay.com/rubberband/
-for licence terms.
+If you wish to distribute code using Rubber Band Library under terms
+other than those of the GNU General Public License, you must obtain a
+commercial licence from us before doing so. In particular, you may not
+legally distribute through any Apple App Store unless you have a
+commercial licence.  See https://breakfastquay.com/rubberband/ for
+licence terms.
 
 If you have obtained a valid commercial licence, your licence
 supersedes this README and the enclosed COPYING file and you may
@@ -59,7 +59,6 @@ our knowledge. See also the end of this README for detailed terms.
  * Intel IPP - Proprietary; licence needed for redistribution
  * KissFFT - BSD-like
  * libsamplerate - BSD-like from version 0.1.9 onwards
- * libresample - LGPL
  * Speex - BSD-like
  * Pommier math functions - BSD-like
  
@@ -68,7 +67,7 @@ our knowledge. See also the end of this README for detailed terms.
 
 1. Code components
 2. Using the Rubber Band command-line tool
-3. Using the Rubber Band Library
+3. Using Rubber Band Library
 4. Compiling Rubber Band
     a. Building on Linux
     b. Building on macOS
@@ -91,7 +90,7 @@ Rubber Band consists of:
    and FFT code; see section 3a below for details.
 
  * The Rubber Band command-line tool.  This is in main/main.cpp.
-   This program uses the Rubber Band Library and also requires libsndfile
+   This program uses Rubber Band Library and also requires libsndfile
    (http://www.mega-nerd.com/libsndfile/, licensed under the GNU Lesser
    General Public License) for audio file loading.
 
@@ -127,12 +126,12 @@ In particular, different types of music may benefit from different
 "crispness" options (-c flag with a numerical argument from 0 to 6).
 
 
-## 3. Using the Rubber Band Library
+## 3. Using Rubber Band Library
 
-The Rubber Band Library has a public API that consists of one C++
-class, called RubberBandStretcher in the RubberBand namespace.  You
-should `#include <rubberband/RubberBandStretcher.h>` to use this
-class.  There is extensive documentation in the class header.
+Rubber Band has a public API that consists of one C++ class, called
+`RubberBandStretcher` in the `RubberBand` namespace.  You should
+`#include <rubberband/RubberBandStretcher.h>` to use this class.
+There is extensive documentation in the class header.
 
 A header with C language bindings is also provided in
 `<rubberband/rubberband-c.h>`.  This is a wrapper around the C++
@@ -158,17 +157,25 @@ for modification and redistribution) unless you have separately
 acquired a commercial licence from the author.
 
 
-## 4. Compiling the Rubber Band Library
+## 4. Compiling Rubber Band Library
 
-The primary supported build system for the Rubber Band Library on all
-platforms is Meson (https://mesonbuild.com). The Meson build system
-can be used to build all targets (static and dynamic library,
-command-line utility, and plugins) and to cross-compile.
+The primary supported build system for Rubber Band on all platforms is
+Meson (https://mesonbuild.com). The Meson build system can be used to
+build all targets (static and dynamic library, command-line utility,
+and plugins) and to cross-compile.
 
-If you only need a static library and don't wish to use Meson, some
+☞ If you only need a static library and don't wish to use Meson, some
 alternative build files (Makefiles and Visual C++ projects) are
 included in the `otherbuilds` directory. See the platform-specific
 build sections below for more details.
+
+☞ If you want to include Rubber Band in a C++ project and would prefer
+not to compile a separate library, there is a single `.cpp` file at
+`single/RubberBandSingle.cpp` which can be added to your project
+as-is.  It produces a single compilation-unit build with the built-in
+FFT and resampler implementations with no further library
+dependencies. See the comments at the top of that file for more
+information.
 
 To build with Meson, ensure Meson and Ninja are installed and run:
 
@@ -193,10 +200,10 @@ $ meson build -Dipp_path=/opt/intel/ipp
 The options are documented in the library- and platform-specific
 sections below.
 
-The Rubber Band Library is written entirely in C++ to the C++98
-standard. It is unlikely to make any difference (performance or
-otherwise) which C++ standard your compiler uses - as long as it's no
-older than C++98!
+Rubber Band Library is written entirely in C++ and requires a C++11
+compiler. It is unlikely to make any difference (performance or
+otherwise) which C++ standard you compile with, as long as it's no
+older than C++11.
 
 If you are building this software using either of the Speex or KissFFT
 library options, please be sure to review the terms for those
@@ -268,8 +275,8 @@ See "FFT and resampler selection" below for further build options.
 
 Note that you cannot legally distribute applications using Rubber Band
 in the Mac App Store, unless you have first obtained a commercial
-licence for the Rubber Band Library.  GPL code is not permitted in the
-app store.  See https://breakfastquay.com/technology/license.html for
+licence for Rubber Band Library.  GPL code is not permitted in the app
+store.  See https://breakfastquay.com/technology/license.html for
 commercial terms.
 
 
@@ -295,8 +302,8 @@ See "FFT and resampler selection" below for further build options.
 
 Note that you cannot legally distribute applications using Rubber Band
 in the iOS App Store, unless you have a first obtained a commercial
-licence for the Rubber Band Library. GPL code is not permitted in the
-app store.  See https://breakfastquay.com/technology/license.html for
+licence for Rubber Band Library. GPL code is not permitted in the app
+store.  See https://breakfastquay.com/technology/license.html for
 commercial terms.
 
 
@@ -409,10 +416,21 @@ Library     Build option    CPP define     Notes
 ----        ------------    ----------     -----
 
 libsamplerate               -DHAVE_LIBSAMPLERATE
-            -Dresampler=libsamplerate      Best choice in most cases.
+            -Dresampler=libsamplerate      Default when found.
+                                           Good choice in most cases.
+
+Built-in    -Dfft=builtin   -DUSE_BQRESAMPLER
+                                           Default when libsamplerate not found.
+                                           Can be distributed with either
+                                           the Rubber Band GPL or
+                                           commercial licence. Intended to
+                                           give best quality for time-varying
+                                           pitch shifts in real-time mode.
+                                           Newer than, and not as well-tested
+                                           as, libsamplerate.
 
 Speex                       -DUSE_SPEEX
-            -Dresampler=speex              Bundled, can be distributed with
+            -Dresampler=speex              Can be distributed with
 	    				   either the Rubber Band GPL or
 					   commercial licence.
 ```

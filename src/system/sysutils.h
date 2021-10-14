@@ -135,8 +135,8 @@ extern void system_memorybarrier();
 #include <dlfcn.h>
 #include <stdio.h>
 
-#define MLOCK(a,b)   ::mlock((char *)(a),(b))
-#define MUNLOCK(a,b) (::munlock((char *)(a),(b)) ? (::perror("munlock failed"), 0) : 0)
+#define MLOCK(a,b)   mlock((char *)(a),(b))
+#define MUNLOCK(a,b) (munlock((char *)(a),(b)) ? (perror("munlock failed"), 0) : 0)
 #define MUNLOCK_SAMPLEBLOCK(a) do { if (!(a).empty()) { const float &b = *(a).begin(); MUNLOCK(&b, (a).capacity() * sizeof(float)); } } while(0);
 
 #ifdef __APPLE__

@@ -41,12 +41,14 @@ StretchCalculator::StretchCalculator(size_t sampleRate,
     m_sampleRate(sampleRate),
     m_increment(inputIncrement),
     m_prevDf(0),
-    m_divergence(0),
-    m_recovery(0),
     m_prevRatio(1.0),
+    m_prevTimeRatio(1.0),
     m_transientAmnesty(0),
     m_debugLevel(0),
-    m_useHardPeaks(useHardPeaks)
+    m_useHardPeaks(useHardPeaks),
+    m_inFrameCounter(0),
+    m_frameCheckpoint(0, 0),
+    m_outFrameCounter(0)
 {
 //    std::cerr << "StretchCalculator::StretchCalculator: useHardPeaks = " << useHardPeaks << std::endl;
 }    
@@ -318,18 +320,108 @@ StretchCalculator::mapPeaks(std::vector<Peak> &peaks,
     }
 }    
 
-int
-StretchCalculator::calculateSingle(double ratio,
-                                   float df,
-                                   size_t increment)
+int64_t
+StretchCalculator::expectedOutFrame(int64_t inFrame, double timeRatio)
 {
+    int64_t checkpointedAt = m_frameCheckpoint.first;
+    int64_t checkpointed = m_frameCheckpoint.second;
+    return int64_t(round(checkpointed + (inFrame - checkpointedAt) * timeRatio));
+}
+
+int
+StretchCalculator::calculateSingle(double timeRatio,
+                                   double effectivePitchRatio,
+                                   float df,
+                                   size_t inIncrement,
+                                   size_t analysisWindowSize,
+                                   size_t synthesisWindowSize)
+{
+    double ratio = timeRatio / effectivePitchRatio;
+    
+    int increment = int(inIncrement);
     if (increment == 0) increment = m_increment;
 
+    int outIncrement = lrint(increment * ratio); // the normal case
     bool isTransient = false;
-
+    
     // We want to ensure, as close as possible, that the phase reset
-    // points appear at _exactly_ the right audio frame numbers.
+    // points appear at the right audio frame numbers. To this end we
+    // track the incoming frame number, its corresponding expected
+    // output frame number, and the actual output frame number
+    // projected based on the ratios provided.
+    //
+    // There are two subtleties:
+    // 
+    // (1) on a ratio change, we need to checkpoint the expected
+    // output frame number reached so far and start counting again
+    // with the new ratio. We could do this with a reset to zero, but
+    // it's easier to reason about absolute input/output frame
+    // matches, so for the moment at least we're doing this by
+    // explicitly checkpointing the current numbers (hence the use of
+    // the above expectedOutFrame() function which refers to the
+    // last checkpointed values).
+    //
+    // (2) in the case of a pitch shift in a configuration where
+    // resampling occurs after stretching, all of our output
+    // increments will be effectively modified by resampling after we
+    // return. This is why we separate out timeRatio and
+    // effectivePitchRatio arguments - the former is the ratio that
+    // has already been applied and the latter is the ratio that will
+    // be applied by any subsequent resampling step (which will be 1.0
+    // / pitchScale if resampling is happening after stretching). So
+    // the overall ratio is timeRatio / effectivePitchRatio.
 
+    bool ratioChanged = (ratio != m_prevRatio);
+    if (ratioChanged) {
+        // Reset our frame counters from the ratio change.
+
+        // m_outFrameCounter tracks the frames counted at output from
+        // this function, which normally precedes resampling - hence
+        // the use of timeRatio rather than ratio here
+
+        if (m_debugLevel > 1) {
+            std::cerr << "StretchCalculator: ratio changed from " << m_prevRatio << " to " << ratio << std::endl;
+        }
+
+        int64_t toCheckpoint = expectedOutFrame
+            (m_inFrameCounter, m_prevTimeRatio);
+        m_frameCheckpoint =
+            std::pair<int64_t, int64_t>(m_inFrameCounter, toCheckpoint);
+    }
+    
+    m_prevRatio = ratio;
+    m_prevTimeRatio = timeRatio;
+
+    if (m_debugLevel > 2) {
+        std::cerr << "StretchCalculator::calculateSingle: timeRatio = "
+                  << timeRatio << ", effectivePitchRatio = "
+                  << effectivePitchRatio << " (that's 1.0 / "
+                  << (1.0 / effectivePitchRatio)
+                  << "), ratio = " << ratio << ", df = " << df
+                  << ", inIncrement = " << inIncrement
+                  << ", default outIncrement = " << outIncrement
+                  << ", analysisWindowSize = " << analysisWindowSize
+                  << ", synthesisWindowSize = " << synthesisWindowSize
+                  << std::endl;
+
+        std::cerr << "inFrameCounter = " << m_inFrameCounter
+                  << ", outFrameCounter = " << m_outFrameCounter
+                  << std::endl;
+
+        std::cerr << "The next sample out is input sample " << m_inFrameCounter << std::endl;
+    }
+    
+    int64_t intended = expectedOutFrame
+        (m_inFrameCounter + analysisWindowSize/4, timeRatio);
+    int64_t projected = int64_t
+        (round(m_outFrameCounter + (synthesisWindowSize/4 * effectivePitchRatio)));
+
+    int64_t divergence = projected - intended;
+
+    if (m_debugLevel > 2) {
+        std::cerr << "for current frame + quarter frame: intended " << intended << ", projected " << projected << ", divergence " << divergence << std::endl;
+    }
+    
     // In principle, the threshold depends on chunk size: larger chunk
     // sizes need higher thresholds.  Since chunk size depends on
     // ratio, I suppose we could in theory calculate the threshold
@@ -340,7 +432,13 @@ StretchCalculator::calculateSingle(double ratio,
 //    if (ratio > 1) transientThreshold = 0.25f;
 
     if (m_useHardPeaks && df > m_prevDf * 1.1f && df > transientThreshold) {
-        isTransient = true;
+        if (divergence > 1000 || divergence < -1000) {
+            if (m_debugLevel > 1) {
+                std::cerr << "StretchCalculator::calculateSingle: transient, but we're not permitting it because the divergence (" << divergence << ") is too great" << std::endl;
+            }
+        } else {
+            isTransient = true;
+        }
     }
 
     if (m_debugLevel > 2) {
@@ -350,62 +448,91 @@ StretchCalculator::calculateSingle(double ratio,
 
     m_prevDf = df;
 
-    bool ratioChanged = (ratio != m_prevRatio);
-    m_prevRatio = ratio;
-
-    if (isTransient && m_transientAmnesty == 0) {
-        if (m_debugLevel > 1) {
-            std::cerr << "StretchCalculator::calculateSingle: transient (df " << df << ", threshold " << transientThreshold << ")" << std::endl;
+    if (m_transientAmnesty > 0) {
+        if (isTransient) {
+            if (m_debugLevel > 1) {
+                std::cerr << "StretchCalculator::calculateSingle: transient, but we have an amnesty (df " << df << ", threshold " << transientThreshold << ")" << std::endl;
+            }
+            isTransient = false;
         }
-        m_divergence += increment - (increment * ratio);
+        --m_transientAmnesty;
+    }
+            
+    if (isTransient) {
+        if (m_debugLevel > 1) {
+            std::cerr << "StretchCalculator::calculateSingle: transient at (df " << df << ", threshold " << transientThreshold << ")" << std::endl;
+        }
 
         // as in offline mode, 0.05 sec approx min between transients
         m_transientAmnesty =
             lrint(ceil(double(m_sampleRate) / (20 * double(increment))));
 
-        m_recovery = m_divergence / ((m_sampleRate / 10.0) / increment);
-        return -int(increment);
+        outIncrement = increment;
+
+    } else {
+
+        double recovery = 0.0;
+        if (divergence > 1000 || divergence < -1000) {
+            recovery = divergence / ((m_sampleRate / 10.0) / increment);
+        } else if (divergence > 100 || divergence < -100) {
+            recovery = divergence / ((m_sampleRate / 20.0) / increment);
+        } else {
+            recovery = divergence / 4.0;
+        }
+
+        int incr = lrint(outIncrement - recovery);
+        if (m_debugLevel > 2 || (m_debugLevel > 1 && divergence != 0)) {
+            std::cerr << "divergence = " << divergence << ", recovery = " << recovery << ", incr = " << incr << ", ";
+        }
+
+        int minIncr = lrint(increment * ratio * 0.3);
+        int maxIncr = lrint(increment * ratio * 2);
+        
+        if (incr < minIncr) {
+            incr = minIncr;
+        } else if (incr > maxIncr) {
+            incr = maxIncr;
+        }
+
+        if (m_debugLevel > 2 || (m_debugLevel > 1 && divergence != 0)) {
+            std::cerr << "clamped into [" << minIncr << ", " << maxIncr
+                      << "] becomes " << incr << std::endl;
+        }
+
+        if (incr < 0) {
+            std::cerr << "WARNING: internal error: incr < 0 in calculateSingle"
+                      << std::endl;
+            outIncrement = 0;
+        } else {
+            outIncrement = incr;
+        }
     }
 
-    if (ratioChanged) {
-        m_recovery = m_divergence / ((m_sampleRate / 10.0) / increment);
+    if (m_debugLevel > 1) {
+        std::cerr << "StretchCalculator::calculateSingle: returning isTransient = "
+                  << isTransient << ", outIncrement = " << outIncrement
+                  << std::endl;
     }
 
-    if (m_transientAmnesty > 0) --m_transientAmnesty;
-
-    int incr = lrint(increment * ratio - m_recovery);
-    if (m_debugLevel > 2 || (m_debugLevel > 1 && m_divergence != 0)) {
-        std::cerr << "divergence = " << m_divergence << ", recovery = " << m_recovery << ", incr = " << incr << ", ";
+    m_inFrameCounter += inIncrement;
+    m_outFrameCounter += outIncrement * effectivePitchRatio;
+    
+    if (isTransient) {
+        return -outIncrement;
+    } else {
+        return outIncrement;
     }
-    if (incr < lrint((increment * ratio) / 2)) {
-        incr = lrint((increment * ratio) / 2);
-    } else if (incr > lrint(increment * ratio * 2)) {
-        incr = lrint(increment * ratio * 2);
-    }
-
-    double divdiff = (increment * ratio) - incr;
-
-    if (m_debugLevel > 2 || (m_debugLevel > 1 && m_divergence != 0)) {
-        std::cerr << "divdiff = " << divdiff << std::endl;
-    }
-
-    double prevDivergence = m_divergence;
-    m_divergence -= divdiff;
-    if ((prevDivergence < 0 && m_divergence > 0) ||
-        (prevDivergence > 0 && m_divergence < 0)) {
-        m_recovery = m_divergence / ((m_sampleRate / 10.0) / increment);
-    }
-
-    return incr;
 }
 
 void
 StretchCalculator::reset()
 {
     m_prevDf = 0;
-    m_divergence = 0;
-    m_recovery = 0;
     m_prevRatio = 1.0;
+    m_prevTimeRatio = 1.0;
+    m_inFrameCounter = 0;
+    m_frameCheckpoint = std::pair<int64_t, int64_t>(0, 0);
+    m_outFrameCounter = 0.0;
     m_transientAmnesty = 0;
     m_keyFrameMap.clear();
 }
