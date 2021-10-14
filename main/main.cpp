@@ -45,9 +45,6 @@
 
 #include "../src/base/Profiler.h"
 
-using namespace std;
-using namespace RubberBand;
-
 #ifdef _WIN32
 using RubberBand::gettimeofday;
 #endif
@@ -56,6 +53,11 @@ using RubberBand::gettimeofday;
 using RubberBand::usleep;
 #define strdup _strdup
 #endif
+
+using RubberBand::RubberBandStretcher;
+
+using std::cerr;
+using std::endl;
 
 double tempo_convert(const char *str)
 {
@@ -488,9 +490,6 @@ int main(int argc, char **argv)
              << sf_strerror(sndfileOut) << endl;
         return 1;
     }
-    
-    int ibs = 1024;
-    size_t channels = sfinfo.channels;
 
     RubberBandStretcher::Options options = 0;
     if (realtime)    options |= RubberBandStretcher::OptionProcessRealTime;
@@ -568,6 +567,17 @@ int main(int argc, char **argv)
 
     float gain = 1.f;
     bool successful = false;
+    
+    const size_t channels = sfinfo.channels;
+    const int bs = 1024;
+    
+    float **cbuf = new float *[channels];
+    for (size_t c = 0; c < channels; ++c) {
+        cbuf[c] = new float[bs];
+    }
+    float *ibuf = new float[channels * bs];
+
+    int thisBlockSize;
 
     while (!successful) { // we may have to repeat with a modified
                           // gain, if clipping occurs
@@ -576,12 +586,6 @@ int main(int argc, char **argv)
         RubberBandStretcher ts(sfinfo.samplerate, channels, options,
                                ratio, frequencyshift);
         ts.setExpectedInputDuration(sfinfo.frames);
-
-        float *fbuf = new float[channels * ibs];
-        float **ibuf = new float *[channels];
-        for (size_t i = 0; i < channels; ++i) {
-            ibuf[i] = new float[ibs];
-        }
 
         int frame = 0;
         int percent = 0;
@@ -597,19 +601,17 @@ int main(int argc, char **argv)
             while (frame < sfinfo.frames) {
 
                 int count = -1;
-
-                if ((count = sf_readf_float(sndfile, fbuf, ibs)) <= 0) break;
+                if ((count = sf_readf_float(sndfile, ibuf, bs)) <= 0) break;
         
                 for (size_t c = 0; c < channels; ++c) {
                     for (int i = 0; i < count; ++i) {
-                        float value = fbuf[i * channels + c];
-                        ibuf[c][i] = value;
+                        cbuf[c][i] = ibuf[i * channels + c];
                     }
                 }
 
-                bool final = (frame + ibs >= sfinfo.frames);
+                bool final = (frame + bs >= sfinfo.frames);
 
-                ts.study(ibuf, count, final);
+                ts.study(cbuf, count, final);
 
                 int p = int((double(frame) * 100.0) / sfinfo.frames);
                 if (p > percent || frame == 0) {
@@ -619,7 +621,7 @@ int main(int argc, char **argv)
                     }
                 }
 
-                frame += ibs;
+                frame += bs;
             }
 
             if (!quiet) {
@@ -641,11 +643,36 @@ int main(int argc, char **argv)
         countIn = 0;
         countOut = 0;
         bool clipping = false;
+
+        // The stretcher only pads the start in offline mode; to avoid
+        // a fade in at the start, we pad it manually in RT mode
+        int toDrop = 0;
+        if (realtime) {
+            toDrop = int(ts.getLatency());
+            int toPad = int(round(toDrop * frequencyshift));
+            if (debug > 0) {
+                cerr << "padding start with " << toPad
+                     << " samples in RT mode, will drop " << toDrop
+                     << " at output" << endl;
+            }
+            if (toPad > 0) {
+                for (size_t c = 0; c < channels; ++c) {
+                    for (int i = 0; i < bs; ++i) {
+                        cbuf[c][i] = 0.f;
+                    }
+                }
+                while (toPad > 0) {
+                    int p = toPad;
+                    if (p > bs) p = bs;
+                    ts.process(cbuf, p, false);
+                    toPad -= p;
+                }
+            }
+        }                
         
         while (frame < sfinfo.frames) {
 
-            int count = -1;
-            int thisBlockSize = ibs;
+            thisBlockSize = bs;
 
             while (freqMapItr != freqMap.end()) {
                 size_t nextFreqFrame = freqMapItr->first;
@@ -666,8 +693,9 @@ int main(int argc, char **argv)
                     break;
                 }
             }
-        
-            if ((count = sf_readf_float(sndfile, fbuf, thisBlockSize)) < 0) {
+
+            int count = -1;
+            if ((count = sf_readf_float(sndfile, ibuf, thisBlockSize)) < 0) {
                 break;
             }
         
@@ -675,51 +703,84 @@ int main(int argc, char **argv)
 
             for (size_t c = 0; c < channels; ++c) {
                 for (int i = 0; i < count; ++i) {
-                    float value = fbuf[i * channels + c];
-                    ibuf[c][i] = value;
+                    cbuf[c][i] = ibuf[i * channels + c];
                 }
             }
 
             bool final = (frame + thisBlockSize >= sfinfo.frames);
 
             if (debug > 2) {
-                cerr << "count = " << count << ", ibs = " << thisBlockSize << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
+                cerr << "count = " << count << ", bs = " << thisBlockSize << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
             }
 
-            ts.process(ibuf, count, final);
+            ts.process(cbuf, count, final);
 
-            int avail = ts.available();
-            if (debug > 1) cerr << "available = " << avail << endl;
-
-            if (avail > 0) {
-                float **obf = new float *[channels];
-                for (size_t i = 0; i < channels; ++i) {
-                    obf[i] = new float[avail];
+            int avail;
+            while ((avail = ts.available()) > 0) {
+                if (debug > 1) {
+                    cerr << "available = " << avail << endl;
                 }
-                ts.retrieve(obf, avail);
-                countOut += avail;
-                float *fobf = new float[channels * avail];
+
+                thisBlockSize = avail;
+                if (thisBlockSize > bs) {
+                    thisBlockSize = bs;
+                }
+                
+                if (toDrop > 0) {
+                    int dropHere = toDrop;
+                    if (dropHere > thisBlockSize) {
+                        dropHere = thisBlockSize;
+                    }
+                    if (debug > 1) {
+                        cerr << "toDrop = " << toDrop << ", dropping "
+                             << dropHere << " of " << avail << endl;
+                    }
+                    ts.retrieve(cbuf, dropHere);
+                    toDrop -= dropHere;
+                    avail -= dropHere;
+                    continue;
+                }
+                
+                if (debug > 2) {
+                    cerr << "retrieving block of " << thisBlockSize << endl;
+                }
+                ts.retrieve(cbuf, thisBlockSize);
+                
+                if (realtime && final) {
+                    // (in offline mode the stretcher handles this itself)
+                    size_t ideal = size_t(countIn * ratio);
+                    if (debug > 2) {
+                        cerr << "at end, ideal = " << ideal
+                             << ", countOut = " << countOut
+                             << ", thisBlockSize = " << thisBlockSize << endl;
+                    }
+                    if (countOut + thisBlockSize > ideal) {
+                        thisBlockSize = ideal - countOut;
+                        if (debug > 1) {
+                            cerr << "truncated final block to " << thisBlockSize
+                                 << endl;
+                        }
+                    }
+                }
+                
+                countOut += thisBlockSize;
+                
                 for (size_t c = 0; c < channels; ++c) {
-                    for (int i = 0; i < avail; ++i) {
-                        float value = gain * obf[c][i];
+                    for (int i = 0; i < thisBlockSize; ++i) {
+                        float value = gain * cbuf[c][i];
                         if (ignoreClipping) { // i.e. just clamp, don't bail out
                             if (value > 1.f) value = 1.f;
                             if (value < -1.f) value = -1.f;
                         } else {
                             if (value >= 1.f || value < -1.f) {
                                 clipping = true;
-                                gain = (0.999f / fabsf(obf[c][i]));
+                                gain = (0.999f / fabsf(cbuf[c][i]));
                             }
                         }
-                        fobf[i * channels + c] = value;
+                        ibuf[i * channels + c] = value;
                     }
                 }
-                sf_writef_float(sndfileOut, fobf, avail);
-                delete[] fobf;
-                for (size_t i = 0; i < channels; ++i) {
-                    delete[] obf[i];
-                }
-                delete[] obf;
+                sf_writef_float(sndfileOut, ibuf, thisBlockSize);
             }
 
             if (clipping) {
@@ -753,7 +814,7 @@ int main(int argc, char **argv)
                 }
             }
 
-            frame += thisBlockSize;
+            frame += count;
         }
 
         if (!successful) {
@@ -765,47 +826,50 @@ int main(int argc, char **argv)
         if (!quiet) {
             cerr << "\r    " << endl;
         }
+
         int avail;
-
         while ((avail = ts.available()) >= 0) {
-
             if (debug > 1) {
                 cerr << "(completing) available = " << avail << endl;
             }
-            
-            if (avail > 0) {
-                float **obf = new float *[channels];
-                for (size_t i = 0; i < channels; ++i) {
-                    obf[i] = new float[avail];
-                }
-                ts.retrieve(obf, avail);
-                countOut += avail;
-                float *fobf = new float[channels * avail];
-                for (size_t c = 0; c < channels; ++c) {
-                    for (int i = 0; i < avail; ++i) {
-                        float value = gain * obf[c][i];
-                        if (value > 1.f) value = 1.f;
-                        if (value < -1.f) value = -1.f;
-                        fobf[i * channels + c] = value;
-                    }
-                }
-                
-                sf_writef_float(sndfileOut, fobf, avail);
-                delete[] fobf;
-                for (size_t i = 0; i < channels; ++i) {
-                    delete[] obf[i];
-                }
-                delete[] obf;
-            } else {
-                usleep(10000);
-            }
-        }
-    
-        delete[] fbuf;
 
-        for (size_t i = 0; i < channels; ++i) delete[] ibuf[i];
-        delete[] ibuf;
+            if (avail == 0) {
+                if (realtime ||
+                    (options & RubberBandStretcher::OptionThreadingNever)) {
+                    break;
+                } else {
+                    usleep(10000);
+                }
+            }
+            
+            thisBlockSize = avail;
+            if (thisBlockSize > bs) {
+                thisBlockSize = bs;
+            }
+                
+            ts.retrieve(cbuf, thisBlockSize);
+
+            countOut += thisBlockSize;
+                
+            for (size_t c = 0; c < channels; ++c) {
+                for (int i = 0; i < thisBlockSize; ++i) {
+                    float value = gain * cbuf[c][i];
+                    if (value > 1.f) value = 1.f;
+                    if (value < -1.f) value = -1.f;
+                    ibuf[i * channels + c] = value;
+                }
+            }
+                
+            sf_writef_float(sndfileOut, ibuf, thisBlockSize);
+        }
     }
+
+    delete[] ibuf;
+
+    for (size_t c = 0; c < channels; ++c) {
+        delete[] cbuf[c];
+    }
+    delete[] cbuf;
 
     sf_close(sndfile);
     sf_close(sndfileOut);
@@ -834,7 +898,7 @@ int main(int argc, char **argv)
         cerr << "elapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
     }
 
-    Profiler::dump();
+    RubberBand::Profiler::dump();
     
     return 0;
 }
