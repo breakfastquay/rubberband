@@ -1,4 +1,41 @@
 
+Changes in Rubber Band v2.0.0
+
+ * Introduce a built-in resampler, intended to minimise artifacts on
+   pitch changes and to allow Rubber Band to be compiled without any
+   external dependencies (when also using the built-in FFT). The
+   built-in resampler is newer and less well-tested than
+   libsamplerate, and is not yet the default except in no-dependency
+   builds
+ * Introduce single compilation unit single/RubberBandSingle.cpp which
+   includes the whole library, to allow adding Rubber Band Library to
+   a C++ project without having to build anything separately. This
+   version always uses the built-in FFT and resampler and does not
+   support any extra configuration
+ * Update the stretch calculation logic for real-time mode, making it
+   more rigorous about avoiding timing drift when the pitch ratio
+   changes frequently
+ * Update the example LADSPA pitch shift plugin, adding a wet/dry mix
+   control to test (and take advantage of) the better timing
+   management in real-time mode
+ * Add a pitch/frequency-map file option to the command-line utility,
+   allowing time-varying pitch shifts to be pre-programmed
+
+The API is unchanged and the library is still binary compatible back
+to version 1.7.
+
+We incremented the major version number, not because of any API
+change, but because of a change to the timing of audio output for some
+applications of real-time mode. While the library is code-compatible
+with earlier releases, it is not "output-compatible" and may change
+automation-driven mixes even when used with identical options. If you
+are already using an earlier release in real-time mode, please test
+v2.0.0 carefully before updating.
+
+Note that there are no pure bug-fixes in v2.0.0: if you are happy with
+v1.9.2, there is no pressing reason to update.
+
+
 Changes in Rubber Band v1.9.2
 
  * Introduce a built-in FFT option to be a good default when no
