@@ -26,6 +26,7 @@
 #include <cmath>
 
 #include <iostream>
+#include <algorithm>
 
 #include "../system/Allocators.h"
 #include "../system/VectorOps.h"
