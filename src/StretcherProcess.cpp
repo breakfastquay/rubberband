@@ -784,7 +784,7 @@ RubberBandStretcher::Impl::modifyChunk(size_t channel,
         cerr << "phase reset: leaving phases unmodified" << endl;
     }
 
-    const process_t rate = m_sampleRate;
+    const process_t rate = process_t(m_sampleRate);
     const int count = m_fftSize / 2;
 
     bool unchanged = cd.unchanged && (outputIncrement == m_increment);

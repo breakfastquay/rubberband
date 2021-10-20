@@ -146,9 +146,9 @@ BQResampler::resampleInterleaved(float *const out,
                                  const float *const in,
                                  int incount,
                                  double ratio,
-                                 bool final) {
-
-    int fade_length = round(m_initial_rate / 1000.0);
+                                 bool final)
+{
+    int fade_length = int(round(m_initial_rate / 1000.0));
     if (fade_length < 6) {
         fade_length = 6;
     }
@@ -282,9 +282,9 @@ BQResampler::kaiser_params(double attenuation,
                            int &len) const
 {
     if (attenuation > 21.0) {
-        len = 1 + ceil((attenuation - 7.95) / (2.285 * transition));
+        len = 1 + int(ceil((attenuation - 7.95) / (2.285 * transition)));
     } else {
-        len = 1 + ceil(5.79 / transition);
+        len = 1 + int(ceil(5.79 / transition));
     }
     beta = 0.0;
     if (attenuation > 50.0) {
@@ -343,8 +343,10 @@ BQResampler::sinc_multiply(double peak_to_zero, vector<double> &buf) const
 }
 
 BQResampler::params
-BQResampler::fill_params(double ratio, int num, int denom) const
+BQResampler::fill_params(double ratio, double numd, double denomd) const
 {
+    int num = int(round(numd));
+    int denom = int(round(denomd));
     params p;
     int g = gcd (num, denom);
     p.ratio = ratio;
@@ -420,8 +422,8 @@ BQResampler::phase_data_for(vector<BQResampler::phase_rec> &target_phase_data,
         while (next_phase < 0) next_phase += input_spacing;
         next_phase %= input_spacing;
         double dspace = double(input_spacing);
-        int zip_length = ceil(double(filter_length - p) / dspace);
-        int drop = ceil(double(max(0, output_spacing - p)) / dspace);
+        int zip_length = int(ceil(double(filter_length - p) / dspace));
+        int drop = int(ceil(double(max(0, output_spacing - p)) / dspace));
         phase_rec phase;
         phase.next_phase = next_phase;
         phase.drop = drop;
@@ -467,7 +469,7 @@ BQResampler::make_filter(int filter_length, double peak_to_zero) const
         double m = double(k_length - 1) / double(filter_length - 1);
         for (int i = 0; i < filter_length; ++i) {
             double ix = i * m;
-            int iix = floor(ix);
+            int iix = int(floor(ix));
             double remainder = ix - iix;
             double value = 0.0;
             value += kaiser[iix] * (1.0 - remainder);
@@ -575,7 +577,7 @@ BQResampler::state_for_ratio(BQResampler::state &target_state,
         int phases_then = int(prev_state.phase_info.size());
         double distance_through =
             double(prev_state.current_phase) / double(phases_then);
-        target_state.current_phase = round(n_phases * distance_through);
+        target_state.current_phase = int(round(n_phases * distance_through));
         if (target_state.current_phase >= n_phases) {
             target_state.current_phase = n_phases - 1;
         }
@@ -616,7 +618,7 @@ BQResampler::reconstruct_one(state *s) const
                 s->buffer[s->left + i * m_channels + s->current_channel];
             int filter_index = i * s->parameters.numerator + s->current_phase;
             double proto_index = m * filter_index;
-            int iix = floor(proto_index);
+            int iix = int(floor(proto_index));
             double remainder = proto_index - iix;
             double filter_value = m_prototype[iix] * (1.0 - remainder);
             filter_value += m_prototype[iix+1] * remainder;

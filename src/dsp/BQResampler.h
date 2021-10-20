@@ -139,7 +139,7 @@ private:
                                    int minlen, int maxlen) const;
     void sinc_multiply(double peak_to_zero, std::vector<double> &buf) const;
 
-    params fill_params(double ratio, int num, int denom) const;
+    params fill_params(double ratio, double numd, double denomd) const;
     params pick_params(double ratio) const;
 
     std::vector<double> make_filter(int filter_length,
