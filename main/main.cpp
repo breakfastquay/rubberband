@@ -293,7 +293,7 @@ int main(int argc, char **argv)
         cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
         cerr << "                          (at a cost in width and individual channel quality)" << endl;
         cerr << "         --ignore-clipping Ignore clipping at output; the default is to restart" << endl;
-        cerr << "                           with reduced gain if clipping occurs" << endl;
+        cerr << "                          with reduced gain if clipping occurs" << endl;
         cerr << endl;
         cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 0, full 3" << endl;
         cerr << "                          (N.B. debug level 3 includes audible ticks in output)" << endl;
