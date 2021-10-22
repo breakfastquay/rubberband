@@ -44,9 +44,9 @@ del /q /s %DIR%
 mkdir %DIR%
 copy build\rubberband.exe %DIR%
 copy "c:\Program Files\libsndfile\bin\sndfile.dll" %DIR%
-copy COPYING %DIR%
-copy README.md %DIR%
-copy CHANGELOG %DIR%
+copy COPYING %DIR%\COPYING.txt
+copy README.md %DIR%\README.txt
+copy CHANGELOG %DIR%\CHANGELOG.txt
 
 set PATH=%ORIGINALPATH%
 cd %STARTPWD%
