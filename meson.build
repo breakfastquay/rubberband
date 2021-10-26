@@ -5,8 +5,6 @@ project(
   version: '2.0.0',
   license: 'GPL-2.0-or-later',
   default_options: [
-    # All Rubber Band code is actually C++98, but some compilers no
-    # longer support that
     'cpp_std=c++14',
     'buildtype=release',
     'b_ndebug=if-release',
