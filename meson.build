@@ -422,6 +422,7 @@ rubberband_static = static_library(
 
 rubberband_static_dep = declare_dependency(
   link_with: rubberband_static,
+  include_directories : include_directories('rubberband')
 )
 
 if not get_option('no_shared')
