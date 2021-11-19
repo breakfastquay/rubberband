@@ -6,7 +6,7 @@ OPTFLAGS	:= -DNDEBUG -ffast-math -O3 -ftree-vectorize
 
 ARCHFLAGS	:= 
 
-CXXFLAGS	:= -std=c++11 $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -DUSE_BQRESAMPLER -DUSE_BUILTIN_FFT -DNO_THREAD_CHECKS -DUSE_PTHREADS -DNO_TIMING -DHAVE_POSIX_MEMALIGN -DNDEBUG -Wall -pthread
+CXXFLAGS	:= -std=c++11 $(ARCHFLAGS) $(OPTFLAGS) -I. -Isrc -Irubberband -DHAVE_LIBSAMPLERATE -DUSE_BUILTIN_FFT -DNO_THREAD_CHECKS -DUSE_PTHREADS -DNO_TIMING -DHAVE_POSIX_MEMALIGN -DNDEBUG -Wall -pthread
 
 CFLAGS		:= $(ARCHFLAGS) $(OPTFLAGS)
 
@@ -45,7 +45,6 @@ LIBRARY_INCLUDES := \
 	src/dsp/MovingMedian.h \
 	src/dsp/SincWindow.h \
 	src/dsp/Window.h \
-    src/dsp/BQResampler.h \
 	src/system/Allocators.h \
 	src/system/Thread.h \
 	src/system/VectorOps.h \
@@ -66,7 +65,6 @@ LIBRARY_SOURCES := \
 	src/audiocurves/PercussiveAudioCurve.cpp \
 	src/dsp/Resampler.cpp \
 	src/dsp/FFT.cpp \
-    src/dsp/BQResampler.cpp \
 	src/system/Allocators.cpp \
 	src/system/sysutils.cpp \
 	src/system/Thread.cpp \
