@@ -2,7 +2,7 @@
 CXX		:= em++
 CC		:= emcc
 
-OPTFLAGS	:= -DNDEBUG -ffast-math -O3 -ftree-vectorize
+OPTFLAGS	?= -DNDEBUG -ffast-math -O3 -ftree-vectorize
 
 ARCHFLAGS	:= 
 
