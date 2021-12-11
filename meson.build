@@ -390,7 +390,8 @@ general_include_dirs += get_option('extra_include_dirs')
 general_compile_args = [ arch_flags, feature_defines ]
 general_dependencies = [ feature_dependencies, thread_dep ]
 
-if system == 'windows'
+# Select library names according to compiler
+if cpp.get_id() == 'msvc'
   if get_option('no_shared')
     rubberband_static_name = 'rubberband'
   else
