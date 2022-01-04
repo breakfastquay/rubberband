@@ -7,6 +7,7 @@ project(
   default_options: [
     'cpp_std=c++14',
     'buildtype=release',
+    'default_library=both',
     'b_ndebug=if-release',
     'b_lundef=true',
   ],
@@ -390,73 +391,106 @@ general_include_dirs += get_option('extra_include_dirs')
 general_compile_args = [ arch_flags, feature_defines ]
 general_dependencies = [ feature_dependencies, thread_dep ]
 
+rubberband_additional_static_lib = ''
+
 if cpp.get_id() == 'msvc'
-  if get_option('no_shared')
-    rubberband_static_name = 'rubberband'
-  else
-    rubberband_static_name = 'rubberband-static'
+  #
+  # In the MSVC world we have a quandary, partly as a result of
+  # wanting to use naming compatible with our previous/other build
+  # systems.
+  #
+  # Meson would like to use rubberband.dll for the dynamic library,
+  # rubberband.lib for the import library, and librubberband.a for the
+  # static library. This is kind of ok, even though lib*.a is not a
+  # very familiar naming style here - except that previously we called
+  # the static library rubberband-static.lib. (It would be usual to
+  # expect some .lib file to be produced as a static library,
+  # especially if default_library=static is set.)
+  #
+  # Our "solution" is to leave alone if default_library=shared (when
+  # the Meson and MSVC ways are the same), but emit an additional
+  # static .lib otherwise, called either rubberband-static.lib if
+  # default_library=both or rubberband.lib if default_library=static.
+  #
+  if get_option('default_library') == 'static'
+    rubberband_additional_static_lib = 'rubberband'
+  elif get_option('default_library') == 'both'
+    rubberband_additional_static_lib = 'rubberband-static'
   endif    
-  rubberband_dynamic_name = 'rubberband'
+  rubberband_library_name = 'rubberband'
   rubberband_program_name = 'rubberband-program'
   rubberband_ladspa_name = 'ladspa-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
   rubberband_jni_name = 'rubberband-jni'
-  # Meson likes libxxx.a even on Windows, and so might we for a
-  # new library, but not here
-  platform_static_name_prefix = ''
-  platform_static_name_suffix = 'lib'
 else
-  rubberband_static_name = 'rubberband'
+  rubberband_library_name = 'rubberband'
   rubberband_dynamic_name = 'rubberband'
   rubberband_program_name = 'rubberband'
   rubberband_ladspa_name = 'ladspa-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
   rubberband_jni_name = 'rubberband-jni'
-  platform_static_name_prefix = 'lib'
-  platform_static_name_suffix = 'a'
 endif  
 
-
-# And the build targets: Static and dynamic libraries, command-line
-# utility, LADSPA plugin, Vamp plugin, JNI library
-
-message('Will build Rubber Band Library static library')
-target_summary += { 'Static library': [ true, 'Name: ' + rubberband_static_name ] }
-rubberband_static = static_library(
-  rubberband_static_name,
+rubberband_objlib = static_library(
+  'rubberband_objlib',
   library_sources,
   feature_sources,
   include_directories: general_include_dirs,
   cpp_args: general_compile_args,
   c_args: general_compile_args,
   dependencies: general_dependencies,
-  name_prefix: platform_static_name_prefix,
-  name_suffix: platform_static_name_suffix,
   pic: true,
+  install: false,
+)
+
+rubberband_objlib_dep = declare_dependency(
+  link_with: rubberband_objlib,
+)
+
+
+# And the build targets: Static and dynamic libraries, command-line
+# utility, LADSPA plugin, Vamp plugin, JNI library
+
+if get_option('default_library') == 'shared'
+  message('Not building Rubber Band Library static library: default_library option is set to shared')
+  target_summary += { 'Static library': false }
+else
+  message('Will build Rubber Band Library static library')
+  if rubberband_additional_static_lib != ''
+    target_summary += { 'Static library': [ true, 'Name: ' + rubberband_additional_static_lib ] }
+  else 
+    target_summary += { 'Static library': [ true, 'Name: ' + rubberband_library_name ] }
+  endif
+endif
+
+if get_option('default_library') == 'static'
+  message('Not building Rubber Band Library dynamic library: default_library option is set to static')
+  target_summary += { 'Dynamic library': false }
+else
+  message('Will build Rubber Band Library dynamic library')
+  target_summary += { 'Dynamic library': [ true, 'Name: ' + rubberband_library_name ] }
+endif
+  
+rubberband_library = library(
+  rubberband_library_name,
+  link_with: rubberband_objlib,
+  link_args: [
+    arch_flags,
+    feature_libraries,
+  ],
+  dependencies: general_dependencies,
+  version: rubberband_dynamic_library_version,
   install: true,
 )
 
-rubberband_static_dep = declare_dependency(
-  link_with: rubberband_static,
-)
-
-if not get_option('no_shared')
-  target_summary += { 'Shared library': [ true, 'Name: ' + rubberband_dynamic_name ] }
-  message('Will build Rubber Band Library shared library')
-  rubberband_dynamic = shared_library(
-    rubberband_dynamic_name,
-    objects: rubberband_static.extract_all_objects(recursive: true),
-    link_args: [
-      arch_flags,
-      feature_libraries,
-    ],
-    dependencies: general_dependencies,
-    version: rubberband_dynamic_library_version,
-    install: true,
+if get_option('default_library') != 'shared' and rubberband_additional_static_lib != ''
+  rubberband_additional_library = static_library(
+    rubberband_additional_static_lib,
+    link_with: rubberband_objlib,
+    name_prefix: '',
+    name_suffix: 'lib',
+    install: true
   )
-else
-  target_summary += { 'Shared library': false }
-  message('Not building Rubber Band Library dynamic library: no_shared option set')
 endif
 
 if have_jni and javac.found() and jar.found()
@@ -473,7 +507,7 @@ if have_jni and javac.found() and jar.found()
       feature_libraries,
     ],
     dependencies: [
-      rubberband_static_dep,
+      rubberband_objlib_dep,
       general_dependencies,
     ],
     # NB the JNI library is not versioned
@@ -523,7 +557,7 @@ if have_ladspa
       ladspa_symbol_args,
     ],
     dependencies: [
-      rubberband_static_dep,
+      rubberband_objlib_dep,
       general_dependencies,
     ],
     name_prefix: '',
@@ -558,7 +592,7 @@ if have_vamp
       vamp_symbol_args,
     ],
     dependencies: [
-      rubberband_static_dep,
+      rubberband_objlib_dep,
       general_dependencies,
       vamp_dep,
     ],
@@ -589,7 +623,7 @@ if have_sndfile
       feature_libraries,
     ],
     dependencies: [
-      rubberband_static_dep,
+      rubberband_objlib_dep,
       general_dependencies,
       sndfile_dep,
     ],

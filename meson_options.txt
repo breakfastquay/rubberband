@@ -26,8 +26,3 @@ option('extra_lib_dirs',
        value: [],
        description: 'Additional local library directories to search for dependencies.')
 
-option('no_shared',
-       type: 'boolean',
-       value: 'false',
-       description: 'Do not build shared libraries. On Windows this will also ensure that the static library is called simply rubberband.lib, not rubberband-static.lib as it is in the default build.')
-
