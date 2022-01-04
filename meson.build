@@ -409,12 +409,9 @@ if cpp.get_id() == 'msvc'
   #
   # Our "solution" is to leave alone if default_library=shared (when
   # the Meson and MSVC ways are the same), but emit an additional
-  # static .lib otherwise, called either rubberband-static.lib if
-  # default_library=both or rubberband.lib if default_library=static.
+  # static .lib called rubberband-static.lib otherwise.
   #
-  if get_option('default_library') == 'static'
-    rubberband_additional_static_lib = 'rubberband'
-  elif get_option('default_library') == 'both'
+  if get_option('default_library') != 'shared'
     rubberband_additional_static_lib = 'rubberband-static'
   endif    
   rubberband_library_name = 'rubberband'
@@ -473,7 +470,10 @@ endif
   
 rubberband_library = library(
   rubberband_library_name,
-  link_with: rubberband_objlib,
+  # We would like to write "link_with: rubberband_objlib",
+  # but that didn't work with MSVC when I tried it: no
+  # DLL entry point found
+  objects: rubberband_objlib.extract_all_objects(recursive: true),
   link_args: [
     arch_flags,
     feature_libraries,
