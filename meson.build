@@ -483,6 +483,10 @@ rubberband_library = library(
   install: true,
 )
 
+rubberband_dep = declare_dependency(
+  link_with: rubberband_library,
+)
+
 if get_option('default_library') != 'shared' and rubberband_additional_static_lib != ''
   rubberband_additional_library = static_library(
     rubberband_additional_static_lib,
