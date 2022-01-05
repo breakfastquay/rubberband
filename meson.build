@@ -485,6 +485,7 @@ rubberband_library = library(
 
 rubberband_dep = declare_dependency(
   link_with: rubberband_library,
+  include_directories: 'rubberband',
 )
 
 if get_option('default_library') != 'shared' and rubberband_additional_static_lib != ''
