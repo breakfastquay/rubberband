@@ -483,6 +483,9 @@ rubberband_library = library(
   install: true,
 )
 
+# This dependency is not used in this build file, but is declared
+# for use when including this project as a subproject using Wrap
+#
 rubberband_dep = declare_dependency(
   link_with: rubberband_library,
   include_directories: 'rubberband',
