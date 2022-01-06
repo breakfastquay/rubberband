@@ -326,10 +326,10 @@ endif
 if system == 'darwin'
   feature_defines += ['-DUSE_PTHREADS', '-DMALLOC_IS_ALIGNED']
   ladspa_symbol_args += [
-    '-exported_symbols_list', meson.project_source_root() / 'ladspa/ladspa-plugin.list'
+    '-exported_symbols_list', meson.current_source_dir() / 'ladspa/ladspa-plugin.list'
   ]
   vamp_symbol_args += [
-    '-exported_symbols_list', meson.project_source_root() / 'vamp/vamp-plugin.list'
+    '-exported_symbols_list', meson.current_source_dir() / 'vamp/vamp-plugin.list'
   ]
 
   if architecture == 'aarch64'
@@ -379,10 +379,10 @@ elif system == 'windows'
 else # system not darwin or windows
   feature_defines += ['-DUSE_PTHREADS', '-DHAVE_POSIX_MEMALIGN']
   ladspa_symbol_args += [
-    '-Wl,--version-script=' + meson.project_source_root() / 'ladspa/ladspa-plugin.map'
+    '-Wl,--version-script=' + meson.current_source_dir() / 'ladspa/ladspa-plugin.map'
   ]
   vamp_symbol_args += [
-    '-Wl,--version-script=' + meson.project_source_root() / 'vamp/vamp-plugin.map'
+    '-Wl,--version-script=' + meson.current_source_dir() / 'vamp/vamp-plugin.map'
   ]
 endif # system
 
