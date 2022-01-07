@@ -24,7 +24,21 @@
 #ifndef RUBBERBAND_PITCH_SHIFTER_H
 #define RUBBERBAND_PITCH_SHIFTER_H
 
+#ifdef RB_PLUGIN_LADSPA
+#ifdef RB_PLUGIN_LV2
+#error "Only one of RB_PLUGIN_LADSPA and RB_PLUGIN_LV2 may be defined at once"
+#endif
+#else
+#ifndef RB_PLUGIN_LV2
+#error "Including code must define either RB_PLUGIN_LADSPA or RB_PLUGIN_LV2"
+#endif
+#endif
+
+#ifdef RB_PLUGIN_LADSPA
 #include <ladspa.h>
+#else
+#include <lv2.h>
+#endif
 
 #include "base/RingBuffer.h"
 
@@ -35,7 +49,11 @@ class RubberBandStretcher;
 class RubberBandPitchShifter
 {
 public:
+#ifdef RB_PLUGIN_LADSPA
     static const LADSPA_Descriptor *getDescriptor(unsigned long index);
+#else
+    static const LV2_Descriptor *getDescriptor(uint32_t index);
+#endif
     
 protected:
     RubberBandPitchShifter(int sampleRate, size_t channels);
@@ -43,9 +61,9 @@ protected:
 
     enum {
         LatencyPort      = 0,
-	OctavesPort      = 1,
+	CentsPort        = 1,
 	SemitonesPort    = 2,
-	CentsPort        = 3,
+	OctavesPort      = 3,
         CrispnessPort    = 4,
 	FormantPort      = 5,
 	WetDryPort       = 6,
@@ -57,6 +75,7 @@ protected:
         PortCountStereo  = OutputPort2 + 1
     };
 
+#ifdef RB_PLUGIN_LADSPA
     static const char *const portNamesMono[PortCountMono];
     static const LADSPA_PortDescriptor portsMono[PortCountMono];
     static const LADSPA_PortRangeHint hintsMono[PortCountMono];
@@ -77,9 +96,24 @@ protected:
     static void deactivate(LADSPA_Handle);
     static void cleanup(LADSPA_Handle);
 
+#else
+
+    static const LV2_Descriptor lv2DescriptorMono;
+    static const LV2_Descriptor lv2DescriptorStereo;
+    
+    static LV2_Handle instantiate(const LV2_Descriptor *, double,
+                                  const char *, const LV2_Feature *const *);
+    static void connectPort(LV2_Handle, uint32_t, void *);
+    static void activate(LV2_Handle);
+    static void run(LV2_Handle, uint32_t);
+    static void deactivate(LV2_Handle);
+    static void cleanup(LV2_Handle);
+
+#endif
+    
     void activateImpl();
-    void runImpl(unsigned long);
-    void runImpl(unsigned long, unsigned long offset);
+    void runImpl(uint32_t count);
+    void runImpl(uint32_t count, uint32_t offset);
     void updateRatio();
     void updateCrispness();
     void updateFormant();
@@ -109,6 +143,7 @@ protected:
     RubberBand::RingBuffer<float> **m_outputBuffer;
     RubberBand::RingBuffer<float> **m_delayMixBuffer;
     float **m_scratch;
+    float **m_inptrs;
 
     int m_sampleRate;
     size_t m_channels;

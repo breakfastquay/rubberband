@@ -77,8 +77,11 @@ vamp_sources = [
 ]
 
 ladspa_sources = [
-  'ladspa/RubberBandPitchShifter.cpp',
-  'ladspa/libmain.cpp',
+  'ladspa-lv2/libmain-ladspa.cpp',
+]
+
+lv2_sources = [
+  'ladspa-lv2/libmain-lv2.cpp',
 ]
 
 general_include_dirs = [
@@ -100,6 +103,7 @@ sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
 thread_dep = dependency('threads')
 have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
+have_lv2 = cpp.has_header('lv2.h', args: extra_include_args)
 have_sincos = cpp.has_function('sincos',
                                prefix: '#define _GNU_SOURCE\n#include <math.h>',
                                args: '-lm')
@@ -314,6 +318,7 @@ have_sndfile = sndfile_dep.found()
 # General platform and compiler expectations
 
 ladspa_symbol_args = []
+lv2_symbol_args = []
 vamp_symbol_args = []
 
 if get_option('buildtype').startswith('release')
@@ -326,7 +331,10 @@ endif
 if system == 'darwin'
   feature_defines += ['-DUSE_PTHREADS', '-DMALLOC_IS_ALIGNED']
   ladspa_symbol_args += [
-    '-exported_symbols_list', meson.current_source_dir() / 'ladspa/ladspa-plugin.list'
+    '-exported_symbols_list', meson.current_source_dir() / 'ladspa-lv2/ladspa-plugin.list'
+  ]
+  lv2_symbol_args += [
+    '-exported_symbols_list', meson.current_source_dir() / 'ladspa-lv2/lv2-plugin.list'
   ]
   vamp_symbol_args += [
     '-exported_symbols_list', meson.current_source_dir() / 'vamp/vamp-plugin.list'
@@ -373,13 +381,17 @@ elif system == 'windows'
   feature_defines += ['-D_WIN32', '-DNOMINMAX', '-D_USE_MATH_DEFINES', '-DGETOPT_API=']
   if cpp.get_id() == 'msvc'
     ladspa_symbol_args += ['-EXPORT:ladspa_descriptor']
+    lv2_symbol_args += ['-EXPORT:lv2_descriptor']
     vamp_symbol_args += ['-EXPORT:vampGetPluginDescriptor']
   endif
 
 else # system not darwin or windows
   feature_defines += ['-DUSE_PTHREADS', '-DHAVE_POSIX_MEMALIGN']
   ladspa_symbol_args += [
-    '-Wl,--version-script=' + meson.current_source_dir() / 'ladspa/ladspa-plugin.map'
+    '-Wl,--version-script=' + meson.current_source_dir() / 'ladspa-lv2/ladspa-plugin.map'
+  ]
+  lv2_symbol_args += [
+    '-Wl,--version-script=' + meson.current_source_dir() / 'ladspa-lv2/lv2-plugin.map'
   ]
   vamp_symbol_args += [
     '-Wl,--version-script=' + meson.current_source_dir() / 'vamp/vamp-plugin.map'
@@ -417,6 +429,7 @@ if cpp.get_id() == 'msvc'
   rubberband_library_name = 'rubberband'
   rubberband_program_name = 'rubberband-program'
   rubberband_ladspa_name = 'ladspa-rubberband'
+  rubberband_lv2_name = 'lv2-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
   rubberband_jni_name = 'rubberband-jni'
 else
@@ -424,6 +437,7 @@ else
   rubberband_dynamic_name = 'rubberband'
   rubberband_program_name = 'rubberband'
   rubberband_ladspa_name = 'ladspa-rubberband'
+  rubberband_lv2_name = 'lv2-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
   rubberband_jni_name = 'rubberband-jni'
 endif  
@@ -446,7 +460,7 @@ rubberband_objlib_dep = declare_dependency(
 
 
 # And the build targets: Static and dynamic libraries, command-line
-# utility, LADSPA plugin, Vamp plugin, JNI library
+# utility, LADSPA and LV2 plugins, Vamp plugin, JNI library
 
 if get_option('default_library') == 'shared'
   message('Not building Rubber Band Library static library: default_library option is set to shared')
@@ -573,16 +587,43 @@ if have_ladspa
     install_dir: get_option('libdir') / 'ladspa',
   )
   install_data(
-    'ladspa/ladspa-rubberband.cat',
+    'ladspa-lv2/ladspa-rubberband.cat',
     install_dir: get_option('libdir') / 'ladspa',
   )
   install_data(
-    'ladspa/ladspa-rubberband.rdf',
+    'ladspa-lv2/ladspa-rubberband.rdf',
     install_dir: get_option('datadir') / 'ladspa/rdf',
   )
 else
   target_summary += { 'LADSPA plugin': false }
   message('Not building LADSPA plugin: ladspa.h header not found')
+endif
+
+if have_lv2
+  target_summary += { 'LV2 plugin': [ true, 'Name: ' + rubberband_lv2_name ] }
+  message('Will build LV2 plugin')
+  rubberband_lv2 = shared_library(
+    rubberband_lv2_name,
+    lv2_sources,
+    include_directories: general_include_dirs,
+    cpp_args: general_compile_args,
+    c_args: general_compile_args,
+    link_args: [
+      arch_flags,
+      feature_libraries,
+      lv2_symbol_args,
+    ],
+    dependencies: [
+      rubberband_objlib_dep,
+      general_dependencies,
+    ],
+    name_prefix: '',
+    install: true,
+    install_dir: get_option('libdir') / 'lv2',
+  )
+else
+  target_summary += { 'LV2 plugin': false }
+  message('Not building LV2 plugin: lv2.h header not found')
 endif
 
 if have_vamp

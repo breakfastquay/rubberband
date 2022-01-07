@@ -32,6 +32,12 @@ echo
 grep 'RUBBERBAND.*VERSION' rubberband/rubberband-c.h
 check "Are the above version and API versions (from the C header) correct?"
 echo
+echo "The LV2 plugin RDF should contain 2x the API minor version for minorVersion"
+echo "and an LV2-specific microVersion field, for the mono and stereo plugins."
+echo
+grep 'Version' ladspa-lv2/rubberband.lv2/rubberband.ttl
+check "Are the above minor and micro versions (from the LV2 plugin RDF) correct?"
+echo
 grep '^PROJECT_NUMBER' Doxyfile
 check "Is the above version (from Doxyfile) correct?"
 

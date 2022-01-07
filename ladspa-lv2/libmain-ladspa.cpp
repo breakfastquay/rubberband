@@ -21,7 +21,9 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#include "RubberBandPitchShifter.h"
+#define RB_PLUGIN_LADSPA 1
+#undef RB_PLUGIN_LV2
+#include "RubberBandPitchShifter.cpp"
 
 #include <stdio.h>
 
