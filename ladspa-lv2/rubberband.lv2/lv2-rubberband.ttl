@@ -61,10 +61,10 @@
         lv2:minimum 0 ;
         lv2:maximum 3 ;
         lv2:portProperty lv2:integer, lv2:enumeration ;
-        lv2:scalePoint [ rdfs:label "Smooth"; rdf:value 0 ] ;
-        lv2:scalePoint [ rdfs:label "Multitimbral"; rdf:value 1 ] ;
-        lv2:scalePoint [ rdfs:label "Two sources"; rdf:value 2 ] ;
-        lv2:scalePoint [ rdfs:label "Standard"; rdf:value 3 ] .
+        lv2:scalePoint [ rdfs:label "0. Smooth"; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "1. Multitimbral"; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "2. Two sources"; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "3. Standard"; rdf:value 3 ] .
 
 :formantPort
         a lv2:ControlPort, lv2:InputPort ;
