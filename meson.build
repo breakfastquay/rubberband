@@ -619,7 +619,12 @@ if have_lv2
     ],
     name_prefix: '',
     install: true,
-    install_dir: get_option('libdir') / 'lv2',
+    install_dir: get_option('libdir') / 'lv2/rubberband.lv2',
+  )
+  install_data(
+    'ladspa-lv2/rubberband.lv2/manifest.ttl',
+    'ladspa-lv2/rubberband.lv2/lv2-rubberband.ttl',
+    install_dir: get_option('libdir') / 'lv2/rubberband.lv2',
   )
 else
   target_summary += { 'LV2 plugin': false }
