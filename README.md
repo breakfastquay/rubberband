@@ -94,8 +94,9 @@ Rubber Band consists of:
    (http://www.mega-nerd.com/libsndfile/, licensed under the GNU Lesser
    General Public License) for audio file loading.
 
- * A pitch-shifter LADSPA audio effects plugin.  This is in `ladspa/`.
-   It requires the LADSPA SDK header `ladspa.h` (not included).
+ * A pitch-shifter audio effects plugin in LADSPA and LV2 formats.
+   These are in `ladspa-lv2/`. They require the LADSPA SDK header
+   `ladspa.h` and LV2 header `lv2.h` respectively (not included).
 
  * A Vamp audio analysis plugin which may be used to inspect the
    dynamic stretch ratios and other decisions taken by the Rubber Band
@@ -145,8 +146,8 @@ see the files in the `dotnet` directory for details.
 
 The source code for the command-line utility (`main/main.cpp`)
 provides a good example of how to use Rubber Band in offline mode; the
-LADSPA pitch shifter plugin (`ladspa/RubberBandPitchShifter.cpp`) may
-be used as an example of Rubber Band in real-time mode.
+pitch shifter plugin (`ladspa-lv2/RubberBandPitchShifter.cpp`) may be
+used as an example of Rubber Band in real-time mode.
 
 IMPORTANT: Please ensure you have read and understood the licensing
 terms for Rubber Band before using it in your application.  This
@@ -186,7 +187,7 @@ $ meson build && ninja -C build
 This checks for necessary dependencies, reports what it finds, and if
 all is well, builds the code into a subdirectory called `build`. It
 will build everything it can find the requisite dependencies for:
-static and dynamic libraries, LADSPA and Vamp plugins, and
+static and dynamic libraries, LADSPA, LV2, and Vamp plugins, and
 command-line utility.
 
 Some configuration options are provided, described in the
@@ -214,8 +215,8 @@ applicable.
 ### 4a. Building on Linux
 
 For best results, and to ensure the command-line tool and plugins are
-built, first install libsamplerate, libsndfile, and the LADSPA and
-Vamp plugin headers so they can be found using `pkg-config`. Then
+built, first install libsamplerate, libsndfile, and the LADSPA, LV2,
+and Vamp plugin headers so they can be found using `pkg-config`. Then
 
 ```
 $ meson build && ninja -C build
