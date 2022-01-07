@@ -554,6 +554,10 @@ RubberBandPitchShifter::updateFormant()
 void
 RubberBandPitchShifter::runImpl(uint32_t insamples)
 {
+    for (size_t c = 0; c < m_channels; ++c) {
+        m_delayMixBuffer[c]->write(m_input[c], insamples);
+    }
+
     size_t offset = 0;
 
     // We have to break up the input into chunks like this because
@@ -572,11 +576,9 @@ RubberBandPitchShifter::runImpl(uint32_t insamples)
         offset += block;
     }
 
-    for (size_t c = 0; c < m_channels; ++c) {
-        m_delayMixBuffer[c]->write(m_input[c], insamples);
-    }
     float mix = 0.0;
     if (m_wetDry) mix = *m_wetDry;
+
     for (size_t c = 0; c < m_channels; ++c) {
         if (mix > 0.0) {
             for (size_t i = 0; i < insamples; ++i) {
