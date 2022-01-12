@@ -9,7 +9,7 @@ option('resampler',
        type: 'combo',
        choices: ['auto', 'builtin', 'libsamplerate', 'speex', 'ipp'],
        value: 'auto',
-       description: 'Resampler library to use. The default (auto) will use libsamplerate if available, the builtin implementation otherwise.')
+       description: 'Resampler library to use. The default (auto) simply uses the builtin implementation.')
 
 option('ipp_path',
        type: 'string',

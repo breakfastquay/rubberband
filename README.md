@@ -416,12 +416,8 @@ Intel IPP   -Dfft=ipp       -DHAVE_IPP     Proprietary, can only be used with
 Library     Build option    CPP define     Notes
 ----        ------------    ----------     -----
 
-libsamplerate               -DHAVE_LIBSAMPLERATE
-            -Dresampler=libsamplerate      Default when found.
-                                           Good choice in most cases.
-
 Built-in    -Dfft=builtin   -DUSE_BQRESAMPLER
-                                           Default when libsamplerate not found.
+                                           Default.
                                            Can be distributed with either
                                            the Rubber Band GPL or
                                            commercial licence. Intended to
@@ -429,6 +425,9 @@ Built-in    -Dfft=builtin   -DUSE_BQRESAMPLER
                                            pitch shifts in real-time mode.
                                            Newer than, and not as well-tested
                                            as, libsamplerate.
+
+libsamplerate               -DHAVE_LIBSAMPLERATE
+            -Dresampler=libsamplerate      Good choice in most cases.
 
 Speex                       -DUSE_SPEEX
             -Dresampler=speex              Can be distributed with

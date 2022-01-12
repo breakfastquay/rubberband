@@ -140,11 +140,7 @@ if fft == 'auto'
 endif
 
 if resampler == 'auto'
-  if samplerate_dep.found()
-    resampler = 'libsamplerate'
-  else
-    resampler = 'builtin'
-  endif
+  resampler = 'builtin'
 endif
 
 if fft == 'builtin'
@@ -205,6 +201,9 @@ endif # fft
 if resampler == 'builtin'
   config_summary += { 'Resampler': 'Built-in' }
   message('For resampler: using built-in implementation')
+  if samplerate_dep.found()
+    message('(to use libsamplerate instead, reconfigure with -Dresampler=libsamplerate)')
+  endif
   library_sources += 'src/dsp/BQResampler.cpp'
   feature_defines += ['-DUSE_BQRESAMPLER']
 
