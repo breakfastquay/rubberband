@@ -106,8 +106,8 @@ Rubber Band consists of:
 
 ## 2. Using the Rubber Band command-line tool
 
-The Rubber Band command-line tool builds as bin/rubberband.  The basic
-incantation is
+The Rubber Band command-line tool builds as `bin/rubberband`.  The
+basic incantation is
 
 ```
   $ rubberband -t <timeratio> -p <pitchratio> <infile.wav> <outfile.wav>
@@ -119,8 +119,9 @@ For example,
   $ rubberband -t 1.5 -p 2.0 test.wav output.wav
 ```
 
-stretches the file test.wav to 50% longer than its original duration,
-shifts it up in pitch by one octave, and writes the output to output.wav.
+stretches the file `test.wav` to 50% longer than its original
+duration, shifts it up in pitch by one octave, and writes the output
+to `output.wav`.
 
 Several further options are available: run `rubberband -h` for help.
 In particular, different types of music may benefit from different
@@ -214,9 +215,9 @@ applicable.
 
 ### 4a. Building on Linux
 
-For best results, and to ensure the command-line tool and plugins are
-built, first install libsamplerate, libsndfile, and the LADSPA, LV2,
-and Vamp plugin headers so they can be found using `pkg-config`. Then
+Optionally, if you want the command-line tool and plugins to be built,
+first install libsndfile and the LADSPA, LV2, and Vamp plugin headers
+so they can be found using `pkg-config`. Then
 
 ```
 $ meson build && ninja -C build
@@ -234,8 +235,8 @@ $ make -f otherbuilds/Makefile.linux
 
 ### 4b. Building on macOS
 
-Ensure the Xcode command-line tools are installed, and ideally also
-install libsamplerate and libsndfile.
+Ensure the Xcode command-line tools are installed, and if you want the
+command-line tool to be built, also install libsndfile.
 
 To build for the default architecture:
 
@@ -377,8 +378,8 @@ library code, please be sure to review the terms for those libraries
 in `src/speex/COPYING` and `src/kissfft/COPYING` as applicable.
 
 If you are proposing to package Rubber Band for a Linux distribution,
-please select either the built-in FFT (simpler for you) or FFTW (a bit
-faster) and use libsamplerate.
+please select either the built-in FFT or FFTW, and either the built-in
+resampler or libsamplerate.
 
 #### FFT libraries supported
 
@@ -392,6 +393,13 @@ Built-in    -Dfft=builtin   -DUSE_BUILTIN_FFT
                                            the Rubber Band GPL or
                                            commercial licence.
 
+Accelerate  -Dfft=vdsp      -DHAVE_VDSP    Default on macOS/iOS.
+                                           Best option on these platforms.
+
+FFTW3       -Dfft=fftw      -DHAVE_FFTW3   GPL.
+                                           A bit faster than built-in,
+                                           a bit slower than Accelerate.
+
 KissFFT     -Dfft=kissfft   -DHAVE_KISSFFT
                                            Single precision.
                                            Only indicated for use with
@@ -400,11 +408,6 @@ KissFFT     -Dfft=kissfft   -DHAVE_KISSFFT
                                            Bundled, can be distributed with
                                            either the Rubber Band GPL or
                                            commercial licence.
-
-Accelerate  -Dfft=vdsp      -DHAVE_VDSP    Default on macOS/iOS.
-                                           Best option on these platforms.
-
-FFTW3       -Dfft=fftw      -DHAVE_FFTW3   GPL.
 
 Intel IPP   -Dfft=ipp       -DHAVE_IPP     Proprietary, can only be used with
                                            Rubber Band commercial licence.
