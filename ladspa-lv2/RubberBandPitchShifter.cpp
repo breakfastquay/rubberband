@@ -496,10 +496,26 @@ RubberBandPitchShifter::activateImpl()
 void
 RubberBandPitchShifter::updateRatio()
 {
-    double oct = (m_octaves ? *m_octaves : 0.0);
-    oct += (m_semitones ? *m_semitones : 0.0) / 12;
-    oct += (m_cents ? *m_cents : 0.0) / 1200;
-    m_ratio = pow(2.0, oct);
+    // The octaves, semitones, and cents parameters are supposed to be
+    // integral: enforce that, just to avoid inconsistencies between
+    // hosts if some respect the hints more than others
+
+    double octaves = round(m_octaves ? *m_octaves : 0.0);
+    if (octaves < -2.0) octaves = -2.0;
+    if (octaves >  2.0) octaves =  2.0;
+    
+    double semitones = round(m_semitones ? *m_semitones : 0.0);
+    if (semitones < -12.0) semitones = -12.0;
+    if (semitones >  12.0) semitones =  12.0;
+    
+    double cents = round(m_cents ? *m_cents : 0.0);
+    if (cents < -100.0) cents = -100.0;
+    if (cents >  100.0) cents =  100.0;
+    
+    m_ratio = pow(2.0,
+                  octaves +
+                  semitones / 12.0 +
+                  cents / 1200.0);
 }
 
 void
