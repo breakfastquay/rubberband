@@ -40,6 +40,10 @@ check "Are the above minor and micro versions (from the LV2 plugin RDF) correct?
 echo
 grep '^PROJECT_NUMBER' Doxyfile
 check "Is the above version (from Doxyfile) correct?"
+echo
+echo "The CHANGELOG should start with a list of changes for this release."
+head -3 CHANGELOG
+check "The first three lines of the CHANGELOG are above. Are they correct?"
 
 echo
 check "All version checks passed. Continue?"
