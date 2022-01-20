@@ -43,7 +43,7 @@ that licence. Please refer to your licence agreement for more details.
 
 Rubber Band includes a .NET interface generously contributed by
 Jonathan Gilbert under a BSD-like licence. The files in the
-dotnet/rubberband-dll and dotnet/rubberband-sharp directories fall
+`dotnet/rubberband-dll` and `dotnet/rubberband-sharp` directories fall
 under this licence. If you make use of this interface, please ensure
 you comply with the terms of its licence.
 
@@ -87,7 +87,7 @@ Rubber Band consists of:
    be used by your applications.  The headers for this are in the
    `rubberband/` directory, and the source code is in `src/`.
    The Rubber Band Library may also depend upon external resampler
-   and FFT code; see section 3a below for details.
+   and FFT code; see section 4 below for details.
 
  * The Rubber Band command-line tool.  This is in `main/main.cpp`.
    This program uses Rubber Band Library and also requires libsndfile
@@ -161,23 +161,24 @@ acquired a commercial licence from the author.
 
 ## 4. Compiling Rubber Band Library
 
-The primary supported build system for Rubber Band on all platforms is
-Meson (https://mesonbuild.com). The Meson build system can be used to
-build all targets (static and dynamic library, command-line utility,
-and plugins) and to cross-compile.
+**Full configurable build.** The primary supported build system for
+Rubber Band on all platforms is Meson (https://mesonbuild.com). The
+Meson build system can be used to build all targets (static and
+dynamic library, command-line utility, and plugins) and to
+cross-compile. See below for details.
 
-☞ If you only need a static library and don't wish to use Meson, some
-alternative build files (Makefiles and Visual C++ projects) are
-included in the `otherbuilds` directory. See the platform-specific
-build sections below for more details.
+**Single-file build.** If you want to include Rubber Band in a C++
+project and would prefer not to build it as a separate library, there
+is a single `.cpp` file at `single/RubberBandSingle.cpp` which can be
+added to your project as-is.  It produces a single compilation-unit
+build using the built-in FFT and resampler implementations with no
+further library dependencies. See the comments at the top of that file
+for more information.
 
-☞ If you want to include Rubber Band in a C++ project and would prefer
-not to compile a separate library, there is a single `.cpp` file at
-`single/RubberBandSingle.cpp` which can be added to your project
-as-is.  It produces a single compilation-unit build with the built-in
-FFT and resampler implementations with no further library
-dependencies. See the comments at the top of that file for more
-information.
+**Other build options.** If you only need a static library and don't
+wish to use Meson, some alternative build files (Makefiles and Visual
+C++ projects) are included in the `otherbuilds` directory. See the
+platform-specific build sections below for more details.
 
 To build with Meson, ensure Meson and Ninja are installed and run:
 
