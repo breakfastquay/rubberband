@@ -497,8 +497,23 @@ void
 RubberBandPitchShifter::updateRatio()
 {
     // The octaves, semitones, and cents parameters are supposed to be
-    // integral: enforce that, just to avoid inconsistencies between
-    // hosts if some respect the hints more than others
+    // integral: we want to enforce that, just to avoid
+    // inconsistencies between hosts if some respect the hints more
+    // than others
+    
+#ifdef RB_PLUGIN_LADSPA
+
+    // But we don't want to change the long-standing behaviour of the
+    // LADSPA plugin, so let's leave this as-is and only do "the right
+    // thing" for LV2
+    double oct = (m_octaves ? *m_octaves : 0.0);
+    oct += (m_semitones ? *m_semitones : 0.0) / 12;
+    oct += (m_cents ? *m_cents : 0.0) / 1200;
+    m_ratio = pow(2.0, oct);
+
+#else
+
+    // LV2
 
     double octaves = round(m_octaves ? *m_octaves : 0.0);
     if (octaves < -2.0) octaves = -2.0;
@@ -516,6 +531,7 @@ RubberBandPitchShifter::updateRatio()
                   octaves +
                   semitones / 12.0 +
                   cents / 1200.0);
+#endif
 }
 
 void
