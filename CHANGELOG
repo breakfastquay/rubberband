@@ -1,4 +1,22 @@
 
+Changes in Rubber Band v2.0.1
+
+ * Add a preliminary LV2 version of the example pitch-shifter plugin,
+   and update the existing LADSPA version to fix failure of the wet/dry
+   control to work correctly under in-place use
+ * Make the built-in resampler (introduced in v2.0.0) the default for
+   all builds, and use it in the official packaged versions of the
+   command-line utility. External resampler libraries are still
+   available as build options
+ * A couple of build fixes, including supporting the proper Meson
+   option (default_library=shared/static/both) at configuration time
+   to choose which type of library to build, instead of the custom
+   option used since v1.9.1
+
+The API is unchanged and the library is binary compatible back to
+version 1.7.
+
+
 Changes in Rubber Band v2.0.0
 
  * Introduce a built-in resampler, intended to minimise artifacts on
