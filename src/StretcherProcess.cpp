@@ -197,6 +197,15 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
             if (samples == 0) return 0;
         }
 
+        if (useMidSide) {
+            // Our pre-resample buffer size is also constrained by a
+            // buffer (cd.ms) of the same size as cd.inbuf
+            size_t ibsz = cd.inbuf->getSize();
+            if (ibsz < samples) {
+                samples = ibsz;
+            }
+        }
+
         size_t reqSize = int(ceil(samples / m_pitchScale));
         if (reqSize > cd.resamplebufSize) {
             cerr << "WARNING: RubberBandStretcher::Impl::consumeChannel: resizing resampler buffer from "
