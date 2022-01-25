@@ -38,6 +38,7 @@
 
 #ifdef HAVE_VDSP
 #include <Accelerate/Accelerate.h>
+#include <TargetConditionals.h>
 #include <alloca.h>
 #endif
 
