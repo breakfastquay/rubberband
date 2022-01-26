@@ -1,4 +1,15 @@
 
+Changes in Rubber Band v2.0.2
+
+ * Fix a crash in certain configurations when using mid-side
+   processing (OptionChannelsTogether) with pitch shifts
+ * Fix failure to build on very old macOS versions (<= 10.8) when
+   combined with much newer compilers
+
+The API is unchanged and the library is binary compatible back to
+version 1.7.
+
+
 Changes in Rubber Band v2.0.1
 
  * Add a preliminary LV2 version of the example pitch-shifter plugin,
