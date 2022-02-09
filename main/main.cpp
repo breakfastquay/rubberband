@@ -590,8 +590,6 @@ int main(int argc, char **argv)
         int frame = 0;
         int percent = 0;
 
-        sf_seek(sndfile, 0, SEEK_SET);
-
         if (!realtime) {
 
             if (!quiet) {
@@ -818,8 +816,31 @@ int main(int argc, char **argv)
         }
 
         if (!successful) {
-            sf_seek(sndfile, 0, SEEK_SET);
-            sf_seek(sndfileOut, 0, SEEK_SET);
+            if (sf_seek(sndfile, 0, SEEK_SET) < 0) {
+                if (debug > 0) {
+                    cerr << "input file is not seekable: reopening" << endl;
+                }
+                sf_close(sndfile);
+                sndfile = sf_open(fileName, SFM_READ, &sfinfo);
+                if (!sndfile) {
+                    cerr << "ERROR: Failed to reopen input file \""
+                         << fileName << "\": " << sf_strerror(sndfile) << endl;
+                    return 1;
+                }
+            }
+            if (sf_seek(sndfileOut, 0, SEEK_SET) < 0) {
+                if (debug > 0) {
+                    cerr << "output file is not seekable: reopening" << endl;
+                }
+                sf_close(sndfileOut);
+                sndfileOut = sf_open(fileNameOut, SFM_WRITE, &sfinfoOut);
+                if (!sndfileOut) {
+                    cerr << "ERROR: Failed to reopen output file \""
+                         << fileNameOut << "\": "
+                         << sf_strerror(sndfileOut) << endl;
+                    return 1;
+                }
+            }
             continue;
         }
     
