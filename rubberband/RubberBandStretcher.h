@@ -458,8 +458,9 @@ public:
      * Note that this is not the same thing as the number of samples
      * needed at input to cause a block of processing to happen (also
      * sometimes referred to as latency). That value is reported by
-     * getSamplesRequired() and will typically be higher than the
-     * output delay at the start of processing and lower thereafter.
+     * getSamplesRequired() and will vary, but typically will be
+     * higher than the output delay, at least at the start of
+     * processing.
      *
      * @see getSamplesRequired
      */
