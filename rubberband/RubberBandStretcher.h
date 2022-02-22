@@ -447,13 +447,21 @@ public:
     double getPitchScale() const;
 
     /**
-     * Return the processing latency of the stretcher.  This is the
-     * number of audio samples that one would have to discard at the
-     * start of the output in order to ensure that the resulting audio
-     * aligned with the input audio at the start.  In Offline mode,
-     * latency is automatically adjusted for and the result is zero.
-     * In RealTime mode, the latency may depend on the time and pitch
-     * ratio and other options.
+     * Return the output delay or latency of the stretcher.  This is
+     * the number of audio samples that one would have to discard at
+     * the start of the output in order to ensure that the resulting
+     * audio aligns with the input audio at the start.  In Offline
+     * mode, this delay is automatically adjusted for and the result
+     * is zero.  In RealTime mode, the delay may depend on the time
+     * and pitch ratio and other options.
+     * 
+     * Note that this is not the same thing as the number of samples
+     * needed at input to cause a block of processing to happen (also
+     * sometimes referred to as latency). That value is reported by
+     * getSamplesRequired() and will typically be higher than the
+     * output delay at the start of processing and lower thereafter.
+     *
+     * @see getSamplesRequired
      */
     size_t getLatency() const;
 
@@ -570,6 +578,8 @@ public:
      * individual samples. (For example, one second of stereo audio
      * sampled at 44100Hz yields a value of 44100 sample frames, not
      * 88200.)  This rule applies throughout the Rubber Band API.
+     *
+     * @see getLatency
      */
      size_t getSamplesRequired() const;
 
