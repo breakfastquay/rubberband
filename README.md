@@ -110,7 +110,7 @@ The Rubber Band command-line tool builds as `bin/rubberband`.  The
 basic incantation is
 
 ```
-  $ rubberband -t <timeratio> -p <pitchratio> <infile.wav> <outfile.wav>
+  $ rubberband -t <timeratio> -p <semitones> <infile.wav> <outfile.wav>
 ```
 
 For example,
@@ -120,7 +120,7 @@ For example,
 ```
 
 stretches the file `test.wav` to 50% longer than its original
-duration, shifts it up in pitch by one octave, and writes the output
+duration, shifts it up in pitch by a whole tone, and writes the output
 to `output.wav`.
 
 Several further options are available: run `rubberband -h` for help.
