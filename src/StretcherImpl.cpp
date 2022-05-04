@@ -1163,6 +1163,7 @@ RubberBandStretcher::Impl::calculateStretch()
         }
     }
 
+/*
     double prdm = 0, sdm = 0;
     if (!m_phaseResetDf.empty()) {
         for (int i = 0; i < (int)m_phaseResetDf.size(); ++i) {
@@ -1176,7 +1177,8 @@ RubberBandStretcher::Impl::calculateStretch()
         }
         sdm /= m_stretchDf.size();
     }
-//    std::cerr << "phase reset df mean = " << prdm << ", stretch df mean = " << sdm << std::endl;
+    std::cerr << "phase reset df mean = " << prdm << ", stretch df mean = " << sdm << std::endl;
+*/
 
     std::vector<int> increments = m_stretchCalculator->calculate
         (getEffectiveRatio(),
