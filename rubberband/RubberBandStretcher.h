@@ -109,27 +109,6 @@ public:
      * non-real-time operation on seekable files: Offline; real-time
      * or streaming operation: RealTime.
      *
-     * 2. Flags prefixed \c OptionStretch control the profile used for
-     * variable timestretching.  Rubber Band always adjusts the
-     * stretch profile to minimise stretching of busy broadband
-     * transient sounds, but the degree to which it does so is
-     * adjustable.  These options may not be changed after
-     * construction.
-     *
-     *   \li \c OptionStretchElastic - Only meaningful in offline
-     *   mode, and the default in that mode.  The audio will be
-     *   stretched at a variable rate, aimed at preserving the quality
-     *   of transient sounds as much as possible.  The timings of low
-     *   activity regions between transients may be less exact than
-     *   when the precise flag is set.
-     * 
-     *   \li \c OptionStretchPrecise - Although still using a variable
-     *   stretch rate, the audio will be stretched so as to maintain
-     *   as close as possible to a linear stretch ratio throughout.
-     *   Timing may be better than when using \c OptionStretchElastic, at
-     *   slight cost to the sound quality of transients.  This setting
-     *   is always used when running in real-time mode.
-     *
      * 3. Flags prefixed \c OptionTransients control the component
      * frequency phase-reset mechanism that may be used at transient
      * points to provide clarity and realism to percussion and other
@@ -293,6 +272,10 @@ public:
      *   setting).  This usually leads to better focus in the centre
      *   but a loss of stereo space and width.  Any channels beyond
      *   the first two are processed individually.
+     *
+     * Finally, flags prefixed \c OptionStretch are obsolete flags
+     * provided for backward compatibility only. They are ignored by
+     * the stretcher.
      */
     
     enum Option {
@@ -300,8 +283,8 @@ public:
         OptionProcessOffline       = 0x00000000,
         OptionProcessRealTime      = 0x00000001,
 
-        OptionStretchElastic       = 0x00000000,
-        OptionStretchPrecise       = 0x00000010,
+        OptionStretchElastic       = 0x00000000, // obsolete
+        OptionStretchPrecise       = 0x00000010, // obsolete
     
         OptionTransientsCrisp      = 0x00000000,
         OptionTransientsMixed      = 0x00000100,

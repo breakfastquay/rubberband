@@ -74,11 +74,8 @@ StretchCalculator::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 
 std::vector<int>
 StretchCalculator::calculate(double ratio, size_t inputDuration,
-                             const std::vector<float> &phaseResetDf,
-                             const std::vector<float> &stretchDf)
+                             const std::vector<float> &phaseResetDf)
 {
-    assert(phaseResetDf.size() == stretchDf.size());
-    
     m_peaks = findPeaks(phaseResetDf);
 
     size_t totalCount = phaseResetDf.size();
@@ -107,16 +104,6 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 
     size_t totalInput = 0, totalOutput = 0;
 
-    // For each region between two consecutive time sync points, we
-    // want to take the number of output chunks to be allocated and
-    // the detection function values within the range, and produce a
-    // series of increments that sum to the number of output chunks,
-    // such that each increment is displaced from the input increment
-    // by an amount inversely proportional to the magnitude of the
-    // stretch detection function at that input step.
-
-    size_t regionTotalChunks = 0;
-
     std::vector<int> increments;
 
     for (size_t i = 0; i <= peaks.size(); ++i) {
@@ -141,47 +128,61 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
             regionEndChunk = peaks[i].chunk;
             regionEnd = targets[i];
         }
-
+        
         if (regionStartChunk > totalCount) regionStartChunk = totalCount;
         if (regionStart > outputDuration) regionStart = outputDuration;
         if (regionEndChunk > totalCount) regionEndChunk = totalCount;
         if (regionEnd > outputDuration) regionEnd = outputDuration;
-        
+
+        if (regionEndChunk < regionStartChunk) regionEndChunk = regionStartChunk;
+        if (regionEnd < regionStart) regionEnd = regionStart;
+
         size_t regionDuration = regionEnd - regionStart;
-        regionTotalChunks += regionDuration;
 
-        std::vector<float> dfRegion;
+        size_t nchunks = regionEndChunk - regionStartChunk;
 
-        for (size_t j = regionStartChunk; j != regionEndChunk; ++j) {
-            dfRegion.push_back(stretchDf[j]);
+        if (nchunks == 0) {
+            //!!!
+            break;
         }
 
-        if (m_debugLevel > 1) {
-            std::cerr << "distributeRegion from " << regionStartChunk << " to " << regionEndChunk << " (samples " << regionStart << " to " << regionEnd << ")" << std::endl;
-        }
-
-        dfRegion = smoothDF(dfRegion);
-        
-        std::vector<int> regionIncrements = distributeRegion
-            (dfRegion, regionDuration, ratio, phaseReset);
-
+        double per = double(regionDuration) / double(nchunks);
+        double acc = 0.0;
+        size_t nremaining = nchunks;
         size_t totalForRegion = 0;
 
-        for (size_t j = 0; j < regionIncrements.size(); ++j) {
-
-            int incr = regionIncrements[j];
-
-            if (j == 0 && phaseReset) increments.push_back(-incr);
-            else increments.push_back(incr);
-
-            if (incr > 0) totalForRegion += incr;
-            else totalForRegion += -incr;
-
+        if (phaseReset) {
+            size_t incr;
+            if (nchunks > 1) {
+                incr = m_increment;
+                if (incr > regionDuration) {
+                    incr = regionDuration;
+                }
+            } else {
+                incr = regionDuration;
+            }
+            increments.push_back(- int64_t(incr));
+            per = double(regionDuration - incr) / double(nchunks - 1);
+            acc += incr;
+            totalForRegion += incr;
             totalInput += m_increment;
+            nremaining = nremaining - 1;
         }
 
-        if (totalForRegion != regionDuration) {
-            std::cerr << "*** ERROR: distributeRegion returned wrong duration " << totalForRegion << ", expected " << regionDuration << std::endl;
+        if (nremaining > 0) {
+            for (size_t j = 0; j+1 < nremaining; ++j) {
+                acc += per;
+                size_t incr = size_t(round(acc - totalForRegion));
+                increments.push_back(incr);
+                totalForRegion += incr;
+                totalInput += m_increment;
+            }
+            if (regionDuration > totalForRegion) {
+                size_t final = regionDuration - totalForRegion;
+                increments.push_back(final);
+                totalForRegion += final;
+                totalInput += m_increment;
+            }
         }
 
         totalOutput += totalForRegion;
@@ -189,7 +190,6 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
 
     if (m_debugLevel > 0) {
         std::cerr << "total input increment = " << totalInput << " (= " << totalInput / m_increment << " chunks), output = " << totalOutput << ", ratio = " << double(totalOutput)/double(totalInput) << ", ideal output " << size_t(ceil(totalInput * ratio)) << std::endl;
-        std::cerr << "(region total = " << regionTotalChunks << ")" << std::endl;
     }
 
     return increments;
@@ -859,286 +859,6 @@ StretchCalculator::smoothDF(const std::vector<float> &df)
     }
 
     return smoothedDF;
-}
-
-std::vector<int>
-StretchCalculator::distributeRegion(const std::vector<float> &dfIn,
-                                    size_t duration, float ratio, bool phaseReset)
-{
-    std::vector<float> df(dfIn);
-    std::vector<int> increments;
-
-    // The peak for the stretch detection function may appear after
-    // the peak that we're using to calculate the start of the region.
-    // We don't want that.  If we find a peak in the first half of
-    // the region, we should set all the values up to that point to
-    // the same value as the peak.
-
-    // (This might not be subtle enough, especially if the region is
-    // long -- we want a bound that corresponds to acoustic perception
-    // of the audible bounce.)
-
-    for (size_t i = 1; i < df.size()/2; ++i) {
-        if (df[i] < df[i-1]) {
-            if (m_debugLevel > 1) {
-                std::cerr << "stretch peak offset: " << i-1 << " (peak " << df[i-1] << ")" << std::endl;
-            }
-            for (size_t j = 0; j < i-1; ++j) {
-                df[j] = df[i-1];
-            }
-            break;
-        }
-    }
-
-    float maxDf = 0;
-
-    for (size_t i = 0; i < df.size(); ++i) {
-        if (i == 0 || df[i] > maxDf) maxDf = df[i];
-    }
-
-    // We want to try to ensure the last 100ms or so (if possible) are
-    // tending back towards the maximum df, so that the stretchiness
-    // reduces at the end of the stretched region.
-    
-    int reducedRegion = lrint((0.1 * m_sampleRate) / m_increment);
-    if (reducedRegion > int(df.size()/5)) reducedRegion = df.size()/5;
-
-    for (int i = 0; i < reducedRegion; ++i) {
-        size_t index = df.size() - reducedRegion + i;
-        df[index] = df[index] + ((maxDf - df[index]) * i) / reducedRegion;
-    }
-
-    long toAllot = long(duration) - long(m_increment * df.size());
-    
-    if (m_debugLevel > 1) {
-        std::cerr << "region of " << df.size() << " chunks, output duration " << duration << ", increment " << m_increment << ", toAllot " << toAllot << std::endl;
-    }
-
-    size_t totalIncrement = 0;
-
-    // We place limits on the amount of displacement per chunk.  if
-    // ratio < 0, no increment should be larger than increment*ratio
-    // or smaller than increment*ratio/2; if ratio > 0, none should be
-    // smaller than increment*ratio or larger than increment*ratio*2.
-    // We need to enforce this in the assignment of displacements to
-    // allotments, not by trying to respond if something turns out
-    // wrong.
-
-    // Note that the ratio is only provided to this function for the
-    // purposes of establishing this bound to the displacement.
-    
-    // so if
-    // maxDisplacement / totalDisplacement > increment * ratio*2 - increment
-    // (for ratio > 1)
-    // or
-    // maxDisplacement / totalDisplacement < increment * ratio/2
-    // (for ratio < 1)
-
-    // then we need to adjust and accommodate
-    
-    double totalDisplacement = 0;
-    double maxDisplacement = 0; // min displacement will be 0 by definition
-
-    maxDf = 0;
-    float adj = 0;
-
-    bool tooShort = true, tooLong = true;
-    const int acceptableIterations = 10;
-    int iteration = 0;
-    int prevExtreme = 0;
-    bool better = false;
-
-    while ((tooLong || tooShort) && iteration < acceptableIterations) {
-
-        ++iteration;
-
-        tooLong = false;
-        tooShort = false;
-        calculateDisplacements(df, maxDf, totalDisplacement, maxDisplacement,
-                               adj);
-
-        if (m_debugLevel > 1) {
-            std::cerr << "totalDisplacement " << totalDisplacement << ", max " << maxDisplacement << " (maxDf " << maxDf << ", df count " << df.size() << ")" << std::endl;
-        }
-
-        if (totalDisplacement == 0) {
-// Not usually a problem, in fact
-//            std::cerr << "WARNING: totalDisplacement == 0 (duration " << duration << ", " << df.size() << " values in df)" << std::endl;
-            if (!df.empty() && adj == 0) {
-                tooLong = true; tooShort = true;
-                adj = 1;
-            }
-            continue;
-        }
-
-        int extremeIncrement = m_increment +
-            lrint((toAllot * maxDisplacement) / totalDisplacement);
-
-        if (extremeIncrement < 0) {
-            if (m_debugLevel > 0) {
-                std::cerr << "NOTE: extreme increment " << extremeIncrement << " < 0, adjusting" << std::endl;
-            }
-            tooShort = true;
-        } else {
-            if (ratio < 1.0) {
-                if (extremeIncrement > lrint(ceil(m_increment * ratio))) {
-                    std::cerr << "WARNING: extreme increment "
-                              << extremeIncrement << " > "
-                              << m_increment * ratio << std::endl;
-                } else if (extremeIncrement < (m_increment * ratio) / 2) {
-                    if (m_debugLevel > 0) {
-                        std::cerr << "NOTE: extreme increment "
-                                  << extremeIncrement << " < " 
-                                  << (m_increment * ratio) / 2
-                                  << ", adjusting" << std::endl;
-                    }
-                    tooShort = true;
-                    if (iteration > 0) {
-                        better = (extremeIncrement > prevExtreme);
-                    }
-                    prevExtreme = extremeIncrement;
-                }
-            } else {
-                if (extremeIncrement > m_increment * ratio * 2) {
-                    if (m_debugLevel > 0) {
-                        std::cerr << "NOTE: extreme increment "
-                                  << extremeIncrement << " > "
-                                  << m_increment * ratio * 2
-                                  << ", adjusting" << std::endl;
-                    }
-                    tooLong = true;
-                    if (iteration > 0) {
-                        better = (extremeIncrement < prevExtreme);
-                    }
-                    prevExtreme = extremeIncrement;
-                } else if (extremeIncrement < lrint(floor(m_increment * ratio))) {
-                    std::cerr << "WARNING: extreme increment "
-                              << extremeIncrement << " < "
-                              << m_increment * ratio << std::endl;
-                }
-            }
-        }
-
-        if (tooLong || tooShort) {
-            // Need to make maxDisplacement smaller as a proportion of
-            // the total displacement, yet ensure that the
-            // displacements still sum to the total.
-            adj += maxDf/10;
-        }
-    }
-
-    if (tooLong) {
-        if (better) {
-            // we were iterating in the right direction, so
-            // leave things as they are (and undo that last tweak)
-            std::cerr << "WARNING: No acceptable displacement adjustment found, using latest values:\nthis region could sound bad" << std::endl;
-            adj -= maxDf/10;
-        } else {
-            std::cerr << "WARNING: No acceptable displacement adjustment found, using defaults:\nthis region could sound bad" << std::endl;
-            adj = 1;
-            calculateDisplacements(df, maxDf, totalDisplacement, maxDisplacement,
-                                   adj);
-        }
-    } else if (tooShort) {
-        std::cerr << "WARNING: No acceptable displacement adjustment found, using flat distribution:\nthis region could sound bad" << std::endl;
-        adj = 1;
-        for (size_t i = 0; i < df.size(); ++i) {
-            df[i] = 1.f;
-        }
-        calculateDisplacements(df, maxDf, totalDisplacement, maxDisplacement,
-                               adj);
-    }
-
-    for (size_t i = 0; i < df.size(); ++i) {
-
-        double displacement = maxDf - df[i];
-        if (displacement < 0) displacement -= adj;
-        else displacement += adj;
-
-        if (i == 0 && phaseReset) {
-            if (m_debugLevel > 2) {
-                std::cerr << "Phase reset at first chunk" << std::endl;
-            }
-            if (df.size() == 1) {
-                increments.push_back(duration);
-                totalIncrement += duration;
-            } else {
-                increments.push_back(m_increment);
-                totalIncrement += m_increment;
-            }
-            totalDisplacement -= displacement;
-            continue;
-        }
-
-        double theoreticalAllotment = 0;
-
-        if (totalDisplacement != 0) {
-            theoreticalAllotment = (toAllot * displacement) / totalDisplacement;
-        }
-        int allotment = lrint(theoreticalAllotment);
-        if (i + 1 == df.size()) allotment = toAllot;
-
-        int increment = m_increment + allotment;
-
-        if (increment < 0) {
-            // this is a serious problem, the allocation is quite
-            // wrong if it allows increment to diverge so far from the
-            // input increment (though it can happen legitimately if
-            // asked to squash very violently)
-            std::cerr << "*** WARNING: increment " << increment << " <= 0, rounding to zero" << std::endl;
-
-            toAllot += m_increment;
-            increment = 0;
-
-        } else {
-            toAllot -= allotment;
-        }
-
-        increments.push_back(increment);
-        totalIncrement += increment;
-
-        totalDisplacement -= displacement;
-
-        if (m_debugLevel > 2) {
-            std::cerr << "df " << df[i] << ", smoothed " << df[i] << ", disp " << displacement << ", allot " << theoreticalAllotment << ", incr " << increment << ", remain " << toAllot << std::endl;
-        }
-    }
-    
-    if (m_debugLevel > 2) {
-        std::cerr << "total increment: " << totalIncrement << ", left over: " << toAllot << " to allot, displacement " << totalDisplacement << std::endl;
-    }
-
-    if (totalIncrement != duration) {
-        std::cerr << "*** WARNING: calculated output duration " << totalIncrement << " != expected " << duration << std::endl;
-    }
-
-    return increments;
-}
-
-void
-StretchCalculator::calculateDisplacements(const std::vector<float> &df,
-                                          float &maxDf,
-                                          double &totalDisplacement,
-                                          double &maxDisplacement,
-                                          float adj) const
-{
-    totalDisplacement = maxDisplacement = 0;
-
-    maxDf = 0;
-
-    for (size_t i = 0; i < df.size(); ++i) {
-        if (i == 0 || df[i] > maxDf) maxDf = df[i];
-    }
-
-    for (size_t i = 0; i < df.size(); ++i) {
-        double displacement = maxDf - df[i];
-        if (displacement < 0) displacement -= adj;
-        else displacement += adj;
-        totalDisplacement += displacement;
-        if (i == 0 || displacement > maxDisplacement) {
-            maxDisplacement = displacement;
-        }
-    }
 }
 
 }

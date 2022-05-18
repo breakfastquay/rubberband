@@ -220,19 +220,19 @@ protected:
     mutable Mutex m_threadSetMutex;
     typedef std::set<ProcessThread *> ThreadSet;
     ThreadSet m_threadSet;
-    
-#if defined HAVE_IPP && !defined USE_SPEEX
+
+#if defined(HAVE_IPP) && !defined(NO_THREADING) && !defined(USE_BQRESAMPLER) && !defined(USE_SPEEX) && !defined(HAVE_LIBSAMPLERATE)
     // Exasperatingly, the IPP polyphase resampler does not appear to
-    // be thread-safe as advertised -- a good reason to prefer the
-    // Speex alternative
+    // be thread-safe as advertised -- a good reason to prefer any of
+    // the alternatives
+#define STRETCHER_IMPL_RESAMPLER_MUTEX_REQUIRED 1
     Mutex m_resamplerMutex;
 #endif
-#endif
-
+#endif // ! NO_THREADING
+    
     size_t m_inputDuration;
     CompoundAudioCurve::Type m_detectorType;
     std::vector<float> m_phaseResetDf;
-    std::vector<float> m_stretchDf;
     std::vector<bool> m_silence;
     int m_silentHistory;
 
@@ -246,7 +246,6 @@ protected:
     Scavenger<RingBuffer<float> > m_emergencyScavenger;
 
     CompoundAudioCurve *m_phaseResetAudioCurve;
-    AudioCurveCalculator *m_stretchAudioCurve;
     AudioCurveCalculator *m_silentAudioCurve;
     StretchCalculator *m_stretchCalculator;
 

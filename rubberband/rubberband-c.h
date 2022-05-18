@@ -57,8 +57,8 @@ enum RubberBandOption {
     RubberBandOptionProcessOffline       = 0x00000000,
     RubberBandOptionProcessRealTime      = 0x00000001,
 
-    RubberBandOptionStretchElastic       = 0x00000000,
-    RubberBandOptionStretchPrecise       = 0x00000010,
+    RubberBandOptionStretchElastic       = 0x00000000, // obsolete
+    RubberBandOptionStretchPrecise       = 0x00000010, // obsolete
     
     RubberBandOptionTransientsCrisp      = 0x00000000,
     RubberBandOptionTransientsMixed      = 0x00000100,

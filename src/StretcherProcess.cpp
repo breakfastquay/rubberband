@@ -22,11 +22,6 @@
 */
 
 #include "StretcherImpl.h"
-
-#include "audiocurves/PercussiveAudioCurve.h"
-#include "audiocurves/HighFrequencyAudioCurve.h"
-#include "audiocurves/ConstantAudioCurve.h"
-
 #include "StretchCalculator.h"
 #include "StretcherChannelData.h"
 
@@ -213,12 +208,10 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
             cd.setResampleBufSize(reqSize);
         }
 
-#ifndef NO_THREADING
-#if defined HAVE_IPP && !defined USE_SPEEX
+#if defined(STRETCHER_IMPL_RESAMPLER_MUTEX_REQUIRED)
         if (m_threaded) {
             m_resamplerMutex.lock();
         }
-#endif
 #endif
 
         if (useMidSide) {
@@ -235,12 +228,10 @@ RubberBandStretcher::Impl::consumeChannel(size_t c,
                                          1.0 / m_pitchScale,
                                          final);
 
-#ifndef NO_THREADING
-#if defined HAVE_IPP && !defined USE_SPEEX
+#if defined(STRETCHER_IMPL_RESAMPLER_MUTEX_REQUIRED)
         if (m_threaded) {
             m_resamplerMutex.unlock();
         }
-#endif
 #endif
     }
 
@@ -1102,12 +1093,11 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
             cd.setResampleBufSize(reqSize);
         }
 
-#ifndef NO_THREADING
-#if defined HAVE_IPP && !defined USE_SPEEX
+
+#if defined(STRETCHER_IMPL_RESAMPLER_MUTEX_REQUIRED)
         if (m_threaded) {
             m_resamplerMutex.lock();
         }
-#endif
 #endif
 
         size_t outframes = cd.resampler->resample(&cd.resamplebuf,
@@ -1117,12 +1107,10 @@ RubberBandStretcher::Impl::writeChunk(size_t channel, size_t shiftIncrement, boo
                                                   1.0 / m_pitchScale,
                                                   last);
 
-#ifndef NO_THREADING
-#if defined HAVE_IPP && !defined USE_SPEEX
+#if defined(STRETCHER_IMPL_RESAMPLER_MUTEX_REQUIRED)
         if (m_threaded) {
             m_resamplerMutex.unlock();
         }
-#endif
 #endif
 
         writeOutput(*cd.outbuf, cd.resamplebuf,

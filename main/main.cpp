@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     double frequencyshift = 1.0;
     int debug = 0;
     bool realtime = false;
-    bool precise = true;
+    bool precisiongiven = false;
     int threading = 0;
     bool lamination = true;
     bool longwin = false;
@@ -179,8 +179,8 @@ int main(int argc, char **argv)
         case 'f': frequencyshift = atof(optarg); haveRatio = true; break;
         case 'd': debug = atoi(optarg); break;
         case 'R': realtime = true; break;
-        case 'L': precise = false; break;
-        case 'P': precise = true; break;
+        case 'L': precisiongiven = true; break;
+        case 'P': precisiongiven = true; break;
         case 'F': formant = true; break;
         case '0': threading = 1; break;
         case '@': threading = 2; break;
@@ -276,9 +276,10 @@ int main(int argc, char **argv)
         cerr << "crispness parameter are intended to provide the best sounding set of options" << endl;
         cerr << "for most situations. The default is to use none of these options." << endl;
         cerr << endl;
-        cerr << "  -L,    --loose          Relax timing in hope of better transient preservation" << endl;
-        cerr << "  -P,    --precise        Ignored: The opposite of -L, this is default from 1.6" << endl;
-        cerr << "  -R,    --realtime       Select realtime mode (implies --no-threads)" << endl;
+        cerr << "  -R,    --realtime       Select realtime mode (implies --no-threads)." << endl;
+        cerr << "                          This utility does not do realtime stream processing;" << endl;
+        cerr << "                          the option merely selects realtime mode for the" << endl;
+        cerr << "                          stretcher it uses" << endl;
         cerr << "         --no-threads     No extra threads regardless of CPU and channel count" << endl;
         cerr << "         --threads        Assume multi-CPU even if only one CPU is identified" << endl;
         cerr << "         --no-transients  Disable phase resynchronisation at transients" << endl;
@@ -294,6 +295,8 @@ int main(int argc, char **argv)
         cerr << "                          (at a cost in width and individual channel quality)" << endl;
         cerr << "         --ignore-clipping Ignore clipping at output; the default is to restart" << endl;
         cerr << "                          with reduced gain if clipping occurs" << endl;
+        cerr << "  -L,    --loose          [Accepted for compatibility but ignored; always off]" << endl;
+        cerr << "  -P,    --precise        [Accepted for compatibility but ignored; always on]" << endl;
         cerr << endl;
         cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 0, full 3" << endl;
         cerr << "                          (N.B. debug level 3 includes audible ticks in output)" << endl;
@@ -330,6 +333,11 @@ int main(int argc, char **argv)
         hqpitch = false;
     }
 
+    if (precisiongiven) {
+        cerr << "NOTE: The -L/--loose and -P/--precise options are both ignored -- precise" << endl;
+        cerr << "      became the default in v1.6 and loose was removed in v3.0" << endl;
+    }
+    
     switch (crispness) {
     case -1: crispness = 5; break;
     case 0: detector = CompoundDetector; transients = NoTransients; lamination = false; longwin = true; shortwin = false; break;
@@ -493,7 +501,6 @@ int main(int argc, char **argv)
 
     RubberBandStretcher::Options options = 0;
     if (realtime)    options |= RubberBandStretcher::OptionProcessRealTime;
-    if (precise)     options |= RubberBandStretcher::OptionStretchPrecise;
     if (!lamination) options |= RubberBandStretcher::OptionPhaseIndependent;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;

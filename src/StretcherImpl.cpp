@@ -25,9 +25,7 @@
 
 #include "audiocurves/PercussiveAudioCurve.h"
 #include "audiocurves/HighFrequencyAudioCurve.h"
-#include "audiocurves/SpectralDifferenceAudioCurve.h"
 #include "audiocurves/SilentAudioCurve.h"
-#include "audiocurves/ConstantAudioCurve.h"
 #include "audiocurves/CompoundAudioCurve.h"
 
 #include "dsp/Resampler.h"
@@ -105,7 +103,6 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     m_lastProcessPhaseResetDf(16),
     m_emergencyScavenger(10, 4),
     m_phaseResetAudioCurve(0),
-    m_stretchAudioCurve(0),
     m_silentAudioCurve(0),
     m_stretchCalculator(0),
     m_freq0(600),
@@ -150,12 +147,7 @@ RubberBandStretcher::Impl::Impl(size_t sampleRate,
     }
 
     if (m_options & OptionProcessRealTime) {
-
         m_realtime = true;
-
-        if (!(m_options & OptionStretchPrecise)) {
-            m_options |= OptionStretchPrecise;
-        }
     }
 
 #ifndef NO_THREADING
@@ -203,7 +195,6 @@ RubberBandStretcher::Impl::~Impl()
     }
 
     delete m_phaseResetAudioCurve;
-    delete m_stretchAudioCurve;
     delete m_silentAudioCurve;
     delete m_stretchCalculator;
     delete m_studyFFT;
@@ -249,7 +240,6 @@ RubberBandStretcher::Impl::reset()
 
     m_mode = JustCreated;
     if (m_phaseResetAudioCurve) m_phaseResetAudioCurve->reset();
-    if (m_stretchAudioCurve) m_stretchAudioCurve->reset();
     if (m_silentAudioCurve) m_silentAudioCurve->reset();
     m_inputDuration = 0;
     m_silentHistory = 0;
@@ -701,10 +691,6 @@ RubberBandStretcher::Impl::configure()
         }
     }
     
-    // stretchAudioCurve is unused in RT mode; phaseResetAudioCurve,
-    // silentAudioCurve and stretchCalculator however are used in all
-    // modes
-
     delete m_phaseResetAudioCurve;
     m_phaseResetAudioCurve = new CompoundAudioCurve
         (CompoundAudioCurve::Parameters(m_sampleRate, m_fftSize));
@@ -713,17 +699,6 @@ RubberBandStretcher::Impl::configure()
     delete m_silentAudioCurve;
     m_silentAudioCurve = new SilentAudioCurve
         (SilentAudioCurve::Parameters(m_sampleRate, m_fftSize));
-
-    if (!m_realtime) {
-        delete m_stretchAudioCurve;
-        if (!(m_options & OptionStretchPrecise)) {
-            m_stretchAudioCurve = new SpectralDifferenceAudioCurve
-                (SpectralDifferenceAudioCurve::Parameters(m_sampleRate, m_fftSize));
-        } else {
-            m_stretchAudioCurve = new ConstantAudioCurve
-                (ConstantAudioCurve::Parameters(m_sampleRate, m_fftSize));
-        }
-    }
 
     delete m_stretchCalculator;
     m_stretchCalculator = new StretchCalculator
@@ -765,7 +740,6 @@ RubberBandStretcher::Impl::reconfigure()
             // the df vectors
             calculateStretch();
             m_phaseResetDf.clear();
-            m_stretchDf.clear();
             m_silence.clear();
             m_inputDuration = 0;
         }
@@ -854,9 +828,6 @@ RubberBandStretcher::Impl::reconfigure()
     if (m_fftSize != prevFftSize) {
         m_phaseResetAudioCurve->setFftSize(m_fftSize);
         m_silentAudioCurve->setFftSize(m_fftSize);
-        if (m_stretchAudioCurve) {
-            m_stretchAudioCurve->setFftSize(m_fftSize);
-        }
         somethingChanged = true;
     }
 
@@ -1069,9 +1040,6 @@ RubberBandStretcher::Impl::study(const float *const *input, size_t samples, bool
 
 //            cout << m_phaseResetDf.size() << " [" << final << "] -> " << df << " \t: ";
 
-            df = m_stretchAudioCurve->processFloat(cd.fltbuf, m_increment);
-            m_stretchDf.push_back(df);
-
             df = m_silentAudioCurve->processFloat(cd.fltbuf, m_increment);
             bool silent = (df > 0.f);
             if (silent && m_debugLevel > 1) {
@@ -1163,28 +1131,10 @@ RubberBandStretcher::Impl::calculateStretch()
         }
     }
 
-/*
-    double prdm = 0, sdm = 0;
-    if (!m_phaseResetDf.empty()) {
-        for (int i = 0; i < (int)m_phaseResetDf.size(); ++i) {
-            prdm += m_phaseResetDf[i];
-        }
-        prdm /= m_phaseResetDf.size();
-    }
-    if (!m_stretchDf.empty()) {
-        for (int i = 0; i < (int)m_stretchDf.size(); ++i) {
-            sdm += m_stretchDf[i];
-        }
-        sdm /= m_stretchDf.size();
-    }
-    std::cerr << "phase reset df mean = " << prdm << ", stretch df mean = " << sdm << std::endl;
-*/
-
     std::vector<int> increments = m_stretchCalculator->calculate
         (getEffectiveRatio(),
          inputDuration,
-         m_phaseResetDf,
-         m_stretchDf);
+         m_phaseResetDf);
 
     int history = 0;
     for (size_t i = 0; i < increments.size(); ++i) {
