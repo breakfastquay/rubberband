@@ -48,6 +48,7 @@ library_sources = [
   'src/system/Thread.cpp',
   'src/StretcherChannelData.cpp',
   'src/StretcherImpl.cpp',
+  'src/temporary.cpp', 
 ]
 
 jni_sources = [

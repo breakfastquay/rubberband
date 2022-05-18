@@ -38,7 +38,7 @@ enum WindowType {
     RectangularWindow,
     BartlettWindow,
     HammingWindow,
-    HanningWindow,
+    HannWindow,
     BlackmanWindow,
     GaussianWindow,
     ParzenWindow,
@@ -136,7 +136,7 @@ void Window<T>::encache()
         cosinewin(m_cache, 0.54, 0.46, 0.0, 0.0);
 	break;
 	    
-    case HanningWindow:
+    case HannWindow:
         cosinewin(m_cache, 0.50, 0.50, 0.0, 0.0);
 	break;
 	    

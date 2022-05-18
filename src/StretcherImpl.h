@@ -40,8 +40,6 @@
 #include <set>
 #include <algorithm>
 
-using namespace RubberBand;
-
 namespace RubberBand
 {
 

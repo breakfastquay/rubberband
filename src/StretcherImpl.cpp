@@ -43,8 +43,6 @@
 #include <map>
 #include <algorithm>
 
-using namespace RubberBand;
-
 using std::cerr;
 using std::endl;
 using std::vector;
@@ -619,7 +617,7 @@ RubberBandStretcher::Impl::configure()
         for (set<size_t>::const_iterator i = windowSizes.begin();
              i != windowSizes.end(); ++i) {
             if (m_windows.find(*i) == m_windows.end()) {
-                m_windows[*i] = new Window<float>(HanningWindow, *i);
+                m_windows[*i] = new Window<float>(HannWindow, *i);
             }
             if (m_sincs.find(*i) == m_sincs.end()) {
                 m_sincs[*i] = new SincWindow<float>(*i, *i);
@@ -768,7 +766,7 @@ RubberBandStretcher::Impl::reconfigure()
         if (m_windows.find(m_aWindowSize) == m_windows.end()) {
             std::cerr << "WARNING: reconfigure(): window allocation (size " << m_aWindowSize << ") required in RT mode" << std::endl;
             m_windows[m_aWindowSize] = new Window<float>
-                (HanningWindow, m_aWindowSize);
+                (HannWindow, m_aWindowSize);
             m_sincs[m_aWindowSize] = new SincWindow<float>
                 (m_aWindowSize, m_aWindowSize);
         }
@@ -776,7 +774,7 @@ RubberBandStretcher::Impl::reconfigure()
         if (m_windows.find(m_sWindowSize) == m_windows.end()) {
             std::cerr << "WARNING: reconfigure(): window allocation (size " << m_sWindowSize << ") required in RT mode" << std::endl;
             m_windows[m_sWindowSize] = new Window<float>
-                (HanningWindow, m_sWindowSize);
+                (HannWindow, m_sWindowSize);
             m_sincs[m_sWindowSize] = new SincWindow<float>
                 (m_sWindowSize, m_sWindowSize);
         }

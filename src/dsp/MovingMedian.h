@@ -102,6 +102,9 @@ private:
 	v_move(index, index + 1, m_sortend - index);
 	*m_sortend = T(0);
     }
+
+    MovingMedian(const MovingMedian &) =delete;
+    MovingMedian &operator=(const MovingMedian &) =delete;
 };
 
 }
