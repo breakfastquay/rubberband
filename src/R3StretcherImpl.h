@@ -27,8 +27,9 @@
 #include <map>
 #include <memory>
 
-#include "dsp/BinClassifier.h"
+#include "dsp/BinSegmenter.h"
 #include "dsp/FFT.h"
+#include "system/Allocators.h"
 
 namespace RubberBand
 {
@@ -88,14 +89,6 @@ protected:
         Range channelLock;
     };
 
-    struct BinSegmentation {
-        float percussiveBelow;
-        float percussiveAbove;
-        float residualAbove;
-        BinSegmentation(float _pb, float _pa, float _ra) :
-            percussiveBelow(_pb), percussiveAbove(_pa), residualAbove(_ra) { }
-    };
-
     struct ChannelScaleData {
         int fftSize;
         int bufSize; // size of every array here: fftSize/2 + 1
@@ -134,10 +127,10 @@ protected:
     
     struct ChannelData {
         std::map<int, std::shared_ptr<ChannelScaleData>> scales;
-        std::unique_ptr<BinClassifier> classifier;
-        BinSegmentation segmentation;
-        BinSegmentation prevSegmentation;
-        BinSegmentation nextSegmentation;
+        std::unique_ptr<BinSegmenter> segmenter;
+        BinSegmenter::Segmentation segmentation;
+        BinSegmenter::Segmentation prevSegmentation;
+        BinSegmenter::Segmentation nextSegmentation;
         Guidance guidance;
     };
     

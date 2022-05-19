@@ -33,8 +33,9 @@
 
 namespace RubberBand {
 
-class BinClassifier {
-
+class BinClassifier
+{
+public:
     enum class Classification {
         Harmonic = 0,
         Percussive = 1,
@@ -104,21 +105,9 @@ class BinClassifier {
             m_hFilters[i]->push(mag[i]);
             m_hf[i] = m_hFilters[i]->get();
         }
-        
-        m_vFilter->reset();
-        int vFilterLag = m_parameters.verticalFilterLength / 2;
-        
-        for (int i = 0; i < vFilterLag; ++i) {
-            m_vFilter->push(mag[i]);
-        }
-        for (int i = vFilterLag; i < n; ++i) {
-            m_vFilter->push(mag[i]);
-            m_vf[i-vFilterLag] = m_vFilter->get();
-        }
-        for (int i = n; i < n + vFilterLag; ++i) {
-            m_vFilter->push(0.f);
-            m_vf[i-vFilterLag] = m_vFilter->get();
-        }
+
+        v_copy(m_vf, mag, n);
+        MovingMedian<float>::filter(*m_vFilter, m_vf);
 
         if (m_parameters.horizontalFilterLag > 0) {
             float *lagged = m_vfQueue.readOne();
@@ -152,6 +141,9 @@ protected:
     float *m_hf;
     float *m_vf;
     RingBuffer<float *> m_vfQueue;
+
+    BinClassifier(const BinClassifier &) =delete;
+    BinClassifier &operator=(const BinClassifier &) =delete;
 };
 
 }

@@ -80,6 +80,27 @@ public:
 	v_zero(m_sorted, P::m_size);
     }
 
+    // Convenience function that applies a given filter to an array
+    // in-place. Array must have length equal to getSize(). Modifies
+    // both the filter and the array.
+    //
+    static void filter(MovingMedian<T> &mm, T *v) {
+        int n = mm.getSize();
+        int lag = n / 2;
+        mm.reset();
+        for (int i = 0; i < lag; ++i) {
+            mm.push(v[i]);
+        }
+        for (int i = lag; i < n; ++i) {
+            mm.push(v[i]);
+            v[i-lag] = mm.get();
+        }
+        for (int i = n; i < n + lag; ++i) {
+            mm.push(T());
+            v[i-lag] = mm.get();
+        }
+    }
+    
 private:
     T *const m_frame;
     T *const m_sorted;
