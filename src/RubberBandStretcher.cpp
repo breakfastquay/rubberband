@@ -21,7 +21,7 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#include "StretcherImpl.h"
+#include "faster/StretcherImpl.h"
 
 
 namespace RubberBand {

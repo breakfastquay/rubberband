@@ -33,17 +33,16 @@
 
 #include <fstream>
 
-#include "../src/system/sysutils.h"
+#include "../src/common/sysutils.h"
+#include "../src/common/Profiler.h"
 
 #ifdef _MSC_VER
-#include "../src/getopt/getopt.h"
+#include "../src/ext/getopt/getopt.h"
 #else
 #include <getopt.h>
 #include <unistd.h>
 #include <sys/time.h>
 #endif
-
-#include "../src/base/Profiler.h"
 
 #ifdef _WIN32
 using RubberBand::gettimeofday;

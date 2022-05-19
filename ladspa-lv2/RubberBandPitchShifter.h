@@ -40,7 +40,7 @@
 #include <lv2.h>
 #endif
 
-#include "base/RingBuffer.h"
+#include "common/RingBuffer.h"
 
 namespace RubberBand {
 class RubberBandStretcher;

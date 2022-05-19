@@ -33,21 +33,21 @@ public_headers = [
 library_sources = [
   'src/rubberband-c.cpp',
   'src/RubberBandStretcher.cpp',
-  'src/StretcherProcess.cpp',
-  'src/StretchCalculator.cpp',
-  'src/base/Profiler.cpp',
-  'src/dsp/AudioCurveCalculator.cpp',
-  'src/audiocurves/CompoundAudioCurve.cpp',
-  'src/audiocurves/HighFrequencyAudioCurve.cpp',
-  'src/audiocurves/SilentAudioCurve.cpp',
-  'src/audiocurves/PercussiveAudioCurve.cpp',
-  'src/dsp/Resampler.cpp',
-  'src/dsp/FFT.cpp',
-  'src/system/Allocators.cpp',
-  'src/system/sysutils.cpp',
-  'src/system/Thread.cpp',
-  'src/StretcherChannelData.cpp',
-  'src/StretcherImpl.cpp',
+  'src/faster/AudioCurveCalculator.cpp',
+  'src/faster/CompoundAudioCurve.cpp',
+  'src/faster/HighFrequencyAudioCurve.cpp',
+  'src/faster/SilentAudioCurve.cpp',
+  'src/faster/PercussiveAudioCurve.cpp',
+  'src/faster/StretchCalculator.cpp',
+  'src/faster/StretcherChannelData.cpp',
+  'src/faster/StretcherImpl.cpp',
+  'src/faster/StretcherProcess.cpp',
+  'src/common/Profiler.cpp',
+  'src/common/Resampler.cpp',
+  'src/common/FFT.cpp',
+  'src/common/Allocators.cpp',
+  'src/common/sysutils.cpp',
+  'src/common/Thread.cpp',
   'src/temporary.cpp', 
 ]
 
@@ -203,7 +203,7 @@ if resampler == 'builtin'
   if samplerate_dep.found()
     message('(to use libsamplerate instead, reconfigure with -Dresampler=libsamplerate)')
   endif
-  library_sources += 'src/dsp/BQResampler.cpp'
+  library_sources += 'src/common/BQResampler.cpp'
   feature_defines += ['-DUSE_BQRESAMPLER']
 
 elif resampler == 'libsamplerate'
