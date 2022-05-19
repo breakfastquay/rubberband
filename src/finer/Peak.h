@@ -29,7 +29,7 @@
 namespace RubberBand
 {
 
-template <typename T>
+template <typename T, typename GreaterThan = std::greater<T>>
 class Peak
 {
 public:
@@ -64,6 +64,7 @@ public:
     {
         int nPeaks = 0;
         int n = rangeStart + rangeCount;
+        GreaterThan greater;
 
         for (int i = rangeStart; i < n; ++i) {
             T x = v[i];
@@ -71,11 +72,11 @@ public:
             for (int k = i - p; k <= i + p; ++k) {
                 if (k < rangeStart || k == i) continue;
                 if (k >= n) break;
-                if (k < i && x <= v[k]) {
+                if (k < i && !greater(x, v[k])) {
                     good = false;
                     break;
                 }
-                if (k > i && x < v[k]) {
+                if (k > i && greater(v[k], x)) {
                     good = false;
                     break;
                 }
