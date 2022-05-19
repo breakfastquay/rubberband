@@ -36,6 +36,8 @@ public:
         float f1;
         FftBand(int _s, float _f0, float _f1) :
             fftSize(_s), f0(_f0), f1(_f1) { }
+        FftBand() :
+            fftSize(0), f0(0.f), f1(0.f) { }
     };
 
     struct PhaseLockBand {
@@ -45,13 +47,18 @@ public:
         float f1;
         PhaseLockBand(int _p, float _beta, float _f0, float _f1) :
             p(_p), beta(_beta), f0(_f0), f1(_f1) { }
+        PhaseLockBand() :
+            p(0), beta(1.0), f0(0.f), f1(0.f) { }
     };
 
     struct Range {
         bool present;
         float f0;
         float f1;
-        Range() : present(false), f0(0.f), f1(0.f) { }
+        Range(bool _present, float _f0, float _f1) :
+            present(_present), f0(_f0), f1(_f1) { }
+        Range() :
+            present(false), f0(0.f), f1(0.f) { }
     };
         
     struct Guidance {
@@ -64,15 +71,54 @@ public:
         Range channelLock;
     };
 
-    struct Parameters {
+    struct BandLimits {
         int fftSize;
+        float f0min;
+        float f0max;
+        float f1min;
+        float f1max;
+        BandLimits(int _fftSize, float _f0min, float _f0max,
+                   float _f1min, float _f1max) :
+            fftSize(_fftSize), f0min(_f0min), f0max(_f0max),
+            f1min(_f1min), f1max(_f1max) { }
+        BandLimits() :
+            fftSize(0), f0min(0.f), f0max(0.f), f1min(0.f), f1max(0.f) { }
+    };
+
+    struct Configuration {
+        int classificationFftSize;
+        BandLimits fftBandLimits[3];
+        Configuration(int _classificationFftSize) :
+            classificationFftSize(_classificationFftSize) { }
+    };
+    
+    struct Parameters {
         double sampleRate;
-        Parameters(int _fftSize, double _sampleRate) :
-            fftSize(_fftSize), sampleRate(_sampleRate) { }
+        Parameters(double _sampleRate) :
+            sampleRate(_sampleRate) { }
     };
 
     Guide(Parameters parameters) :
-        m_parameters(parameters) { }
+        m_parameters(parameters),
+        m_configuration(roundUp(int(ceil(parameters.sampleRate / 32.0)))),
+        m_defaultLower(700.0), m_defaultHigher(4800.0),
+        m_maxLower(1100.0), m_maxHigher(7000.0)
+    {
+        double rate = m_parameters.sampleRate;
+        m_configuration.fftBandLimits[0] =
+            BandLimits(roundUp(int(ceil(rate/16.0))),
+                       0.0, 0.0, m_defaultLower, m_maxLower);
+        m_configuration.fftBandLimits[1] =
+            BandLimits(roundUp(int(ceil(rate/32.0))),
+                       m_defaultLower, m_maxLower, m_defaultHigher, m_maxHigher);
+        m_configuration.fftBandLimits[2] =
+            BandLimits(roundUp(int(ceil(rate/64.0))),
+                       m_defaultHigher, m_maxHigher, rate/2.0, rate/2.0);
+    }
+
+    const Configuration &getConfiguration() const {
+        return m_configuration;
+    }
     
     void calculate(double ratio,
                    const float *const magnitudes,
@@ -126,8 +172,12 @@ public:
                                               nextSegmentation.residualAbove);
         }
 
-        double higher = snapToTrough(4800.0, troughs);
-        double lower = snapToTrough(700.0, troughs);
+        double higher = snapToTrough(m_defaultHigher, troughs);
+        if (higher > m_maxHigher) higher = m_maxHigher;
+
+        double lower = snapToTrough(m_defaultLower, troughs);
+        if (lower > m_maxLower) lower = m_maxLower;
+
         double nyquist = m_parameters.sampleRate / 2.0;
 
         guidance.fftBands[0].fftSize = roundUp(int(ceil(nyquist/8.0)));
@@ -167,14 +217,20 @@ public:
 
 protected:
     Parameters m_parameters;
+    Configuration m_configuration;
+
+    double m_defaultLower;
+    double m_defaultHigher;
+    double m_maxLower;
+    double m_maxHigher;
     
     int binForFrequency(double f) const {
-        return int(round(f * double(m_parameters.fftSize) /
+        return int(round(f * double(m_configuration.classificationFftSize) /
                          m_parameters.sampleRate));
     }
     double frequencyForBin(int b) const {
         return (double(b) * m_parameters.sampleRate)
-            / double(m_parameters.fftSize);
+            / double(m_configuration.classificationFftSize);
     }
 
     // near-dupe with R2 RubberBandStretcher::Impl

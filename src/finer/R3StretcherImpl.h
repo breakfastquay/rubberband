@@ -40,7 +40,11 @@ namespace RubberBand
 class R3StretcherImpl
 {
 public:
-    R3StretcherImpl(double sampleRate, int channels);
+    R3StretcherImpl(double sampleRate, int channels) :
+        m_sampleRate(sampleRate), m_channels(channels),
+        m_guide(Guide::Parameters(sampleRate)),
+        m_guideConfiguration(m_guide.getConfiguration())
+    { }
     ~R3StretcherImpl();
 
     void reset();
@@ -93,7 +97,7 @@ protected:
         ChannelScaleData(const ChannelScaleData &) =delete;
         ChannelScaleData &operator=(const ChannelScaleData &) =delete;
     };
-    
+
     struct ChannelData {
         std::map<int, std::shared_ptr<ChannelScaleData>> scales;
         std::unique_ptr<BinSegmenter> segmenter;
@@ -101,10 +105,12 @@ protected:
         BinSegmenter::Segmentation prevSegmentation;
         BinSegmenter::Segmentation nextSegmentation;
         Guide::Guidance guidance;
+        
     };
     
     std::map<int, std::shared_ptr<FFT>> m_ffts;
-
+    Guide m_guide;
+    Guide::Configuration m_guideConfiguration;
 };
 
 }
