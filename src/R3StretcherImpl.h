@@ -31,6 +31,8 @@
 #include "dsp/FFT.h"
 #include "system/Allocators.h"
 
+#include "dsp/Peak.h"
+
 namespace RubberBand
 {
 
