@@ -92,10 +92,6 @@ struct timeval { long tv_sec; long tv_usec; };
 void gettimeofday(struct timeval *p, void *tz);
 #endif // _WIN32
 
-#ifdef _MSC_VER
-void usleep(unsigned long);
-#endif // _MSC_VER
-
 inline double mod(double x, double y) { return x - (y * floor(x / y)); }
 inline float modf(float x, float y) { return x - (y * float(floor(x / y))); }
 
@@ -120,11 +116,6 @@ namespace RubberBand {
 extern void system_memorybarrier();
 }
 #define MBARRIER() RubberBand::system_memorybarrier()
-
-#define DLOPEN(a,b)  LoadLibrary((a).toStdWString().c_str())
-#define DLSYM(a,b)   GetProcAddress((HINSTANCE)(a),(b))
-#define DLCLOSE(a)   FreeLibrary((HINSTANCE)(a))
-#define DLERROR()    ""
 
 #else // !_WIN32
 
@@ -153,11 +144,6 @@ extern void system_memorybarrier();
 #    define MBARRIER() ::RubberBand::system_memorybarrier()
 #  endif
 #endif
-
-#define DLOPEN(a,b)  dlopen((a).toStdString().c_str(),(b))
-#define DLSYM(a,b)   dlsym((a),(b))
-#define DLCLOSE(a)   dlclose((a))
-#define DLERROR()    dlerror()
 
 #endif // !_WIN32
 

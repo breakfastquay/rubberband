@@ -112,11 +112,11 @@ protected:
     std::vector<int> m_numeric;
     MovingMedian<int> m_classFilter;
 
-    int binForFrequency(double f) {
+    int binForFrequency(double f) const {
         return int(round(f * double(m_parameters.fftSize) /
                          m_parameters.sampleRate));
     }
-    double frequencyForBin(int b) {
+    double frequencyForBin(int b) const {
         return (double(b) * m_parameters.sampleRate)
             / double(m_parameters.fftSize);
     }

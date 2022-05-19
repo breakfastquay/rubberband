@@ -28,6 +28,7 @@
 #include <memory>
 
 #include "BinSegmenter.h"
+#include "Guide.h"
 #include "Peak.h"
 
 #include "../common/FFT.h"
@@ -39,7 +40,7 @@ namespace RubberBand
 class R3StretcherImpl
 {
 public:
-    R3StretcherImpl(int sampleRate, int channels);
+    R3StretcherImpl(double sampleRate, int channels);
     ~R3StretcherImpl();
 
     void reset();
@@ -51,45 +52,11 @@ public:
     double getPitchScale() const;
 
 protected:
-    int m_sampleRate;
+    double m_sampleRate;
     int m_channels;
 
     double m_timeRatio;
     double m_pitchScale;
-
-    struct FftBand {
-        int fftSize;
-        float f0;
-        float f1;
-        FftBand(int _s, float _f0, float _f1) :
-            fftSize(_s), f0(_f0), f1(_f1) { }
-    };
-
-    struct PhaseLockBand {
-        int p;
-        float beta;
-        float f0;
-        float f1;
-        PhaseLockBand(int _p, float _beta, float _f0, float _f1) :
-            p(_p), beta(_beta), f0(_f0), f1(_f1) { }
-    };
-
-    struct Range {
-        bool present;
-        float f0;
-        float f1;
-        Range() : present(false), f0(0.f), f1(0.f) { }
-    };
-        
-    struct Guidance {
-        FftBand fftBands[3];
-        PhaseLockBand phaseLockBands[5];
-        Range kick;
-        Range lowPercussive;
-        Range phaseReset;
-        Range highPercussive;
-        Range channelLock;
-    };
 
     struct ChannelScaleData {
         int fftSize;
@@ -133,7 +100,7 @@ protected:
         BinSegmenter::Segmentation segmentation;
         BinSegmenter::Segmentation prevSegmentation;
         BinSegmenter::Segmentation nextSegmentation;
-        Guidance guidance;
+        Guide::Guidance guidance;
     };
     
     std::map<int, std::shared_ptr<FFT>> m_ffts;

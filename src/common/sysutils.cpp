@@ -164,11 +164,6 @@ void gettimeofday(struct timeval *tv, void *tz)
     tv->tv_sec = (long)((now.ns100 - 116444736000000000LL) / 10000000LL); 
 }
 
-void usleep(unsigned long usec)
-{
-    ::Sleep(usec == 0 ? 0 : usec < 1000 ? 1 : usec / 1000);
-}
-
 #endif
 
 void system_specific_initialise()

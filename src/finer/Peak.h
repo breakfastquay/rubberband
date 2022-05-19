@@ -42,7 +42,7 @@ public:
     // a value greater than the p nearest neighbours on each side. The
     // array must have length n where n is the size passed the the
     // constructor.
-    void findNearestAndNextPeaks(const T *const v,
+    void findNearestAndNextPeaks(const T *v,
                                  int p,
                                  int *nearest,
                                  int *next = nullptr)
@@ -55,7 +55,7 @@ public:
     // optionally next, starting to write at index rangeStart - so
     // these arrays must have the full length even if rangeCount is
     // shorter. Leave the rest of nearest and/or next unmodified.
-    void findNearestAndNextPeaks(const T *const v,
+    void findNearestAndNextPeaks(const T *v,
                                  int rangeStart,
                                  int rangeCount,
                                  int p,
