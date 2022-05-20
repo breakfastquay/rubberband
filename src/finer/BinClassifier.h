@@ -66,6 +66,7 @@ public:
     
     BinClassifier(Parameters parameters) :
         m_parameters(parameters),
+        m_vFilter(new MovingMedian<float>(m_parameters.verticalFilterLength)),
         m_vfQueue(parameters.horizontalFilterLag)
     {
         int n = m_parameters.binCount;
@@ -74,9 +75,6 @@ public:
             m_hFilters.push_back(std::make_shared<MovingMedian<float>>
                                  (m_parameters.horizontalFilterLength));
         }
-
-        m_vFilter = std::make_unique<MovingMedian<float>>
-            (m_parameters.verticalFilterLength);
 
         m_hf = allocate_and_zero<float>(n);
         m_vf = allocate_and_zero<float>(n);

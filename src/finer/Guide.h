@@ -87,9 +87,11 @@ public:
 
     struct Configuration {
         int classificationFftSize;
+        int longestFftSize;
         BandLimits fftBandLimits[3];
-        Configuration(int _classificationFftSize) :
-            classificationFftSize(_classificationFftSize) { }
+        Configuration(int _classificationFftSize, int _longestFftSize) :
+            classificationFftSize(_classificationFftSize),
+            longestFftSize(_longestFftSize) { }
     };
     
     struct Parameters {
@@ -100,7 +102,8 @@ public:
 
     Guide(Parameters parameters) :
         m_parameters(parameters),
-        m_configuration(roundUp(int(ceil(parameters.sampleRate / 32.0)))),
+        m_configuration(roundUp(int(ceil(parameters.sampleRate / 32.0))),
+                        roundUp(int(ceil(parameters.sampleRate / 16.0)))),
         m_defaultLower(700.0), m_defaultHigher(4800.0),
         m_maxLower(1100.0), m_maxHigher(7000.0)
     {

@@ -5,7 +5,7 @@ project(
   version: '2.0.2',
   license: 'GPL-2.0-or-later',
   default_options: [
-    'cpp_std=c++14',
+    'cpp_std=c++11',
     'buildtype=release',
     'default_library=both',
     'b_ndebug=if-release',

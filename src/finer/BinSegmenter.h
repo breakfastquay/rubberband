@@ -37,6 +37,8 @@ public:
         double percussiveBelow;
         double percussiveAbove;
         double residualAbove;
+        explicit Segmentation() :
+            percussiveBelow(0.0), percussiveAbove(0.0), residualAbove(0.0) { }
         Segmentation(double _pb, double _pa, double _ra) :
             percussiveBelow(_pb), percussiveAbove(_pa), residualAbove(_ra) { }
     };

@@ -26,6 +26,9 @@
 
 #include "Guide.h"
 
+#include <sstream>
+#include <functional>
+
 namespace RubberBand
 {
 
@@ -36,14 +39,18 @@ public:
         int fftSize;
         double sampleRate;
         int channels;
-        Parameters(int _fftSize, double _sampleRate, int _channels) :
-            fftSize(_fftSize), sampleRate(_sampleRate), channels(_channels) { }
+        std::function<void(const std::string &)> logger;
+        Parameters(int _fftSize, double _sampleRate, int _channels,
+                   std::function<void(const std::string &)> _log) :
+            fftSize(_fftSize), sampleRate(_sampleRate),
+            channels(_channels), logger(_log) { }
     };
     
     GuidedPhaseAdvance(Parameters parameters) :
         m_parameters(parameters),
         m_blockSize(parameters.fftSize / 2 + 1),
-        m_peakPicker(m_blockSize) {
+        m_peakPicker(m_blockSize),
+        m_reported(false) {
         size_t ch = m_parameters.channels;
         m_currentPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
         m_prevPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
@@ -89,6 +96,18 @@ public:
             (configuration.fftBandLimits[myFftBand].f0min);
         int highest = binForFrequency
             (configuration.fftBandLimits[myFftBand].f1max);
+
+        if (!m_reported) {
+            std::ostringstream ostr;
+            ostr << "PhaseAdvance: fftSize = " << m_parameters.fftSize
+                 << ": bins = " << bs << ", channels = " << channels
+                 << ", inhop = "<< inhop << ", outhop = " << outhop
+                 << ", ratio = " << ratio << std::endl;
+            ostr << "PhaseAdvance: lowest possible = " << lowest
+                 << "Hz, highest = " << highest << "Hz" << std::endl;
+            m_parameters.logger(ostr.str());
+            m_reported = true;
+        }
         
         for (int c = 0; c < channels; ++c) {
             for (int i = lowest; i <= highest; ++i) {
@@ -184,9 +203,13 @@ public:
             }
         }
 
+        //!!! NB in the original we use a different value of p for
+        //!!! peak-picking the prior magnitudes - this isn't carried
+        //!!! over here
+        
         int **tmp = m_prevPeaks;
         m_prevPeaks = m_currentPeaks;
-        m_currentPeaks = m_prevPeaks;
+        m_currentPeaks = tmp;
     }
 
 protected:
@@ -199,6 +222,7 @@ protected:
     float **m_prevInPhase;
     double **m_prevOutPhase;
     double **m_unlocked;
+    bool m_reported;
 
     int binForFrequency(double f) const {
         return int(round(f * double(m_parameters.fftSize) /

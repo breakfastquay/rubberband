@@ -24,9 +24,6 @@
 #ifndef RUBBERBAND_R3_STRETCHERIMPL_H
 #define RUBBERBAND_R3_STRETCHERIMPL_H
 
-#include <map>
-#include <memory>
-
 #include "BinSegmenter.h"
 #include "Guide.h"
 #include "Peak.h"
@@ -37,18 +34,52 @@
 #include "../common/Allocators.h"
 #include "../common/Window.h"
 
+#include <map>
+#include <memory>
+#include <functional>
+
 namespace RubberBand
 {
 
 class R3StretcherImpl
 {
 public:
-    R3StretcherImpl(double sampleRate, int channels) :
-        m_sampleRate(sampleRate), m_channels(channels),
-        m_guide(Guide::Parameters(sampleRate)),
+    struct Parameters {
+        double sampleRate;
+        int channels;
+        std::function<void(const std::string &)> logger;
+        Parameters(double _sampleRate, int _channels,
+                   std::function<void(const std::string &)> _log = &logCerr) :
+            sampleRate(_sampleRate), channels(_channels), logger(_log) { }
+    };
+    
+    R3StretcherImpl(Parameters parameters) :
+        m_parameters(parameters),
+        m_guide(Guide::Parameters(m_parameters.sampleRate)),
         m_guideConfiguration(m_guide.getConfiguration())
-    { }
-    ~R3StretcherImpl();
+    {
+        BinSegmenter::Parameters segmenterParameters
+            (m_guideConfiguration.classificationFftSize,
+             m_parameters.sampleRate);
+        BinClassifier::Parameters classifierParameters
+            (m_guideConfiguration.classificationFftSize / 2 + 1,
+             9, 1, 10, 2.0, 2.0, 1.0e-7);
+        int ringBufferSize = m_guideConfiguration.longestFftSize * 2;
+        for (int c = 0; c < m_parameters.channels; ++c) {
+            m_channelData.push_back(std::make_shared<ChannelData>
+                                    (segmenterParameters,
+                                     classifierParameters,
+                                     ringBufferSize));
+            for (auto band: m_guideConfiguration.fftBandLimits) {
+                int fftSize = band.fftSize;
+                m_ffts[fftSize] = std::make_shared<FFT>(fftSize);
+                m_channelData[c]->scales[fftSize] =
+                    std::make_shared<ChannelScaleData>(fftSize);
+            }
+        }
+    }
+    
+    ~R3StretcherImpl() { }
 
     void reset();
     
@@ -97,18 +128,29 @@ protected:
         Guide::Guidance guidance;
         RingBuffer<float> inbuf;
         RingBuffer<float> outbuf;
+        ChannelData(BinSegmenter::Parameters segmenterParameters,
+                    BinClassifier::Parameters classifierParameters,
+                    int ringBufferSize) :
+            scales(),
+            segmenter(new BinSegmenter(segmenterParameters,
+                                       classifierParameters)),
+            segmentation(), prevSegmentation(), nextSegmentation(),
+            inbuf(ringBufferSize), outbuf(ringBufferSize) { }
     };
 
-    double m_sampleRate;
-    int m_channels;
+    Parameters m_parameters;
 
     double m_timeRatio;
     double m_pitchScale;
 
-    std::vector<ChannelData> m_channelData;
+    std::vector<std::shared_ptr<ChannelData>> m_channelData;
     std::map<int, std::shared_ptr<FFT>> m_ffts;
     Guide m_guide;
     Guide::Configuration m_guideConfiguration;
+
+    static void logCerr(const std::string &message) {
+        std::cerr << "RubberBandStretcher: " << message << std::endl;
+    }
 };
 
 }
