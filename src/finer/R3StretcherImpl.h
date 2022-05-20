@@ -30,9 +30,12 @@
 #include "BinSegmenter.h"
 #include "Guide.h"
 #include "Peak.h"
+#include "PhaseAdvance.h"
 
 #include "../common/FFT.h"
+#include "../common/FixedVector.h"
 #include "../common/Allocators.h"
+#include "../common/Window.h"
 
 namespace RubberBand
 {
@@ -56,42 +59,29 @@ public:
     double getPitchScale() const;
 
 protected:
-    double m_sampleRate;
-    int m_channels;
-
-    double m_timeRatio;
-    double m_pitchScale;
-
     struct ChannelScaleData {
         int fftSize;
-        int bufSize; // size of every array here: fftSize/2 + 1
-        float *mag;
-        float *phase;
-        int *nearestPeaks;
-        int *nearestTroughs;
-        float *prevOutMag;
-        float *prevOutPhase;
-        int *prevNearestPeaks;
+        int bufSize; // size of every freq-domain array here: fftSize/2 + 1
+        FixedVector<float> mag;
+        FixedVector<float> phase;
+        FixedVector<int> nearestPeaks;
+        FixedVector<int> nearestTroughs;
+        FixedVector<float> prevOutMag;
+        FixedVector<double> prevOutPhase;
+        FixedVector<int> prevNearestPeaks;
+        FixedVector<float> timeDomainFrame;
+        Window<float> analysisWindow;
+        Window<float> synthesisWindow;
 
         ChannelScaleData(int _fftSize) :
-            fftSize(_fftSize), bufSize(_fftSize/2 + 1),
-            mag(allocate_and_zero<float>(size_t(bufSize))),
-            phase(allocate_and_zero<float>(size_t(bufSize))),
-            nearestPeaks(allocate_and_zero<int>(size_t(bufSize))),
-            nearestTroughs(allocate_and_zero<int>(size_t(bufSize))),
-            prevOutMag(allocate_and_zero<float>(size_t(bufSize))),
-            prevOutPhase(allocate_and_zero<float>(size_t(bufSize))),
-            prevNearestPeaks(allocate_and_zero<int>(size_t(bufSize))) { }
-
-        ~ChannelScaleData() {
-            deallocate(mag);
-            deallocate(phase);
-            deallocate(nearestPeaks);
-            deallocate(nearestTroughs);
-            deallocate(prevOutMag);
-            deallocate(prevOutPhase);
-            deallocate(prevNearestPeaks);
-        }
+            fftSize(_fftSize), bufSize(fftSize/2 + 1),
+            mag(bufSize, 0.f), phase(bufSize, 0.f),
+            nearestPeaks(bufSize, 0), nearestTroughs(bufSize, 0),
+            prevOutMag(bufSize, 0.f), prevOutPhase(bufSize, 0.f),
+            prevNearestPeaks(bufSize, 0), timeDomainFrame(fftSize, 0.f),
+            analysisWindow(HannWindow, fftSize),
+            synthesisWindow(HannWindow, fftSize/2)
+        { }
 
     private:
         ChannelScaleData(const ChannelScaleData &) =delete;
@@ -105,9 +95,17 @@ protected:
         BinSegmenter::Segmentation prevSegmentation;
         BinSegmenter::Segmentation nextSegmentation;
         Guide::Guidance guidance;
-        
+        RingBuffer<float> inbuf;
+        RingBuffer<float> outbuf;
     };
-    
+
+    double m_sampleRate;
+    int m_channels;
+
+    double m_timeRatio;
+    double m_pitchScale;
+
+    std::vector<ChannelData> m_channelData;
     std::map<int, std::shared_ptr<FFT>> m_ffts;
     Guide m_guide;
     Guide::Configuration m_guideConfiguration;

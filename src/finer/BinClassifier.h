@@ -138,6 +138,8 @@ protected:
     Parameters m_parameters;
     std::vector<std::shared_ptr<MovingMedian<float>>> m_hFilters;
     std::unique_ptr<MovingMedian<float>> m_vFilter;
+    // We manage the queued frames through pointer swapping, hence
+    // bare pointers here
     float *m_hf;
     float *m_vf;
     RingBuffer<float *> m_vfQueue;

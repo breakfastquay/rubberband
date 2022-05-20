@@ -33,15 +33,21 @@ template <typename T, typename GreaterThan = std::greater<T>>
 class Peak
 {
 public:
+    /** Peak picker for array of length n. This allocates on
+        construction an internal buffer for temporary values, to be
+        used within the peak-picking functions, so that it does not
+        have to allocate when used. It does not have persistent state.
+    */
     Peak(int n) :
         m_n(n),
         m_locations(n, 0) { }
 
-    // Find the nearest peak to each bin, and optionally the next
-    // highest peak above each bin, within an array v, where a peak is
-    // a value greater than the p nearest neighbours on each side. The
-    // array must have length n where n is the size passed the the
-    // constructor.
+    /** Find the nearest peak to each bin, and optionally the next
+        highest peak above each bin, within an array v, where a peak
+        is a value greater than the p nearest neighbours on each
+        side. The array must have length n where n is the size passed
+        the the constructor.
+    */
     void findNearestAndNextPeaks(const T *v,
                                  int p,
                                  int *nearest,
@@ -50,11 +56,12 @@ public:
         findNearestAndNextPeaks(v, 0, m_n, p, nearest, next);
     }
 
-    // As above but consider only the range of size rangeCount from
-    // index rangeStart. Write rangeCount results into nearest and
-    // optionally next, starting to write at index rangeStart - so
-    // these arrays must have the full length even if rangeCount is
-    // shorter. Leave the rest of nearest and/or next unmodified.
+    /** As above but consider only the range of size rangeCount from
+        index rangeStart. Write rangeCount results into nearest and
+        optionally next, starting to write at index rangeStart - so
+        these arrays must have the full length even if rangeCount is
+        shorter. Leave the rest of nearest and/or next unmodified.
+    */
     void findNearestAndNextPeaks(const T *v,
                                  int rangeStart,
                                  int rangeCount,
