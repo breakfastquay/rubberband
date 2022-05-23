@@ -58,7 +58,8 @@ public:
         m_guide(Guide::Parameters(m_parameters.sampleRate)),
         m_guideConfiguration(m_guide.getConfiguration()),
         m_channelAssembly(m_parameters.channels),
-        m_troughPicker(m_guideConfiguration.classificationFftSize / 2 + 1)
+        m_troughPicker(m_guideConfiguration.classificationFftSize / 2 + 1),
+        m_draining(false)
     {
         BinSegmenter::Parameters segmenterParameters
             (m_guideConfiguration.classificationFftSize,
@@ -197,6 +198,7 @@ protected:
     Guide::Configuration m_guideConfiguration;
     ChannelAssembly m_channelAssembly;
     Peak<float, std::less<float>> m_troughPicker;
+    bool m_draining;
 
     void consume();
     

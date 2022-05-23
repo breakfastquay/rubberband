@@ -85,6 +85,12 @@ void
 R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 {
     //!!! todo: final
+
+    m_parameters.logger("process called");
+    if (final) {
+        m_parameters.logger("final = true");
+        m_draining = true;
+    }
     
     bool allConsumed = false;
 
@@ -110,12 +116,16 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 int
 R3StretcherImpl::available() const
 {
-    return int(m_channelData[0]->outbuf->getReadSpace());
+    m_parameters.logger("available called");
+    int av = int(m_channelData[0]->outbuf->getReadSpace());
+    if (av == 0 && m_draining) return -1;
+    else return av;
 }
 
 size_t
 R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 {
+    m_parameters.logger("retrieve called");
     size_t got = samples;
     
     for (size_t c = 0; c < m_parameters.channels; ++c) {
@@ -140,7 +150,7 @@ R3StretcherImpl::consume()
     int longest = m_guideConfiguration.longestFftSize;
     int classify = m_guideConfiguration.classificationFftSize;
     
-    while (m_channelData[0]->inbuf->getReadSpace() >= longest &&
+    while ((m_draining || m_channelData[0]->inbuf->getReadSpace() >= longest) &&
            m_channelData[0]->outbuf->getWriteSpace() >= outhop) {
 
         m_parameters.logger("consume looping");
@@ -150,7 +160,7 @@ R3StretcherImpl::consume()
             auto cd = m_channelData[c];
             auto longestScale = cd->scales.at(longest);
             
-            cd->inbuf->read(longestScale->timeDomainFrame.data(), longest);
+            cd->inbuf->peek(longestScale->timeDomainFrame.data(), longest);
 
             for (auto it: cd->scales) {
                 int fftSize = it.first;
@@ -227,6 +237,7 @@ R3StretcherImpl::consume()
                 // copy to prevMag before filtering
                 v_copy(scale->prevMag.data(), scale->mag.data(), bufSize);
                 v_copy(scale->prevOutPhase.data(), scale->outPhase.data(), bufSize);
+                //!!! seems wasteful
                 for (int i = 0; i < bufSize; ++i) {
                     scale->phase[i] = princarg(scale->outPhase[i]);
                 }
@@ -244,6 +255,7 @@ R3StretcherImpl::consume()
                 scaleData->fft.inversePolar(scale->mag.data(),
                                             scale->phase.data(),
                                             scale->timeDomainFrame.data());
+                /*
                 int synthesisWindowSize = scaleData->synthesisWindow.getSize();
                 int fromOffset = (fftSize - synthesisWindowSize) / 2;
                 int toOffset = (longest - synthesisWindowSize) / 2;
@@ -251,6 +263,12 @@ R3StretcherImpl::consume()
                 scaleData->synthesisWindow.cutAndAdd
                     (scale->timeDomainFrame.data() + fromOffset,
                      scale->accumulator.data() + toOffset);
+                */
+                int synthesisWindowSize = scaleData->synthesisWindow.getSize();
+                int offset = (fftSize - synthesisWindowSize) / 2;
+                scaleData->synthesisWindow.cutAndAdd
+                    (scale->timeDomainFrame.data() + offset,
+                     scale->accumulator.data());
             }
         }
 
