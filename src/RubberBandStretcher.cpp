@@ -22,6 +22,7 @@
 */
 
 #include "faster/StretcherImpl.h"
+#include "finer/R3StretcherImpl.h"
 
 
 namespace RubberBand {
@@ -32,184 +33,204 @@ RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
                                          Options options,
                                          double initialTimeRatio,
                                          double initialPitchScale) :
+    /*!!!
     m_d(new Impl(sampleRate, channels, options,
                  initialTimeRatio, initialPitchScale))
+    */
+    m_d(nullptr),
+    //!!! +logger
+    m_r3d(new R3StretcherImpl(R3StretcherImpl::Parameters
+                              (sampleRate, channels)))
 {
 }
 
 RubberBandStretcher::~RubberBandStretcher()
 {
     delete m_d;
+    delete m_r3d;
 }
 
 void
 RubberBandStretcher::reset()
 {
-    m_d->reset();
+    if (m_d) m_d->reset();
+    else m_r3d->reset();
 }
 
 void
 RubberBandStretcher::setTimeRatio(double ratio)
 {
-    m_d->setTimeRatio(ratio);
+    if (m_d) m_d->setTimeRatio(ratio);
+    else m_r3d->setTimeRatio(ratio);
 }
 
 void
 RubberBandStretcher::setPitchScale(double scale)
 {
-    m_d->setPitchScale(scale);
+    if (m_d) m_d->setPitchScale(scale);
+    else m_r3d->setPitchScale(scale);
 }
 
 double
 RubberBandStretcher::getTimeRatio() const
 {
-    return m_d->getTimeRatio();
+    if (m_d) return m_d->getTimeRatio();
+    else return m_r3d->getTimeRatio();
 }
 
 double
 RubberBandStretcher::getPitchScale() const
 {
-    return m_d->getPitchScale();
+    if (m_d) return m_d->getPitchScale();
+    else return m_r3d->getPitchScale();
 }
 
 size_t
 RubberBandStretcher::getLatency() const
 {
-    return m_d->getLatency();
+    if (m_d) return m_d->getLatency();
+    else return m_r3d->getLatency();
 }
 
 void
 RubberBandStretcher::setTransientsOption(Options options) 
 {
-    m_d->setTransientsOption(options);
+    if (m_d) m_d->setTransientsOption(options);
 }
 
 void
 RubberBandStretcher::setDetectorOption(Options options) 
 {
-    m_d->setDetectorOption(options);
+    if (m_d) m_d->setDetectorOption(options);
 }
 
 void
 RubberBandStretcher::setPhaseOption(Options options) 
 {
-    m_d->setPhaseOption(options);
+    if (m_d) m_d->setPhaseOption(options);
 }
 
 void
 RubberBandStretcher::setFormantOption(Options options)
 {
-    m_d->setFormantOption(options);
+    if (m_d) m_d->setFormantOption(options);
 }
 
 void
 RubberBandStretcher::setPitchOption(Options options)
 {
-    m_d->setPitchOption(options);
+    if (m_d) m_d->setPitchOption(options);
 }
 
 void
 RubberBandStretcher::setExpectedInputDuration(size_t samples) 
 {
-    m_d->setExpectedInputDuration(samples);
+    if (m_d) m_d->setExpectedInputDuration(samples);
 }
 
 void
 RubberBandStretcher::setMaxProcessSize(size_t samples)
 {
-    m_d->setMaxProcessSize(samples);
+    if (m_d) m_d->setMaxProcessSize(samples); //!!!  definitely need for r3d
 }
 
 void
 RubberBandStretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 {
-    m_d->setKeyFrameMap(mapping);
+    if (m_d) m_d->setKeyFrameMap(mapping);
+    //!!!
 }
 
 size_t
 RubberBandStretcher::getSamplesRequired() const
 {
-    return m_d->getSamplesRequired();
+    if (m_d) return m_d->getSamplesRequired();
+    else return m_r3d->getSamplesRequired();
 }
 
 void
 RubberBandStretcher::study(const float *const *input, size_t samples,
                            bool final)
 {
-    m_d->study(input, samples, final);
+    if (m_d) m_d->study(input, samples, final);
+    //!!!
 }
 
 void
 RubberBandStretcher::process(const float *const *input, size_t samples,
                              bool final)
 {
-    m_d->process(input, samples, final);
+    if (m_d) m_d->process(input, samples, final);
+    else m_r3d->process(input, samples, final);
 }
 
 int
 RubberBandStretcher::available() const
 {
-    return m_d->available();
+    if (m_d) return m_d->available();
+    else return m_r3d->available();
 }
 
 size_t
 RubberBandStretcher::retrieve(float *const *output, size_t samples) const
 {
-    return m_d->retrieve(output, samples);
+    if (m_d) return m_d->retrieve(output, samples);
+    else return m_r3d->retrieve(output, samples);
 }
 
 float
 RubberBandStretcher::getFrequencyCutoff(int n) const
 {
-    return m_d->getFrequencyCutoff(n);
+    if (m_d) return m_d->getFrequencyCutoff(n);
 }
 
 void
 RubberBandStretcher::setFrequencyCutoff(int n, float f) 
 {
-    m_d->setFrequencyCutoff(n, f);
+    if (m_d) m_d->setFrequencyCutoff(n, f);
 }
 
 size_t
 RubberBandStretcher::getInputIncrement() const
 {
-    return m_d->getInputIncrement();
+    if (m_d) return m_d->getInputIncrement();
 }
 
 std::vector<int>
 RubberBandStretcher::getOutputIncrements() const
 {
-    return m_d->getOutputIncrements();
+    if (m_d) return m_d->getOutputIncrements();
 }
 
 std::vector<float>
 RubberBandStretcher::getPhaseResetCurve() const
 {
-    return m_d->getPhaseResetCurve();
+    if (m_d) return m_d->getPhaseResetCurve();
 }
 
 std::vector<int>
 RubberBandStretcher::getExactTimePoints() const
 {
-    return m_d->getExactTimePoints();
+    if (m_d) return m_d->getExactTimePoints();
 }
 
 size_t
 RubberBandStretcher::getChannelCount() const
 {
-    return m_d->getChannelCount();
+    if (m_d) return m_d->getChannelCount();
+    else return m_r3d->getChannelCount();
 }
 
 void
 RubberBandStretcher::calculateStretch()
 {
-    m_d->calculateStretch();
+    if (m_d) m_d->calculateStretch();
 }
 
 void
 RubberBandStretcher::setDebugLevel(int level)
 {
-    m_d->setDebugLevel(level);
+    if (m_d) m_d->setDebugLevel(level);
 }
 
 void

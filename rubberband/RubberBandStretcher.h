@@ -81,6 +81,7 @@
 
 namespace RubberBand
 {
+class R3StretcherImpl;//!!!
 
 class RUBBERBAND_DLLEXPORT
 RubberBandStretcher
@@ -765,6 +766,7 @@ public:
 protected:
     class Impl;
     Impl *m_d;
+    R3StretcherImpl *m_r3d;
 };
 
 }

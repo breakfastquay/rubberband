@@ -235,6 +235,9 @@ protected:
     bool inRange(double f, const Guide::Range &r) {
         return r.present && f >= r.f0 && f < r.f1;
     }
+
+    GuidedPhaseAdvance(const GuidedPhaseAdvance &) =delete;
+    GuidedPhaseAdvance &operator=(const GuidedPhaseAdvance &) =delete;
 };
 
 }

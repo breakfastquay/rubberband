@@ -49,6 +49,7 @@ library_sources = [
   'src/common/sysutils.cpp',
   'src/common/Thread.cpp',
   'src/temporary.cpp', 
+  'src/finer/R3StretcherImpl.cpp', 
 ]
 
 jni_sources = [

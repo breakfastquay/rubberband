@@ -79,6 +79,10 @@ public:
         v_multiply(dst, src, m_cache, m_size);
     }
 
+    inline void cutAndAdd(const T *const R__ src, T *const R__ dst) const {
+        v_multiply_and_add(dst, src, m_cache, m_size);
+    }
+    
     inline void add(T *const R__ dst, T scale) const {
         v_add_with_gain(dst, m_cache, scale, m_size);
     }
