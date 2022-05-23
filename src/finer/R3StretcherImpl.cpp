@@ -113,9 +113,9 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 {
     //!!! todo: final
 
-    m_parameters.logger("process called");
+//!!!    m_parameters.logger("process called");
     if (final) {
-        m_parameters.logger("final = true");
+//        m_parameters.logger("final = true");
         m_draining = true;
     }
     
@@ -143,7 +143,7 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 int
 R3StretcherImpl::available() const
 {
-    m_parameters.logger("available called");
+//!!!    m_parameters.logger("available called");
     int av = int(m_channelData[0]->outbuf->getReadSpace());
     if (av == 0 && m_draining) return -1;
     else return av;
@@ -152,7 +152,7 @@ R3StretcherImpl::available() const
 size_t
 R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 {
-    m_parameters.logger("retrieve called");
+//!!!    m_parameters.logger("retrieve called");
     size_t got = samples;
     
     for (size_t c = 0; c < m_parameters.channels; ++c) {
@@ -184,22 +184,34 @@ R3StretcherImpl::consume()
                                                longest);
 
     double instantaneousRatio = double(outhop) / double(m_inhop);
-    
-    while ((m_draining || m_channelData[0]->inbuf->getReadSpace() >= longest) &&
-           m_channelData[0]->outbuf->getWriteSpace() >= outhop) {
 
-        m_parameters.logger("consume looping");
+    while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
 
-        if (m_draining && m_channelData[0]->inbuf->getReadSpace() == 0) {
-            break;
+//!!!        m_parameters.logger("consume looping");
+
+        int readSpace = m_channelData.at(0)->inbuf->getReadSpace();
+        if (readSpace < longest) {
+            if (m_draining) {
+                if (readSpace == 0) {
+                    break;
+                }
+            } else {
+                break;
+            }
         }
-        
+
         for (int c = 0; c < m_parameters.channels; ++c) {
 
             auto cd = m_channelData.at(c);
             auto longestScale = cd->scales.at(longest);
-            
-            cd->inbuf->peek(longestScale->timeDomainFrame.data(), longest);
+            auto buf = longestScale->timeDomainFrame.data();
+
+            if (readSpace < longest) {
+                v_zero(buf, longest);
+                cd->inbuf->peek(buf, readSpace);
+            } else {
+                cd->inbuf->peek(buf, longest);
+            }
 
             for (auto it: cd->scales) {
                 int fftSize = it.first;
@@ -207,17 +219,10 @@ R3StretcherImpl::consume()
                 if (fftSize == longest) continue;
                 int offset = (longest - fftSize) / 2;
                 m_scaleData.at(fftSize)->analysisWindow.cut
-                    (longestScale->timeDomainFrame.data() + offset,
-                     scale->timeDomainFrame.data());
+                    (buf + offset, scale->timeDomainFrame.data());
             }
 
-            m_scaleData.at(longest)->analysisWindow.cut
-                (longestScale->timeDomainFrame.data());
-        }
-
-        for (int c = 0; c < m_parameters.channels; ++c) {
-
-            auto cd = m_channelData.at(c);
+            m_scaleData.at(longest)->analysisWindow.cut(buf);
 
             for (auto it: cd->scales) {
                 int fftSize = it.first;
@@ -229,13 +234,11 @@ R3StretcherImpl::consume()
                 v_scale(scale->mag.data(), 1.f / float(fftSize),
                         scale->mag.size());
             }
-        }
 
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            auto cd = m_channelData.at(c);
             auto classifyScale = cd->scales.at(classify);
             cd->prevSegmentation = cd->segmentation;
-            cd->segmentation = cd->segmenter->segment(classifyScale->mag.data());
+            cd->segmentation =
+                cd->segmenter->segment(classifyScale->mag.data());
             m_troughPicker.findNearestAndNextPeaks
                 (classifyScale->mag.data(), 3, nullptr,
                  classifyScale->nextTroughs.data());
@@ -340,7 +343,13 @@ R3StretcherImpl::consume()
                 v_zero(acc.data() + n, outhop);
             }
             cd->outbuf->write(cd->mixdown.data(), outhop);
-            cd->inbuf->skip(m_inhop);
+
+            if (readSpace < m_inhop) {
+                // This should happen only when draining
+                cd->inbuf->skip(readSpace);
+            } else {
+                cd->inbuf->skip(m_inhop);
+            }
         }
     }
 }
