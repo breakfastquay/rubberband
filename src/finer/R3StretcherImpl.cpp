@@ -157,7 +157,7 @@ R3StretcherImpl::consume()
         
         for (int c = 0; c < m_parameters.channels; ++c) {
 
-            auto cd = m_channelData[c];
+            auto cd = m_channelData.at(c);
             auto longestScale = cd->scales.at(longest);
             
             cd->inbuf->peek(longestScale->timeDomainFrame.data(), longest);
@@ -178,10 +178,7 @@ R3StretcherImpl::consume()
 
         for (int c = 0; c < m_parameters.channels; ++c) {
 
-            auto cd = m_channelData[c];
-
-            //!!! There are some aspects of scaling etc handled in bsq
-            //!!! that are not yet here
+            auto cd = m_channelData.at(c);
 
             for (auto it: cd->scales) {
                 int fftSize = it.first;
@@ -190,11 +187,13 @@ R3StretcherImpl::consume()
                     (scale->timeDomainFrame.data(),
                      scale->mag.data(),
                      scale->phase.data());
+                v_scale(scale->mag.data(), 1.f / float(fftSize),
+                        scale->mag.size());
             }
         }
 
         for (int c = 0; c < m_parameters.channels; ++c) {
-            auto cd = m_channelData[c];
+            auto cd = m_channelData.at(c);
             auto classifyScale = cd->scales.at(classify);
             cd->prevSegmentation = cd->segmentation;
             cd->segmentation = cd->segmenter->segment(classifyScale->mag.data());
@@ -213,7 +212,7 @@ R3StretcherImpl::consume()
         for (auto it : m_channelData[0]->scales) {
             int fftSize = it.first;
             for (int c = 0; c < m_parameters.channels; ++c) {
-                auto cd = m_channelData[c];
+                auto cd = m_channelData.at(c);
                 auto classifyScale = cd->scales.at(fftSize);
                 m_channelAssembly.mag[c] = classifyScale->mag.data();
                 m_channelAssembly.phase[c] = classifyScale->phase.data();
@@ -231,7 +230,10 @@ R3StretcherImpl::consume()
         }
 
         for (int c = 0; c < m_parameters.channels; ++c) {
-            for (auto it : m_channelData[c]->scales) {
+
+            auto cd = m_channelData.at(c);
+
+            for (auto it : cd->scales) {
                 auto scale = it.second;
                 int bufSize = scale->bufSize;
                 // copy to prevMag before filtering
@@ -242,12 +244,37 @@ R3StretcherImpl::consume()
                     scale->phase[i] = princarg(scale->outPhase[i]);
                 }
             }
-        }
         
-        //!!! + filter here
-        
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            for (auto it : m_channelData[c]->scales) {
+            for (const auto &band : cd->guidance.fftBands) {
+                int fftSize = band.fftSize;
+                auto scale = cd->scales.at(fftSize);
+                auto scaleData = m_scaleData.at(fftSize);
+                double factor = m_parameters.sampleRate / double(fftSize);
+
+                //!!! messy and v slow, but leave it until we've
+                //!!! discovered whether we need a window accumulator
+                //!!! (we probably do)
+                int analysisWindowSize = scaleData->analysisWindow.getSize();
+                int synthesisWindowSize = scaleData->synthesisWindow.getSize();
+                int offset = (analysisWindowSize - synthesisWindowSize) / 2;
+                float winscale = 0.f;
+                for (int i = 0; i < synthesisWindowSize; ++i) {
+                    winscale += scaleData->analysisWindow.getValue(i + offset) *
+                        scaleData->synthesisWindow.getValue(i);
+                }
+                winscale = float(outhop) / winscale;
+                    
+                for (int i = 0; i < fftSize/2 + 1; ++i) {
+                    double f = double(i) * factor;
+                    if (f >= band.f0 && f < band.f1) {
+                        scale->mag[i] *= winscale;
+                    } else {
+                        scale->mag[i] = 0.f;
+                    }
+                }
+            }
+                
+            for (auto it : cd->scales) {
                 int fftSize = it.first;
                 auto scale = it.second;
                 auto scaleData = m_scaleData.at(fftSize);
@@ -255,25 +282,14 @@ R3StretcherImpl::consume()
                 scaleData->fft.inversePolar(scale->mag.data(),
                                             scale->phase.data(),
                                             scale->timeDomainFrame.data());
-                /*
-                int synthesisWindowSize = scaleData->synthesisWindow.getSize();
-                int fromOffset = (fftSize - synthesisWindowSize) / 2;
-                int toOffset = (longest - synthesisWindowSize) / 2;
-                //!!! not right - accumulator is of scale data size, not full longest size - we need offset when mixing into mixdown buffer below as well
-                scaleData->synthesisWindow.cutAndAdd
-                    (scale->timeDomainFrame.data() + fromOffset,
-                     scale->accumulator.data() + toOffset);
-                */
+                
                 int synthesisWindowSize = scaleData->synthesisWindow.getSize();
                 int offset = (fftSize - synthesisWindowSize) / 2;
                 scaleData->synthesisWindow.cutAndAdd
                     (scale->timeDomainFrame.data() + offset,
                      scale->accumulator.data());
             }
-        }
 
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            auto cd = m_channelData[c];
             v_zero(cd->mixdown.data(), outhop);
             for (auto it : cd->scales) {
                 auto scale = it.second;
@@ -283,11 +299,10 @@ R3StretcherImpl::consume()
                 v_move(acc.data(), acc.data() + outhop, n);
                 v_zero(acc.data() + n, outhop);
             }
-            m_channelData[c]->outbuf->write(cd->mixdown.data(), outhop);
-            m_channelData[c]->inbuf->skip(inhop);
+            cd->outbuf->write(cd->mixdown.data(), outhop);
+            cd->inbuf->skip(inhop);
         }
     }
-    
 }
 
 
