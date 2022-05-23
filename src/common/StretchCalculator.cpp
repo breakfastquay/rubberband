@@ -30,7 +30,7 @@
 #include <cassert>
 #include <algorithm>
 
-#include "../common/sysutils.h"
+#include "sysutils.h"
 
 namespace RubberBand
 {

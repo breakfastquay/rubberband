@@ -23,7 +23,7 @@
 
 #include "RubberBandVampPlugin.h"
 
-#include "faster/StretchCalculator.h"
+#include "common/StretchCalculator.h"
 #include "common/sysutils.h"
 
 #include <cmath>

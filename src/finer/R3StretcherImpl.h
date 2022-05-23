@@ -29,6 +29,7 @@
 #include "Peak.h"
 #include "PhaseAdvance.h"
 
+#include "../common/StretchCalculator.h"
 #include "../common/FFT.h"
 #include "../common/FixedVector.h"
 #include "../common/Allocators.h"
@@ -53,12 +54,17 @@ public:
             sampleRate(_sampleRate), channels(_channels), logger(_log) { }
     };
     
-    R3StretcherImpl(Parameters parameters) :
+    R3StretcherImpl(Parameters parameters,
+                    double initialTimeRatio,
+                    double initialPitchScale) :
         m_parameters(parameters),
+        m_timeRatio(initialTimeRatio),
+        m_pitchScale(initialPitchScale),
         m_guide(Guide::Parameters(m_parameters.sampleRate)),
         m_guideConfiguration(m_guide.getConfiguration()),
         m_channelAssembly(m_parameters.channels),
         m_troughPicker(m_guideConfiguration.classificationFftSize / 2 + 1),
+        m_inhop(1),
         m_draining(false)
     {
         BinSegmenter::Parameters segmenterParameters
@@ -89,6 +95,12 @@ public:
                  m_parameters.logger);
             m_scaleData[fftSize] = std::make_shared<ScaleData>(guidedParameters);
         }
+
+        m_calculator = std::unique_ptr<StretchCalculator>
+            (new StretchCalculator(int(round(m_parameters.sampleRate)), //!!! which is a double...
+                                   1, false)); // no fixed inputIncrement
+
+        calculateHop();
     }
     
     ~R3StretcherImpl() { }
@@ -191,16 +203,23 @@ protected:
 
     double m_timeRatio;
     double m_pitchScale;
-
+    
     std::vector<std::shared_ptr<ChannelData>> m_channelData;
     std::map<int, std::shared_ptr<ScaleData>> m_scaleData;
     Guide m_guide;
     Guide::Configuration m_guideConfiguration;
     ChannelAssembly m_channelAssembly;
     Peak<float, std::less<float>> m_troughPicker;
+    std::unique_ptr<StretchCalculator> m_calculator;
+    int m_inhop;
     bool m_draining;
 
     void consume();
+    void calculateHop();
+
+    double getEffectiveRatio() const {
+        return m_timeRatio * m_pitchScale;
+    }
     
     static void logCerr(const std::string &message) {
         std::cerr << "RubberBandStretcher: " << message << std::endl;

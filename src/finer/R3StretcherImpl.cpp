@@ -31,12 +31,39 @@ void
 R3StretcherImpl::setTimeRatio(double ratio)
 {
     m_timeRatio = ratio;
+    calculateHop();
 }
 
 void
 R3StretcherImpl::setPitchScale(double scale)
 {
     m_pitchScale = scale;
+    calculateHop();
+}
+
+void
+R3StretcherImpl::calculateHop()
+{
+    double ratio = getEffectiveRatio();
+    double proposedOuthop = 256;
+    
+    if (ratio > 1.0) {
+        double inhop = proposedOuthop / ratio;
+        if (inhop < 1.0) {
+            m_parameters.logger("WARNING: Extreme ratio yields ideal inhop < 1, results may be suspect");
+            m_inhop = 1;
+        } else {
+            m_inhop = int(round(inhop));
+        }
+    } else {
+        double inhop = std::min(proposedOuthop / ratio, 340.0);
+        m_inhop = int(round(inhop));
+    }
+
+    std::ostringstream str;
+    str << "R3StretcherImpl::calculateHop: for effective ratio " << ratio
+        << " calculated (typical) inhop of " << m_inhop << std::endl;
+    m_parameters.logger(str.str());
 }
 
 double
@@ -144,16 +171,28 @@ R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 void
 R3StretcherImpl::consume()
 {
-    int inhop = 171, outhop = 256; //!!!
-    double ratio = double(outhop) / double(inhop);
+    double ratio = getEffectiveRatio();
 
     int longest = m_guideConfiguration.longestFftSize;
     int classify = m_guideConfiguration.classificationFftSize;
+
+    int outhop = m_calculator->calculateSingle(ratio,
+                                               1.0 / m_pitchScale,
+                                               1.f,
+                                               m_inhop,
+                                               longest,
+                                               longest);
+
+    double instantaneousRatio = double(outhop) / double(m_inhop);
     
     while ((m_draining || m_channelData[0]->inbuf->getReadSpace() >= longest) &&
            m_channelData[0]->outbuf->getWriteSpace() >= outhop) {
 
         m_parameters.logger("consume looping");
+
+        if (m_draining && m_channelData[0]->inbuf->getReadSpace() == 0) {
+            break;
+        }
         
         for (int c = 0; c < m_parameters.channels; ++c) {
 
@@ -200,7 +239,8 @@ R3StretcherImpl::consume()
             m_troughPicker.findNearestAndNextPeaks
                 (classifyScale->mag.data(), 3, nullptr,
                  classifyScale->nextTroughs.data());
-            m_guide.calculate(ratio, classifyScale->mag.data(),
+            m_guide.calculate(instantaneousRatio,
+                              classifyScale->mag.data(),
                               classifyScale->nextTroughs.data(),
                               classifyScale->prevMag.data(),
                               cd->segmentation,
@@ -225,7 +265,7 @@ R3StretcherImpl::consume()
                  m_channelAssembly.phase.data(),
                  m_guideConfiguration,
                  m_channelAssembly.guidance.data(),
-                 inhop,
+                 m_inhop,
                  outhop);
         }
 
@@ -300,7 +340,7 @@ R3StretcherImpl::consume()
                 v_zero(acc.data() + n, outhop);
             }
             cd->outbuf->write(cd->mixdown.data(), outhop);
-            cd->inbuf->skip(inhop);
+            cd->inbuf->skip(m_inhop);
         }
     }
 }

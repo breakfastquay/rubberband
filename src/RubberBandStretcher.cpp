@@ -39,8 +39,9 @@ RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
     */
     m_d(nullptr),
     //!!! +logger
-    m_r3d(new R3StretcherImpl(R3StretcherImpl::Parameters
-                              (sampleRate, channels)))
+    m_r3d(new R3StretcherImpl(R3StretcherImpl::Parameters(sampleRate, channels),
+                              initialTimeRatio,
+                              initialPitchScale))
 {
 }
 

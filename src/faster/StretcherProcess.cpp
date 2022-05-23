@@ -22,9 +22,9 @@
 */
 
 #include "StretcherImpl.h"
-#include "StretchCalculator.h"
 #include "StretcherChannelData.h"
 
+#include "../common/StretchCalculator.h"
 #include "../common/Resampler.h"
 #include "../common/Profiler.h"
 #include "../common/VectorOps.h"
