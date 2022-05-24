@@ -23,7 +23,7 @@
 
 #include "R3StretcherImpl.h"
 
-#include "common/VectorOpsComplex.h"
+#include "../common/VectorOpsComplex.h"
 
 #include <array>
 
@@ -112,6 +112,7 @@ R3StretcherImpl::getSamplesRequired() const
     }
 }
 
+//!!! __attribute__((annotate("realtime")))
 void
 R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 {
@@ -144,6 +145,7 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
     consume();
 }
 
+//!!! __attribute__((annotate("realtime")))
 int
 R3StretcherImpl::available() const
 {
@@ -153,6 +155,7 @@ R3StretcherImpl::available() const
     else return av;
 }
 
+//!!! __attribute__((annotate("realtime")))
 size_t
 R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 {
@@ -209,9 +212,15 @@ R3StretcherImpl::consume()
 
         for (int c = 0; c < m_parameters.channels; ++c) {
 
-            auto cd = m_channelData.at(c);
-            auto longestScale = cd->scales.at(longest);
-            auto buf = longestScale->timeDomain.data();
+            // Our ChannelData, ScaleData, and ChannelScaleData maps
+            // contain shared_ptrs; whenever we put one in a variable
+            // in here we should use a reference, to avoid copying the
+            // shared_ptr (which is not realtime safe). Same goes for
+            // the map iterators.
+            
+            auto &cd = m_channelData.at(c);
+            auto &longestScale = cd->scales.at(longest);
+            double *buf = longestScale->timeDomain.data();
 
             if (readSpace < longest) {
                 v_zero(buf, longest);
@@ -220,9 +229,9 @@ R3StretcherImpl::consume()
                 cd->inbuf->peek(buf, longest);
             }
 
-            for (auto it: cd->scales) {
+            for (auto &it: cd->scales) {
                 int fftSize = it.first;
-                auto scale = it.second;
+                auto &scale = it.second;
                 if (fftSize == longest) continue;
                 int offset = (longest - fftSize) / 2;
                 m_scaleData.at(fftSize)->analysisWindow.cut
@@ -231,9 +240,9 @@ R3StretcherImpl::consume()
 
             m_scaleData.at(longest)->analysisWindow.cut(buf);
 
-            for (auto it: cd->scales) {
+            for (auto &it: cd->scales) {
                 int fftSize = it.first;
-                auto scale = it.second;
+                auto &scale = it.second;
                 
                 v_fftshift(scale->timeDomain.data(), fftSize);
                 m_scaleData.at(fftSize)->fft.forward
@@ -258,7 +267,7 @@ R3StretcherImpl::consume()
                         scale->mag.size());
             }
 
-            auto classifyScale = cd->scales.at(classify);
+            auto &classifyScale = cd->scales.at(classify);
             cd->prevSegmentation = cd->segmentation;
             cd->segmentation =
                 cd->segmenter->segment(classifyScale->mag.data());
@@ -275,11 +284,11 @@ R3StretcherImpl::consume()
                               cd->guidance);
         }
 
-        for (auto it : m_channelData[0]->scales) {
+        for (auto &it : m_channelData[0]->scales) {
             int fftSize = it.first;
             for (int c = 0; c < m_parameters.channels; ++c) {
-                auto cd = m_channelData.at(c);
-                auto classifyScale = cd->scales.at(fftSize);
+                auto &cd = m_channelData.at(c);
+                auto &classifyScale = cd->scales.at(fftSize);
                 m_channelAssembly.mag[c] = classifyScale->mag.data();
                 m_channelAssembly.phase[c] = classifyScale->phase.data();
                 m_channelAssembly.guidance[c] = &cd->guidance;
@@ -297,10 +306,10 @@ R3StretcherImpl::consume()
 
         for (int c = 0; c < m_parameters.channels; ++c) {
 
-            auto cd = m_channelData.at(c);
+            auto &cd = m_channelData.at(c);
 
-            for (auto it : cd->scales) {
-                auto scale = it.second;
+            for (auto &it : cd->scales) {
+                auto &scale = it.second;
                 int bufSize = scale->bufSize;
                 // copy to prevMag before filtering
                 v_copy(scale->prevMag.data(), scale->mag.data(), bufSize);
@@ -309,8 +318,8 @@ R3StretcherImpl::consume()
         
             for (const auto &band : cd->guidance.fftBands) {
                 int fftSize = band.fftSize;
-                auto scale = cd->scales.at(fftSize);
-                auto scaleData = m_scaleData.at(fftSize);
+                auto &scale = cd->scales.at(fftSize);
+                auto &scaleData = m_scaleData.at(fftSize);
 
                 //!!! messy and slow, but leave it until we've
                 //!!! discovered whether we need a window accumulator
@@ -337,10 +346,10 @@ R3StretcherImpl::consume()
                 }
             }
                 
-            for (auto it : cd->scales) {
+            for (auto &it : cd->scales) {
                 int fftSize = it.first;
-                auto scale = it.second;
-                auto scaleData = m_scaleData.at(fftSize);
+                auto &scale = it.second;
+                auto &scaleData = m_scaleData.at(fftSize);
                 
                 for (const auto &b : m_guideConfiguration.fftBandLimits) {
                     if (b.fftSize == fftSize) {
@@ -373,20 +382,20 @@ R3StretcherImpl::consume()
                      scale->accumulator.data() + toOffset);
             }
             
-            auto mixptr = cd->mixdown.data();
+            double *mixptr = cd->mixdown.data();
             v_zero(mixptr, outhop);
 
-            for (auto it : cd->scales) {
-                auto scale = it.second;
+            for (auto &it : cd->scales) {
+                auto &scale = it.second;
                 v_add(mixptr, scale->accumulator.data(), outhop);
             }
 
             cd->outbuf->write(mixptr, outhop);
 
-            for (auto it : cd->scales) {
+            for (auto &it : cd->scales) {
                 int fftSize = it.first;
-                auto scale = it.second;
-                auto accptr = scale->accumulator.data();
+                auto &scale = it.second;
+                double *accptr = scale->accumulator.data();
 
                 int n = scale->accumulator.size() - outhop;
                 v_move(accptr, accptr + outhop, n);

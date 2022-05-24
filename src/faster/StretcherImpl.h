@@ -24,7 +24,7 @@
 #ifndef RUBBERBAND_STRETCHERIMPL_H
 #define RUBBERBAND_STRETCHERIMPL_H
 
-#include "../rubberband/RubberBandStretcher.h"
+#include "../../rubberband/RubberBandStretcher.h"
 
 #include "../common/Window.h"
 #include "../common/FFT.h"
