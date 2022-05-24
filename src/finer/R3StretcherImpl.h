@@ -30,6 +30,7 @@
 #include "PhaseAdvance.h"
 
 #include "../common/StretchCalculator.h"
+#include "../common/Resampler.h"
 #include "../common/FFT.h"
 #include "../common/FixedVector.h"
 #include "../common/Allocators.h"
@@ -102,6 +103,15 @@ public:
             (new StretchCalculator(int(round(m_parameters.sampleRate)), //!!! which is a double...
                                    1, false)); // no fixed inputIncrement
 
+        Resampler::Parameters resamplerParameters;
+        resamplerParameters.quality = Resampler::FastestTolerable;
+        resamplerParameters.dynamism = Resampler::RatioOftenChanging;
+        resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+        resamplerParameters.initialSampleRate = m_parameters.sampleRate;
+        resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize; //!!!???
+        m_resampler = std::unique_ptr<Resampler>
+            (new Resampler(resamplerParameters, m_parameters.channels));
+        
         calculateHop();
     }
     
@@ -217,6 +227,7 @@ protected:
     ChannelAssembly m_channelAssembly;
     Peak<double, std::less<double>> m_troughPicker;
     std::unique_ptr<StretchCalculator> m_calculator;
+    std::unique_ptr<Resampler> m_resampler;
     int m_inhop;
     int m_prevOuthop;
     bool m_draining;

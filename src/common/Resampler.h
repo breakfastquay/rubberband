@@ -172,6 +172,9 @@ public:
 protected:
     Impl *d;
     int m_method;
+
+    Resampler(const Resampler &) =delete;
+    Resampler &operator=(const Resampler &) =delete;
 };
 
 }
