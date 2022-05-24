@@ -60,7 +60,7 @@ public:
         m_parameters(parameters),
         m_timeRatio(initialTimeRatio),
         m_pitchScale(initialPitchScale),
-        m_guide(Guide::Parameters(m_parameters.sampleRate)),
+        m_guide(Guide::Parameters(m_parameters.sampleRate, parameters.logger)),
         m_guideConfiguration(m_guide.getConfiguration()),
         m_channelAssembly(m_parameters.channels),
         m_troughPicker(m_guideConfiguration.classificationFftSize / 2 + 1),
@@ -84,7 +84,8 @@ public:
             for (auto band: m_guideConfiguration.fftBandLimits) {
                 int fftSize = band.fftSize;
                 m_channelData[c]->scales[fftSize] =
-                    std::make_shared<ChannelScaleData>(fftSize);
+                    std::make_shared<ChannelScaleData>
+                    (fftSize, m_guideConfiguration.longestFftSize);
             }
         }
         
@@ -135,7 +136,7 @@ protected:
         FixedVector<double> prevOutPhase;
         FixedVector<float> accumulator;
 
-        ChannelScaleData(int _fftSize) :
+        ChannelScaleData(int _fftSize, int _longestFftSize) :
             fftSize(_fftSize),
             bufSize(fftSize/2 + 1),
             timeDomainFrame(fftSize, 0.f),
@@ -145,7 +146,7 @@ protected:
             nextTroughs(bufSize, 0),
             prevMag(bufSize, 0.f),
             prevOutPhase(bufSize, 0.f),
-            accumulator(fftSize, 0.f)
+            accumulator(_longestFftSize, 0.f)
         { }
 
     private:
@@ -170,7 +171,7 @@ protected:
             segmenter(new BinSegmenter(segmenterParameters,
                                        classifierParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
-            mixdown(ringBufferSize, 0.f), //!!! could be much shorter (bound is the max outhop)
+            mixdown(ringBufferSize, 0.f), //!!! could be shorter (bound is the max fft size I think)
             inbuf(new RingBuffer<float>(ringBufferSize)),
             outbuf(new RingBuffer<float>(ringBufferSize)) { }
     };

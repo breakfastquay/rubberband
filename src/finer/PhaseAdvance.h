@@ -96,15 +96,18 @@ public:
             (configuration.fftBandLimits[myFftBand].f0min);
         int highest = binForFrequency
             (configuration.fftBandLimits[myFftBand].f1max);
-
+        
         if (!m_reported) {
             std::ostringstream ostr;
             ostr << "PhaseAdvance: fftSize = " << m_parameters.fftSize
                  << ": bins = " << bs << ", channels = " << channels
                  << ", inhop = "<< inhop << ", outhop = " << outhop
                  << ", ratio = " << ratio << std::endl;
-            ostr << "PhaseAdvance: lowest possible = " << lowest
-                 << "Hz, highest = " << highest << "Hz" << std::endl;
+            ostr << "PhaseAdvance: lowest possible bin = " << lowest
+                 << " (" << configuration.fftBandLimits[myFftBand].f0min
+                 << "Hz), highest = " << highest
+                 << " (" << configuration.fftBandLimits[myFftBand].f1max
+                 << "Hz)" << std::endl;
             m_parameters.logger(ostr.str());
             m_reported = true;
         }
@@ -160,9 +163,10 @@ public:
                     ++phaseLockBand;
                 }
                 double ph = 0.0;
+                /*
                 if (inRange(f, g->phaseReset) || inRange(f, g->kick)) {
                     ph = phase[c][i];
-                } else if (inRange (f, g->highPercussive)) {
+                    } else */ if (inRange (f, g->highPercussive)) {
                     ph = m_unlocked[c][i];
                 } else {
                     int peak = m_currentPeaks[c][i];

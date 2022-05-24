@@ -43,6 +43,7 @@ StretchCalculator::StretchCalculator(size_t sampleRate,
     m_prevDf(0),
     m_prevRatio(1.0),
     m_prevTimeRatio(1.0),
+    m_justReset(true),
     m_transientAmnesty(0),
     m_debugLevel(0),
     m_useHardPeaks(useHardPeaks),
@@ -371,7 +372,9 @@ StretchCalculator::calculateSingle(double timeRatio,
     // / pitchScale if resampling is happening after stretching). So
     // the overall ratio is timeRatio / effectivePitchRatio.
 
-    bool ratioChanged = (ratio != m_prevRatio);
+    bool ratioChanged = (!m_justReset) && (ratio != m_prevRatio);
+    m_justReset = false;
+    
     if (ratioChanged) {
         // Reset our frame counters from the ratio change.
 
@@ -535,6 +538,8 @@ StretchCalculator::reset()
     m_outFrameCounter = 0.0;
     m_transientAmnesty = 0;
     m_keyFrameMap.clear();
+
+    m_justReset = true;
 }
 
 std::vector<StretchCalculator::Peak>

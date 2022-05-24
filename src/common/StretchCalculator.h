@@ -98,6 +98,7 @@ protected:
     float m_prevDf;
     double m_prevRatio;
     double m_prevTimeRatio;
+    bool m_justReset;
     int m_transientAmnesty; // only in RT mode; handled differently offline
     int m_debugLevel;
     bool m_useHardPeaks;

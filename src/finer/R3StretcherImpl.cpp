@@ -176,12 +176,16 @@ R3StretcherImpl::consume()
     int longest = m_guideConfiguration.longestFftSize;
     int classify = m_guideConfiguration.classificationFftSize;
 
+    m_calculator->setDebugLevel(3);
+    
     int outhop = m_calculator->calculateSingle(ratio,
                                                1.0 / m_pitchScale,
                                                1.f,
                                                m_inhop,
                                                longest,
                                                longest);
+
+    std::cout << "outhop = " << outhop << std::endl;
 
     double instantaneousRatio = double(outhop) / double(m_inhop);
 
@@ -292,7 +296,6 @@ R3StretcherImpl::consume()
                 int fftSize = band.fftSize;
                 auto scale = cd->scales.at(fftSize);
                 auto scaleData = m_scaleData.at(fftSize);
-                double factor = m_parameters.sampleRate / double(fftSize);
 
                 //!!! messy and v slow, but leave it until we've
                 //!!! discovered whether we need a window accumulator
@@ -307,9 +310,11 @@ R3StretcherImpl::consume()
                 }
                 winscale = float(outhop) / winscale;
                     
+                double factor = m_parameters.sampleRate / double(fftSize);
                 for (int i = 0; i < fftSize/2 + 1; ++i) {
                     double f = double(i) * factor;
                     if (f >= band.f0 && f < band.f1) {
+                        //!!! check the mod 2 bit from stretch-fn
                         scale->mag[i] *= winscale;
                     } else {
                         scale->mag[i] = 0.f;
@@ -321,29 +326,41 @@ R3StretcherImpl::consume()
                 int fftSize = it.first;
                 auto scale = it.second;
                 auto scaleData = m_scaleData.at(fftSize);
-                int bufSize = scale->bufSize;
+                
                 scaleData->fft.inversePolar(scale->mag.data(),
                                             scale->phase.data(),
                                             scale->timeDomainFrame.data());
                 
                 int synthesisWindowSize = scaleData->synthesisWindow.getSize();
-                int offset = (fftSize - synthesisWindowSize) / 2;
-                scaleData->synthesisWindow.cutAndAdd
-                    (scale->timeDomainFrame.data() + offset,
-                     scale->accumulator.data());
-            }
+                int fromOffset = (fftSize - synthesisWindowSize) / 2;
+                int toOffset = (m_guideConfiguration.longestFftSize -
+                                synthesisWindowSize) / 2;
 
-            v_zero(cd->mixdown.data(), outhop);
+                scaleData->synthesisWindow.cutAndAdd
+                    (scale->timeDomainFrame.data() + fromOffset,
+                     scale->accumulator.data() + toOffset);
+            }
+            
+            auto mixptr = cd->mixdown.data();
+            v_zero(mixptr, outhop);
+
             for (auto it : cd->scales) {
                 auto scale = it.second;
-                auto &acc = scale->accumulator;
-                v_add(cd->mixdown.data(), acc.data(), outhop);
-                int n = acc.size() - outhop;
-                v_move(acc.data(), acc.data() + outhop, n);
-                v_zero(acc.data() + n, outhop);
+                v_add(mixptr, scale->accumulator.data(), outhop);
             }
-            cd->outbuf->write(cd->mixdown.data(), outhop);
 
+            cd->outbuf->write(mixptr, outhop);
+
+            for (auto it : cd->scales) {
+                int fftSize = it.first;
+                auto scale = it.second;
+                auto accptr = scale->accumulator.data();
+
+                int n = scale->accumulator.size() - outhop;
+                v_move(accptr, accptr + outhop, n);
+                v_zero(accptr + n, outhop);
+            }
+            
             if (readSpace < m_inhop) {
                 // This should happen only when draining
                 cd->inbuf->skip(readSpace);

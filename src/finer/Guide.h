@@ -24,6 +24,9 @@
 #ifndef RUBBERBAND_GUIDE_H
 #define RUBBERBAND_GUIDE_H
 
+#include <functional>
+#include <sstream>
+
 namespace RubberBand
 {
 
@@ -86,24 +89,31 @@ public:
     };
 
     struct Configuration {
-        int classificationFftSize;
         int longestFftSize;
+        int shortestFftSize;
+        int classificationFftSize;
         BandLimits fftBandLimits[3];
-        Configuration(int _classificationFftSize, int _longestFftSize) :
-            classificationFftSize(_classificationFftSize),
-            longestFftSize(_longestFftSize) { }
+        Configuration(int _longestFftSize, int _shortestFftSize,
+                      int _classificationFftSize) :
+            longestFftSize(_longestFftSize),
+            shortestFftSize(_shortestFftSize),
+            classificationFftSize(_classificationFftSize) { }
     };
     
     struct Parameters {
         double sampleRate;
-        Parameters(double _sampleRate) :
-            sampleRate(_sampleRate) { }
+        std::function<void(const std::string &)> logger;
+        Parameters(double _sampleRate,
+                   std::function<void(const std::string &)> _log) :
+            sampleRate(_sampleRate),
+            logger(_log) { }
     };
 
     Guide(Parameters parameters) :
         m_parameters(parameters),
-        m_configuration(roundUp(int(ceil(parameters.sampleRate / 32.0))),
-                        roundUp(int(ceil(parameters.sampleRate / 16.0)))),
+        m_configuration(roundUp(int(ceil(parameters.sampleRate / 16.0))),
+                        roundUp(int(ceil(parameters.sampleRate / 64.0))),
+                        roundUp(int(ceil(parameters.sampleRate / 32.0)))),
         m_defaultLower(700.0), m_defaultHigher(4800.0),
         m_maxLower(1100.0), m_maxHigher(7000.0)
     {
@@ -216,6 +226,22 @@ public:
         guidance.phaseLockBands[3].beta = betaFor(10000.0, ratio);
         guidance.phaseLockBands[3].f0 = higher;
         guidance.phaseLockBands[3].f1 = nyquist;
+
+        std::ostringstream str;
+        str << "Guidance: FFT bands: ["
+            << guidance.fftBands[0].fftSize << " from "
+            << guidance.fftBands[0].f0 << " to " << guidance.fftBands[0].f1
+            << ", "
+            << guidance.fftBands[1].fftSize << " from "
+            << guidance.fftBands[1].f0 << " to " << guidance.fftBands[1].f1
+            << ", "
+            << guidance.fftBands[2].fftSize << " from "
+            << guidance.fftBands[2].f0 << " to " << guidance.fftBands[2].f1
+            << "]; phase reset range: ["
+            << guidance.phaseReset.present << " from "
+            << guidance.phaseReset.f0 << " to " << guidance.phaseReset.f1
+            << "]" << std::endl;
+        m_parameters.logger(str.str());
     }
 
 protected:
