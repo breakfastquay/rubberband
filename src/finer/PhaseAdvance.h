@@ -95,10 +95,8 @@ public:
         int channels = m_parameters.channels;
         double ratio = double(outhop) / double(inhop);
 
-        int lowest = binForFrequency
-            (configuration.fftBandLimits[myFftBand].f0min);
-        int highest = binForFrequency
-            (configuration.fftBandLimits[myFftBand].f1max);
+        int lowest = configuration.fftBandLimits[myFftBand].b0min;
+        int highest = configuration.fftBandLimits[myFftBand].b1max;
         
         if (!m_reported) {
             std::ostringstream ostr;

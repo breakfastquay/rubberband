@@ -23,6 +23,8 @@
 
 #include "R3StretcherImpl.h"
 
+#include "common/VectorOpsComplex.h"
+
 #include <array>
 
 namespace RubberBand {
@@ -60,6 +62,8 @@ R3StretcherImpl::calculateHop()
         m_inhop = int(round(inhop));
     }
 
+    m_prevOuthop = int(round(m_inhop * ratio));
+    
     std::ostringstream str;
     str << "R3StretcherImpl::calculateHop: for effective ratio " << ratio
         << " calculated (typical) inhop of " << m_inhop << std::endl;
@@ -187,16 +191,10 @@ R3StretcherImpl::consume()
 
     std::cout << "outhop = " << outhop << std::endl;
 
-    //!!!
-    outhop = int(round(m_inhop * ratio));
-    
-    //!!! shouldn't this be the *previous* outhop?
-//    double instantaneousRatio = double(outhop) / double(m_inhop);
-    double instantaneousRatio = ratio;
+    double instantaneousRatio = double(m_prevOuthop) / double(m_inhop);
+    m_prevOuthop = outhop;
 
     while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
-
-//!!!        m_parameters.logger("consume looping");
 
         int readSpace = m_channelData.at(0)->inbuf->getReadSpace();
         if (readSpace < longest) {
@@ -213,7 +211,7 @@ R3StretcherImpl::consume()
 
             auto cd = m_channelData.at(c);
             auto longestScale = cd->scales.at(longest);
-            auto buf = longestScale->timeDomainFrame.data();
+            auto buf = longestScale->timeDomain.data();
 
             if (readSpace < longest) {
                 v_zero(buf, longest);
@@ -228,7 +226,7 @@ R3StretcherImpl::consume()
                 if (fftSize == longest) continue;
                 int offset = (longest - fftSize) / 2;
                 m_scaleData.at(fftSize)->analysisWindow.cut
-                    (buf + offset, scale->timeDomainFrame.data());
+                    (buf + offset, scale->timeDomain.data());
             }
 
             m_scaleData.at(longest)->analysisWindow.cut(buf);
@@ -236,10 +234,26 @@ R3StretcherImpl::consume()
             for (auto it: cd->scales) {
                 int fftSize = it.first;
                 auto scale = it.second;
-                m_scaleData.at(fftSize)->fft.forwardPolar
-                    (scale->timeDomainFrame.data(),
-                     scale->mag.data(),
-                     scale->phase.data());
+                
+                v_fftshift(scale->timeDomain.data(), fftSize);
+                m_scaleData.at(fftSize)->fft.forward
+                    (scale->timeDomain.data(),
+                     scale->real.data(),
+                     scale->imag.data());
+                
+                for (const auto &b : m_guideConfiguration.fftBandLimits) {
+                    if (b.fftSize == fftSize) {
+                        int offset = b.b0min;
+                        v_cartesian_to_polar
+                            (scale->mag.data() + offset,
+                             scale->phase.data() + offset,
+                             scale->real.data() + offset,
+                             scale->imag.data() + offset,
+                             b.b1max - offset);
+                        break;
+                    }
+                }
+                
                 v_scale(scale->mag.data(), 1.0 / double(fftSize),
                         scale->mag.size());
             }
@@ -328,17 +342,34 @@ R3StretcherImpl::consume()
                 auto scale = it.second;
                 auto scaleData = m_scaleData.at(fftSize);
                 
-                scaleData->fft.inversePolar(scale->mag.data(),
-                                            scale->outPhase.data(),
-                                            scale->timeDomainFrame.data());
-                
+                for (const auto &b : m_guideConfiguration.fftBandLimits) {
+                    if (b.fftSize == fftSize) {
+                        int offset = b.b0min;
+                        v_zero(scale->real.data(), fftSize/2 + 1);
+                        v_zero(scale->imag.data(), fftSize/2 + 1);
+                        v_polar_to_cartesian
+                            (scale->real.data() + offset,
+                             scale->imag.data() + offset,
+                             scale->mag.data() + offset,
+                             scale->outPhase.data() + offset,
+                             b.b1max - offset);
+                        break;
+                    }
+                }
+
+                scaleData->fft.inverse(scale->real.data(),
+                                       scale->imag.data(),
+                                       scale->timeDomain.data());
+
+                v_fftshift(scale->timeDomain.data(), fftSize);
+
                 int synthesisWindowSize = scaleData->synthesisWindow.getSize();
                 int fromOffset = (fftSize - synthesisWindowSize) / 2;
                 int toOffset = (m_guideConfiguration.longestFftSize -
                                 synthesisWindowSize) / 2;
 
                 scaleData->synthesisWindow.cutAndAdd
-                    (scale->timeDomainFrame.data() + fromOffset,
+                    (scale->timeDomain.data() + fromOffset,
                      scale->accumulator.data() + toOffset);
             }
             

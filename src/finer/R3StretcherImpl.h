@@ -65,6 +65,7 @@ public:
         m_channelAssembly(m_parameters.channels),
         m_troughPicker(m_guideConfiguration.classificationFftSize / 2 + 1),
         m_inhop(1),
+        m_prevOuthop(1),
         m_draining(false)
     {
         BinSegmenter::Parameters segmenterParameters
@@ -127,7 +128,9 @@ protected:
         int fftSize;
         int bufSize; // size of every freq-domain array here: fftSize/2 + 1
         //!!! review later which of these we are actually using!
-        FixedVector<double> timeDomainFrame;
+        FixedVector<double> timeDomain;
+        FixedVector<double> real;
+        FixedVector<double> imag;
         FixedVector<double> mag;
         FixedVector<double> phase;
         FixedVector<double> outPhase; //!!! "advanced"?
@@ -139,7 +142,9 @@ protected:
         ChannelScaleData(int _fftSize, int _longestFftSize) :
             fftSize(_fftSize),
             bufSize(fftSize/2 + 1),
-            timeDomainFrame(fftSize, 0.f),
+            timeDomain(fftSize, 0.f),
+            real(bufSize, 0.f),
+            imag(bufSize, 0.f),
             mag(bufSize, 0.f),
             phase(bufSize, 0.f),
             outPhase(bufSize, 0.f),
@@ -213,6 +218,7 @@ protected:
     Peak<double, std::less<double>> m_troughPicker;
     std::unique_ptr<StretchCalculator> m_calculator;
     int m_inhop;
+    int m_prevOuthop;
     bool m_draining;
 
     void consume();

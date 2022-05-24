@@ -78,10 +78,14 @@ public:
         int fftSize;
         double f0min;
         double f1max;
-        BandLimits(int _fftSize, double _f0min, double _f1max) :
-            fftSize(_fftSize), f0min(_f0min), f1max(_f1max) { }
+        int b0min;
+        int b1max;
+        BandLimits(int _fftSize, double _rate, double _f0min, double _f1max) :
+            fftSize(_fftSize), f0min(_f0min), f1max(_f1max),
+            b0min(int(floor(f0min * fftSize / _rate))),
+            b1max(int(ceil(f1max * fftSize / _rate))) { }
         BandLimits() :
-            fftSize(0), f0min(0.f), f1max(0.f) { }
+            fftSize(0), f0min(0.f), f1max(0.f), b0min(0), b1max(0) { }
     };
 
     struct Configuration {
@@ -116,15 +120,18 @@ public:
     {
         double rate = m_parameters.sampleRate;
         double nyquist = rate / 2.0;
+
+        int bandFftSize = roundUp(int(ceil(rate/16.0)));
         m_configuration.fftBandLimits[0] =
-            BandLimits(roundUp(int(ceil(rate/16.0))),
-                       0.0, m_maxLower);
+            BandLimits(bandFftSize, rate, 0.0, m_maxLower);
+
+        bandFftSize = roundUp(int(ceil(rate/32.0)));
         m_configuration.fftBandLimits[1] =
-            BandLimits(roundUp(int(ceil(rate/32.0))),
-                       m_minLower, m_maxHigher);
+            BandLimits(bandFftSize, rate, m_minLower, m_maxHigher);
+        
+        bandFftSize = roundUp(int(ceil(rate/64.0)));
         m_configuration.fftBandLimits[2] =
-            BandLimits(roundUp(int(ceil(rate/64.0))),
-                       m_minHigher, rate/2.0);
+            BandLimits(bandFftSize, rate, m_minHigher, rate/2.0);
     }
 
     const Configuration &getConfiguration() const {
@@ -225,6 +232,7 @@ public:
         guidance.phaseLockBands[3].f0 = higher;
         guidance.phaseLockBands[3].f1 = nyquist;
 
+        /*
         std::ostringstream str;
         str << "Guidance: FFT bands: ["
             << guidance.fftBands[0].fftSize << " from "
@@ -240,6 +248,7 @@ public:
             << guidance.phaseReset.f0 << " to " << guidance.phaseReset.f1
             << "]" << std::endl;
         m_parameters.logger(str.str());
+        */
     }
 
 protected:
