@@ -110,7 +110,7 @@ public:
                 if (j == 0) {
                     nearest[i] = np;
                 } else {
-                    if (np - i < i - pp) {
+                    if (np - i <= i - pp) {
                         nearest[i] = np;
                     } else {
                         nearest[i] = pp;

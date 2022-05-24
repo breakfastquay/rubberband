@@ -77,15 +77,11 @@ public:
     struct BandLimits {
         int fftSize;
         float f0min;
-        float f0max;
-        float f1min;
         float f1max;
-        BandLimits(int _fftSize, float _f0min, float _f0max,
-                   float _f1min, float _f1max) :
-            fftSize(_fftSize), f0min(_f0min), f0max(_f0max),
-            f1min(_f1min), f1max(_f1max) { }
+        BandLimits(int _fftSize, float _f0min, float _f1max) :
+            fftSize(_fftSize), f0min(_f0min), f1max(_f1max) { }
         BandLimits() :
-            fftSize(0), f0min(0.f), f0max(0.f), f1min(0.f), f1max(0.f) { }
+            fftSize(0), f0min(0.f), f1max(0.f) { }
     };
 
     struct Configuration {
@@ -114,19 +110,21 @@ public:
         m_configuration(roundUp(int(ceil(parameters.sampleRate / 16.0))),
                         roundUp(int(ceil(parameters.sampleRate / 64.0))),
                         roundUp(int(ceil(parameters.sampleRate / 32.0)))),
+        m_minLower(350.0), m_minHigher(2400.0),
         m_defaultLower(700.0), m_defaultHigher(4800.0),
         m_maxLower(1100.0), m_maxHigher(7000.0)
     {
         double rate = m_parameters.sampleRate;
+        double nyquist = rate / 2.0;
         m_configuration.fftBandLimits[0] =
             BandLimits(roundUp(int(ceil(rate/16.0))),
-                       0.0, 0.0, m_defaultLower, m_maxLower);
+                       0.0, m_maxLower);
         m_configuration.fftBandLimits[1] =
             BandLimits(roundUp(int(ceil(rate/32.0))),
-                       m_defaultLower, m_maxLower, m_defaultHigher, m_maxHigher);
+                       m_minLower, m_maxHigher);
         m_configuration.fftBandLimits[2] =
             BandLimits(roundUp(int(ceil(rate/64.0))),
-                       m_defaultHigher, m_maxHigher, rate/2.0, rate/2.0);
+                       m_minHigher, rate/2.0);
     }
 
     const Configuration &getConfiguration() const {
@@ -248,6 +246,8 @@ protected:
     Parameters m_parameters;
     Configuration m_configuration;
 
+    double m_minLower;
+    double m_minHigher;
     double m_defaultLower;
     double m_defaultHigher;
     double m_maxLower;

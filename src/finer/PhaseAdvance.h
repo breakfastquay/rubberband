@@ -55,6 +55,7 @@ public:
         m_currentPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
         m_prevPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
         m_greatestChannel = allocate_and_zero<int>(m_blockSize);
+        m_prevInMag = allocate_and_zero_channels<float>(ch, m_blockSize);
         m_prevInPhase = allocate_and_zero_channels<float>(ch, m_blockSize);
         m_prevOutPhase = allocate_and_zero_channels<double>(ch, m_blockSize);
         m_unlocked = allocate_and_zero_channels<double>(ch, m_blockSize);
@@ -65,6 +66,7 @@ public:
         deallocate_channels(m_currentPeaks, ch);
         deallocate_channels(m_prevPeaks, ch);
         deallocate(m_greatestChannel);
+        deallocate_channels(m_prevInMag, ch);
         deallocate_channels(m_prevInPhase, ch);
         deallocate_channels(m_prevOutPhase, ch);
         deallocate_channels(m_unlocked, ch);
@@ -120,10 +122,33 @@ public:
                 int startBin = binForFrequency(band.f0);
                 int endBin = binForFrequency(band.f1);
                 if (startBin > highest || endBin < lowest) continue;
-                int count = endBin - startBin;
+                int count = endBin - startBin + 1;
                 m_peakPicker.findNearestAndNextPeaks(mag[c], startBin, count,
-                                                     band.p, m_currentPeaks[c]);
+                                                     band.p, m_currentPeaks[c],
+                                                     nullptr);
             }
+
+            m_peakPicker.findNearestAndNextPeaks(m_prevInMag[c],
+                                                 lowest, highest - lowest + 1,
+                                                 2, m_prevPeaks[c],
+                                                 nullptr);
+            
+/*
+            static int counter = 0;
+            if (c == 0) {
+                if (++counter > 140 && counter < 150) {
+                    std::cout << "Magnitudes and peaks (fftSize = " <<  m_parameters.fftSize << "):" << std::endl;
+                    for (int i = 0; i < bs; ++i) {
+                        if (m_currentPeaks[c][i] == i) {
+                            std::cout << "*";
+                        }
+                        std::cout << mag[c][i] << ", ";
+                    }
+                    std::cout << std::endl;
+                }
+            }
+*/
+            
         }
 
         if (channels > 1) {
@@ -163,10 +188,9 @@ public:
                     ++phaseLockBand;
                 }
                 double ph = 0.0;
-                /*
                 if (inRange(f, g->phaseReset) || inRange(f, g->kick)) {
                     ph = phase[c][i];
-                    } else */ if (inRange (f, g->highPercussive)) {
+                } else if (inRange (f, g->highPercussive)) {
                     ph = m_unlocked[c][i];
                 } else {
                     int peak = m_currentPeaks[c][i];
@@ -200,8 +224,9 @@ public:
             for (int i = lowest; i <= highest; ++i) {
                 m_prevInPhase[c][i] = phase[c][i];
             }
-        }
-        for (int c = 0; c < channels; ++c) {
+            for (int i = lowest; i <= highest; ++i) {
+                m_prevInMag[c][i] = mag[c][i];
+            }
             for (int i = lowest; i <= highest; ++i) {
                 m_prevOutPhase[c][i] = outPhase[c][i];
             }
@@ -209,11 +234,12 @@ public:
 
         //!!! NB in the original we use a different value of p for
         //!!! peak-picking the prior magnitudes - this isn't carried
-        //!!! over here
+        //!!! over here - it is now but I don't think this was the
+        //!!! full cause of our burbling
         
-        int **tmp = m_prevPeaks;
-        m_prevPeaks = m_currentPeaks;
-        m_currentPeaks = tmp;
+//        int **tmp = m_prevPeaks;
+//        m_prevPeaks = m_currentPeaks;
+//        m_currentPeaks = tmp;
     }
 
 protected:
@@ -223,6 +249,7 @@ protected:
     int **m_currentPeaks;
     int **m_prevPeaks;
     int *m_greatestChannel;
+    float **m_prevInMag;
     float **m_prevInPhase;
     double **m_prevOutPhase;
     double **m_unlocked;

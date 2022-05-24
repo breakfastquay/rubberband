@@ -187,7 +187,12 @@ R3StretcherImpl::consume()
 
     std::cout << "outhop = " << outhop << std::endl;
 
-    double instantaneousRatio = double(outhop) / double(m_inhop);
+    //!!!
+    outhop = int(round(m_inhop * ratio));
+    
+    //!!! shouldn't this be the *previous* outhop?
+//    double instantaneousRatio = double(outhop) / double(m_inhop);
+    double instantaneousRatio = ratio;
 
     while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
 
