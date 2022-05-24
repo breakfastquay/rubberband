@@ -240,7 +240,7 @@ R3StretcherImpl::consume()
                     (scale->timeDomainFrame.data(),
                      scale->mag.data(),
                      scale->phase.data());
-                v_scale(scale->mag.data(), 1.f / float(fftSize),
+                v_scale(scale->mag.data(), 1.0 / double(fftSize),
                         scale->mag.size());
             }
 
@@ -291,10 +291,6 @@ R3StretcherImpl::consume()
                 // copy to prevMag before filtering
                 v_copy(scale->prevMag.data(), scale->mag.data(), bufSize);
                 v_copy(scale->prevOutPhase.data(), scale->outPhase.data(), bufSize);
-                //!!! seems wasteful
-                for (int i = 0; i < bufSize; ++i) {
-                    scale->phase[i] = princarg(scale->outPhase[i]);
-                }
             }
         
             for (const auto &band : cd->guidance.fftBands) {
@@ -302,18 +298,18 @@ R3StretcherImpl::consume()
                 auto scale = cd->scales.at(fftSize);
                 auto scaleData = m_scaleData.at(fftSize);
 
-                //!!! messy and v slow, but leave it until we've
+                //!!! messy and slow, but leave it until we've
                 //!!! discovered whether we need a window accumulator
                 //!!! (we probably do)
                 int analysisWindowSize = scaleData->analysisWindow.getSize();
                 int synthesisWindowSize = scaleData->synthesisWindow.getSize();
                 int offset = (analysisWindowSize - synthesisWindowSize) / 2;
-                float winscale = 0.f;
+                double winscale = 0.0;
                 for (int i = 0; i < synthesisWindowSize; ++i) {
                     winscale += scaleData->analysisWindow.getValue(i + offset) *
                         scaleData->synthesisWindow.getValue(i);
                 }
-                winscale = float(outhop) / winscale;
+                winscale = double(outhop) / winscale;
                     
                 double factor = m_parameters.sampleRate / double(fftSize);
                 for (int i = 0; i < fftSize/2 + 1; ++i) {
@@ -333,7 +329,7 @@ R3StretcherImpl::consume()
                 auto scaleData = m_scaleData.at(fftSize);
                 
                 scaleData->fft.inversePolar(scale->mag.data(),
-                                            scale->phase.data(),
+                                            scale->outPhase.data(),
                                             scale->timeDomainFrame.data());
                 
                 int synthesisWindowSize = scaleData->synthesisWindow.getSize();

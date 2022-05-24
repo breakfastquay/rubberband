@@ -55,8 +55,9 @@ public:
         m_currentPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
         m_prevPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
         m_greatestChannel = allocate_and_zero<int>(m_blockSize);
-        m_prevInMag = allocate_and_zero_channels<float>(ch, m_blockSize);
-        m_prevInPhase = allocate_and_zero_channels<float>(ch, m_blockSize);
+        //!!! there is also a prevMag in R3StretcherImpl which could be passed in to here instead
+        m_prevInMag = allocate_and_zero_channels<double>(ch, m_blockSize);
+        m_prevInPhase = allocate_and_zero_channels<double>(ch, m_blockSize);
         m_prevOutPhase = allocate_and_zero_channels<double>(ch, m_blockSize);
         m_unlocked = allocate_and_zero_channels<double>(ch, m_blockSize);
     }
@@ -73,8 +74,8 @@ public:
     }
     
     void advance(double *const *outPhase,
-                 const float *const *mag,
-                 const float *const *phase,
+                 const double *const *mag,
+                 const double *const *phase,
                  const Guide::Configuration &configuration,
                  const Guide::Guidance *const *guidance,
                  int inhop,
@@ -245,12 +246,12 @@ public:
 protected:
     Parameters m_parameters;
     int m_blockSize;
-    Peak<float> m_peakPicker;
+    Peak<double> m_peakPicker;
     int **m_currentPeaks;
     int **m_prevPeaks;
     int *m_greatestChannel;
-    float **m_prevInMag;
-    float **m_prevInPhase;
+    double **m_prevInMag;
+    double **m_prevInPhase;
     double **m_prevOutPhase;
     double **m_unlocked;
     bool m_reported;

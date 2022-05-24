@@ -50,11 +50,11 @@ public:
         int verticalFilterLength;
         double harmonicThreshold;
         double percussiveThreshold;
-        float silenceThreshold;
+        double silenceThreshold;
         Parameters(int _binCount, int _horizontalFilterLength,
                    int _horizontalFilterLag, int _verticalFilterLength,
                    double _harmonicThreshold, double _percussiveThreshold,
-                   float _silenceThreshold) :
+                   double _silenceThreshold) :
             binCount(_binCount),
             horizontalFilterLength(_horizontalFilterLength),
             horizontalFilterLag(_horizontalFilterLag),
@@ -66,21 +66,21 @@ public:
     
     BinClassifier(Parameters parameters) :
         m_parameters(parameters),
-        m_vFilter(new MovingMedian<float>(m_parameters.verticalFilterLength)),
+        m_vFilter(new MovingMedian<double>(m_parameters.verticalFilterLength)),
         m_vfQueue(parameters.horizontalFilterLag)
     {
         int n = m_parameters.binCount;
 
         for (int i = 0; i < n; ++i) {
-            m_hFilters.push_back(std::make_shared<MovingMedian<float>>
+            m_hFilters.push_back(std::make_shared<MovingMedian<double>>
                                  (m_parameters.horizontalFilterLength));
         }
 
-        m_hf = allocate_and_zero<float>(n);
-        m_vf = allocate_and_zero<float>(n);
+        m_hf = allocate_and_zero<double>(n);
+        m_vf = allocate_and_zero<double>(n);
         
         for (int i = 0; i < m_parameters.horizontalFilterLag; ++i) {
-            float *entry = allocate_and_zero<float>(n);
+            double *entry = allocate_and_zero<double>(n);
             m_vfQueue.write(&entry, 1);
         }
     }
@@ -88,7 +88,7 @@ public:
     ~BinClassifier()
     {
         while (m_vfQueue.getReadSpace() > 0) {
-            float *entry = m_vfQueue.readOne();
+            double *entry = m_vfQueue.readOne();
             deallocate(entry);
         }
 
@@ -96,7 +96,7 @@ public:
         deallocate(m_vf);
     }
 
-    void classify(const float *const mag, Classification *classification) {
+    void classify(const double *const mag, Classification *classification) {
         const int n = m_parameters.binCount;
 
         for (int i = 0; i < n; ++i) {
@@ -105,10 +105,10 @@ public:
         }
 
         v_copy(m_vf, mag, n);
-        MovingMedian<float>::filter(*m_vFilter, m_vf);
+        MovingMedian<double>::filter(*m_vFilter, m_vf);
 
         if (m_parameters.horizontalFilterLag > 0) {
-            float *lagged = m_vfQueue.readOne();
+            double *lagged = m_vfQueue.readOne();
             m_vfQueue.write(&m_vf, 1);
             m_vf = lagged;
         }
@@ -134,13 +134,13 @@ public:
 
 protected:
     Parameters m_parameters;
-    std::vector<std::shared_ptr<MovingMedian<float>>> m_hFilters;
-    std::unique_ptr<MovingMedian<float>> m_vFilter;
+    std::vector<std::shared_ptr<MovingMedian<double>>> m_hFilters;
+    std::unique_ptr<MovingMedian<double>> m_vFilter;
     // We manage the queued frames through pointer swapping, hence
     // bare pointers here
-    float *m_hf;
-    float *m_vf;
-    RingBuffer<float *> m_vfQueue;
+    double *m_hf;
+    double *m_vf;
+    RingBuffer<double *> m_vfQueue;
 
     BinClassifier(const BinClassifier &) =delete;
     BinClassifier &operator=(const BinClassifier &) =delete;

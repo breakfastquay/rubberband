@@ -127,14 +127,14 @@ protected:
         int fftSize;
         int bufSize; // size of every freq-domain array here: fftSize/2 + 1
         //!!! review later which of these we are actually using!
-        FixedVector<float> timeDomainFrame;
-        FixedVector<float> mag;
-        FixedVector<float> phase;
+        FixedVector<double> timeDomainFrame;
+        FixedVector<double> mag;
+        FixedVector<double> phase;
         FixedVector<double> outPhase; //!!! "advanced"?
         FixedVector<int> nextTroughs; //!!! not used in every scale
-        FixedVector<float> prevMag; //!!! not used in every scale
+        FixedVector<double> prevMag; //!!! not used in every scale
         FixedVector<double> prevOutPhase;
-        FixedVector<float> accumulator;
+        FixedVector<double> accumulator;
 
         ChannelScaleData(int _fftSize, int _longestFftSize) :
             fftSize(_fftSize),
@@ -161,7 +161,7 @@ protected:
         BinSegmenter::Segmentation prevSegmentation;
         BinSegmenter::Segmentation nextSegmentation;
         Guide::Guidance guidance;
-        FixedVector<float> mixdown;
+        FixedVector<double> mixdown;
         std::unique_ptr<RingBuffer<float>> inbuf;
         std::unique_ptr<RingBuffer<float>> outbuf;
         ChannelData(BinSegmenter::Parameters segmenterParameters,
@@ -179,8 +179,8 @@ protected:
     struct ChannelAssembly {
         // Vectors of bare pointers, used to package container data
         // from different channels into arguments for PhaseAdvance
-        FixedVector<float *> mag;
-        FixedVector<float *> phase;
+        FixedVector<double *> mag;
+        FixedVector<double *> phase;
         FixedVector<Guide::Guidance *> guidance;
         FixedVector<double *> outPhase;
         ChannelAssembly(int channels) :
@@ -190,8 +190,8 @@ protected:
 
     struct ScaleData {
         FFT fft;
-        Window<float> analysisWindow;
-        Window<float> synthesisWindow;
+        Window<double> analysisWindow;
+        Window<double> synthesisWindow;
         GuidedPhaseAdvance guided;
         ScaleData(GuidedPhaseAdvance::Parameters guidedParameters) :
             fft(guidedParameters.fftSize),
@@ -210,7 +210,7 @@ protected:
     Guide m_guide;
     Guide::Configuration m_guideConfiguration;
     ChannelAssembly m_channelAssembly;
-    Peak<float, std::less<float>> m_troughPicker;
+    Peak<double, std::less<double>> m_troughPicker;
     std::unique_ptr<StretchCalculator> m_calculator;
     int m_inhop;
     bool m_draining;

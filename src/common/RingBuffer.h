@@ -138,8 +138,13 @@ public:
      * necessary to empty the buffer.  If fewer than n are available,
      * the remainder will be zeroed out.  Returns the number of
      * samples actually read.
+     *
+     * This is a template function, taking an argument S for the target
+     * sample type, which is permitted to differ from T if the two
+     * types are compatible for arithmetic operations.
      */
-    int peek(T *const R__ destination, int n) const;
+    template <typename S>
+    int peek(S *const R__ destination, int n) const;
 
     /**
      * Read one sample from the buffer, if available, without
@@ -384,8 +389,9 @@ RingBuffer<T>::readOne()
 }
 
 template <typename T>
+template <typename S>
 int
-RingBuffer<T>::peek(T *const R__ destination, int n) const
+RingBuffer<T>::peek(S *const R__ destination, int n) const
 {
     int w = m_writer;
     int r = m_reader;
@@ -394,7 +400,6 @@ RingBuffer<T>::peek(T *const R__ destination, int n) const
     if (n > available) {
 	std::cerr << "WARNING: RingBuffer::peek: " << n << " requested, only "
                   << available << " available" << std::endl;
-	memset(destination + available, 0, (n - available) * sizeof(T));
 	n = available;
     }
     if (n == 0) return n;
@@ -403,10 +408,10 @@ RingBuffer<T>::peek(T *const R__ destination, int n) const
     const T *const R__ bufbase = m_buffer + r;
 
     if (here >= n) {
-        v_copy(destination, bufbase, n);
+        v_convert(destination, bufbase, n);
     } else {
-        v_copy(destination, bufbase, here);
-        v_copy(destination + here, m_buffer, n - here);
+        v_convert(destination, bufbase, here);
+        v_convert(destination + here, m_buffer, n - here);
     }
 
     return n;

@@ -62,7 +62,7 @@ public:
     {
     }
 
-    Segmentation segment(const float *const mag) {
+    Segmentation segment(const double *const mag) {
         int n = m_classifierParameters.binCount;
         m_classifier.classify(mag, m_classification.data());
         for (int i = 0; i < n; ++i) {

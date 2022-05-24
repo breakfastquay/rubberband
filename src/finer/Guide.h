@@ -35,9 +35,9 @@ class Guide
 public:
     struct FftBand {
         int fftSize;
-        float f0;
-        float f1;
-        FftBand(int _s, float _f0, float _f1) :
+        double f0;
+        double f1;
+        FftBand(int _s, double _f0, double _f1) :
             fftSize(_s), f0(_f0), f1(_f1) { }
         FftBand() :
             fftSize(0), f0(0.f), f1(0.f) { }
@@ -45,10 +45,10 @@ public:
 
     struct PhaseLockBand {
         int p;
-        float beta;
-        float f0;
-        float f1;
-        PhaseLockBand(int _p, float _beta, float _f0, float _f1) :
+        double beta;
+        double f0;
+        double f1;
+        PhaseLockBand(int _p, double _beta, double _f0, double _f1) :
             p(_p), beta(_beta), f0(_f0), f1(_f1) { }
         PhaseLockBand() :
             p(0), beta(1.0), f0(0.f), f1(0.f) { }
@@ -56,9 +56,9 @@ public:
 
     struct Range {
         bool present;
-        float f0;
-        float f1;
-        Range(bool _present, float _f0, float _f1) :
+        double f0;
+        double f1;
+        Range(bool _present, double _f0, double _f1) :
             present(_present), f0(_f0), f1(_f1) { }
         Range() :
             present(false), f0(0.f), f1(0.f) { }
@@ -76,9 +76,9 @@ public:
 
     struct BandLimits {
         int fftSize;
-        float f0min;
-        float f1max;
-        BandLimits(int _fftSize, float _f0min, float _f1max) :
+        double f0min;
+        double f1max;
+        BandLimits(int _fftSize, double _f0min, double _f1max) :
             fftSize(_fftSize), f0min(_f0min), f1max(_f1max) { }
         BandLimits() :
             fftSize(0), f0min(0.f), f1max(0.f) { }
@@ -132,9 +132,9 @@ public:
     }
     
     void calculate(double ratio,
-                   const float *const magnitudes,
+                   const double *const magnitudes,
                    const int *const troughs,
-                   const float *const prevMagnitudes,
+                   const double *const prevMagnitudes,
                    const BinSegmenter::Segmentation &segmentation,
                    const BinSegmenter::Segmentation &prevSegmentation,
                    const BinSegmenter::Segmentation &nextSegmentation,
@@ -272,17 +272,17 @@ protected:
         return value;
     }
     
-    bool checkPotentialKick(const float *const magnitudes,
-                            const float *const prevMagnitudes) const {
+    bool checkPotentialKick(const double *const magnitudes,
+                            const double *const prevMagnitudes) const {
         int b = binForFrequency(200.0);
-        float here = 0.0, there = 0.0;
+        double here = 0.0, there = 0.0;
         for (int i = 1; i <= b; ++i) {
             here += magnitudes[i];
         }
         for (int i = 1; i <= b; ++i) {
             there += prevMagnitudes[i];
         }
-        return (here > 10.e-3f && here > there * 1.4f);
+        return (here > 10.e-3 && here > there * 1.4);
     }
 
     double snapToTrough(double f, const int *const troughs) const {
