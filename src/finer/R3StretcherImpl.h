@@ -57,64 +57,7 @@ public:
     
     R3StretcherImpl(Parameters parameters,
                     double initialTimeRatio,
-                    double initialPitchScale) :
-        m_parameters(parameters),
-        m_timeRatio(initialTimeRatio),
-        m_pitchScale(initialPitchScale),
-        m_guide(Guide::Parameters(m_parameters.sampleRate, parameters.logger)),
-        m_guideConfiguration(m_guide.getConfiguration()),
-        m_channelAssembly(m_parameters.channels),
-        m_troughPicker(m_guideConfiguration.classificationFftSize / 2 + 1),
-        m_inhop(1),
-        m_prevOuthop(1),
-        m_draining(false)
-    {
-        BinSegmenter::Parameters segmenterParameters
-            (m_guideConfiguration.classificationFftSize,
-             m_parameters.sampleRate);
-        BinClassifier::Parameters classifierParameters
-            (m_guideConfiguration.classificationFftSize / 2 + 1,
-             9, 1, 10, 2.0, 2.0, 1.0e-7);
-
-        int ringBufferSize = m_guideConfiguration.longestFftSize * 2;
-
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            m_channelData.push_back(std::make_shared<ChannelData>
-                                    (segmenterParameters,
-                                     classifierParameters,
-                                     ringBufferSize));
-            for (auto band: m_guideConfiguration.fftBandLimits) {
-                int fftSize = band.fftSize;
-                m_channelData[c]->scales[fftSize] =
-                    std::make_shared<ChannelScaleData>
-                    (fftSize, m_guideConfiguration.longestFftSize);
-            }
-        }
-        
-        for (auto band: m_guideConfiguration.fftBandLimits) {
-            int fftSize = band.fftSize;
-            GuidedPhaseAdvance::Parameters guidedParameters
-                (fftSize, m_parameters.sampleRate, m_parameters.channels,
-                 m_parameters.logger);
-            m_scaleData[fftSize] = std::make_shared<ScaleData>(guidedParameters);
-        }
-
-        m_calculator = std::unique_ptr<StretchCalculator>
-            (new StretchCalculator(int(round(m_parameters.sampleRate)), //!!! which is a double...
-                                   1, false)); // no fixed inputIncrement
-
-        Resampler::Parameters resamplerParameters;
-        resamplerParameters.quality = Resampler::FastestTolerable;
-        resamplerParameters.dynamism = Resampler::RatioOftenChanging;
-        resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
-        resamplerParameters.initialSampleRate = m_parameters.sampleRate;
-        resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize; //!!!???
-        m_resampler = std::unique_ptr<Resampler>
-            (new Resampler(resamplerParameters, m_parameters.channels));
-        
-        calculateHop();
-    }
-    
+                    double initialPitchScale);
     ~R3StretcherImpl() { }
 
     void reset();
@@ -189,20 +132,24 @@ protected:
         BinSegmenter::Segmentation prevSegmentation;
         BinSegmenter::Segmentation nextSegmentation;
         Guide::Guidance guidance;
-        FixedVector<double> mixdown;
+        FixedVector<float> mixdown;
+        FixedVector<float> resampled;
         std::unique_ptr<RingBuffer<float>> inbuf;
         std::unique_ptr<RingBuffer<float>> outbuf;
         ChannelData(BinSegmenter::Parameters segmenterParameters,
                     BinClassifier::Parameters classifierParameters,
-                    int ringBufferSize) :
+                    int longestFftSize,
+                    int inRingBufferSize,
+                    int outRingBufferSize) :
             scales(),
             readahead(segmenterParameters.fftSize),
             segmenter(new BinSegmenter(segmenterParameters,
                                        classifierParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
-            mixdown(ringBufferSize, 0.f), //!!! could be shorter (bound is the max fft size I think)
-            inbuf(new RingBuffer<float>(ringBufferSize)),
-            outbuf(new RingBuffer<float>(ringBufferSize)) { }
+            mixdown(longestFftSize, 0.f), // though it could be shorter
+            resampled(outRingBufferSize, 0.f),
+            inbuf(new RingBuffer<float>(inRingBufferSize)),
+            outbuf(new RingBuffer<float>(outRingBufferSize)) { }
     };
 
     struct ChannelAssembly {
@@ -212,9 +159,12 @@ protected:
         FixedVector<double *> phase;
         FixedVector<Guide::Guidance *> guidance;
         FixedVector<double *> outPhase;
+        FixedVector<float *> mixdown;
+        FixedVector<float *> resampled;
         ChannelAssembly(int channels) :
             mag(channels, nullptr), phase(channels, nullptr),
-            guidance(channels, nullptr), outPhase(channels, nullptr) { }
+            guidance(channels, nullptr), outPhase(channels, nullptr),
+            mixdown(channels, nullptr), resampled(channels, nullptr) { }
     };
 
     struct ScaleData {

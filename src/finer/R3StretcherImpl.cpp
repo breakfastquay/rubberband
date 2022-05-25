@@ -29,6 +29,69 @@
 
 namespace RubberBand {
 
+R3StretcherImpl::R3StretcherImpl(Parameters parameters,
+                                 double initialTimeRatio,
+                                 double initialPitchScale) :
+    m_parameters(parameters),
+    m_timeRatio(initialTimeRatio),
+    m_pitchScale(initialPitchScale),
+    m_guide(Guide::Parameters(m_parameters.sampleRate, parameters.logger)),
+    m_guideConfiguration(m_guide.getConfiguration()),
+    m_channelAssembly(m_parameters.channels),
+    m_troughPicker(m_guideConfiguration.classificationFftSize / 2 + 1),
+    m_inhop(1),
+    m_prevOuthop(1),
+    m_draining(false)
+{
+    BinSegmenter::Parameters segmenterParameters
+        (m_guideConfiguration.classificationFftSize,
+         m_parameters.sampleRate);
+    BinClassifier::Parameters classifierParameters
+        (m_guideConfiguration.classificationFftSize / 2 + 1,
+         9, 1, 10, 2.0, 2.0, 1.0e-7);
+
+    int inRingBufferSize = m_guideConfiguration.longestFftSize * 2;
+    int outRingBufferSize = m_guideConfiguration.longestFftSize * 16;
+
+    for (int c = 0; c < m_parameters.channels; ++c) {
+        m_channelData.push_back(std::make_shared<ChannelData>
+                                (segmenterParameters,
+                                 classifierParameters,
+                                 m_guideConfiguration.longestFftSize,
+                                 inRingBufferSize,
+                                 outRingBufferSize));
+        for (auto band: m_guideConfiguration.fftBandLimits) {
+            int fftSize = band.fftSize;
+            m_channelData[c]->scales[fftSize] =
+                std::make_shared<ChannelScaleData>
+                (fftSize, m_guideConfiguration.longestFftSize);
+        }
+    }
+        
+    for (auto band: m_guideConfiguration.fftBandLimits) {
+        int fftSize = band.fftSize;
+        GuidedPhaseAdvance::Parameters guidedParameters
+            (fftSize, m_parameters.sampleRate, m_parameters.channels,
+             m_parameters.logger);
+        m_scaleData[fftSize] = std::make_shared<ScaleData>(guidedParameters);
+    }
+
+    m_calculator = std::unique_ptr<StretchCalculator>
+        (new StretchCalculator(int(round(m_parameters.sampleRate)), //!!! which is a double...
+                               1, false)); // no fixed inputIncrement
+
+    Resampler::Parameters resamplerParameters;
+    resamplerParameters.quality = Resampler::FastestTolerable;
+    resamplerParameters.dynamism = Resampler::RatioOftenChanging;
+    resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+    resamplerParameters.initialSampleRate = m_parameters.sampleRate;
+    resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize; //!!!???
+    m_resampler = std::unique_ptr<Resampler>
+        (new Resampler(resamplerParameters, m_parameters.channels));
+        
+    calculateHop();
+}
+
 void
 R3StretcherImpl::setTimeRatio(double ratio)
 {
@@ -180,6 +243,7 @@ R3StretcherImpl::consume()
 {
     double ratio = getEffectiveRatio();
     int longest = m_guideConfiguration.longestFftSize;
+    int channels = m_parameters.channels;
 
     m_calculator->setDebugLevel(3);
     
@@ -213,7 +277,7 @@ R3StretcherImpl::consume()
 
         // Analysis
         
-        for (int c = 0; c < m_parameters.channels; ++c) {
+        for (int c = 0; c < channels; ++c) {
             analyseChannel(c, m_prevOuthop);
         }
 
@@ -221,7 +285,7 @@ R3StretcherImpl::consume()
         
         for (auto &it : m_channelData[0]->scales) {
             int fftSize = it.first;
-            for (int c = 0; c < m_parameters.channels; ++c) {
+            for (int c = 0; c < channels; ++c) {
                 auto &cd = m_channelData.at(c);
                 auto &scale = cd->scales.at(fftSize);
                 m_channelAssembly.mag[c] = scale->mag.data();
@@ -241,8 +305,45 @@ R3StretcherImpl::consume()
 
         // Resynthesis
         
-        for (int c = 0; c < m_parameters.channels; ++c) {
+        for (int c = 0; c < channels; ++c) {
             synthesiseChannel(c, outhop);
+        }
+
+        // Resample
+
+        int resampledCount = 0;
+        if (m_resampler) {
+            for (int c = 0; c < channels; ++c) {
+                auto &cd = m_channelData.at(c);
+                m_channelAssembly.mixdown[c] = cd->mixdown.data();
+                m_channelAssembly.resampled[c] = cd->resampled.data();
+            }
+            resampledCount = m_resampler->resample
+                (m_channelAssembly.resampled.data(),
+                 m_channelData[0]->resampled.size(),
+                 m_channelAssembly.mixdown.data(),
+                 outhop,
+                 1.0 / m_pitchScale,
+                 m_draining && readSpace < longest);
+        }
+
+        // Emit
+
+        for (int c = 0; c < channels; ++c) {
+            auto &cd = m_channelData.at(c);
+            if (m_resampler) {
+                cd->outbuf->write(cd->resampled.data(), resampledCount);
+            } else {
+                cd->outbuf->write(cd->mixdown.data(), outhop);
+            }
+        
+            int readSpace = cd->inbuf->getReadSpace();
+            if (readSpace < m_inhop) {
+                // This should happen only when draining
+                cd->inbuf->skip(readSpace);
+            } else {
+                cd->inbuf->skip(m_inhop);
+            }
         }
     }
 
@@ -496,34 +597,22 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
              scale->accumulator.data() + toOffset);
     }
 
-    // Mix and emit this channel
+    // Mix this channel and move the accumulator along
             
-    double *mixptr = cd->mixdown.data();
+    float *mixptr = cd->mixdown.data();
     v_zero(mixptr, outhop);
 
     for (auto &it : cd->scales) {
         auto &scale = it.second;
-        v_add(mixptr, scale->accumulator.data(), outhop);
-    }
 
-    cd->outbuf->write(mixptr, outhop);
-
-    for (auto &it : cd->scales) {
-        int fftSize = it.first;
-        auto &scale = it.second;
         double *accptr = scale->accumulator.data();
+        for (int i = 0; i < outhop; ++i) {
+            mixptr[i] += float(accptr[i]);
+        }
 
         int n = scale->accumulator.size() - outhop;
         v_move(accptr, accptr + outhop, n);
         v_zero(accptr + n, outhop);
-    }
-            
-    int readSpace = cd->inbuf->getReadSpace();
-    if (readSpace < m_inhop) {
-        // This should happen only when draining
-        cd->inbuf->skip(readSpace);
-    } else {
-        cd->inbuf->skip(m_inhop);
     }
 }
 
