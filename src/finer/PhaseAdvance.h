@@ -127,27 +127,10 @@ public:
                                                      nullptr);
             }
 
-            m_peakPicker.findNearestAndNextPeaks(m_prevInMag[c],
-                                                 lowest, highest - lowest + 1,
-                                                 2, m_prevPeaks[c],
-                                                 nullptr);
-            
-/*
-            static int counter = 0;
-            if (c == 0) {
-                if (++counter > 140 && counter < 150) {
-                    std::cout << "Magnitudes and peaks (fftSize = " <<  m_parameters.fftSize << "):" << std::endl;
-                    for (int i = 0; i < bs; ++i) {
-                        if (m_currentPeaks[c][i] == i) {
-                            std::cout << "*";
-                        }
-                        std::cout << mag[c][i] << ", ";
-                    }
-                    std::cout << std::endl;
-                }
-            }
-*/
-            
+//            m_peakPicker.findNearestAndNextPeaks(m_prevInMag[c],
+//                                                 lowest, highest - lowest + 1,
+//                                                 2, m_prevPeaks[c],
+//                                                 nullptr);
         }
 
         if (channels > 1) {
@@ -230,15 +213,10 @@ public:
                 m_prevOutPhase[c][i] = outPhase[c][i];
             }
         }
-
-        //!!! NB in the original we use a different value of p for
-        //!!! peak-picking the prior magnitudes - this isn't carried
-        //!!! over here - it is now but I don't think this was the
-        //!!! full cause of our burbling
         
-//        int **tmp = m_prevPeaks;
-//        m_prevPeaks = m_currentPeaks;
-//        m_currentPeaks = tmp;
+        int **tmp = m_prevPeaks;
+        m_prevPeaks = m_currentPeaks;
+        m_currentPeaks = tmp;
     }
 
 protected:
