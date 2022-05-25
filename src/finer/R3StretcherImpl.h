@@ -248,6 +248,8 @@ protected:
 
     void consume();
     void calculateHop();
+    void analyseChannel(int channel, int prevOuthop);
+    void synthesiseChannel(int channel, int outhop);
 
     double getEffectiveRatio() const {
         return m_timeRatio * m_pitchScale;
