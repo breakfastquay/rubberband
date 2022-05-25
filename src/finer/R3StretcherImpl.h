@@ -134,6 +134,21 @@ public:
     size_t getChannelCount() const;
     
 protected:
+    struct ClassificationReadaheadData {
+        FixedVector<double> timeDomain;
+        FixedVector<double> mag;
+        FixedVector<double> phase;
+        ClassificationReadaheadData(int _fftSize) :
+            timeDomain(_fftSize, 0.f),
+            mag(_fftSize/2 + 1, 0.f),
+            phase(_fftSize/2 + 1, 0.f)
+        { }
+
+    private:
+        ClassificationReadaheadData(const ClassificationReadaheadData &) =delete;
+        ClassificationReadaheadData &operator=(const ClassificationReadaheadData &) =delete;
+    };
+    
     struct ChannelScaleData {
         int fftSize;
         int bufSize; // size of every freq-domain array here: fftSize/2 + 1
@@ -143,10 +158,10 @@ protected:
         FixedVector<double> imag;
         FixedVector<double> mag;
         FixedVector<double> phase;
-        FixedVector<double> outPhase; //!!! "advanced"?
-        FixedVector<int> nextTroughs; //!!! not used in every scale
+        FixedVector<double> advancedPhase;
+        FixedVector<int> troughs; //!!! not used in every scale
         FixedVector<double> prevMag; //!!! not used in every scale
-        FixedVector<double> prevOutPhase;
+        FixedVector<double> prevAdvancedPhase;
         FixedVector<double> accumulator;
 
         ChannelScaleData(int _fftSize, int _longestFftSize) :
@@ -157,10 +172,10 @@ protected:
             imag(bufSize, 0.f),
             mag(bufSize, 0.f),
             phase(bufSize, 0.f),
-            outPhase(bufSize, 0.f),
-            nextTroughs(bufSize, 0),
+            advancedPhase(bufSize, 0.f),
+            troughs(bufSize, 0),
             prevMag(bufSize, 0.f),
-            prevOutPhase(bufSize, 0.f),
+            prevAdvancedPhase(bufSize, 0.f),
             accumulator(_longestFftSize, 0.f)
         { }
 
@@ -171,6 +186,7 @@ protected:
 
     struct ChannelData {
         std::map<int, std::shared_ptr<ChannelScaleData>> scales;
+        ClassificationReadaheadData readahead;
         std::unique_ptr<BinSegmenter> segmenter;
         BinSegmenter::Segmentation segmentation;
         BinSegmenter::Segmentation prevSegmentation;
@@ -183,6 +199,7 @@ protected:
                     BinClassifier::Parameters classifierParameters,
                     int ringBufferSize) :
             scales(),
+            readahead(segmenterParameters.fftSize),
             segmenter(new BinSegmenter(segmenterParameters,
                                        classifierParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
