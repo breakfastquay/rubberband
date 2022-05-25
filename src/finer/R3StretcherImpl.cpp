@@ -210,25 +210,30 @@ R3StretcherImpl::consume()
             }
         }
 
+        // Analysis. This is per channel
+        
         for (int c = 0; c < m_parameters.channels; ++c) {
 
             // Our ChannelData, ScaleData, and ChannelScaleData maps
-            // contain shared_ptrs; whenever we put one in a variable
-            // in here we should use a reference, to avoid copying the
-            // shared_ptr (which is not realtime safe). Same goes for
-            // the map iterators.
+            // contain shared_ptrs; whenever we retain one of them in
+            // a variable here, we do so by reference to avoid copying
+            // the shared_ptr (as that is not realtime safe). Same
+            // goes for the map iterators
             
             auto &cd = m_channelData.at(c);
             auto &longestScale = cd->scales.at(longest);
             double *buf = longestScale->timeDomain.data();
 
             if (readSpace < longest) {
-                v_zero(buf, longest);
                 cd->inbuf->peek(buf, readSpace);
+                v_zero(buf + readSpace, longest - readSpace);
             } else {
                 cd->inbuf->peek(buf, longest);
             }
 
+            // We have a single unwindowed frame at the longest FFT
+            // size ("scale"). Populate the shorter FFT sizes from the
+            // centre of it, windowing as we copy
             for (auto &it: cd->scales) {
                 int fftSize = it.first;
                 auto &scale = it.second;
@@ -238,28 +243,46 @@ R3StretcherImpl::consume()
                     (buf + offset, scale->timeDomain.data());
             }
 
+            // Then window the longest one
             m_scaleData.at(longest)->analysisWindow.cut(buf);
 
+            // FFT shift, forward FFT, and carry out cartesian-polar
+            // conversion for each FFT size
             for (auto &it: cd->scales) {
                 int fftSize = it.first;
                 auto &scale = it.second;
                 
                 v_fftshift(scale->timeDomain.data(), fftSize);
-                m_scaleData.at(fftSize)->fft.forward
+
+                if (fftSize == m_guideConfiguration.classificationFftSize) {
+
+                    // For the classification scale we need the full range
+                    m_scaleData.at(fftSize)->fft.forwardPolar
+                        (scale->timeDomain.data(),
+                         scale->mag.data(),
+                         scale->phase.data());
+
+                } else {
+
+                    // For other scales we only need do
+                    // cartesian-polar conversion for the necessary
+                    // frequency subset
+                    m_scaleData.at(fftSize)->fft.forward
                     (scale->timeDomain.data(),
                      scale->real.data(),
                      scale->imag.data());
                 
-                for (const auto &b : m_guideConfiguration.fftBandLimits) {
-                    if (b.fftSize == fftSize) {
-                        int offset = b.b0min;
-                        v_cartesian_to_polar
-                            (scale->mag.data() + offset,
-                             scale->phase.data() + offset,
-                             scale->real.data() + offset,
-                             scale->imag.data() + offset,
-                             b.b1max - offset);
-                        break;
+                    for (const auto &b : m_guideConfiguration.fftBandLimits) {
+                        if (b.fftSize == fftSize) {
+                            int offset = b.b0min;
+                            v_cartesian_to_polar
+                                (scale->mag.data() + offset,
+                                 scale->phase.data() + offset,
+                                 scale->real.data() + offset,
+                                 scale->imag.data() + offset,
+                                 b.b1max - offset);
+                            break;
+                        }
                     }
                 }
                 
@@ -267,6 +290,9 @@ R3StretcherImpl::consume()
                         scale->mag.size());
             }
 
+            // Use the classification scale to get a bin segmentation
+            // and calculate the adaptive frequency guide for this
+            // channel
             auto &classifyScale = cd->scales.at(classify);
             cd->prevSegmentation = cd->segmentation;
             cd->segmentation =
@@ -284,6 +310,8 @@ R3StretcherImpl::consume()
                               cd->guidance);
         }
 
+        // Phase update. This is synchronised across all channels
+        
         for (auto &it : m_channelData[0]->scales) {
             int fftSize = it.first;
             for (int c = 0; c < m_parameters.channels; ++c) {
@@ -304,6 +332,8 @@ R3StretcherImpl::consume()
                  outhop);
         }
 
+        // Resynthesis. This is per channel
+        
         for (int c = 0; c < m_parameters.channels; ++c) {
 
             auto &cd = m_channelData.at(c);
@@ -333,7 +363,11 @@ R3StretcherImpl::consume()
                         scaleData->synthesisWindow.getValue(i);
                 }
                 winscale = double(outhop) / winscale;
-                    
+
+                // The frequency filter is applied naively in the
+                // frequency domain. Aliasing is reduced by the
+                // shorter resynthesis window
+                
                 double factor = m_parameters.sampleRate / double(fftSize);
                 for (int i = 0; i < fftSize/2 + 1; ++i) {
                     double f = double(i) * factor;
@@ -345,7 +379,11 @@ R3StretcherImpl::consume()
                     }
                 }
             }
-                
+
+            // Resynthesise each FFT size (scale) individually, then
+            // sum. This is easier to manage scaling for in situations
+            // with a varying resynthesis hop
+            
             for (auto &it : cd->scales) {
                 int fftSize = it.first;
                 auto &scale = it.second;
@@ -372,6 +410,13 @@ R3StretcherImpl::consume()
 
                 v_fftshift(scale->timeDomain.data(), fftSize);
 
+                // Synthesis window is shorter than analysis window,
+                // so copy and cut only from the middle of the
+                // time-domain frame; and the accumulator length
+                // always matches the longest FFT size, so as to make
+                // mixing straightforward, so there is an additional
+                // offset needed for the target
+                
                 int synthesisWindowSize = scaleData->synthesisWindow.getSize();
                 int fromOffset = (fftSize - synthesisWindowSize) / 2;
                 int toOffset = (m_guideConfiguration.longestFftSize -
@@ -381,6 +426,8 @@ R3StretcherImpl::consume()
                     (scale->timeDomain.data() + fromOffset,
                      scale->accumulator.data() + toOffset);
             }
+
+            // Mix and emit this channel
             
             double *mixptr = cd->mixdown.data();
             v_zero(mixptr, outhop);
