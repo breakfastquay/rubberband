@@ -48,18 +48,23 @@ public:
     
     GuidedPhaseAdvance(Parameters parameters) :
         m_parameters(parameters),
-        m_blockSize(parameters.fftSize / 2 + 1),
-        m_peakPicker(m_blockSize),
+        m_binCount(parameters.fftSize / 2 + 1),
+        m_peakPicker(m_binCount),
         m_reported(false) {
         size_t ch = m_parameters.channels;
-        m_currentPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
-        m_prevPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
-        m_greatestChannel = allocate_and_zero<int>(m_blockSize);
-        //!!! there is also a prevMag in R3StretcherImpl which could be passed in to here instead
-        m_prevInMag = allocate_and_zero_channels<double>(ch, m_blockSize);
-        m_prevInPhase = allocate_and_zero_channels<double>(ch, m_blockSize);
-        m_prevOutPhase = allocate_and_zero_channels<double>(ch, m_blockSize);
-        m_unlocked = allocate_and_zero_channels<double>(ch, m_blockSize);
+        m_currentPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
+        m_prevPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
+        m_greatestChannel = allocate_and_zero<int>(m_binCount);
+        m_prevInMag = allocate_and_zero_channels<double>(ch, m_binCount);
+        m_prevInPhase = allocate_and_zero_channels<double>(ch, m_binCount);
+        m_prevOutPhase = allocate_and_zero_channels<double>(ch, m_binCount);
+        m_unlocked = allocate_and_zero_channels<double>(ch, m_binCount);
+
+        for (int c = 0; c < ch; ++c) {
+            for (int i = 0; i < m_binCount; ++i) {
+                m_prevPeaks[c][i] = i;
+            }
+        }
     }
 
     ~GuidedPhaseAdvance() {
@@ -221,7 +226,7 @@ public:
 
 protected:
     Parameters m_parameters;
-    int m_blockSize;
+    int m_binCount;
     Peak<double> m_peakPicker;
     int **m_currentPeaks;
     int **m_prevPeaks;
