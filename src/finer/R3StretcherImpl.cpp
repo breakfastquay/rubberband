@@ -399,9 +399,6 @@ R3StretcherImpl::consume()
                 v_copy(scale->prevMag.data(),
                        scale->mag.data(),
                        bufSize);
-                v_copy(scale->prevAdvancedPhase.data(),
-                       scale->advancedPhase.data(),
-                       bufSize);
             }
         
             for (const auto &band : cd->guidance.fftBands) {

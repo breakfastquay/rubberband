@@ -152,16 +152,14 @@ protected:
     struct ChannelScaleData {
         int fftSize;
         int bufSize; // size of every freq-domain array here: fftSize/2 + 1
-        //!!! review later which of these we are actually using!
         FixedVector<double> timeDomain;
         FixedVector<double> real;
         FixedVector<double> imag;
         FixedVector<double> mag;
         FixedVector<double> phase;
         FixedVector<double> advancedPhase;
-        FixedVector<int> troughs; //!!! not used in every scale
-        FixedVector<double> prevMag; //!!! not used in every scale
-        FixedVector<double> prevAdvancedPhase;
+        FixedVector<int> troughs;
+        FixedVector<double> prevMag;
         FixedVector<double> accumulator;
 
         ChannelScaleData(int _fftSize, int _longestFftSize) :
@@ -175,7 +173,6 @@ protected:
             advancedPhase(bufSize, 0.f),
             troughs(bufSize, 0),
             prevMag(bufSize, 0.f),
-            prevAdvancedPhase(bufSize, 0.f),
             accumulator(_longestFftSize, 0.f)
         { }
 
