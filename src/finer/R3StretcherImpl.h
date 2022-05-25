@@ -168,15 +168,35 @@ protected:
     };
 
     struct ScaleData {
+        int fftSize;
         FFT fft;
         Window<double> analysisWindow;
         Window<double> synthesisWindow;
         GuidedPhaseAdvance guided;
         ScaleData(GuidedPhaseAdvance::Parameters guidedParameters) :
-            fft(guidedParameters.fftSize),
-            analysisWindow(HannWindow, guidedParameters.fftSize),
-            synthesisWindow(HannWindow, guidedParameters.fftSize/2),
+            fftSize(guidedParameters.fftSize),
+            fft(fftSize),
+            analysisWindow(analysisWindowShape(fftSize),
+                           analysisWindowLength(fftSize)),
+            synthesisWindow(synthesisWindowShape(fftSize),
+                            synthesisWindowLength(fftSize)),
             guided(guidedParameters) { }
+
+        WindowType analysisWindowShape(int fftSize) {
+            if (fftSize == 4096) return HannWindow;
+            else return NiemitaloForwardWindow;
+        }
+        int analysisWindowLength(int fftSize) {
+            return fftSize;
+        }
+        WindowType synthesisWindowShape(int fftSize) {
+            if (fftSize == 4096) return HannWindow;
+            else return NiemitaloReverseWindow;
+        }
+        int synthesisWindowLength(int fftSize) {
+            if (fftSize == 4096) return fftSize/2;
+            else return fftSize;
+        }
     };
     
     Parameters m_parameters;

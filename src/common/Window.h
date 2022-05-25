@@ -28,6 +28,8 @@
 #include <cstdlib>
 #include <map>
 
+#include <iostream>
+
 #include "sysutils.h"
 #include "VectorOps.h"
 #include "Allocators.h"
@@ -43,7 +45,9 @@ enum WindowType {
     GaussianWindow,
     ParzenWindow,
     NuttallWindow,
-    BlackmanHarrisWindow
+    BlackmanHarrisWindow,
+    NiemitaloForwardWindow,
+    NiemitaloReverseWindow
 };
 
 template <typename T>
@@ -178,6 +182,67 @@ void Window<T>::encache()
     case BlackmanHarrisWindow:
         cosinewin(m_cache, 0.35875, 0.48829, 0.14128, 0.01168);
         break;
+
+    case NiemitaloForwardWindow:
+    case NiemitaloReverseWindow:
+    {
+        /* Interesting asymmetric window proposed by Olli Niemitalo.
+           https://dsp.stackexchange.com/questions/2337/fft-with-asymmetric-windowing
+           (Olli also writes "I cross-license all of my code and
+           images in Stack Exchange under CC0 1.0" -
+           https://dsp.stackexchange.com/users/15347/olli-niemitalo)
+        */        
+        int quarter = n/4;
+        int eighth = n/8;
+        int k = 0;
+        for (int i = 0; i < n - eighth - quarter; ++i) {
+            T x = 2.0 * M_PI *
+                (((T(k + quarter) + 0.5) / T(n)) - 1.75);
+            m_cache[k++] =
+                2.57392230162633461887
+                - 1.58661480271141974718 * cos(x)
+                + 3.80257516644523141380 * sin(x)
+                - 1.93437090055110760822 * cos(2.0 * x)
+                - 3.27163999159752183488 * sin(2.0 * x)
+                + 3.26617449847621266201 * cos(3.0 * x)
+                - 0.30335261753524439543 * sin(3.0 * x)
+                - 0.92126091064427817479 * cos(4.0 * x)
+                + 2.33100177294084742741 * sin(4.0 * x)
+                - 1.19953922321306438725 * cos(5.0 * x)
+                - 1.25098147932225423062 * sin(5.0 * x)
+                + 0.99132076607048635886 * cos(6.0 * x)
+                - 0.34506787787355830410 * sin(6.0 * x)
+                - 0.04028033685700077582 * cos(7.0 * x)
+                + 0.55461815542612269425 * sin(7.0 * x)
+                - 0.21882110175036428856 * cos(8.0 * x)
+                - 0.10756484378756643594 * sin(8.0 * x)
+                + 0.06025986430527170007 * cos(9.0 * x)
+                - 0.05777077835678736534 * sin(9.0 * x)
+                + 0.00920984524892982936 * cos(10.0 * x)
+                + 0.01501989089735343216 * sin(10.0 * x);
+            std::cerr << k << "," << m_cache[k-1] << std::endl;
+        }
+        for (int i = 0; i < eighth; ++i) {
+            int j = eighth - 1 - i;
+            m_cache[k++] =
+                (1.0 - m_cache[n/2 - 1 - j] * m_cache[n/2 + j]) /
+                m_cache[n/4 + j];
+            std::cerr << k << "," << m_cache[k-1] << std::endl;
+        }
+        for (int i = 0; i < quarter; ++i) {
+            m_cache[k++] = 0.0;
+            std::cerr << k << "," << m_cache[k-1] << std::endl;
+        }
+
+        if (m_type == NiemitaloReverseWindow) {
+            for (int i = 0; i < n/2; ++i) {
+                T tmp = m_cache[i];
+                m_cache[i] = m_cache[n - i - 1];
+                m_cache[n - i - 1] = tmp;
+            }
+        }
+    }
+    
     }
 	
     m_area = 0;
