@@ -92,6 +92,13 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     calculateHop();
 
     m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
+
+    if (!m_inhop.is_lock_free()) {
+        m_parameters.logger("WARNING: std::atomic<int> is not lock-free");
+    }
+    if (!m_timeRatio.is_lock_free()) {
+        m_parameters.logger("WARNING: std::atomic<double> is not lock-free");
+    }
 }
 
 void
@@ -113,19 +120,19 @@ R3StretcherImpl::calculateHop()
 {
     double ratio = getEffectiveRatio();
     double proposedOuthop = 256;
+    double inhop = 1.0;
     
     if (ratio > 1.0) {
-        double inhop = proposedOuthop / ratio;
+        inhop = proposedOuthop / ratio;
         if (inhop < 1.0) {
             m_parameters.logger("WARNING: Extreme ratio yields ideal inhop < 1, results may be suspect");
-            m_inhop = 1;
-        } else {
-            m_inhop = int(round(inhop));
+            inhop = 1.0;
         }
     } else {
-        double inhop = std::min(proposedOuthop / ratio, 340.0);
-        m_inhop = int(round(inhop));
+        inhop = std::min(proposedOuthop / ratio, 340.0);
     }
+
+    m_inhop = int(round(inhop));
 }
 
 double
@@ -237,19 +244,21 @@ void
 R3StretcherImpl::consume()
 {
     double ratio = getEffectiveRatio();
+    int inhop = m_inhop;
+    
     int longest = m_guideConfiguration.longestFftSize;
     int channels = m_parameters.channels;
 
-    m_calculator->setDebugLevel(3);
+//    m_calculator->setDebugLevel(3);
     
     int outhop = m_calculator->calculateSingle(ratio,
                                                1.0 / m_pitchScale,
                                                1.f,
-                                               m_inhop,
+                                               inhop,
                                                longest,
                                                longest);
 
-    std::cout << "outhop = " << outhop << std::endl;
+//    std::cout << "outhop = " << outhop << std::endl;
 
     while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
 
@@ -273,7 +282,7 @@ R3StretcherImpl::consume()
         // Analysis
         
         for (int c = 0; c < channels; ++c) {
-            analyseChannel(c, m_prevOuthop);
+            analyseChannel(c, inhop, m_prevOuthop);
         }
 
         // Phase update. This is synchronised across all channels
@@ -294,7 +303,7 @@ R3StretcherImpl::consume()
                  m_channelAssembly.phase.data(),
                  m_guideConfiguration,
                  m_channelAssembly.guidance.data(),
-                 m_inhop,
+                 inhop,
                  outhop);
         }
 
@@ -333,11 +342,11 @@ R3StretcherImpl::consume()
             }
         
             int readSpace = cd->inbuf->getReadSpace();
-            if (readSpace < m_inhop) {
+            if (readSpace < inhop) {
                 // This should happen only when draining
                 cd->inbuf->skip(readSpace);
             } else {
-                cd->inbuf->skip(m_inhop);
+                cd->inbuf->skip(inhop);
             }
         }
     }
@@ -346,7 +355,7 @@ R3StretcherImpl::consume()
 }
 
 void
-R3StretcherImpl::analyseChannel(int c, int prevOuthop)
+R3StretcherImpl::analyseChannel(int c, int inhop, int prevOuthop)
 {
     int longest = m_guideConfiguration.longestFftSize;
     int classify = m_guideConfiguration.classificationFftSize;
@@ -377,16 +386,18 @@ R3StretcherImpl::analyseChannel(int c, int prevOuthop)
             (buf + offset, it.second->timeDomain.data());
     }
 
-    // The classification scale has a one-hop readahead (note
-    // that inhop is fixed), so populate its current data from
-    // the readahead and the readahead from further down the
-    // long unwindowed frame.
+    // The classification scale has a one-hop readahead, so populate
+    // its current data from the readahead and the readahead from
+    // further down the long unwindowed frame.
+
+    //!!! (This causes us to get out of sync when inhop changes - is
+    //!!! it better to vary outhop?)
 
     auto &classifyScale = cd->scales.at(classify);
     ClassificationReadaheadData &readahead = cd->readahead;
 
     m_scaleData.at(classify)->analysisWindow.cut
-        (buf + (longest - classify) / 2 + m_inhop,
+        (buf + (longest - classify) / 2 + inhop,
          readahead.timeDomain.data());
             
     // Finally window the longest scale
@@ -485,7 +496,7 @@ R3StretcherImpl::analyseChannel(int c, int prevOuthop)
         (classifyScale->mag.data(), 3, nullptr,
          classifyScale->troughs.data());
             
-    double instantaneousRatio = double(prevOuthop) / double(m_inhop);
+    double instantaneousRatio = double(prevOuthop) / double(inhop);
     m_guide.calculate(instantaneousRatio,
                       classifyScale->mag.data(),
                       classifyScale->troughs.data(),

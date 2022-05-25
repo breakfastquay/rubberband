@@ -181,8 +181,8 @@ protected:
     
     Parameters m_parameters;
 
-    double m_timeRatio;
-    double m_pitchScale;
+    std::atomic<double> m_timeRatio;
+    std::atomic<double> m_pitchScale;
     
     std::vector<std::shared_ptr<ChannelData>> m_channelData;
     std::map<int, std::shared_ptr<ScaleData>> m_scaleData;
@@ -192,13 +192,13 @@ protected:
     Peak<double, std::less<double>> m_troughPicker;
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
-    int m_inhop;
+    std::atomic<int> m_inhop;
     int m_prevOuthop;
     bool m_draining;
 
     void consume();
     void calculateHop();
-    void analyseChannel(int channel, int prevOuthop);
+    void analyseChannel(int channel, int inhop, int prevOuthop);
     void synthesiseChannel(int channel, int outhop);
 
     double getEffectiveRatio() const {
