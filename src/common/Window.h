@@ -28,8 +28,6 @@
 #include <cstdlib>
 #include <map>
 
-#include <iostream>
-
 #include "sysutils.h"
 #include "VectorOps.h"
 #include "Allocators.h"
@@ -220,18 +218,15 @@ void Window<T>::encache()
                 - 0.05777077835678736534 * sin(9.0 * x)
                 + 0.00920984524892982936 * cos(10.0 * x)
                 + 0.01501989089735343216 * sin(10.0 * x);
-            std::cerr << k << "," << m_cache[k-1] << std::endl;
         }
         for (int i = 0; i < eighth; ++i) {
             int j = eighth - 1 - i;
             m_cache[k++] =
                 (1.0 - m_cache[n/2 - 1 - j] * m_cache[n/2 + j]) /
                 m_cache[n/4 + j];
-            std::cerr << k << "," << m_cache[k-1] << std::endl;
         }
         for (int i = 0; i < quarter; ++i) {
             m_cache[k++] = 0.0;
-            std::cerr << k << "," << m_cache[k-1] << std::endl;
         }
 
         if (m_type == NiemitaloReverseWindow) {
