@@ -90,6 +90,8 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
         (new Resampler(resamplerParameters, m_parameters.channels));
         
     calculateHop();
+
+    m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
 }
 
 void
@@ -124,13 +126,6 @@ R3StretcherImpl::calculateHop()
         double inhop = std::min(proposedOuthop / ratio, 340.0);
         m_inhop = int(round(inhop));
     }
-
-    m_prevOuthop = int(round(m_inhop * ratio));
-    
-    std::ostringstream str;
-    str << "R3StretcherImpl::calculateHop: for effective ratio " << ratio
-        << " calculated (typical) inhop of " << m_inhop << std::endl;
-    m_parameters.logger(str.str());
 }
 
 double
