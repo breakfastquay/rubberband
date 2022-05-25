@@ -51,7 +51,7 @@ public:
         int channels;
         std::function<void(const std::string &)> logger;
         Parameters(double _sampleRate, int _channels,
-                   std::function<void(const std::string &)> _log = &logCerr) :
+                   std::function<void(const std::string &)> _log = &logCout) :
             sampleRate(_sampleRate), channels(_channels), logger(_log) { }
     };
     
@@ -205,8 +205,8 @@ protected:
         return m_timeRatio * m_pitchScale;
     }
     
-    static void logCerr(const std::string &message) {
-        std::cerr << "RubberBandStretcher: " << message << std::endl;
+    static void logCout(const std::string &message) {
+        std::cout << "RubberBandStretcher: " << message << std::endl;
     }
 };
 
