@@ -597,12 +597,13 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         // The frequency filter is applied naively in the frequency
         // domain. Aliasing is reduced by the shorter resynthesis
         // window
-                
-        double factor = m_parameters.sampleRate / double(fftSize);
+
+        int lowBin = int(floor(fftSize * band.f0 / m_parameters.sampleRate));
+        int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
+        if (highBin % 2 == 1) --highBin;
+        
         for (int i = 0; i < fftSize/2 + 1; ++i) {
-            double f = double(i) * factor;
-            if (f >= band.f0 && f < band.f1) {
-                //!!! check the mod 2 bit from stretch-fn
+            if (i >= lowBin && i < highBin) {
                 scale->mag[i] *= winscale;
             } else {
                 scale->mag[i] = 0.f;
