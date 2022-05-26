@@ -48,18 +48,23 @@ public:
     
     GuidedPhaseAdvance(Parameters parameters) :
         m_parameters(parameters),
-        m_blockSize(parameters.fftSize / 2 + 1),
-        m_peakPicker(m_blockSize),
+        m_binCount(parameters.fftSize / 2 + 1),
+        m_peakPicker(m_binCount),
         m_reported(false) {
         size_t ch = m_parameters.channels;
-        m_currentPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
-        m_prevPeaks = allocate_and_zero_channels<int>(ch, m_blockSize);
-        m_greatestChannel = allocate_and_zero<int>(m_blockSize);
-        //!!! there is also a prevMag in R3StretcherImpl which could be passed in to here instead
-        m_prevInMag = allocate_and_zero_channels<double>(ch, m_blockSize);
-        m_prevInPhase = allocate_and_zero_channels<double>(ch, m_blockSize);
-        m_prevOutPhase = allocate_and_zero_channels<double>(ch, m_blockSize);
-        m_unlocked = allocate_and_zero_channels<double>(ch, m_blockSize);
+        m_currentPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
+        m_prevPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
+        m_greatestChannel = allocate_and_zero<int>(m_binCount);
+        m_prevInMag = allocate_and_zero_channels<double>(ch, m_binCount);
+        m_prevInPhase = allocate_and_zero_channels<double>(ch, m_binCount);
+        m_prevOutPhase = allocate_and_zero_channels<double>(ch, m_binCount);
+        m_unlocked = allocate_and_zero_channels<double>(ch, m_binCount);
+
+        for (int c = 0; c < ch; ++c) {
+            for (int i = 0; i < m_binCount; ++i) {
+                m_prevPeaks[c][i] = i;
+            }
+        }
     }
 
     ~GuidedPhaseAdvance() {
@@ -127,27 +132,10 @@ public:
                                                      nullptr);
             }
 
-            m_peakPicker.findNearestAndNextPeaks(m_prevInMag[c],
-                                                 lowest, highest - lowest + 1,
-                                                 2, m_prevPeaks[c],
-                                                 nullptr);
-            
-/*
-            static int counter = 0;
-            if (c == 0) {
-                if (++counter > 140 && counter < 150) {
-                    std::cout << "Magnitudes and peaks (fftSize = " <<  m_parameters.fftSize << "):" << std::endl;
-                    for (int i = 0; i < bs; ++i) {
-                        if (m_currentPeaks[c][i] == i) {
-                            std::cout << "*";
-                        }
-                        std::cout << mag[c][i] << ", ";
-                    }
-                    std::cout << std::endl;
-                }
-            }
-*/
-            
+//            m_peakPicker.findNearestAndNextPeaks(m_prevInMag[c],
+//                                                 lowest, highest - lowest + 1,
+//                                                 2, m_prevPeaks[c],
+//                                                 nullptr);
         }
 
         if (channels > 1) {
@@ -230,20 +218,15 @@ public:
                 m_prevOutPhase[c][i] = outPhase[c][i];
             }
         }
-
-        //!!! NB in the original we use a different value of p for
-        //!!! peak-picking the prior magnitudes - this isn't carried
-        //!!! over here - it is now but I don't think this was the
-        //!!! full cause of our burbling
         
-//        int **tmp = m_prevPeaks;
-//        m_prevPeaks = m_currentPeaks;
-//        m_currentPeaks = tmp;
+        int **tmp = m_prevPeaks;
+        m_prevPeaks = m_currentPeaks;
+        m_currentPeaks = tmp;
     }
 
 protected:
     Parameters m_parameters;
-    int m_blockSize;
+    int m_binCount;
     Peak<double> m_peakPicker;
     int **m_currentPeaks;
     int **m_prevPeaks;

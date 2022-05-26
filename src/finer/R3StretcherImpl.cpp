@@ -415,12 +415,12 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         cd->inbuf->peek(buf, longest);
     }
     
-    // We have a single unwindowed frame at the longest FFT
-    // size ("scale"). Populate the shorter FFT sizes from the
-    // centre of it, windowing as we copy. The classification
-    // scale is handled separately because it has readahead,
-    // so skip it here as well as the longest. (In practice
-    // this means we are probably only populating one scale)
+    // We have a single unwindowed frame at the longest FFT size
+    // ("scale"). Populate the shorter FFT sizes from the centre of
+    // it, windowing as we copy. The classification scale is handled
+    // separately because it has readahead, so skip it here as well as
+    // the longest. (In practice this means we are probably only
+    // populating one scale)
 
     for (auto &it: cd->scales) {
         int fftSize = it.first;
@@ -539,9 +539,8 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         }
     }
 
-    // Use the classification scale to get a bin segmentation
-    // and calculate the adaptive frequency guide for this
-    // channel
+    // Use the classification scale to get a bin segmentation and
+    // calculate the adaptive frequency guide for this channel
     cd->prevSegmentation = cd->segmentation;
     cd->segmentation = cd->nextSegmentation;
     cd->nextSegmentation = cd->segmenter->segment(readahead.mag.data());
@@ -595,9 +594,9 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         }
         winscale = double(outhop) / winscale;
 
-        // The frequency filter is applied naively in the
-        // frequency domain. Aliasing is reduced by the
-        // shorter resynthesis window
+        // The frequency filter is applied naively in the frequency
+        // domain. Aliasing is reduced by the shorter resynthesis
+        // window
                 
         double factor = m_parameters.sampleRate / double(fftSize);
         for (int i = 0; i < fftSize/2 + 1; ++i) {
@@ -611,9 +610,9 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         }
     }
 
-    // Resynthesise each FFT size (scale) individually, then
-    // sum. This is easier to manage scaling for in situations
-    // with a varying resynthesis hop
+    // Resynthesise each FFT size (scale) individually, then sum. This
+    // is easier to manage scaling for in situations with a varying
+    // resynthesis hop
             
     for (auto &it : cd->scales) {
         int fftSize = it.first;
@@ -641,12 +640,11 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
 
         v_fftshift(scale->timeDomain.data(), fftSize);
 
-        // Synthesis window is shorter than analysis window,
-        // so copy and cut only from the middle of the
-        // time-domain frame; and the accumulator length
-        // always matches the longest FFT size, so as to make
-        // mixing straightforward, so there is an additional
-        // offset needed for the target
+        // Synthesis window may be shorter than analysis window, so
+        // copy and cut only from the middle of the time-domain frame;
+        // and the accumulator length always matches the longest FFT
+        // size, so as to make mixing straightforward, so there is an
+        // additional offset needed for the target
                 
         int synthesisWindowSize = scaleData->synthesisWindow.getSize();
         int fromOffset = (fftSize - synthesisWindowSize) / 2;
