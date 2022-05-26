@@ -499,6 +499,11 @@ int main(int argc, char **argv)
     }
 
     RubberBandStretcher::Options options = 0;
+
+    //!!!
+    cerr << "\n\n\n\n\n*** WARNING - THIS IS A TEST VERSION ONLY\n\n\n\n\n" << endl;
+    options = RubberBandStretcher::OptionEngineFiner;
+    
     if (realtime)    options |= RubberBandStretcher::OptionProcessRealTime;
     if (!lamination) options |= RubberBandStretcher::OptionPhaseIndependent;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;

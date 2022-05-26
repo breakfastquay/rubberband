@@ -231,9 +231,8 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
         m_parameters.logger("R3StretcherImpl::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called or process is being called repeatedly without retrieve.");
         size_t newSize = m_channelData[0]->inbuf->getSize() - ws + samples;
         for (int c = 0; c < m_parameters.channels; ++c) {
-            m_channelData[c]->inbuf =
-                std::unique_ptr<RingBuffer<float>>
-                (m_channelData[c]->inbuf->resized(newSize));
+            auto newBuf = m_channelData[c]->inbuf->resized(newSize);
+            m_channelData[c]->inbuf = std::unique_ptr<RingBuffer<float>>(newBuf);
         }
     }
 
