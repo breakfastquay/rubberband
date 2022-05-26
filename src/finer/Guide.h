@@ -119,7 +119,6 @@ public:
         m_maxLower(1100.0), m_maxHigher(7000.0)
     {
         double rate = m_parameters.sampleRate;
-        double nyquist = rate / 2.0;
 
         int bandFftSize = roundUp(int(ceil(rate/16.0)));
         m_configuration.fftBandLimits[0] =

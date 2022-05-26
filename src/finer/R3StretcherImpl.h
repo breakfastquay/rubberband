@@ -182,21 +182,10 @@ protected:
                             synthesisWindowLength(fftSize)),
             guided(guidedParameters) { }
 
-        WindowType analysisWindowShape(int fftSize) {
-            if (fftSize == 4096) return HannWindow;
-            else return NiemitaloForwardWindow;
-        }
-        int analysisWindowLength(int fftSize) {
-            return fftSize;
-        }
-        WindowType synthesisWindowShape(int fftSize) {
-            if (fftSize == 4096) return HannWindow;
-            else return NiemitaloReverseWindow;
-        }
-        int synthesisWindowLength(int fftSize) {
-            if (fftSize == 4096) return fftSize/2;
-            else return fftSize;
-        }
+        WindowType analysisWindowShape(int fftSize);
+        int analysisWindowLength(int fftSize);
+        WindowType synthesisWindowShape(int fftSize);
+        int synthesisWindowLength(int fftSize);
     };
     
     Parameters m_parameters;
@@ -213,12 +202,13 @@ protected:
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
     std::atomic<int> m_inhop;
+    int m_prevInhop;
     int m_prevOuthop;
     bool m_draining;
 
     void consume();
     void calculateHop();
-    void analyseChannel(int channel, int inhop, int prevOuthop);
+    void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
     void synthesiseChannel(int channel, int outhop);
 
     double getEffectiveRatio() const {

@@ -91,6 +91,7 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
         
     calculateHop();
 
+    m_prevInhop = m_inhop;
     m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
 
     if (!m_inhop.is_lock_free()) {
@@ -99,6 +100,36 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     if (!m_timeRatio.is_lock_free()) {
         m_parameters.logger("WARNING: std::atomic<double> is not lock-free");
     }
+}
+
+WindowType
+R3StretcherImpl::ScaleData::analysisWindowShape(int fftSize)
+{
+//!!!    return HannWindow;
+    if (fftSize == 4096) return HannWindow;
+    else return NiemitaloForwardWindow;
+}
+
+int
+R3StretcherImpl::ScaleData::analysisWindowLength(int fftSize)
+{
+    return fftSize;
+}
+
+WindowType
+R3StretcherImpl::ScaleData::synthesisWindowShape(int fftSize)
+{
+//!!!    return HannWindow;
+    if (fftSize == 4096) return HannWindow;
+    else return NiemitaloReverseWindow;
+}
+
+int
+R3StretcherImpl::ScaleData::synthesisWindowLength(int fftSize)
+{
+//!!!    return fftSize/2;
+    if (fftSize == 4096) return fftSize/2;
+    else return fftSize;
 }
 
 void
@@ -133,6 +164,8 @@ R3StretcherImpl::calculateHop()
     }
 
     m_inhop = int(round(inhop));
+
+    std::cout << "R3StretcherImpl::calculateHop: inhop " << m_inhop << ", mean outhop " << m_inhop * ratio << std::endl;
 }
 
 double
@@ -168,6 +201,7 @@ R3StretcherImpl::reset()
 size_t
 R3StretcherImpl::getSamplesRequired() const
 {
+    if (available() != 0) return 0;
     int longest = m_guideConfiguration.longestFftSize;
     size_t rs = m_channelData[0]->inbuf->getReadSpace();
     if (rs < longest) {
@@ -260,6 +294,15 @@ R3StretcherImpl::consume()
 
 //    std::cout << "outhop = " << outhop << std::endl;
 
+    if (inhop != m_prevInhop) {
+        std::cout << "Note: inhop has changed from " << m_prevInhop
+                  << " to " << inhop << std::endl;
+    }
+    if (outhop != m_prevOuthop) {
+        std::cout << "Note: outhop has changed from " << m_prevOuthop
+                  << " to " << outhop << std::endl;
+    }
+    
     while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
 
         // NB our ChannelData, ScaleData, and ChannelScaleData maps
@@ -282,7 +325,7 @@ R3StretcherImpl::consume()
         // Analysis
         
         for (int c = 0; c < channels; ++c) {
-            analyseChannel(c, inhop, m_prevOuthop);
+            analyseChannel(c, inhop, m_prevInhop, m_prevOuthop);
         }
 
         // Phase update. This is synchronised across all channels
@@ -303,7 +346,7 @@ R3StretcherImpl::consume()
                  m_channelAssembly.phase.data(),
                  m_guideConfiguration,
                  m_channelAssembly.guidance.data(),
-                 inhop,
+                 m_prevInhop, //!!! or inhop?
                  outhop);
         }
 
@@ -351,11 +394,12 @@ R3StretcherImpl::consume()
         }
     }
 
+    m_prevInhop = inhop;
     m_prevOuthop = outhop;
 }
 
 void
-R3StretcherImpl::analyseChannel(int c, int inhop, int prevOuthop)
+R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 {
     int longest = m_guideConfiguration.longestFftSize;
     int classify = m_guideConfiguration.classificationFftSize;
@@ -387,11 +431,7 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevOuthop)
     }
 
     // The classification scale has a one-hop readahead, so populate
-    // its current data from the readahead and the readahead from
-    // further down the long unwindowed frame.
-
-    //!!! (This causes us to get out of sync when inhop changes - is
-    //!!! it better to vary outhop?)
+    // the readahead from further down the long unwindowed frame.
 
     auto &classifyScale = cd->scales.at(classify);
     ClassificationReadaheadData &readahead = cd->readahead;
@@ -399,6 +439,17 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevOuthop)
     m_scaleData.at(classify)->analysisWindow.cut
         (buf + (longest - classify) / 2 + inhop,
          readahead.timeDomain.data());
+
+    // If inhop has changed since the previous frame, we'll have to
+    // populate the classification scale (but for analysis/resynthesis
+    // rather than classification) anew rather than reuse the previous
+    // readahead. Pity...
+
+    if (inhop != prevInhop) {
+        m_scaleData.at(classify)->analysisWindow.cut
+            (buf + (longest - classify) / 2,
+             classifyScale->timeDomain.data());
+    }
             
     // Finally window the longest scale
     m_scaleData.at(longest)->analysisWindow.cut(buf);
@@ -406,20 +457,22 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevOuthop)
     // FFT shift, forward FFT, and carry out cartesian-polar
     // conversion for each FFT size.
 
-    // For the classification scale we need magnitudes for the
-    // full range (polar only in a subset) and we operate in
-    // the readahead, pulling current values from the existing
-    // readahead
+    // For the classification scale we need magnitudes for the full
+    // range (polar only in a subset) and we operate in the readahead,
+    // pulling current values from the existing readahead (except
+    // where the inhop has changed as above, in which case we need to
+    // do both readahead and current)
 
     v_fftshift(readahead.timeDomain.data(), classify);
 
-    v_copy(classifyScale->mag.data(),
-           readahead.mag.data(),
-           classifyScale->bufSize);
-            
-    v_copy(classifyScale->phase.data(),
-           readahead.phase.data(),
-           classifyScale->bufSize);
+    if (inhop == prevInhop) {
+        v_copy(classifyScale->mag.data(),
+               readahead.mag.data(),
+               classifyScale->bufSize);
+        v_copy(classifyScale->phase.data(),
+               readahead.phase.data(),
+               classifyScale->bufSize);
+    }
 
     m_scaleData.at(classify)->fft.forward(readahead.timeDomain.data(),
                                           classifyScale->real.data(),
@@ -455,12 +508,13 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevOuthop)
         }
     }
 
-    // For the others we operate directly in the scale data
-    // and restrict the range for cartesian-polar conversion
+    // For the others (and the classify if the inhop has changed) we
+    // operate directly in the scale data and restrict the range for
+    // cartesian-polar conversion
             
     for (auto &it: cd->scales) {
         int fftSize = it.first;
-        if (fftSize == classify) continue;
+        if (fftSize == classify && inhop == prevInhop) continue;
         auto &scale = it.second;
 
         v_fftshift(scale->timeDomain.data(), fftSize);
