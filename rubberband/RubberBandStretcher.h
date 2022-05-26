@@ -317,7 +317,10 @@ public:
         OptionPitchHighConsistency = 0x04000000,
 
         OptionChannelsApart        = 0x00000000,
-        OptionChannelsTogether     = 0x10000000
+        OptionChannelsTogether     = 0x10000000,
+
+        OptionEngineFaster         = 0x00000000,
+        OptionEngineFiner          = 0x20000000
 
         // n.b. Options is int, so we must stop before 0x80000000
     };

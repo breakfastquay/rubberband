@@ -27,21 +27,23 @@
 
 namespace RubberBand {
 
+//#define FASTER 1
 
 RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
                                          size_t channels,
                                          Options options,
                                          double initialTimeRatio,
                                          double initialPitchScale) :
-    /*!!!
-    m_d(new Impl(sampleRate, channels, options,
-                 initialTimeRatio, initialPitchScale))
-    */
-    m_d(nullptr),
-    //!!! +logger
-    m_r3d(new R3StretcherImpl(R3StretcherImpl::Parameters(sampleRate, channels),
-                              initialTimeRatio,
-                              initialPitchScale))
+    m_d
+    (!(options & OptionEngineFiner) ?
+     new Impl(sampleRate, channels, options,
+              initialTimeRatio, initialPitchScale)
+     : nullptr),
+    m_r3d
+    ((options & OptionEngineFiner) ?
+     new R3StretcherImpl(R3StretcherImpl::Parameters(sampleRate, channels),
+                         initialTimeRatio, initialPitchScale)
+     : nullptr)
 {
 }
 
@@ -183,6 +185,7 @@ float
 RubberBandStretcher::getFrequencyCutoff(int n) const
 {
     if (m_d) return m_d->getFrequencyCutoff(n);
+    else return {};
 }
 
 void
@@ -195,24 +198,28 @@ size_t
 RubberBandStretcher::getInputIncrement() const
 {
     if (m_d) return m_d->getInputIncrement();
+    else return {};
 }
 
 std::vector<int>
 RubberBandStretcher::getOutputIncrements() const
 {
     if (m_d) return m_d->getOutputIncrements();
+    else return {};
 }
 
 std::vector<float>
 RubberBandStretcher::getPhaseResetCurve() const
 {
     if (m_d) return m_d->getPhaseResetCurve();
+    else return {};
 }
 
 std::vector<int>
 RubberBandStretcher::getExactTimePoints() const
 {
     if (m_d) return m_d->getExactTimePoints();
+    else return {};
 }
 
 size_t
