@@ -126,7 +126,7 @@ public:
 
         bandFftSize = roundUp(int(ceil(rate/32.0)));
         m_configuration.fftBandLimits[1] =
-            BandLimits(bandFftSize, rate, m_minLower, m_maxHigher);
+            BandLimits(bandFftSize, rate, 0.0, m_maxHigher);
         
         bandFftSize = roundUp(int(ceil(rate/64.0)));
         m_configuration.fftBandLimits[2] =
@@ -146,12 +146,35 @@ public:
                    const BinSegmenter::Segmentation &nextSegmentation,
                    Guidance &guidance) const {
 
-        bool potentialKick = checkPotentialKick(magnitudes, prevMagnitudes);
-
         guidance.kick.present = false;
         guidance.lowPercussive.present = false;
         guidance.highPercussive.present = false;
         guidance.phaseReset.present = false;
+
+        double nyquist = m_parameters.sampleRate / 2.0;
+
+        guidance.fftBands[0].fftSize = roundUp(int(ceil(nyquist/8.0)));
+        guidance.fftBands[1].fftSize = roundUp(int(ceil(nyquist/16.0)));
+        guidance.fftBands[2].fftSize = roundUp(int(ceil(nyquist/32.0)));
+
+        if (fabs(ratio - 1.0) < 1.0e-6) {
+            guidance.fftBands[0].f0 = 0.0;
+            guidance.fftBands[0].f1 = 0.0;
+            guidance.fftBands[1].f0 = 0.0;
+            guidance.fftBands[1].f1 = m_minHigher;
+            guidance.fftBands[2].f0 = m_minHigher;
+            guidance.fftBands[2].f1 = nyquist;
+            for (int i = 0; i < 5; ++i) {
+                guidance.phaseLockBands[i].p = 0;
+                guidance.phaseLockBands[i].beta = 1.0;
+                guidance.phaseLockBands[i].f0 = nyquist;
+                guidance.phaseLockBands[i].f1 = nyquist;
+            }
+            guidance.phaseLockBands[0].f0 = 0.0;
+            guidance.phaseLockBands[0].f1 = nyquist;
+            guidance.channelLock.present = false;
+            return;
+        }
 
         guidance.channelLock.present = true;
         guidance.channelLock.f0 = 0.0;
@@ -162,6 +185,8 @@ public:
             guidance.lowPercussive.f0 = 0.0;
             guidance.lowPercussive.f1 = segmentation.percussiveBelow;
         }
+        
+        bool potentialKick = checkPotentialKick(magnitudes, prevMagnitudes);
 
         if (potentialKick && prevSegmentation.percussiveBelow < 40.0) {
             guidance.kick = guidance.lowPercussive;
@@ -195,17 +220,12 @@ public:
         double lower = snapToTrough(m_defaultLower, troughs);
         if (lower > m_maxLower) lower = m_maxLower;
 
-        double nyquist = m_parameters.sampleRate / 2.0;
-
-        guidance.fftBands[0].fftSize = roundUp(int(ceil(nyquist/8.0)));
         guidance.fftBands[0].f0 = 0.0;
         guidance.fftBands[0].f1 = lower;
         
-        guidance.fftBands[1].fftSize = roundUp(int(ceil(nyquist/16.0)));
         guidance.fftBands[1].f0 = lower;
         guidance.fftBands[1].f1 = higher;
         
-        guidance.fftBands[2].fftSize = roundUp(int(ceil(nyquist/32.0)));
         guidance.fftBands[2].f0 = higher;
         guidance.fftBands[2].f1 = nyquist;
         
@@ -230,6 +250,12 @@ public:
         guidance.phaseLockBands[3].beta = betaFor(10000.0, ratio);
         guidance.phaseLockBands[3].f0 = higher;
         guidance.phaseLockBands[3].f1 = nyquist;
+
+        // Currently unused
+        guidance.phaseLockBands[4].p = 0;
+        guidance.phaseLockBands[4].beta = 1.0;
+        guidance.phaseLockBands[4].f0 = nyquist;
+        guidance.phaseLockBands[4].f1 = nyquist;
 
         /*
         std::ostringstream str;

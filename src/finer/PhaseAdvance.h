@@ -183,7 +183,9 @@ public:
                     ++phaseLockBand;
                 }
                 double ph = 0.0;
-                if (inRange(f, g->phaseReset) || inRange(f, g->kick)) {
+                if (inhop == outhop) {
+                    ph = m_unlocked[c][i];
+                } else if (inRange(f, g->phaseReset) || inRange(f, g->kick)) {
                     ph = phase[c][i];
                 } else if (inRange (f, g->highPercussive)) {
                     ph = m_unlocked[c][i];
