@@ -315,16 +315,20 @@ R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 void
 R3StretcherImpl::consume()
 {
-    double ratio = getEffectiveRatio();
-    int inhop = m_inhop;
-    
     int longest = m_guideConfiguration.longestFftSize;
     int channels = m_parameters.channels;
 
 //    m_calculator->setDebugLevel(3);
+
+    int inhop = m_inhop;
+
+    double effectivePitchRatio = 1.0 / m_pitchScale;
+    if (m_resampler) {
+        effectivePitchRatio = m_resampler->getEffectiveRatio(effectivePitchRatio);
+    }
     
-    int outhop = m_calculator->calculateSingle(ratio,
-                                               1.0 / m_pitchScale,
+    int outhop = m_calculator->calculateSingle(m_timeRatio,
+                                               effectivePitchRatio,
                                                1.f,
                                                inhop,
                                                longest,
