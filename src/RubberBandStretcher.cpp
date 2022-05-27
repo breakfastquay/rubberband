@@ -96,6 +96,8 @@ RubberBandStretcher::getLatency() const
     else return m_r3d->getLatency();
 }
 
+//!!! review all these
+
 void
 RubberBandStretcher::setTransientsOption(Options options) 
 {
@@ -118,12 +120,14 @@ void
 RubberBandStretcher::setFormantOption(Options options)
 {
     if (m_d) m_d->setFormantOption(options);
+    else if (m_r3d) m_r3d->setFormantOption(options);
 }
 
 void
 RubberBandStretcher::setPitchOption(Options options)
 {
     if (m_d) m_d->setPitchOption(options);
+    else if (m_r3d) m_r3d->setPitchOption(options);
 }
 
 void

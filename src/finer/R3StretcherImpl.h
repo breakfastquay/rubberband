@@ -221,11 +221,13 @@ protected:
     };
 
     struct FormantData {
+        bool enabled;
         FixedVector<double> cepstra;
         FixedVector<double> envelope;
         FixedVector<double> shifted;
 
         FormantData(int _fftSize) :
+            enabled(false),
             cepstra(_fftSize, 0.0),
             envelope(_fftSize, 0.0),
             shifted(_fftSize, 0.0) { }

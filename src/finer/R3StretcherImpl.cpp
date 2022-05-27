@@ -192,7 +192,7 @@ R3StretcherImpl::calculateHop()
 
     m_inhop = int(round(inhop));
 
-    std::cout << "R3StretcherImpl::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
+//    std::cout << "R3StretcherImpl::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
 }
 
 double
@@ -346,7 +346,7 @@ R3StretcherImpl::consume()
     // advanced the input and output since the previous frame, not the
     // distances we are about to advance them, so they use the m_prev
     // values.
-
+/*
     if (inhop != m_prevInhop) {
         std::cout << "Note: inhop has changed from " << m_prevInhop
                   << " to " << inhop << std::endl;
@@ -355,7 +355,7 @@ R3StretcherImpl::consume()
         std::cout << "Note: outhop has changed from " << m_prevOuthop
                   << " to " << outhop << std::endl;
     }
-    
+*/    
     while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
 
         // NB our ChannelData, ScaleData, and ChannelScaleData maps
@@ -382,7 +382,10 @@ R3StretcherImpl::consume()
         }
 
         if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
+            m_formant->enabled = true;
             analyseFormant();
+        } else {
+            m_formant->enabled = false;
         }
         
         // Phase update. This is synchronised across all channels
@@ -687,12 +690,12 @@ R3StretcherImpl::analyseFormant()
         }
     }
 
-    std::cout << "X:";
-    for (int i = 0; i < binCount; ++i) {
-        if (i > 0) std::cout << ",";
-        std::cout << f.shifted[i];
-    }
-    std::cout << std::endl;
+//    std::cout << "X:";
+//    for (int i = 0; i < binCount; ++i) {
+//        if (i > 0) std::cout << ",";
+//        std::cout << f.shifted[i];
+//    }
+//    std::cout << std::endl;
 }
 
 void
@@ -712,8 +715,8 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
                scale->mag.data(),
                bufSize);
 
-        // formant shift only the middle register
-        if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
+        if (m_formant->enabled) {
+            // formant shift only the middle register
             if (it.first == m_guideConfiguration.classificationFftSize) {
                 v_divide(scale->mag.data(), m_formant->envelope.data(), bufSize);
                 v_multiply(scale->mag.data(), m_formant->shifted.data(), bufSize);
