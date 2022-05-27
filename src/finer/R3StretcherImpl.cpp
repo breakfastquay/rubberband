@@ -175,9 +175,9 @@ R3StretcherImpl::calculateHop()
 {
     double ratio = getEffectiveRatio();
     double proposedOuthop = 256.0;
-    if (proposedOuthop * m_pitchScale > 2048.0) {
-        proposedOuthop = 2048.0 / m_pitchScale;
-    }
+//!!!    if (proposedOuthop * m_pitchScale > 2048.0) {
+//        proposedOuthop = 2048.0 / m_pitchScale;
+//    }
     double inhop = 1.0;
     
     if (ratio > 1.0) {
@@ -191,6 +191,8 @@ R3StretcherImpl::calculateHop()
     }
 
     m_inhop = int(round(inhop));
+
+    //!!! but if we now have outhop > 4096 ever, we will crash, so we must check
 
 //    std::cout << "R3StretcherImpl::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
 }
