@@ -50,23 +50,18 @@ public:
             fftSize(_fftSize), sampleRate(_sampleRate) { }
     };
     
-    BinSegmenter(Parameters parameters,
-                 BinClassifier::Parameters classifierParameters) :
+    BinSegmenter(Parameters parameters) :
         m_parameters(parameters),
-        m_classifierParameters(classifierParameters),
-        m_classifier(classifierParameters),
-        m_classification(classifierParameters.binCount,
-                         BinClassifier::Classification::Silent),
-        m_numeric(classifierParameters.binCount, 0),
-        m_classFilter(classifierParameters.binCount / 64)
+        m_binCount(m_parameters.fftSize/2 + 1),
+        m_numeric(m_binCount, 0),
+        m_classFilter(m_binCount / 64)
     {
     }
 
-    Segmentation segment(const double *const mag) {
-        int n = m_classifierParameters.binCount;
-        m_classifier.classify(mag, m_classification.data());
+    Segmentation segment(const BinClassifier::Classification *classification) {
+        int n = m_binCount;
         for (int i = 0; i < n; ++i) {
-            switch (m_classification[i]) {
+            switch (classification[i]) {
             case BinClassifier::Classification::Harmonic:
                 m_numeric[i] = 0; break;
             case BinClassifier::Classification::Percussive:
@@ -108,9 +103,7 @@ public:
 
 protected:
     Parameters m_parameters;
-    BinClassifier::Parameters m_classifierParameters;
-    BinClassifier m_classifier;
-    std::vector<BinClassifier::Classification> m_classification;
+    int m_binCount;
     std::vector<int> m_numeric;
     MovingMedian<int> m_classFilter;
 

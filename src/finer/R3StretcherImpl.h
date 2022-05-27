@@ -36,6 +36,8 @@
 #include "../common/Allocators.h"
 #include "../common/Window.h"
 
+#include "../rubberband/RubberBandStretcher.h"
+
 #include <map>
 #include <memory>
 #include <functional>
@@ -49,8 +51,10 @@ public:
     struct Parameters {
         double sampleRate;
         int channels;
+        RubberBandStretcher::Options options;
         std::function<void(const std::string &)> logger;
         Parameters(double _sampleRate, int _channels,
+                   RubberBandStretcher::Options options,
                    std::function<void(const std::string &)> _log = &logCout) :
             sampleRate(_sampleRate), channels(_channels), logger(_log) { }
     };
@@ -68,6 +72,9 @@ public:
     double getTimeRatio() const;
     double getPitchScale() const;
 
+    void setFormantOption(RubberBandStretcher::Options);
+    void setPitchOption(RubberBandStretcher::Options);
+    
     size_t getSamplesRequired() const;
     void process(const float *const *input, size_t samples, bool final);
     int available() const;
@@ -133,6 +140,9 @@ protected:
         std::map<int, std::shared_ptr<ChannelScaleData>> scales;
         ClassificationReadaheadData readahead;
         bool haveReadahead;
+        std::unique_ptr<BinClassifier> classifier;
+        FixedVector<BinClassifier::Classification> classification;
+        FixedVector<BinClassifier::Classification> nextClassification;
         std::unique_ptr<BinSegmenter> segmenter;
         BinSegmenter::Segmentation segmentation;
         BinSegmenter::Segmentation prevSegmentation;
@@ -150,8 +160,12 @@ protected:
             scales(),
             readahead(segmenterParameters.fftSize),
             haveReadahead(false),
-            segmenter(new BinSegmenter(segmenterParameters,
-                                       classifierParameters)),
+            classifier(new BinClassifier(classifierParameters)),
+            classification(classifierParameters.binCount,
+                           BinClassifier::Classification::Silent),
+            nextClassification(classifierParameters.binCount,
+                               BinClassifier::Classification::Silent),
+            segmenter(new BinSegmenter(segmenterParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
             mixdown(longestFftSize, 0.f), // though it could be shorter
             resampled(outRingBufferSize, 0.f),
@@ -205,6 +219,17 @@ protected:
         WindowType synthesisWindowShape(int fftSize);
         int synthesisWindowLength(int fftSize);
     };
+
+    struct FormantData {
+        FixedVector<double> cepstra;
+        FixedVector<double> envelope;
+        FixedVector<double> shifted;
+
+        FormantData(int _fftSize) :
+            cepstra(_fftSize, 0.0),
+            envelope(_fftSize, 0.0),
+            shifted(_fftSize, 0.0) { }
+    };
     
     Parameters m_parameters;
 
@@ -219,6 +244,7 @@ protected:
     Peak<double, std::less<double>> m_troughPicker;
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
+    std::unique_ptr<FormantData> m_formant;
     std::atomic<int> m_inhop;
     int m_prevInhop;
     int m_prevOuthop;
@@ -227,6 +253,7 @@ protected:
     void consume();
     void calculateHop();
     void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
+    void analyseFormant();
     void synthesiseChannel(int channel, int outhop);
 
     double getEffectiveRatio() const {

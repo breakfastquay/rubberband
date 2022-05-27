@@ -88,7 +88,10 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize; //!!!???
     m_resampler = std::unique_ptr<Resampler>
         (new Resampler(resamplerParameters, m_parameters.channels));
-        
+
+    m_formant = std::unique_ptr<FormantData>
+        (new FormantData(m_guideConfiguration.classificationFftSize));
+    
     calculateHop();
 
     m_prevInhop = m_inhop;
@@ -144,6 +147,27 @@ R3StretcherImpl::setPitchScale(double scale)
 {
     m_pitchScale = scale;
     calculateHop();
+}
+
+void
+R3StretcherImpl::setFormantOption(RubberBandStretcher::Options options)
+{
+    int mask = (RubberBandStretcher::OptionFormantShifted |
+                RubberBandStretcher::OptionFormantPreserved);
+    m_parameters.options &= ~mask;
+    options &= mask;
+    m_parameters.options |= options;
+}
+
+void
+R3StretcherImpl::setPitchOption(RubberBandStretcher::Options options)
+{
+    int mask = (RubberBandStretcher::OptionPitchHighQuality |
+                RubberBandStretcher::OptionPitchHighSpeed |
+                RubberBandStretcher::OptionPitchHighConsistency);
+    m_parameters.options &= ~mask;
+    options &= mask;
+    m_parameters.options |= options;
 }
 
 void
@@ -353,6 +377,10 @@ R3StretcherImpl::consume()
             analyseChannel(c, inhop, m_prevInhop, m_prevOuthop);
         }
 
+        if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
+            analyseFormant();
+        }
+        
         // Phase update. This is synchronised across all channels
         
         for (auto &it : m_channelData[0]->scales) {
@@ -538,8 +566,9 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 
     cd->haveReadahead = true;
 
-    // For the others (and the classify if the inhop has changed) we
-    // operate directly in the scale data and restrict the range for
+    // For the others (and the classify as well, if the inhop has
+    // changed or we haven't filled the readahead yet) we operate
+    // directly in the scale data and restrict the range for
     // cartesian-polar conversion
             
     for (auto &it: cd->scales) {
@@ -571,15 +600,26 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 
     // Use the classification scale to get a bin segmentation and
     // calculate the adaptive frequency guide for this channel
+
+    v_copy(cd->classification.data(), cd->nextClassification.data(),
+           cd->classification.size());
+    cd->classifier->classify(readahead.mag.data(),
+                             cd->nextClassification.data());
+
     cd->prevSegmentation = cd->segmentation;
     cd->segmentation = cd->nextSegmentation;
-    cd->nextSegmentation = cd->segmenter->segment(readahead.mag.data());
+    cd->nextSegmentation = cd->segmenter->segment(cd->nextClassification.data());
 
     m_troughPicker.findNearestAndNextPeaks
         (classifyScale->mag.data(), 3, nullptr,
          classifyScale->troughs.data());
             
     double instantaneousRatio = double(prevOuthop) / double(prevInhop);
+//!!!???    bool specialCaseUnity = !(m_parameters.options &
+//                              RubberBandStretcher::OptionPitchHighConsistency);
+
+    bool specialCaseUnity = true;
+        
     m_guide.calculate(instantaneousRatio,
                       classifyScale->mag.data(),
                       classifyScale->troughs.data(),
@@ -587,7 +627,68 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                       cd->segmentation,
                       cd->prevSegmentation,
                       cd->nextSegmentation,
+                      specialCaseUnity,
                       cd->guidance);
+}
+
+void
+R3StretcherImpl::analyseFormant()
+{
+    int classify = m_guideConfiguration.classificationFftSize;
+    int binCount = classify/2 + 1;
+    int channels = m_parameters.channels;
+
+    auto &f = *m_formant;
+
+    v_zero(f.envelope.data(), binCount);
+    
+    for (int c = 0; c < channels; ++c) {
+        auto &cd = m_channelData.at(c);
+        auto &scale = cd->scales.at(classify);
+        for (int i = 0; i < binCount; ++i) {
+            f.envelope.at(i) += scale->mag.at(i);
+        }
+    }
+
+    m_scaleData.at(classify)->fft.inverseCepstral
+        (f.envelope.data(), f.cepstra.data());
+    
+    int cutoff = int(floor(m_parameters.sampleRate / 700.0));
+    if (cutoff < 1) cutoff = 1;
+
+    f.cepstra[0] /= 2.0;
+    f.cepstra[cutoff-1] /= 2.0;
+    for (int i = cutoff; i < classify; ++i) {
+        f.cepstra[i] = 0.0;
+    }
+    v_scale(f.cepstra.data(), 1.0 / double(classify), cutoff);
+
+    m_scaleData.at(classify)->fft.forward
+        (f.cepstra.data(), f.envelope.data(),
+         f.shifted.data()); // shifted is just a spare for this one
+
+    v_exp(f.envelope.data(), binCount);
+
+    for (int i = 0; i < binCount; ++i) {
+        if (f.envelope[i] > 1.0e10) f.envelope[i] = 1.0e10;
+    }
+    
+    double scale = m_pitchScale;
+    for (int target = 0; target < binCount; ++target) {
+        int source = int(round(target * scale));
+        if (source >= binCount) {
+            f.shifted[target] = 0.0;
+        } else {
+            f.shifted[target] = f.envelope[source];
+        }
+    }
+
+    std::cout << "X:";
+    for (int i = 0; i < binCount; ++i) {
+        if (i > 0) std::cout << ",";
+        std::cout << f.shifted[i];
+    }
+    std::cout << std::endl;
 }
 
 void
@@ -598,12 +699,22 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
     auto &cd = m_channelData.at(c);
 
     for (auto &it : cd->scales) {
+
         auto &scale = it.second;
         int bufSize = scale->bufSize;
+
         // copy to prevMag before filtering
         v_copy(scale->prevMag.data(),
                scale->mag.data(),
                bufSize);
+
+        // formant shift only the middle register
+        if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
+            if (it.first == m_guideConfiguration.classificationFftSize) {
+                v_divide(scale->mag.data(), m_formant->envelope.data(), bufSize);
+                v_multiply(scale->mag.data(), m_formant->shifted.data(), bufSize);
+            }
+        }
     }
         
     for (const auto &band : cd->guidance.fftBands) {

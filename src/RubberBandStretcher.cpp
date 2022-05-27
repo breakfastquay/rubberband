@@ -41,7 +41,8 @@ RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
      : nullptr),
     m_r3d
     ((options & OptionEngineFiner) ?
-     new R3StretcherImpl(R3StretcherImpl::Parameters(sampleRate, channels),
+     new R3StretcherImpl(R3StretcherImpl::Parameters
+                         (sampleRate, channels, options),
                          initialTimeRatio, initialPitchScale)
      : nullptr)
 {

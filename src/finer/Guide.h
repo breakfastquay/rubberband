@@ -144,6 +144,7 @@ public:
                    const BinSegmenter::Segmentation &segmentation,
                    const BinSegmenter::Segmentation &prevSegmentation,
                    const BinSegmenter::Segmentation &nextSegmentation,
+                   bool specialCaseUnity,
                    Guidance &guidance) const {
 
         guidance.kick.present = false;
@@ -157,7 +158,7 @@ public:
         guidance.fftBands[1].fftSize = roundUp(int(ceil(nyquist/16.0)));
         guidance.fftBands[2].fftSize = roundUp(int(ceil(nyquist/32.0)));
 
-        if (fabs(ratio - 1.0) < 1.0e-6) {
+        if (specialCaseUnity && (fabs(ratio - 1.0) < 1.0e-6)) {
             guidance.fftBands[0].f0 = 0.0;
             guidance.fftBands[0].f1 = 0.0;
             guidance.fftBands[1].f0 = 0.0;
