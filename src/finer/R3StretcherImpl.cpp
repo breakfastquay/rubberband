@@ -150,7 +150,10 @@ void
 R3StretcherImpl::calculateHop()
 {
     double ratio = getEffectiveRatio();
-    double proposedOuthop = 256;
+    double proposedOuthop = 256.0;
+    if (proposedOuthop * m_pitchScale > 2048.0) {
+        proposedOuthop = 2048.0 / m_pitchScale;
+    }
     double inhop = 1.0;
     
     if (ratio > 1.0) {
@@ -165,7 +168,7 @@ R3StretcherImpl::calculateHop()
 
     m_inhop = int(round(inhop));
 
-    std::cout << "R3StretcherImpl::calculateHop: inhop " << m_inhop << ", mean outhop " << m_inhop * ratio << std::endl;
+    std::cout << "R3StretcherImpl::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
 }
 
 double
