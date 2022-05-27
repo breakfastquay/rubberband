@@ -291,6 +291,19 @@ R3StretcherImpl::consume()
                                                longest,
                                                longest);
 
+    // Now inhop is the distance by which the input stream will be
+    // advanced after our current frame has been read, and outhop is
+    // the distance by which the output will be advanced after it has
+    // been emitted; m_prevInhop and m_prevOuthop are the
+    // corresponding values the last time a frame was processed (*not*
+    // just the last time this function was called, since we can
+    // return without doing anything if the output buffer is full).
+    //
+    // Our phase adjustments need to be based on the distances we have
+    // advanced the input and output since the previous frame, not the
+    // distances we are about to advance them, so they use the m_prev
+    // values.
+    
 //    std::cout << "outhop = " << outhop << std::endl;
 
     if (inhop != m_prevInhop) {
@@ -345,8 +358,8 @@ R3StretcherImpl::consume()
                  m_channelAssembly.phase.data(),
                  m_guideConfiguration,
                  m_channelAssembly.guidance.data(),
-                 m_prevInhop, //!!! or inhop?
-                 outhop);
+                 m_prevInhop,
+                 m_prevOuthop);
         }
 
         // Resynthesis
@@ -391,10 +404,10 @@ R3StretcherImpl::consume()
                 cd->inbuf->skip(inhop);
             }
         }
-    }
 
-    m_prevInhop = inhop;
-    m_prevOuthop = outhop;
+        m_prevInhop = inhop;
+        m_prevOuthop = outhop;
+    }
 }
 
 void
@@ -548,7 +561,7 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         (classifyScale->mag.data(), 3, nullptr,
          classifyScale->troughs.data());
             
-    double instantaneousRatio = double(prevOuthop) / double(inhop);
+    double instantaneousRatio = double(prevOuthop) / double(prevInhop);
     m_guide.calculate(instantaneousRatio,
                       classifyScale->mag.data(),
                       classifyScale->troughs.data(),
