@@ -195,7 +195,19 @@ R3StretcherImpl::getChannelCount() const
 void
 R3StretcherImpl::reset()
 {
-    //!!!
+    m_calculator->reset();
+    m_resampler->reset();
+
+    for (auto &it : m_scaleData) {
+        it.second->guided.reset();
+    }
+
+    for (auto &cd : m_channelData) {
+        cd->reset();
+    }
+
+    m_prevInhop = m_inhop;
+    m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
 }
 
 size_t
@@ -303,8 +315,6 @@ R3StretcherImpl::consume()
     // advanced the input and output since the previous frame, not the
     // distances we are about to advance them, so they use the m_prev
     // values.
-    
-//    std::cout << "outhop = " << outhop << std::endl;
 
     if (inhop != m_prevInhop) {
         std::cout << "Note: inhop has changed from " << m_prevInhop
@@ -457,7 +467,10 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     // rather than classification) anew rather than reuse the previous
     // readahead. Pity...
 
-    if (inhop != prevInhop) {
+    bool haveValidReadahead = cd->haveReadahead;
+    if (inhop != prevInhop) haveValidReadahead = false;
+
+    if (!haveValidReadahead) {
         m_scaleData.at(classify)->analysisWindow.cut
             (buf + (longest - classify) / 2,
              classifyScale->timeDomain.data());
@@ -477,7 +490,7 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 
     v_fftshift(readahead.timeDomain.data(), classify);
 
-    if (inhop == prevInhop) {
+    if (haveValidReadahead) {
         v_copy(classifyScale->mag.data(),
                readahead.mag.data(),
                classifyScale->bufSize);
@@ -520,13 +533,15 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         }
     }
 
+    cd->haveReadahead = true;
+
     // For the others (and the classify if the inhop has changed) we
     // operate directly in the scale data and restrict the range for
     // cartesian-polar conversion
             
     for (auto &it: cd->scales) {
         int fftSize = it.first;
-        if (fftSize == classify && inhop == prevInhop) continue;
+        if (fftSize == classify && haveValidReadahead) continue;
         auto &scale = it.second;
 
         v_fftshift(scale->timeDomain.data(), fftSize);

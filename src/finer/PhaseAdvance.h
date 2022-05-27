@@ -77,6 +77,14 @@ public:
         deallocate_channels(m_prevOutPhase, ch);
         deallocate_channels(m_unlocked, ch);
     }
+
+    void reset() {
+        size_t ch = m_parameters.channels;
+        v_zero_channels(m_prevPeaks, ch, m_binCount);
+        v_zero_channels(m_prevInMag, ch, m_binCount);
+        v_zero_channels(m_prevInPhase, ch, m_binCount);
+        v_zero_channels(m_prevOutPhase, ch, m_binCount);
+    }
     
     void advance(double *const *outPhase,
                  const double *const *mag,

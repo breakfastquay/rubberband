@@ -119,6 +119,11 @@ protected:
             accumulator(_longestFftSize, 0.f)
         { }
 
+        void reset() {
+            v_zero(prevMag.data(), prevMag.size());
+            v_zero(accumulator.data(), accumulator.size());
+        }
+
     private:
         ChannelScaleData(const ChannelScaleData &) =delete;
         ChannelScaleData &operator=(const ChannelScaleData &) =delete;
@@ -127,6 +132,7 @@ protected:
     struct ChannelData {
         std::map<int, std::shared_ptr<ChannelScaleData>> scales;
         ClassificationReadaheadData readahead;
+        bool haveReadahead;
         std::unique_ptr<BinSegmenter> segmenter;
         BinSegmenter::Segmentation segmentation;
         BinSegmenter::Segmentation prevSegmentation;
@@ -143,6 +149,7 @@ protected:
                     int outRingBufferSize) :
             scales(),
             readahead(segmenterParameters.fftSize),
+            haveReadahead(false),
             segmenter(new BinSegmenter(segmenterParameters,
                                        classifierParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
@@ -150,6 +157,17 @@ protected:
             resampled(outRingBufferSize, 0.f),
             inbuf(new RingBuffer<float>(inRingBufferSize)),
             outbuf(new RingBuffer<float>(outRingBufferSize)) { }
+        void reset() {
+            haveReadahead = false;
+            segmentation = BinSegmenter::Segmentation();
+            prevSegmentation = BinSegmenter::Segmentation();
+            nextSegmentation = BinSegmenter::Segmentation();
+            inbuf->reset();
+            outbuf->reset();
+            for (auto &s : scales) {
+                s.second->reset();
+            }
+        }
     };
 
     struct ChannelAssembly {
