@@ -54,9 +54,10 @@ public:
         RubberBandStretcher::Options options;
         std::function<void(const std::string &)> logger;
         Parameters(double _sampleRate, int _channels,
-                   RubberBandStretcher::Options options,
+                   RubberBandStretcher::Options _options,
                    std::function<void(const std::string &)> _log = &logCout) :
-            sampleRate(_sampleRate), channels(_channels), logger(_log) { }
+            sampleRate(_sampleRate), channels(_channels), options(_options),
+            logger(_log) { }
     };
     
     R3StretcherImpl(Parameters parameters,
