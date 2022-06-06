@@ -383,13 +383,15 @@ R3StretcherImpl::consume()
             analyseChannel(c, inhop, m_prevInhop, m_prevOuthop);
         }
 
+        //!!!
+        /*
         if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
             m_formant->enabled = true;
             analyseFormant();
         } else {
             m_formant->enabled = false;
         }
-        
+        */        
         // Phase update. This is synchronised across all channels
         
         for (auto &it : m_channelData[0]->scales) {
@@ -607,6 +609,15 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         }
     }
 
+    //!!!
+        if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
+            m_formant->enabled = true;
+            if (c == 0) analyseFormant();
+            adjustFormant(c);
+        } else {
+            m_formant->enabled = false;
+        }
+        
     // Use the classification scale to get a bin segmentation and
     // calculate the adaptive frequency guide for this channel
 
@@ -685,6 +696,45 @@ R3StretcherImpl::analyseFormant()
 }
 
 void
+R3StretcherImpl::adjustFormant(int c)
+{
+    auto &cd = m_channelData.at(c);
+        
+    for (auto &it : cd->scales) {
+        
+        int fftSize = it.first;
+        auto &scale = it.second;
+
+        /*
+        int lowBin = int(floor(fftSize * band.f0 / m_parameters.sampleRate));
+        int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
+        if (highBin % 2 == 1) --highBin;
+
+        int formantHigh = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
+        for (int i = 0; i < lowBin; ++i) {
+            scale->mag[i] = 0.0;
+        }
+        */
+        
+        double targetFactor = double(m_formant->fftSize) / double(fftSize);
+        double sourceFactor = targetFactor * m_pitchScale;
+//        double maxRatio = 60.0;
+//        double minRatio = 1.0 / maxRatio;
+//        for (int i = lowBin; i < highBin && i < formantHigh; ++i) {
+        for (int i = 0; i < scale->bufSize; ++i) {
+            double source = m_formant->envelopeAt(i * sourceFactor);
+            double target = m_formant->envelopeAt(i * targetFactor);
+            if (target > 0.0) {
+                double ratio = source / target;
+//                if (ratio < minRatio) ratio = minRatio;
+//                if (ratio > maxRatio) ratio = maxRatio;
+                scale->mag[i] *= ratio;
+            }
+        }
+    }
+}
+
+void
 R3StretcherImpl::synthesiseChannel(int c, int outhop)
 {
     int longest = m_guideConfiguration.longestFftSize;
@@ -701,6 +751,10 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
                scale->mag.data(),
                bufSize);
     }
+
+//    if (m_formant->enabled) {
+//        adjustFormant(c);
+//    }
         
     for (const auto &band : cd->guidance.fftBands) {
         int fftSize = band.fftSize;
@@ -730,11 +784,13 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         int lowBin = int(floor(fftSize * band.f0 / m_parameters.sampleRate));
         int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
         if (highBin % 2 == 1) --highBin;
-
+/*
         int formantHigh = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
+*/
         for (int i = 0; i < lowBin; ++i) {
             scale->mag[i] = 0.0;
         }
+        /*
         if (m_formant->enabled) {
             double targetFactor = double(m_formant->fftSize) / double(fftSize);
             double sourceFactor = targetFactor * m_pitchScale;
@@ -751,6 +807,7 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
                 }
             }
         }
+        */
         for (int i = lowBin; i < highBin; ++i) {
             scale->mag[i] *= winscale;
         }

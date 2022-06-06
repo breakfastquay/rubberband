@@ -271,6 +271,7 @@ protected:
     void calculateHop();
     void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
     void analyseFormant();
+    void adjustFormant(int channel);
     void synthesiseChannel(int channel, int outhop);
 
     double getEffectiveRatio() const {
