@@ -682,30 +682,36 @@ R3StretcherImpl::adjustFormant(int c)
         int fftSize = it.first;
         auto &scale = it.second;
 
+        int formantHigh = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
+
         /*
         int lowBin = int(floor(fftSize * band.f0 / m_parameters.sampleRate));
         int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
         if (highBin % 2 == 1) --highBin;
 
-        int formantHigh = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
         for (int i = 0; i < lowBin; ++i) {
             scale->mag[i] = 0.0;
         }
         */
-        
+
         double targetFactor = double(cd->formant->fftSize) / double(fftSize);
         double sourceFactor = targetFactor * m_pitchScale;
+
+        for (const auto &b : m_guideConfiguration.fftBandLimits) {
+            if (b.fftSize == fftSize) {
 //        double maxRatio = 60.0;
 //        double minRatio = 1.0 / maxRatio;
 //        for (int i = lowBin; i < highBin && i < formantHigh; ++i) {
-        for (int i = 0; i < scale->bufSize; ++i) {
-            double source = cd->formant->envelopeAt(i * sourceFactor);
-            double target = cd->formant->envelopeAt(i * targetFactor);
-            if (target > 0.0) {
-                double ratio = source / target;
+                for (int i = b.b0min; i < b.b1max && i < formantHigh; ++i) {
+                    double source = cd->formant->envelopeAt(i * sourceFactor);
+                    double target = cd->formant->envelopeAt(i * targetFactor);
+                    if (target > 0.0) {
+                        double ratio = source / target;
 //                if (ratio < minRatio) ratio = minRatio;
 //                if (ratio > maxRatio) ratio = maxRatio;
-                scale->mag[i] *= ratio;
+                        scale->mag[i] *= ratio;
+                    }
+                }
             }
         }
     }
