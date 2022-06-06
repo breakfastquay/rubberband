@@ -55,7 +55,6 @@ public:
         m_currentPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
         m_prevPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
         m_greatestChannel = allocate_and_zero<int>(m_binCount);
-        m_prevInMag = allocate_and_zero_channels<double>(ch, m_binCount);
         m_prevInPhase = allocate_and_zero_channels<double>(ch, m_binCount);
         m_prevOutPhase = allocate_and_zero_channels<double>(ch, m_binCount);
         m_unlocked = allocate_and_zero_channels<double>(ch, m_binCount);
@@ -72,7 +71,6 @@ public:
         deallocate_channels(m_currentPeaks, ch);
         deallocate_channels(m_prevPeaks, ch);
         deallocate(m_greatestChannel);
-        deallocate_channels(m_prevInMag, ch);
         deallocate_channels(m_prevInPhase, ch);
         deallocate_channels(m_prevOutPhase, ch);
         deallocate_channels(m_unlocked, ch);
@@ -81,7 +79,6 @@ public:
     void reset() {
         size_t ch = m_parameters.channels;
         v_zero_channels(m_prevPeaks, ch, m_binCount);
-        v_zero_channels(m_prevInMag, ch, m_binCount);
         v_zero_channels(m_prevInPhase, ch, m_binCount);
         v_zero_channels(m_prevOutPhase, ch, m_binCount);
     }
@@ -139,11 +136,6 @@ public:
                                                      band.p, m_currentPeaks[c],
                                                      nullptr);
             }
-
-//            m_peakPicker.findNearestAndNextPeaks(m_prevInMag[c],
-//                                                 lowest, highest - lowest + 1,
-//                                                 2, m_prevPeaks[c],
-//                                                 nullptr);
         }
 
         if (channels > 1) {
@@ -222,9 +214,6 @@ public:
                 m_prevInPhase[c][i] = phase[c][i];
             }
             for (int i = lowest; i <= highest; ++i) {
-                m_prevInMag[c][i] = mag[c][i];
-            }
-            for (int i = lowest; i <= highest; ++i) {
                 m_prevOutPhase[c][i] = outPhase[c][i];
             }
         }
@@ -241,7 +230,6 @@ protected:
     int **m_currentPeaks;
     int **m_prevPeaks;
     int *m_greatestChannel;
-    double **m_prevInMag;
     double **m_prevInPhase;
     double **m_prevOutPhase;
     double **m_unlocked;
