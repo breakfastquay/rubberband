@@ -767,7 +767,7 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         
         int lowBin = int(floor(fftSize * band.f0 / m_parameters.sampleRate));
         int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
-        if (highBin % 2 == 1) --highBin;
+        if (highBin % 2 == 0 && highBin > 0) --highBin;
 
         for (int i = 0; i < lowBin; ++i) {
             scale->mag[i] = 0.0;
