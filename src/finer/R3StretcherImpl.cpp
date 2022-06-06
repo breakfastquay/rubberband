@@ -89,9 +89,6 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_resampler = std::unique_ptr<Resampler>
         (new Resampler(resamplerParameters, m_parameters.channels));
 
-    m_formant = std::unique_ptr<FormantData>
-        (new FormantData(m_guideConfiguration.classificationFftSize));
-    
     calculateHop();
 
     m_prevInhop = m_inhop;
@@ -383,15 +380,6 @@ R3StretcherImpl::consume()
             analyseChannel(c, inhop, m_prevInhop, m_prevOuthop);
         }
 
-        //!!!
-        /*
-        if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
-            m_formant->enabled = true;
-            analyseFormant();
-        } else {
-            m_formant->enabled = false;
-        }
-        */        
         // Phase update. This is synchronised across all channels
         
         for (auto &it : m_channelData[0]->scales) {
@@ -609,14 +597,13 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         }
     }
 
-    //!!!
-        if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
-            m_formant->enabled = true;
-            if (c == 0) analyseFormant();
-            adjustFormant(c);
-        } else {
-            m_formant->enabled = false;
-        }
+    if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
+        cd->formant->enabled = true;
+        analyseFormant(c);
+        adjustFormant(c);
+    } else {
+        cd->formant->enabled = false;
+    }
         
     // Use the classification scale to get a bin segmentation and
     // calculate the adaptive frequency guide for this channel
@@ -652,40 +639,30 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 }
 
 void
-R3StretcherImpl::analyseFormant()
+R3StretcherImpl::analyseFormant(int c)
 {
-    int classify = m_guideConfiguration.classificationFftSize;
-    int binCount = classify/2 + 1;
-    int channels = m_parameters.channels;
+    auto &cd = m_channelData.at(c);
+    auto &f = *cd->formant;
 
-    auto &f = *m_formant;
-
-    v_zero(f.envelope.data(), binCount);
+    int fftSize = f.fftSize;
+    int binCount = fftSize/2 + 1;
     
-    for (int c = 0; c < channels; ++c) {
-        auto &cd = m_channelData.at(c);
-        auto &scale = cd->scales.at(classify);
-        for (int i = 0; i < binCount; ++i) {
-            f.envelope.at(i) += scale->mag.at(i) / double(channels);
-        }
-    }
+    auto &scale = cd->scales.at(fftSize);
+    auto &scaleData = m_scaleData.at(fftSize);
 
-    m_scaleData.at(classify)->fft.inverseCepstral
-        (f.envelope.data(), f.cepstra.data());
+    scaleData->fft.inverseCepstral(scale->mag.data(), f.cepstra.data());
     
     int cutoff = int(floor(m_parameters.sampleRate / 650.0));
     if (cutoff < 1) cutoff = 1;
 
     f.cepstra[0] /= 2.0;
     f.cepstra[cutoff-1] /= 2.0;
-    for (int i = cutoff; i < classify; ++i) {
+    for (int i = cutoff; i < fftSize; ++i) {
         f.cepstra[i] = 0.0;
     }
-    v_scale(f.cepstra.data(), 1.0 / double(classify), cutoff);
+    v_scale(f.cepstra.data(), 1.0 / double(fftSize), cutoff);
 
-    m_scaleData.at(classify)->fft.forward
-        (f.cepstra.data(), f.envelope.data(),
-         f.spare.data()); // shifted is just a spare for this one
+    scaleData->fft.forward(f.cepstra.data(), f.envelope.data(), f.spare.data());
 
     v_exp(f.envelope.data(), binCount);
     v_square(f.envelope.data(), binCount);
@@ -716,14 +693,14 @@ R3StretcherImpl::adjustFormant(int c)
         }
         */
         
-        double targetFactor = double(m_formant->fftSize) / double(fftSize);
+        double targetFactor = double(cd->formant->fftSize) / double(fftSize);
         double sourceFactor = targetFactor * m_pitchScale;
 //        double maxRatio = 60.0;
 //        double minRatio = 1.0 / maxRatio;
 //        for (int i = lowBin; i < highBin && i < formantHigh; ++i) {
         for (int i = 0; i < scale->bufSize; ++i) {
-            double source = m_formant->envelopeAt(i * sourceFactor);
-            double target = m_formant->envelopeAt(i * targetFactor);
+            double source = cd->formant->envelopeAt(i * sourceFactor);
+            double target = cd->formant->envelopeAt(i * targetFactor);
             if (target > 0.0) {
                 double ratio = source / target;
 //                if (ratio < minRatio) ratio = minRatio;

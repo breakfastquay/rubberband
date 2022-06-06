@@ -137,6 +137,33 @@ protected:
         ChannelScaleData &operator=(const ChannelScaleData &) =delete;
     };
 
+    struct FormantData {
+        bool enabled;
+        int fftSize;
+        FixedVector<double> cepstra;
+        FixedVector<double> envelope;
+        FixedVector<double> spare;
+
+        FormantData(int _fftSize) :
+            enabled(false),
+            fftSize(_fftSize),
+            cepstra(_fftSize, 0.0),
+            envelope(_fftSize/2 + 1, 0.0),
+            spare(_fftSize/2 + 1, 0.0) { }
+
+        double envelopeAt(double bin) const {
+            int b0 = int(floor(bin)), b1 = int(ceil(bin));
+            if (b0 < 0 || b0 > fftSize/2) {
+                return 0.0;
+            } else if (b1 == b0 || b1 > fftSize/2) {
+                return envelope.at(b0);
+            } else {
+                double diff = bin - double(b0);
+                return envelope.at(b0) * (1.0 - diff) + envelope.at(b1) * diff;
+            }
+        }
+    };
+
     struct ChannelData {
         std::map<int, std::shared_ptr<ChannelScaleData>> scales;
         ClassificationReadaheadData readahead;
@@ -153,6 +180,7 @@ protected:
         FixedVector<float> resampled;
         std::unique_ptr<RingBuffer<float>> inbuf;
         std::unique_ptr<RingBuffer<float>> outbuf;
+        std::unique_ptr<FormantData> formant;
         ChannelData(BinSegmenter::Parameters segmenterParameters,
                     BinClassifier::Parameters classifierParameters,
                     int longestFftSize,
@@ -171,7 +199,8 @@ protected:
             mixdown(longestFftSize, 0.f), // though it could be shorter
             resampled(outRingBufferSize, 0.f),
             inbuf(new RingBuffer<float>(inRingBufferSize)),
-            outbuf(new RingBuffer<float>(outRingBufferSize)) { }
+            outbuf(new RingBuffer<float>(outRingBufferSize)),
+            formant(new FormantData(segmenterParameters.fftSize)) { }
         void reset() {
             haveReadahead = false;
             segmentation = BinSegmenter::Segmentation();
@@ -220,33 +249,6 @@ protected:
         WindowType synthesisWindowShape(int fftSize);
         int synthesisWindowLength(int fftSize);
     };
-
-    struct FormantData {
-        bool enabled;
-        int fftSize;
-        FixedVector<double> cepstra;
-        FixedVector<double> envelope;
-        FixedVector<double> spare;
-
-        FormantData(int _fftSize) :
-            enabled(false),
-            fftSize(_fftSize),
-            cepstra(_fftSize, 0.0),
-            envelope(_fftSize/2 + 1, 0.0),
-            spare(_fftSize/2 + 1, 0.0) { }
-
-        double envelopeAt(double bin) const {
-            int b0 = int(floor(bin)), b1 = int(ceil(bin));
-            if (b0 < 0 || b0 > fftSize/2) {
-                return 0.0;
-            } else if (b1 == b0 || b1 > fftSize/2) {
-                return envelope.at(b0);
-            } else {
-                double diff = bin - double(b0);
-                return envelope.at(b0) * (1.0 - diff) + envelope.at(b1) * diff;
-            }
-        }
-    };
     
     Parameters m_parameters;
 
@@ -261,7 +263,6 @@ protected:
     Peak<double, std::less<double>> m_troughPicker;
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
-    std::unique_ptr<FormantData> m_formant;
     std::atomic<int> m_inhop;
     int m_prevInhop;
     int m_prevOuthop;
@@ -270,7 +271,7 @@ protected:
     void consume();
     void calculateHop();
     void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
-    void analyseFormant();
+    void analyseFormant(int channel);
     void adjustFormant(int channel);
     void synthesiseChannel(int channel, int outhop);
 
