@@ -681,7 +681,8 @@ R3StretcherImpl::analyseFormant()
     for (int i = 0; i < binCount; ++i) {
         if (f.envelope[i] > 1.0e10) f.envelope[i] = 1.0e10;
     }
-    
+
+    //!!!
     double scale = m_pitchScale;
     for (int target = 0; target < binCount; ++target) {
         int source = int(round(target * scale));
@@ -717,13 +718,13 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
                scale->mag.data(),
                bufSize);
 
-        if (m_formant->enabled) {
+//        if (m_formant->enabled) {
             // formant shift only the middle register
-            if (it.first == m_guideConfiguration.classificationFftSize) {
-                v_divide(scale->mag.data(), m_formant->envelope.data(), bufSize);
-                v_multiply(scale->mag.data(), m_formant->shifted.data(), bufSize);
-            }
-        }
+//            if (it.first == m_guideConfiguration.classificationFftSize) {
+//                v_divide(scale->mag.data(), m_formant->envelope.data(), bufSize);
+//                v_multiply(scale->mag.data(), m_formant->shifted.data(), bufSize);
+//            }
+//        }
     }
         
     for (const auto &band : cd->guidance.fftBands) {
@@ -748,16 +749,34 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         // domain. Aliasing is reduced by the shorter resynthesis
         // window
 
+        //!!! I don't think we have binForFrequency etc available in
+        //!!! this class - really that's ridiculous
+        
         int lowBin = int(floor(fftSize * band.f0 / m_parameters.sampleRate));
         int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
         if (highBin % 2 == 1) --highBin;
-        
-        for (int i = 0; i < fftSize/2 + 1; ++i) {
-            if (i >= lowBin && i < highBin) {
-                scale->mag[i] *= winscale;
-            } else {
-                scale->mag[i] = 0.f;
+
+        int formantHigh = int(floor(fftSize * 7000.0 / m_parameters.sampleRate));
+        for (int i = 0; i < lowBin; ++i) {
+            scale->mag[i] = 0.0;
+        }
+        if (m_formant->enabled) {
+            double targetFactor = double(m_formant->fftSize) / double(fftSize);
+            double sourceFactor = targetFactor * m_pitchScale;
+            double scaleFactor = 1.0 / targetFactor;
+            for (int i = lowBin; i < highBin && i < formantHigh; ++i) {
+                double source = m_formant->envelopeAt(i * sourceFactor);
+                double target = m_formant->envelopeAt(i * targetFactor);
+                if (target > 0.0) {
+                    scale->mag[i] *= (source * source) / (target * target);
+                }
             }
+        }
+        for (int i = lowBin; i < highBin; ++i) {
+            scale->mag[i] *= winscale;
+        }
+        for (int i = highBin; i < fftSize/2 + 1; ++i) {
+            scale->mag[i] = 0.0;
         }
     }
 
