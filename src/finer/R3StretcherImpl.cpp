@@ -598,11 +598,8 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     }
 
     if (m_parameters.options & RubberBandStretcher::OptionFormantPreserved) {
-        cd->formant->enabled = true;
         analyseFormant(c);
         adjustFormant(c);
-    } else {
-        cd->formant->enabled = false;
     }
         
     // Use the classification scale to get a bin segmentation and
@@ -622,9 +619,6 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
          classifyScale->troughs.data());
             
     double instantaneousRatio = double(prevOuthop) / double(prevInhop);
-//!!!???    bool specialCaseUnity = !(m_parameters.options &
-//                              RubberBandStretcher::OptionPitchHighConsistency);
-
     bool specialCaseUnity = true;
         
     m_guide.calculate(instantaneousRatio,
@@ -682,35 +676,22 @@ R3StretcherImpl::adjustFormant(int c)
         int fftSize = it.first;
         auto &scale = it.second;
 
-        int formantHigh = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
-
-        /*
-        int lowBin = int(floor(fftSize * band.f0 / m_parameters.sampleRate));
-        int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
-        if (highBin % 2 == 1) --highBin;
-
-        for (int i = 0; i < lowBin; ++i) {
-            scale->mag[i] = 0.0;
-        }
-        */
-
+        int highBin = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
         double targetFactor = double(cd->formant->fftSize) / double(fftSize);
         double sourceFactor = targetFactor * m_pitchScale;
+        double maxRatio = 60.0;
+        double minRatio = 1.0 / maxRatio;
 
         for (const auto &b : m_guideConfiguration.fftBandLimits) {
-            if (b.fftSize == fftSize) {
-//        double maxRatio = 60.0;
-//        double minRatio = 1.0 / maxRatio;
-//        for (int i = lowBin; i < highBin && i < formantHigh; ++i) {
-                for (int i = b.b0min; i < b.b1max && i < formantHigh; ++i) {
-                    double source = cd->formant->envelopeAt(i * sourceFactor);
-                    double target = cd->formant->envelopeAt(i * targetFactor);
-                    if (target > 0.0) {
-                        double ratio = source / target;
-//                if (ratio < minRatio) ratio = minRatio;
-//                if (ratio > maxRatio) ratio = maxRatio;
-                        scale->mag[i] *= ratio;
-                    }
+            if (b.fftSize != fftSize) continue;
+            for (int i = b.b0min; i < b.b1max && i < highBin; ++i) {
+                double source = cd->formant->envelopeAt(i * sourceFactor);
+                double target = cd->formant->envelopeAt(i * targetFactor);
+                if (target > 0.0) {
+                    double ratio = source / target;
+                    if (ratio < minRatio) ratio = minRatio;
+                    if (ratio > maxRatio) ratio = maxRatio;
+                    scale->mag[i] *= ratio;
                 }
             }
         }
@@ -734,10 +715,6 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
                scale->mag.data(),
                bufSize);
     }
-
-//    if (m_formant->enabled) {
-//        adjustFormant(c);
-//    }
         
     for (const auto &band : cd->guidance.fftBands) {
         int fftSize = band.fftSize;
@@ -767,30 +744,10 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         int lowBin = int(floor(fftSize * band.f0 / m_parameters.sampleRate));
         int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
         if (highBin % 2 == 1) --highBin;
-/*
-        int formantHigh = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
-*/
+
         for (int i = 0; i < lowBin; ++i) {
             scale->mag[i] = 0.0;
         }
-        /*
-        if (m_formant->enabled) {
-            double targetFactor = double(m_formant->fftSize) / double(fftSize);
-            double sourceFactor = targetFactor * m_pitchScale;
-            double maxRatio = 60.0;
-            double minRatio = 1.0 / maxRatio;
-            for (int i = lowBin; i < highBin && i < formantHigh; ++i) {
-                double source = m_formant->envelopeAt(i * sourceFactor);
-                double target = m_formant->envelopeAt(i * targetFactor);
-                if (target > 0.0) {
-                    double ratio = source / target;
-                    if (ratio < minRatio) ratio = minRatio;
-                    if (ratio > maxRatio) ratio = maxRatio;
-                    scale->mag[i] *= ratio;
-                }
-            }
-        }
-        */
         for (int i = lowBin; i < highBin; ++i) {
             scale->mag[i] *= winscale;
         }

@@ -138,14 +138,12 @@ protected:
     };
 
     struct FormantData {
-        bool enabled;
         int fftSize;
         FixedVector<double> cepstra;
         FixedVector<double> envelope;
         FixedVector<double> spare;
 
         FormantData(int _fftSize) :
-            enabled(false),
             fftSize(_fftSize),
             cepstra(_fftSize, 0.0),
             envelope(_fftSize/2 + 1, 0.0),
