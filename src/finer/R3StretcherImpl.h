@@ -226,19 +226,22 @@ protected:
         int fftSize;
         FixedVector<double> cepstra;
         FixedVector<double> envelope;
-        FixedVector<double> shifted;
+        FixedVector<double> spare;
 
         FormantData(int _fftSize) :
             enabled(false),
             fftSize(_fftSize),
             cepstra(_fftSize, 0.0),
-            envelope(_fftSize, 0.0),
-            shifted(_fftSize, 0.0) { }
+            envelope(_fftSize/2 + 1, 0.0),
+            spare(_fftSize/2 + 1, 0.0) { }
 
         double envelopeAt(double bin) const {
             int b0 = int(floor(bin)), b1 = int(ceil(bin));
-            if (b1 == b0) return envelope.at(b0);
-            else {
+            if (b0 < 0 || b0 > fftSize/2) {
+                return 0.0;
+            } else if (b1 == b0 || b1 > fftSize/2) {
+                return envelope.at(b0);
+            } else {
                 double diff = bin - double(b0);
                 return envelope.at(b0) * (1.0 - diff) + envelope.at(b1) * diff;
             }

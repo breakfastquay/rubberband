@@ -674,7 +674,7 @@ R3StretcherImpl::analyseFormant()
 
     m_scaleData.at(classify)->fft.forward
         (f.cepstra.data(), f.envelope.data(),
-         f.shifted.data()); // shifted is just a spare for this one
+         f.spare.data()); // shifted is just a spare for this one
 
     v_exp(f.envelope.data(), binCount);
     v_square(f.envelope.data(), binCount);
@@ -682,24 +682,6 @@ R3StretcherImpl::analyseFormant()
     for (int i = 0; i < binCount; ++i) {
         if (f.envelope[i] > 1.0e10) f.envelope[i] = 1.0e10;
     }
-
-    //!!!
-    double scale = m_pitchScale;
-    for (int target = 0; target < binCount; ++target) {
-        int source = int(round(target * scale));
-        if (source >= binCount) {
-            f.shifted[target] = 0.0;
-        } else {
-            f.shifted[target] = f.envelope[source];
-        }
-    }
-
-//    std::cout << "X:";
-//    for (int i = 0; i < binCount; ++i) {
-//        if (i > 0) std::cout << ",";
-//        std::cout << f.shifted[i];
-//    }
-//    std::cout << std::endl;
 }
 
 void
@@ -718,14 +700,6 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         v_copy(scale->prevMag.data(),
                scale->mag.data(),
                bufSize);
-
-//        if (m_formant->enabled) {
-            // formant shift only the middle register
-//            if (it.first == m_guideConfiguration.classificationFftSize) {
-//                v_divide(scale->mag.data(), m_formant->envelope.data(), bufSize);
-//                v_multiply(scale->mag.data(), m_formant->shifted.data(), bufSize);
-//            }
-//        }
     }
         
     for (const auto &band : cd->guidance.fftBands) {
@@ -764,13 +738,15 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         if (m_formant->enabled) {
             double targetFactor = double(m_formant->fftSize) / double(fftSize);
             double sourceFactor = targetFactor * m_pitchScale;
+            double maxRatio = 60.0;
+            double minRatio = 1.0 / maxRatio;
             for (int i = lowBin; i < highBin && i < formantHigh; ++i) {
                 double source = m_formant->envelopeAt(i * sourceFactor);
                 double target = m_formant->envelopeAt(i * targetFactor);
                 if (target > 0.0) {
                     double ratio = source / target;
-//                    if (ratio < 0.2) ratio = 0.2;
-//                    if (ratio > 5.0) ratio = 5.0;
+                    if (ratio < minRatio) ratio = minRatio;
+                    if (ratio > maxRatio) ratio = maxRatio;
                     scale->mag[i] *= ratio;
                 }
             }
