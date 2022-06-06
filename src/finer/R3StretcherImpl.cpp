@@ -655,7 +655,7 @@ R3StretcherImpl::analyseFormant()
         auto &cd = m_channelData.at(c);
         auto &scale = cd->scales.at(classify);
         for (int i = 0; i < binCount; ++i) {
-            f.envelope.at(i) += scale->mag.at(i);
+            f.envelope.at(i) += scale->mag.at(i) / double(channels);
         }
     }
 
@@ -677,6 +677,7 @@ R3StretcherImpl::analyseFormant()
          f.shifted.data()); // shifted is just a spare for this one
 
     v_exp(f.envelope.data(), binCount);
+    v_square(f.envelope.data(), binCount);
 
     for (int i = 0; i < binCount; ++i) {
         if (f.envelope[i] > 1.0e10) f.envelope[i] = 1.0e10;
@@ -764,11 +765,11 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
             double targetFactor = double(m_formant->fftSize) / double(fftSize);
             double sourceFactor = targetFactor * m_pitchScale;
             double scaleFactor = 1.0 / targetFactor;
-            for (int i = lowBin; i < highBin && i < formantHigh; ++i) {
+            for (int i = lowBin; i < highBin /* && i < formantHigh */; ++i) {
                 double source = m_formant->envelopeAt(i * sourceFactor);
                 double target = m_formant->envelopeAt(i * targetFactor);
                 if (target > 0.0) {
-                    scale->mag[i] *= (source * source) / (target * target);
+                    scale->mag[i] *= source / target;
                 }
             }
         }
