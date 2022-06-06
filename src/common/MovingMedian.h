@@ -41,15 +41,14 @@ class MovingMedian : public SampleFilter<T>
 public:
     MovingMedian(int size, float percentile = 50.f) :
         SampleFilter<T>(size),
-	m_frame(allocate_and_zero<T>(size)),
-	m_sorted(allocate_and_zero<T>(size)),
-	m_sortend(m_sorted + P::m_size - 1) {
+	m_frame(allocate_and_zero<T>(size * 2)),
+	m_sorted(m_frame + size)
+    {
         setPercentile(percentile);
     }
 
     ~MovingMedian() { 
 	deallocate(m_frame);
-	deallocate(m_sorted);
     }
 
     void setPercentile(float p) {
@@ -63,10 +62,10 @@ public:
             std::cerr << "WARNING: MovingMedian: NaN encountered" << std::endl;
             value = T();
         }
-	drop(m_frame[0]);
+        T toDrop = m_frame[0];
 	v_move(m_frame, m_frame+1, P::m_size-1);
 	m_frame[P::m_size-1] = value;
-	put(value);
+        dropAndPut(toDrop, value);
     }
 
     T get() const {
@@ -102,24 +101,39 @@ public:
 private:
     T *const m_frame;
     T *const m_sorted;
-    T *const m_sortend;
     int m_index;
 
-    void put(T value) {
-	// precondition: m_sorted contains m_size-1 values, packed at start
-	// postcondition: m_sorted contains m_size values, one of which is value
-	T *index = std::lower_bound(m_sorted, m_sortend, value);
-	v_move(index + 1, index, m_sortend - index);
-	*index = value;
-    }
-
-    void drop(T value) {
-	// precondition: m_sorted contains m_size values, one of which is value
-	// postcondition: m_sorted contains m_size-1 values, packed at start
-	T *index = std::lower_bound(m_sorted, m_sortend + 1, value);
-	assert(*index == value);
-	v_move(index, index + 1, m_sortend - index);
-	*m_sortend = T(0);
+    void dropAndPut(const T &toDrop, const T &toPut) {
+	// precondition: m_sorted contains m_size values, one of which is toDrop
+	// postcondition: m_sorted contains m_size values, one of which is toPut
+        // (and one instance of toDrop has been removed)
+        int n = P::m_size;
+        int dropIx = std::lower_bound(m_sorted, m_sorted + n, toDrop) - m_sorted;
+//        if (m_sorted[dropIx] != toDrop) {
+//            throw std::runtime_error("not found");
+//        }
+        int putIx;
+        if (toPut > toDrop) {
+            putIx = std::lower_bound(m_sorted + dropIx, m_sorted + n, toPut) - m_sorted;
+        } else if (toPut < toDrop) {
+            putIx = std::lower_bound(m_sorted, m_sorted + dropIx, toPut) - m_sorted;
+        } else {
+            m_sorted[dropIx] = toPut;
+            return;
+        }
+        if (putIx > dropIx) {
+            for (int i = dropIx; i+1 < putIx; ++i) {
+                m_sorted[i] = m_sorted[i+1];
+            }
+            m_sorted[putIx-1] = toPut;
+        } else if (putIx < dropIx) {
+            for (int i = dropIx; i > putIx; --i) {
+                m_sorted[i] = m_sorted[i-1];
+            }
+            m_sorted[putIx] = toPut;
+        } else {
+            m_sorted[putIx] = toPut;
+        }
     }
 
     MovingMedian(const MovingMedian &) =delete;
