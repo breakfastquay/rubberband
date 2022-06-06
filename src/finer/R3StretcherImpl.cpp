@@ -662,7 +662,7 @@ R3StretcherImpl::analyseFormant()
     m_scaleData.at(classify)->fft.inverseCepstral
         (f.envelope.data(), f.cepstra.data());
     
-    int cutoff = int(floor(m_parameters.sampleRate / 700.0));
+    int cutoff = int(floor(m_parameters.sampleRate / 650.0));
     if (cutoff < 1) cutoff = 1;
 
     f.cepstra[0] /= 2.0;
@@ -757,19 +757,21 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
         if (highBin % 2 == 1) --highBin;
 
-        int formantHigh = int(floor(fftSize * 7000.0 / m_parameters.sampleRate));
+        int formantHigh = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
         for (int i = 0; i < lowBin; ++i) {
             scale->mag[i] = 0.0;
         }
         if (m_formant->enabled) {
             double targetFactor = double(m_formant->fftSize) / double(fftSize);
             double sourceFactor = targetFactor * m_pitchScale;
-            double scaleFactor = 1.0 / targetFactor;
-            for (int i = lowBin; i < highBin /* && i < formantHigh */; ++i) {
+            for (int i = lowBin; i < highBin && i < formantHigh; ++i) {
                 double source = m_formant->envelopeAt(i * sourceFactor);
                 double target = m_formant->envelopeAt(i * targetFactor);
                 if (target > 0.0) {
-                    scale->mag[i] *= source / target;
+                    double ratio = source / target;
+//                    if (ratio < 0.2) ratio = 0.2;
+//                    if (ratio > 5.0) ratio = 5.0;
+                    scale->mag[i] *= ratio;
                 }
             }
         }
