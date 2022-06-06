@@ -572,7 +572,10 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
             
     for (auto &it: cd->scales) {
         int fftSize = it.first;
-        if (fftSize == classify && haveValidReadahead) continue;
+        if (fftSize == classify && haveValidReadahead) {
+            continue;
+        }
+        
         auto &scale = it.second;
 
         v_fftshift(scale->timeDomain.data(), fftSize);
@@ -581,7 +584,28 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                                              scale->real.data(),
                                              scale->imag.data());
 
-        //!!! This should be a map
+        // For the classify scale we always want the full range, as
+        // all the magnitudes (though not phases) are potentially
+        // relevant to classification and formant analysis. But this
+        // case here only happens if we don't haveValidReadahead - the
+        // normal case is above and just copies from the previous
+        // readahead.
+        if (fftSize == classify) {
+            //!!! and because not all the phases are relevant, there
+            //!!! is room for an optimisation here, though this is
+            //!!! used only when ratio changes
+            v_cartesian_to_polar(scale->mag.data(),
+                                 scale->phase.data(),
+                                 scale->real.data(),
+                                 scale->imag.data(),
+                                 fftSize/2 + 1);
+            v_scale(scale->mag.data(),
+                    1.0 / double(fftSize),
+                    scale->mag.size());
+            continue;
+        }
+        
+        //!!! should this be a map?
         for (const auto &b : m_guideConfiguration.fftBandLimits) {
             if (b.fftSize == fftSize) {
                 v_cartesian_to_polar(scale->mag.data() + b.b0min,
