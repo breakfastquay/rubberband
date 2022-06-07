@@ -66,15 +66,12 @@ public:
     
     BinClassifier(Parameters parameters) :
         m_parameters(parameters),
+        m_hFilters(new MovingMedianStack<double>(m_parameters.binCount,
+                                                 m_parameters.horizontalFilterLength)),
         m_vFilter(new MovingMedian<double>(m_parameters.verticalFilterLength)),
         m_vfQueue(parameters.horizontalFilterLag)
     {
         int n = m_parameters.binCount;
-
-        for (int i = 0; i < n; ++i) {
-            m_hFilters.push_back(std::make_shared<MovingMedian<double>>
-                                 (m_parameters.horizontalFilterLength));
-        }
 
         m_hf = allocate_and_zero<double>(n);
         m_vf = allocate_and_zero<double>(n);
@@ -96,12 +93,17 @@ public:
         deallocate(m_vf);
     }
 
+    void reset()
+    {
+        m_hFilters->reset();
+    }
+    
     void classify(const double *const mag, Classification *classification) {
         const int n = m_parameters.binCount;
 
         for (int i = 0; i < n; ++i) {
-            m_hFilters[i]->push(mag[i]);
-            m_hf[i] = m_hFilters[i]->get();
+            m_hFilters->push(i, mag[i]);
+            m_hf[i] = m_hFilters->get(i);
         }
 
         v_copy(m_vf, mag, n);
@@ -134,7 +136,7 @@ public:
 
 protected:
     Parameters m_parameters;
-    std::vector<std::shared_ptr<MovingMedian<double>>> m_hFilters;
+    std::unique_ptr<MovingMedianStack<double>> m_hFilters;
     std::unique_ptr<MovingMedian<double>> m_vFilter;
     // We manage the queued frames through pointer swapping, hence
     // bare pointers here

@@ -201,6 +201,7 @@ protected:
             formant(new FormantData(segmenterParameters.fftSize)) { }
         void reset() {
             haveReadahead = false;
+            classifier->reset();
             segmentation = BinSegmenter::Segmentation();
             prevSegmentation = BinSegmenter::Segmentation();
             nextSegmentation = BinSegmenter::Segmentation();

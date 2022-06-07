@@ -25,6 +25,7 @@
 #define RUBBERBAND_MOVING_MEDIAN_H
 
 #include "SampleFilter.h"
+#include "FixedVector.h"
 #include "Allocators.h"
 
 #include <algorithm>
@@ -34,6 +35,134 @@
 
 namespace RubberBand
 {
+
+template <typename T>
+class MovingMedianStack
+{
+public:
+    MovingMedianStack(int nfilters, int filterSize, float percentile = 50.f) :
+        m_buffer(nfilters * filterSize * 2, {}),
+        m_size(filterSize)
+    {
+        setPercentile(percentile);
+    }
+
+    ~MovingMedianStack() { 
+    }
+
+    void setPercentile(float p) {
+        m_index = int((m_size * p) / 100.f);
+        if (m_index >= m_size) m_index = m_size-1;
+        if (m_index < 0) m_index = 0;
+    }
+
+    void push(int filter, T value) {
+        if (value != value) {
+            std::cerr << "WARNING: MovingMedian: NaN encountered" << std::endl;
+            value = T();
+        }
+        T *frame = frameFor(filter);
+        T toDrop = frame[0];
+	v_move(frame, frame+1, m_size-1);
+	frame[m_size-1] = value;
+        dropAndPut(filter, toDrop, value);
+    }
+
+    T get(int filter) const {
+        const T *sorted = sortedFor(filter);
+	return sorted[m_index];
+    }
+
+    void reset() {
+	v_zero(m_buffer.data(), m_buffer.size());
+    }
+    
+private:
+    FixedVector<T> m_buffer;
+    int m_size;
+    int m_index;
+
+    const T *frameFor(int filter) const {
+        return m_buffer.data() + filter * m_size * 2;
+    }
+    T *frameFor(int filter) {
+        return m_buffer.data() + filter * m_size * 2;
+    }
+    const T *sortedFor(int filter) const {
+        return frameFor(filter) + m_size;
+    }
+    T *sortedFor(int filter) {
+        return frameFor(filter) + m_size;
+    }
+
+    void dropAndPut(int filter, const T &toDrop, const T &toPut) {
+	// precondition: sorted contains m_size values, one of which is toDrop
+	// postcondition: sorted contains m_size values, one of which is toPut
+        // (and one instance of toDrop has been removed)
+        int n = m_size;
+        int dropIx;
+        T *sorted = sortedFor(filter);
+        if (toDrop <= sorted[0]) {
+            // this is quite a common short-circuit in situations
+            // where many values can be (the equivalent of) 0
+            dropIx = 0;
+        } else {
+            dropIx = std::lower_bound(sorted, sorted + n, toDrop) - sorted;
+        }
+
+#ifdef DEBUG_MM
+        std::cout << "\nbefore: [";
+        for (int i = 0; i < m_size; ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << sorted[i];
+        }
+        std::cout << "]" << std::endl;
+
+        std::cout << "toDrop = " << toDrop << ", dropIx = " << dropIx << std::endl;
+        std::cout << "toPut = " << toPut << std::endl;
+        if (sorted[dropIx] != toDrop) {
+            throw std::runtime_error("element not found");
+        }
+#endif
+        
+        if (toPut > toDrop) {
+            int i = dropIx;
+            while (i+1 < n) {
+                if (sorted[i+1] > toPut) {
+                    break;
+                }
+                sorted[i] = sorted[i+1];
+                ++i;
+            }
+            sorted[i] = toPut;
+        } else if (toPut < toDrop) {
+            int i = dropIx;
+            while (true) {
+                if (--i < 0 || sorted[i] < toPut) {
+                    break;
+                }
+                sorted[i+1] = sorted[i];
+            }
+            sorted[i+1] = toPut;
+        }
+
+#ifdef DEBUG_MM
+        std::cout << "after: [";
+        for (int i = 0; i < m_size; ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << sorted[i];
+        }
+        std::cout << "]" << std::endl;
+
+        if (!std::is_sorted(sorted, sorted + n)) {
+            throw std::runtime_error("array is not sorted");
+        }
+#endif
+    }
+
+    MovingMedianStack(const MovingMedianStack &) =delete;
+    MovingMedianStack &operator=(const MovingMedianStack &) =delete;
+};
 
 template <typename T>
 class MovingMedian : public SampleFilter<T>
