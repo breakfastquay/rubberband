@@ -43,12 +43,20 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_prevOuthop(1),
     m_draining(false)
 {
+    double maxClassifierFrequency = 16000.0;
+    if (maxClassifierFrequency > m_parameters.sampleRate/2) {
+        maxClassifierFrequency = m_parameters.sampleRate/2;
+    }
+    int classificationBins =
+        int(floor(m_guideConfiguration.classificationFftSize *
+                  maxClassifierFrequency / m_parameters.sampleRate));
+    
     BinSegmenter::Parameters segmenterParameters
         (m_guideConfiguration.classificationFftSize,
-         m_parameters.sampleRate);
+         classificationBins, m_parameters.sampleRate);
+    
     BinClassifier::Parameters classifierParameters
-        (m_guideConfiguration.classificationFftSize / 2 + 1,
-         9, 1, 10, 2.0, 2.0, 1.0e-7);
+        (classificationBins, 9, 1, 10, 2.0, 2.0, 1.0e-7);
 
     int inRingBufferSize = m_guideConfiguration.longestFftSize * 2;
     int outRingBufferSize = m_guideConfiguration.longestFftSize * 16;

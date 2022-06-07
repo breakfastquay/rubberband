@@ -98,7 +98,9 @@ public:
         m_hFilters->reset();
     }
     
-    void classify(const double *const mag, Classification *classification) {
+    void classify(const double *const mag, // input, of at least binCount bins
+                  Classification *classification) // output, of binCount bins
+    {
         const int n = m_parameters.binCount;
 
         for (int i = 0; i < n; ++i) {

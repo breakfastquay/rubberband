@@ -45,21 +45,21 @@ public:
 
     struct Parameters {
         int fftSize;
+        int binCount;
         double sampleRate;
-        Parameters(int _fftSize, double _sampleRate) :
-            fftSize(_fftSize), sampleRate(_sampleRate) { }
+        Parameters(int _fftSize, int _binCount, double _sampleRate) :
+            fftSize(_fftSize), binCount(_binCount), sampleRate(_sampleRate) { }
     };
     
     BinSegmenter(Parameters parameters) :
         m_parameters(parameters),
-        m_binCount(m_parameters.fftSize/2 + 1),
-        m_numeric(m_binCount, 0),
-        m_classFilter(m_binCount / 64)
+        m_numeric(m_parameters.binCount, 0),
+        m_classFilter(16)
     {
     }
 
     Segmentation segment(const BinClassifier::Classification *classification) {
-        int n = m_binCount;
+        int n = m_parameters.binCount;
         for (int i = 0; i < n; ++i) {
             switch (classification[i]) {
             case BinClassifier::Classification::Harmonic:
@@ -79,12 +79,10 @@ public:
             }
         }
         double nyquist = m_parameters.sampleRate / 2.0;
-        int top = binForFrequency(16000.0);
-        if (top >= n) top = n-1;
         double f1 = nyquist;
         double f2 = nyquist;
         bool inPercussive = false;
-        for (int i = top; i > 0; --i) {
+        for (int i = n - 1; i > 0; --i) {
             if (m_numeric[i] == 1) { // percussive
                 if (!inPercussive) {
                     inPercussive = true;
@@ -103,7 +101,6 @@ public:
 
 protected:
     Parameters m_parameters;
-    int m_binCount;
     std::vector<int> m_numeric;
     MovingMedian<int> m_classFilter;
 
