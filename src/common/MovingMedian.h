@@ -40,9 +40,9 @@ template <typename T>
 class MovingMedianStack
 {
 public:
-    MovingMedianStack(int nfilters, int filterSize, float percentile = 50.f) :
-        m_buffer(nfilters * filterSize * 2, {}),
-        m_size(filterSize)
+    MovingMedianStack(int nfilters, int filterLength, float percentile = 50.f) :
+        m_buffer(nfilters * filterLength * 2, {}),
+        m_length(filterLength)
     {
         setPercentile(percentile);
     }
@@ -50,9 +50,17 @@ public:
     ~MovingMedianStack() { 
     }
 
+    int getNFilters() const {
+        return m_buffer.size() / (m_length * 2);
+    }
+    
+    int getSize() const {
+        return m_length;
+    }
+    
     void setPercentile(float p) {
-        m_index = int((m_size * p) / 100.f);
-        if (m_index >= m_size) m_index = m_size-1;
+        m_index = int((m_length * p) / 100.f);
+        if (m_index >= m_length) m_index = m_length-1;
         if (m_index < 0) m_index = 0;
     }
 
@@ -63,8 +71,8 @@ public:
         }
         T *frame = frameFor(filter);
         T toDrop = frame[0];
-	v_move(frame, frame+1, m_size-1);
-	frame[m_size-1] = value;
+	v_move(frame, frame+1, m_length-1);
+	frame[m_length-1] = value;
         dropAndPut(filter, toDrop, value);
     }
 
@@ -79,30 +87,30 @@ public:
     
 private:
     FixedVector<T> m_buffer;
-    int m_size;
+    int m_length;
     int m_index;
 
     const T *frameFor(int filter) const {
-        return m_buffer.data() + filter * m_size * 2;
+        return m_buffer.data() + filter * m_length * 2;
     }
     T *frameFor(int filter) {
-        return m_buffer.data() + filter * m_size * 2;
+        return m_buffer.data() + filter * m_length * 2;
     }
     const T *sortedFor(int filter) const {
-        return frameFor(filter) + m_size;
+        return frameFor(filter) + m_length;
     }
     T *sortedFor(int filter) {
-        return frameFor(filter) + m_size;
+        return frameFor(filter) + m_length;
     }
 
     void dropAndPut(int filter, const T &toDrop, const T &toPut) {
-	// precondition: sorted contains m_size values, one of which is toDrop
-	// postcondition: sorted contains m_size values, one of which is toPut
+	// precondition: sorted contains m_length values, one of which is toDrop
+	// postcondition: sorted contains m_length values, one of which is toPut
         // (and one instance of toDrop has been removed)
-        int n = m_size;
-        int dropIx;
+        const int n = m_length;
         T *sorted = sortedFor(filter);
-        if (toDrop <= sorted[0]) {
+        int dropIx;
+        if (toDrop <= *sorted) {
             // this is quite a common short-circuit in situations
             // where many values can be (the equivalent of) 0
             dropIx = 0;
@@ -112,7 +120,7 @@ private:
 
 #ifdef DEBUG_MM
         std::cout << "\nbefore: [";
-        for (int i = 0; i < m_size; ++i) {
+        for (int i = 0; i < n; ++i) {
             if (i > 0) std::cout << ",";
             std::cout << sorted[i];
         }
@@ -148,7 +156,7 @@ private:
 
 #ifdef DEBUG_MM
         std::cout << "after: [";
-        for (int i = 0; i < m_size; ++i) {
+        for (int i = 0; i < n; ++i) {
             if (i > 0) std::cout << ",";
             std::cout << sorted[i];
         }
@@ -167,45 +175,33 @@ private:
 template <typename T>
 class MovingMedian : public SampleFilter<T>
 {
-    typedef SampleFilter<T> P;
-
 public:
     MovingMedian(int size, float percentile = 50.f) :
-        SampleFilter<T>(size),
-	m_frame(allocate_and_zero<T>(size * 2)),
-	m_sorted(m_frame + size)
+        m_mm(1, size, percentile)
     {
-        setPercentile(percentile);
     }
 
-    ~MovingMedian() { 
-	deallocate(m_frame);
+    ~MovingMedian() {
+    }
+
+    int getSize() const {
+        return m_mm.getSize();
     }
 
     void setPercentile(float p) {
-        m_index = int((P::m_size * p) / 100.f);
-        if (m_index >= P::m_size) m_index = P::m_size-1;
-        if (m_index < 0) m_index = 0;
+        m_mm.setPercentile(p);
     }
 
     void push(T value) {
-        if (value != value) {
-            std::cerr << "WARNING: MovingMedian: NaN encountered" << std::endl;
-            value = T();
-        }
-        T toDrop = m_frame[0];
-	v_move(m_frame, m_frame+1, P::m_size-1);
-	m_frame[P::m_size-1] = value;
-        dropAndPut(toDrop, value);
+        m_mm.push(0, value);
     }
 
     T get() const {
-	return m_sorted[m_index];
+        return m_mm.get(0);
     }
 
     void reset() {
-	v_zero(m_frame, P::m_size);
-	v_zero(m_sorted, P::m_size);
+        m_mm.reset();
     }
 
     // Convenience function that applies a given filter to an array
@@ -230,73 +226,7 @@ public:
     }
     
 private:
-    T *const m_frame;
-    T *const m_sorted;
-    int m_index;
-
-    void dropAndPut(const T &toDrop, const T &toPut) {
-	// precondition: m_sorted contains m_size values, one of which is toDrop
-	// postcondition: m_sorted contains m_size values, one of which is toPut
-        // (and one instance of toDrop has been removed)
-        int n = P::m_size;
-        int dropIx;
-        if (toDrop <= m_sorted[0]) {
-            // this is quite a common short-circuit in situations
-            // where many values can be (the equivalent of) 0
-            dropIx = 0;
-        } else {
-            dropIx = std::lower_bound(m_sorted, m_sorted + n, toDrop) - m_sorted;
-        }
-
-#ifdef DEBUG_MM
-        std::cout << "\nbefore: [";
-        for (int i = 0; i < P::m_size; ++i) {
-            if (i > 0) std::cout << ",";
-            std::cout << m_sorted[i];
-        }
-        std::cout << "]" << std::endl;
-
-        std::cout << "toDrop = " << toDrop << ", dropIx = " << dropIx << std::endl;
-        std::cout << "toPut = " << toPut << std::endl;
-        if (m_sorted[dropIx] != toDrop) {
-            throw std::runtime_error("element not found");
-        }
-#endif
-        
-        if (toPut > toDrop) {
-            int i = dropIx;
-            while (i+1 < n) {
-                if (m_sorted[i+1] > toPut) {
-                    break;
-                }
-                m_sorted[i] = m_sorted[i+1];
-                ++i;
-            }
-            m_sorted[i] = toPut;
-        } else if (toPut < toDrop) {
-            int i = dropIx;
-            while (true) {
-                if (--i < 0 || m_sorted[i] < toPut) {
-                    break;
-                }
-                m_sorted[i+1] = m_sorted[i];
-            }
-            m_sorted[i+1] = toPut;
-        }
-
-#ifdef DEBUG_MM
-        std::cout << "after: [";
-        for (int i = 0; i < P::m_size; ++i) {
-            if (i > 0) std::cout << ",";
-            std::cout << m_sorted[i];
-        }
-        std::cout << "]" << std::endl;
-
-        if (!std::is_sorted(m_sorted, m_sorted + n)) {
-            throw std::runtime_error("array is not sorted");
-        }
-#endif
-    }
+    MovingMedianStack<T> m_mm;
 
     MovingMedian(const MovingMedian &) =delete;
     MovingMedian &operator=(const MovingMedian &) =delete;
