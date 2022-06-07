@@ -128,7 +128,7 @@ private:
         std::cout << "]" << std::endl;
 
         std::cout << "toDrop = " << toDrop << ", dropIx = " << dropIx << std::endl;
-        std::cout << "toPut = " << toPut /* << ", putIx = " << putIx */ << std::endl;
+        std::cout << "toPut = " << toPut << std::endl;
         if (m_sorted[dropIx] != toDrop) {
             throw std::runtime_error("element not found");
         }
