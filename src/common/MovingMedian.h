@@ -110,7 +110,14 @@ private:
 	// postcondition: m_sorted contains m_size values, one of which is toPut
         // (and one instance of toDrop has been removed)
         int n = P::m_size;
-        int dropIx = std::lower_bound(m_sorted, m_sorted + n, toDrop) - m_sorted;
+        int dropIx;
+        if (toDrop <= m_sorted[0]) {
+            // this is quite a common short-circuit in situations
+            // where many values can be (the equivalent of) 0
+            dropIx = 0;
+        } else {
+            dropIx = std::lower_bound(m_sorted, m_sorted + n, toDrop) - m_sorted;
+        }
 
 #ifdef DEBUG_MM
         std::cout << "\nbefore: [";
