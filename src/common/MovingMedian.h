@@ -146,9 +146,8 @@ private:
             m_sorted[i] = toPut;
         } else if (toPut < toDrop) {
             int i = dropIx;
-            while (i >= 0) {
-                --i;
-                if (i < 0 || m_sorted[i] < toPut) {
+            while (true) {
+                if (--i < 0 || m_sorted[i] < toPut) {
                     break;
                 }
                 m_sorted[i+1] = m_sorted[i];
