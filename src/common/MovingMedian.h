@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <iostream>
 
+//#define DEBUG_MM 1
+
 namespace RubberBand
 {
 
@@ -109,31 +111,56 @@ private:
         // (and one instance of toDrop has been removed)
         int n = P::m_size;
         int dropIx = std::lower_bound(m_sorted, m_sorted + n, toDrop) - m_sorted;
-//        if (m_sorted[dropIx] != toDrop) {
-//            throw std::runtime_error("not found");
-//        }
-        int putIx;
+
+#ifdef DEBUG_MM
+        std::cout << "\nbefore: [";
+        for (int i = 0; i < P::m_size; ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << m_sorted[i];
+        }
+        std::cout << "]" << std::endl;
+
+        std::cout << "toDrop = " << toDrop << ", dropIx = " << dropIx << std::endl;
+        std::cout << "toPut = " << toPut /* << ", putIx = " << putIx */ << std::endl;
+        if (m_sorted[dropIx] != toDrop) {
+            throw std::runtime_error("element not found");
+        }
+#endif
+        
         if (toPut > toDrop) {
-            putIx = std::lower_bound(m_sorted + dropIx, m_sorted + n, toPut) - m_sorted;
-        } else if (toPut < toDrop) {
-            putIx = std::lower_bound(m_sorted, m_sorted + dropIx, toPut) - m_sorted;
-        } else {
-            m_sorted[dropIx] = toPut;
-            return;
-        }
-        if (putIx > dropIx) {
-            for (int i = dropIx; i+1 < putIx; ++i) {
+            int i = dropIx;
+            while (i+1 < n) {
+                if (m_sorted[i+1] > toPut) {
+                    break;
+                }
                 m_sorted[i] = m_sorted[i+1];
+                ++i;
             }
-            m_sorted[putIx-1] = toPut;
-        } else if (putIx < dropIx) {
-            for (int i = dropIx; i > putIx; --i) {
-                m_sorted[i] = m_sorted[i-1];
+            m_sorted[i] = toPut;
+        } else if (toPut < toDrop) {
+            int i = dropIx;
+            while (i >= 0) {
+                --i;
+                if (i < 0 || m_sorted[i] < toPut) {
+                    break;
+                }
+                m_sorted[i+1] = m_sorted[i];
             }
-            m_sorted[putIx] = toPut;
-        } else {
-            m_sorted[putIx] = toPut;
+            m_sorted[i+1] = toPut;
         }
+
+#ifdef DEBUG_MM
+        std::cout << "after: [";
+        for (int i = 0; i < P::m_size; ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << m_sorted[i];
+        }
+        std::cout << "]" << std::endl;
+
+        if (!std::is_sorted(m_sorted, m_sorted + n)) {
+            throw std::runtime_error("array is not sorted");
+        }
+#endif
     }
 
     MovingMedian(const MovingMedian &) =delete;
