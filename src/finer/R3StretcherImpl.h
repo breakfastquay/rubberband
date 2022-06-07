@@ -218,14 +218,16 @@ protected:
         // from different channels into arguments for PhaseAdvance
         FixedVector<double *> mag;
         FixedVector<double *> phase;
+        FixedVector<double *> prevMag;
         FixedVector<Guide::Guidance *> guidance;
         FixedVector<double *> outPhase;
         FixedVector<float *> mixdown;
         FixedVector<float *> resampled;
         ChannelAssembly(int channels) :
             mag(channels, nullptr), phase(channels, nullptr),
-            guidance(channels, nullptr), outPhase(channels, nullptr),
-            mixdown(channels, nullptr), resampled(channels, nullptr) { }
+            prevMag(channels, nullptr), guidance(channels, nullptr),
+            outPhase(channels, nullptr), mixdown(channels, nullptr),
+            resampled(channels, nullptr) { }
     };
 
     struct ScaleData {

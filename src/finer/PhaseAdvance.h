@@ -86,6 +86,7 @@ public:
     void advance(double *const *outPhase,
                  const double *const *mag,
                  const double *const *phase,
+                 const double *const *prevMag,
                  const Guide::Configuration &configuration,
                  const Guide::Guidance *const *guidance,
                  int inhop,
@@ -132,10 +133,15 @@ public:
                 int endBin = binForFrequency(band.f1);
                 if (startBin > highest || endBin < lowest) continue;
                 int count = endBin - startBin + 1;
-                m_peakPicker.findNearestAndNextPeaks(mag[c], startBin, count,
+                m_peakPicker.findNearestAndNextPeaks(mag[c],
+                                                     startBin, count,
                                                      band.p, m_currentPeaks[c],
                                                      nullptr);
             }
+            m_peakPicker.findNearestAndNextPeaks(prevMag[c],
+                                                 lowest, highest - lowest + 1,
+                                                 1, m_prevPeaks[c],
+                                                 nullptr);
         }
 
         if (channels > 1) {
@@ -218,9 +224,9 @@ public:
             }
         }
         
-        int **tmp = m_prevPeaks;
-        m_prevPeaks = m_currentPeaks;
-        m_currentPeaks = tmp;
+//        int **tmp = m_prevPeaks;
+//        m_prevPeaks = m_currentPeaks;
+//        m_currentPeaks = tmp;
     }
 
 protected:

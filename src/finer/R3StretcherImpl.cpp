@@ -121,7 +121,6 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
 WindowType
 R3StretcherImpl::ScaleData::analysisWindowShape(int fftSize)
 {
-//!!!    return HannWindow;
     if (fftSize == 4096) return HannWindow;
     else return NiemitaloForwardWindow;
 }
@@ -135,7 +134,6 @@ R3StretcherImpl::ScaleData::analysisWindowLength(int fftSize)
 WindowType
 R3StretcherImpl::ScaleData::synthesisWindowShape(int fftSize)
 {
-//!!!    return HannWindow;
     if (fftSize == 4096) return HannWindow;
     else return NiemitaloReverseWindow;
 }
@@ -143,7 +141,6 @@ R3StretcherImpl::ScaleData::synthesisWindowShape(int fftSize)
 int
 R3StretcherImpl::ScaleData::synthesisWindowLength(int fftSize)
 {
-//!!!    return fftSize/2;
     if (fftSize == 4096) return fftSize/2;
     else return fftSize;
 }
@@ -405,6 +402,7 @@ R3StretcherImpl::consume()
                 auto &scale = cd->scales.at(fftSize);
                 m_channelAssembly.mag[c] = scale->mag.data();
                 m_channelAssembly.phase[c] = scale->phase.data();
+                m_channelAssembly.prevMag[c] = scale->prevMag.data();
                 m_channelAssembly.guidance[c] = &cd->guidance;
                 m_channelAssembly.outPhase[c] = scale->advancedPhase.data();
             }
@@ -412,6 +410,7 @@ R3StretcherImpl::consume()
                 (m_channelAssembly.outPhase.data(),
                  m_channelAssembly.mag.data(),
                  m_channelAssembly.phase.data(),
+                 m_channelAssembly.prevMag.data(),
                  m_guideConfiguration,
                  m_channelAssembly.guidance.data(),
                  m_prevInhop,
