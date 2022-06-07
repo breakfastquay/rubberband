@@ -82,8 +82,16 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
 
     Resampler::Parameters resamplerParameters;
     resamplerParameters.quality = Resampler::FastestTolerable;
-    resamplerParameters.dynamism = Resampler::RatioOftenChanging;
-    resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+
+    if (m_parameters.options & RubberBandStretcher::OptionProcessRealTime) {
+        resamplerParameters.dynamism = Resampler::RatioOftenChanging;
+        resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+    } else {
+        // ratio can't be changed in offline mode
+        resamplerParameters.dynamism = Resampler::RatioMostlyFixed;
+        resamplerParameters.ratioChange = Resampler::SuddenRatioChange;
+    }
+        
     resamplerParameters.initialSampleRate = m_parameters.sampleRate;
     resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize; //!!!???
     m_resampler = std::unique_ptr<Resampler>
