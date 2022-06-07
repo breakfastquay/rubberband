@@ -654,7 +654,7 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     cd->nextSegmentation = cd->segmenter->segment(cd->nextClassification.data());
 
     m_troughPicker.findNearestAndNextPeaks
-        (classifyScale->mag.data(), 3, nullptr,
+        (classifyScale->mag.data(), 1, nullptr,
          classifyScale->troughs.data());
             
     double instantaneousRatio = double(prevOuthop) / double(prevInhop);
