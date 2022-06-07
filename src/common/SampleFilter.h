@@ -33,6 +33,7 @@ template <typename T>
 class SampleFilter
 {
 public:
+    virtual ~SampleFilter() { }
     virtual int getSize() const = 0;
     virtual void push(T) = 0;
     virtual T get() const = 0;
