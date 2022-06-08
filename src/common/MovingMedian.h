@@ -205,15 +205,15 @@ public:
     }
 
     // Convenience function that applies a given filter to an array
-    // in-place. Array must have length equal to getSize(). Modifies
-    // both the filter and the array.
+    // in-place. Array has length n. Modifies both the filter and the
+    // array.
     //
-    static void filter(MovingMedian<T> &mm, T *v) {
-        int n = mm.getSize();
-        int lag = n / 2;
+    static void filter(MovingMedian<T> &mm, T *v, int n) {
+        int fn = mm.getSize();
+        int lag = fn / 2;
         mm.reset();
         for (int i = 0; i < lag; ++i) {
-            mm.push(v[i]);
+            if (i < n) mm.push(v[i]);
         }
         for (int i = lag; i < n; ++i) {
             mm.push(v[i]);
@@ -223,6 +223,12 @@ public:
             mm.push(T());
             v[i-lag] = mm.get();
         }
+    }
+
+    // As above but with a vector argument
+    //
+    static void filter(MovingMedian<T> &mm, std::vector<T> &v) {
+        filter(mm, v.data(), v.size());
     }
     
 private:

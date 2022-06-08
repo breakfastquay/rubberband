@@ -109,7 +109,7 @@ public:
         }
 
         v_copy(m_vf, mag, n);
-        MovingMedian<double>::filter(*m_vFilter, m_vf);
+        MovingMedian<double>::filter(*m_vFilter, m_vf, n);
 
         if (m_parameters.horizontalFilterLag > 0) {
             double *lagged = m_vfQueue.readOne();

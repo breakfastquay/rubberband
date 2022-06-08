@@ -2,7 +2,7 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '2.0.2',
+  version: '3.0.0',
   license: 'GPL-2.0-or-later',
   default_options: [
     'cpp_std=c++11',
@@ -89,6 +89,7 @@ unit_test_sources = [
   'src/test/TestResampler.cpp',
   'src/test/TestVectorOpsComplex.cpp',
   'src/test/TestVectorOps.cpp',
+  'src/test/TestSignalBits.cpp',
   'src/test/test.cpp',
 ]
 
@@ -738,6 +739,8 @@ if have_boost_unit_test
        unit_tests, args: [ '--run_test=TestVectorOps', general_test_args ])
   test('VectorOpsComplex',
        unit_tests, args: [ '--run_test=TestVectorOpsComplex', general_test_args ])
+  test('SignalBits',
+       unit_tests, args: [ '--run_test=TestSignalBits', general_test_args ])
 else
   target_summary += { 'Unit tests': false }
   message('Not building unit tests: boost_unit_test_framework dependency not found')

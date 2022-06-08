@@ -70,7 +70,7 @@ public:
                 m_numeric[i] = 2; break;
             }
         }
-        MovingMedian<int>::filter(m_classFilter, m_numeric.data());
+        MovingMedian<int>::filter(m_classFilter, m_numeric.data(), m_numeric.size());
         double f0 = 0.0;
         for (int i = 1; i < n; ++i) {
             if (m_numeric[i] != 1) {
