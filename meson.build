@@ -83,6 +83,15 @@ lv2_sources = [
   'ladspa-lv2/libmain-lv2.cpp',
 ]
 
+unit_test_sources = [
+  'src/test/TestAllocators.cpp',
+  'src/test/TestFFT.cpp',
+  'src/test/TestResampler.cpp',
+  'src/test/TestVectorOpsComplex.cpp',
+  'src/test/TestVectorOps.cpp',
+  'src/test/test.cpp',
+]
+
 general_include_dirs = [
   'rubberband',
   'src',
@@ -100,6 +109,7 @@ fftw3_dep = dependency('fftw3', version: '>= 3.0.0', required: false)
 samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
 sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
+boost_unit_test_dep = dependency('boost_unit_test_framework', required: false)
 thread_dep = dependency('threads')
 have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
 have_lv2 = cpp.has_header('lv2.h', args: extra_include_args)
@@ -312,6 +322,15 @@ if not sndfile_dep.found()
 endif
 have_sndfile = sndfile_dep.found()
 
+if not boost_unit_test_dep.found()
+  boost_unit_test_dep = cpp.find_library('boost_unit_test_framework',
+                                         dirs: get_option('extra_lib_dirs'),
+                                         has_headers: ['boost/test/unit_test.hpp'],
+                                         header_args: extra_include_args,
+                                         required: false)
+endif
+have_boost_unit_test = boost_unit_test_dep.found()
+
 
 # General platform and compiler expectations
 
@@ -430,6 +449,7 @@ if cpp.get_id() == 'msvc'
   rubberband_lv2_name = 'lv2-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
   rubberband_jni_name = 'rubberband-jni'
+  unit_tests_name = 'tests'
 else
   rubberband_library_name = 'rubberband'
   rubberband_dynamic_name = 'rubberband'
@@ -438,6 +458,7 @@ else
   rubberband_lv2_name = 'lv2-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
   rubberband_jni_name = 'rubberband-jni'
+  unit_tests_name = 'tests'
 endif  
 
 rubberband_objlib = static_library(
@@ -684,6 +705,42 @@ if have_sndfile
 else 
   target_summary += { 'Command-line utility': false }
   message('Not building command-line utility: libsndfile dependency not found')
+endif
+
+if have_boost_unit_test
+  target_summary += { 'Unit tests': [ true, 'Name: ' + unit_tests_name ] }
+  message('Will build unit tests: use "meson test -C <builddir>" to run them')
+  unit_tests = executable(
+    unit_tests_name,
+    unit_test_sources,
+    cpp_args: general_compile_args,
+    c_args: general_compile_args,
+    link_args: [
+      arch_flags,
+      feature_libraries,
+    ],
+    dependencies: [
+      rubberband_objlib_dep,
+      general_dependencies,
+      boost_unit_test_dep,
+    ],
+    install: false,
+    build_by_default: false
+  )
+  general_test_args = [ '--log_level=message' ]
+  test('Allocators',
+       unit_tests, args: [ '--run_test=TestAllocators', general_test_args ])
+  test('FFT',
+       unit_tests, args: [ '--run_test=TestFFT', general_test_args ])
+  test('Resampler',
+       unit_tests, args: [ '--run_test=TestResampler', general_test_args ])
+  test('VectorOps',
+       unit_tests, args: [ '--run_test=TestVectorOps', general_test_args ])
+  test('VectorOpsComplex',
+       unit_tests, args: [ '--run_test=TestVectorOpsComplex', general_test_args ])
+else
+  target_summary += { 'Unit tests': false }
+  message('Not building unit tests: boost_unit_test_framework dependency not found')
 endif
 
 pkg.generate(
