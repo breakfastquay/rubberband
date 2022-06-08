@@ -212,14 +212,20 @@ public:
         int fn = mm.getSize();
         int lag = fn / 2;
         mm.reset();
-        for (int i = 0; i < lag; ++i) {
+        int i = 0;
+        for (; i < lag; ++i) {
             if (i < n) mm.push(v[i]);
         }
-        for (int i = lag; i < n; ++i) {
+        for (; i < n; ++i) {
             mm.push(v[i]);
             v[i-lag] = mm.get();
         }
-        for (int i = n; i < n + lag; ++i) {
+        for (; i < lag; ++i) {
+            // just for the unusual case where lag > n
+            mm.push(T());
+            (void)mm.get();
+        }
+        for (; i < n + lag; ++i) {
             mm.push(T());
             v[i-lag] = mm.get();
         }
