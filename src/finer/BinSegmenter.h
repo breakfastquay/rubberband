@@ -54,7 +54,7 @@ public:
     BinSegmenter(Parameters parameters) :
         m_parameters(parameters),
         m_numeric(m_parameters.binCount, 0),
-        m_classFilter(16)
+        m_classFilter(15)
     {
     }
 
@@ -70,7 +70,19 @@ public:
                 m_numeric[i] = 2; break;
             }
         }
-        MovingMedian<int>::filter(m_classFilter, m_numeric.data(), m_numeric.size());
+        MovingMedian<int>::filter(m_classFilter, m_numeric);
+/*
+        std::cout << "c:";
+        for (int i = 0; i < n; ++i) {
+            if (i > 0) std::cout << ",";
+            if (m_numeric[i] == 1) {
+                std::cout << "1";
+            } else {
+                std::cout << "0";
+            }
+        }
+        std::cout << std::endl;
+*/            
         double f0 = 0.0;
         for (int i = 1; i < n; ++i) {
             if (m_numeric[i] != 1) {

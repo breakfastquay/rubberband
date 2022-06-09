@@ -653,6 +653,30 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     cd->segmentation = cd->nextSegmentation;
     cd->nextSegmentation = cd->segmenter->segment(cd->nextClassification.data());
 
+/*
+    if (c == 0) {
+        double pb = cd->nextSegmentation.percussiveBelow;
+        double pa = cd->nextSegmentation.percussiveAbove;
+        double ra = cd->nextSegmentation.residualAbove;
+        int pbb = binForFrequency(pb, classify);
+        int pab = binForFrequency(pa, classify);
+        int rab = binForFrequency(ra, classify);
+        std::cout << "pb = " << pb << ", pbb = " << pbb << std::endl;
+        std::cout << "pa = " << pa << ", pab = " << pab << std::endl;
+        std::cout << "ra = " << ra << ", rab = " << rab << std::endl;
+        std::cout << "s:";
+        for (int i = 0; i <= classify/2; ++i) {
+            if (i > 0) std::cout << ",";
+            if (i < pbb || (i >= pab && i <= rab)) {
+                std::cout << "1";
+            } else {
+                std::cout << "0";
+            }
+        }
+        std::cout << std::endl;
+    }
+*/
+    
     m_troughPicker.findNearestAndNextPeaks
         (classifyScale->mag.data(), 3, nullptr,
          classifyScale->troughs.data());
