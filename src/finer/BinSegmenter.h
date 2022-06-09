@@ -83,19 +83,30 @@ public:
         double f2 = nyquist;
         bool inPercussive = false;
         for (int i = n - 1; i > 0; --i) {
-            if (m_numeric[i] == 1) { // percussive
-                if (!inPercussive) {
+            int c = m_numeric[i];
+            if (!inPercussive) {
+                if (c == 2) { // residual/silent
+                    continue;
+                } else if (c == 1) { // percussive
                     inPercussive = true;
                     f2 = frequencyForBin(i);
-                    continue;
+                } else { // harmonic
+                    f1 = f2 = frequencyForBin(i);
+                    break;
                 }
-            } else if (m_numeric[i] == 0) { // harmonic
-                if (inPercussive) {
+            } else { // inPercussive
+                if (c != 1) { // non-percussive
                     f1 = frequencyForBin(i);
+                    break;
                 }
-                break; // always when harmonic reached
             }
         }
+        if (f1 == nyquist && f2 < nyquist) {
+            f1 = 0.0;
+        }
+
+//        std::cout << "f0 = " << f0 << ", f1 = " << f1 << ", f2 = " << f2 << std::endl;
+        
         return Segmentation(f0, f1, f2);
     }
 
