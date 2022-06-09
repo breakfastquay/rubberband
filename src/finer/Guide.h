@@ -114,7 +114,7 @@ public:
         m_configuration(roundUp(int(ceil(parameters.sampleRate / 16.0))),
                         roundUp(int(ceil(parameters.sampleRate / 64.0))),
                         roundUp(int(ceil(parameters.sampleRate / 32.0)))),
-        m_minLower(350.0), m_minHigher(2400.0),
+        m_minLower(500.0), m_minHigher(4000.0),
         m_defaultLower(700.0), m_defaultHigher(4800.0),
         m_maxLower(1100.0), m_maxHigher(7000.0)
     {
