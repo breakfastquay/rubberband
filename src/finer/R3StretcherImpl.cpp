@@ -38,7 +38,6 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_guide(Guide::Parameters(m_parameters.sampleRate, parameters.logger)),
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
-    m_troughPicker(m_guideConfiguration.classificationFftSize / 2 + 1),
     m_inhop(1),
     m_prevOuthop(1),
     m_draining(false)
@@ -677,22 +676,17 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     }
 */
     
-    m_troughPicker.findNearestAndNextPeaks
-        (classifyScale->mag.data(), 3, nullptr,
-         classifyScale->troughs.data());
-            
     double instantaneousRatio = double(prevOuthop) / double(prevInhop);
     bool specialCaseUnity = true;
         
-    m_guide.calculate(instantaneousRatio,
-                      classifyScale->mag.data(),
-                      classifyScale->troughs.data(),
-                      classifyScale->prevMag.data(),
-                      cd->segmentation,
-                      cd->prevSegmentation,
-                      cd->nextSegmentation,
-                      specialCaseUnity,
-                      cd->guidance);
+    m_guide.updateGuidance(instantaneousRatio,
+                           classifyScale->mag.data(),
+                           classifyScale->prevMag.data(),
+                           cd->segmentation,
+                           cd->prevSegmentation,
+                           cd->nextSegmentation,
+                           specialCaseUnity,
+                           cd->guidance);
 }
 
 void

@@ -137,15 +137,14 @@ public:
         return m_configuration;
     }
     
-    void calculate(double ratio,
-                   const double *const magnitudes,
-                   const int *const troughs,
-                   const double *const prevMagnitudes,
-                   const BinSegmenter::Segmentation &segmentation,
-                   const BinSegmenter::Segmentation &prevSegmentation,
-                   const BinSegmenter::Segmentation &nextSegmentation,
-                   bool specialCaseUnity,
-                   Guidance &guidance) const {
+    void updateGuidance(double ratio,
+                        const double *const magnitudes,
+                        const double *const prevMagnitudes,
+                        const BinSegmenter::Segmentation &segmentation,
+                        const BinSegmenter::Segmentation &prevSegmentation,
+                        const BinSegmenter::Segmentation &nextSegmentation,
+                        bool specialCaseUnity,
+                        Guidance &guidance) const {
 
         guidance.kick.present = false;
         guidance.lowPercussive.present = false;
@@ -221,8 +220,20 @@ public:
         double lower = snapToTrough(m_defaultLower, troughs);
         if (lower > m_maxLower) lower = m_maxLower;
 */
-/*
+        double prevLower = guidance.fftBands[0].f1;
+        double lower = descendToValley(prevLower, magnitudes);
+        if (lower > m_maxLower || lower < m_minLower) {
+            lower = m_defaultLower;
+        }
+        
         double prevHigher = guidance.fftBands[1].f1;
+        double higher = descendToValley(prevHigher, magnitudes);
+        if (higher > m_maxHigher || higher < m_minHigher) {
+            higher = m_defaultHigher;
+        }
+
+
+/*
         double higher = snapToTrough(prevHigher, troughs, magnitudes);
         if (higher < m_minHigher || higher > m_maxHigher) {
             higher = snapToTrough(m_defaultHigher, troughs, magnitudes);
@@ -231,17 +242,16 @@ public:
             }
         }
 */
+        /*
         double higher = m_defaultHigher;
         
-        double prevLower = guidance.fftBands[0].f1;
-        double lower = snapToTrough(prevLower, troughs, magnitudes);
         if (lower < m_minLower || lower > m_maxLower) {
             lower = snapToTrough(m_defaultLower, troughs, magnitudes);
             if (lower < m_minLower || lower > m_maxLower) {
                 lower = prevLower;
             }
         }
-        
+        */        
         guidance.fftBands[0].f0 = 0.0;
         guidance.fftBands[0].f1 = lower;
 
@@ -343,13 +353,22 @@ protected:
         return (here > 10.e-3 && here > there * 1.4);
     }
 
-    double snapToTrough(double f,
-                        const int *const troughs,
-                        const double *const magnitudes) const {
+    double descendToValley(double f, const double *const magnitudes) const {
 //        return frequencyForBin(troughs[binForFrequency(f)]);
-        int bin = binForFrequency(f);
+        int b = binForFrequency(f);
+
+        for (int i = 0; i < 3; ++i) {
+            if (magnitudes[b+1] < magnitudes[b]) {
+                ++b;
+            } else if (magnitudes[b-1] < magnitudes[b]) {
+                --b;
+            } else {
+                break;
+            }
+        }
+        
+/*        
         int snapped = troughs[bin];
-        double sf = frequencyForBin(snapped);
         std::cout << "snapToTrough: " << f << " -> bin " << bin << " -> snapped " << snapped << " -> " << sf << std::endl;
         for (int i = -3; i <= 3; ++i) {
             if (i == 0) std::cout << "[";
@@ -358,6 +377,8 @@ protected:
             std::cout << " ";
         }
         std::cout << std::endl;
+*/
+        double sf = frequencyForBin(b);
         return sf;
     }
 

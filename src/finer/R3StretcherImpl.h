@@ -109,7 +109,6 @@ protected:
         FixedVector<double> mag;
         FixedVector<double> phase;
         FixedVector<double> advancedPhase;
-        FixedVector<int> troughs;
         FixedVector<double> prevMag;
         FixedVector<double> accumulator;
 
@@ -122,7 +121,6 @@ protected:
             mag(bufSize, 0.f),
             phase(bufSize, 0.f),
             advancedPhase(bufSize, 0.f),
-            troughs(bufSize, 0),
             prevMag(bufSize, 0.f),
             accumulator(_longestFftSize, 0.f)
         { }
@@ -261,7 +259,6 @@ protected:
     Guide m_guide;
     Guide::Configuration m_guideConfiguration;
     ChannelAssembly m_channelAssembly;
-    Peak<double, std::less<double>> m_troughPicker;
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
     std::atomic<int> m_inhop;
