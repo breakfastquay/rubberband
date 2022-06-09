@@ -223,10 +223,6 @@ public:
                 m_prevOutPhase[c][i] = outPhase[c][i];
             }
         }
-        
-//        int **tmp = m_prevPeaks;
-//        m_prevPeaks = m_currentPeaks;
-//        m_currentPeaks = tmp;
     }
 
 protected:
