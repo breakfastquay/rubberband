@@ -98,9 +98,11 @@ public:
             int np = i;
             if (j < nPeaks) {
                 np = m_locations[j];
+            } else if (nPeaks > 0) {
+                np = m_locations[nPeaks-1];
             }
             if (next) {
-                if (pp == i) {
+                if (pp == i || j >= nPeaks) {
                     next[i] = i;
                 } else {
                     next[i] = np;
