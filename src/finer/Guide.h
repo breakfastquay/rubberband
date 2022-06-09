@@ -140,6 +140,7 @@ public:
     void updateGuidance(double ratio,
                         const double *const magnitudes,
                         const double *const prevMagnitudes,
+                        const double *const channelMixedMagnitudes,
                         const BinSegmenter::Segmentation &segmentation,
                         const BinSegmenter::Segmentation &prevSegmentation,
                         const BinSegmenter::Segmentation &nextSegmentation,
@@ -221,13 +222,13 @@ public:
         if (lower > m_maxLower) lower = m_maxLower;
 */
         double prevLower = guidance.fftBands[0].f1;
-        double lower = descendToValley(prevLower, magnitudes);
+        double lower = descendToValley(prevLower, channelMixedMagnitudes);
         if (lower > m_maxLower || lower < m_minLower) {
             lower = m_defaultLower;
         }
         
         double prevHigher = guidance.fftBands[1].f1;
-        double higher = descendToValley(prevHigher, magnitudes);
+        double higher = descendToValley(prevHigher, channelMixedMagnitudes);
         if (higher > m_maxHigher || higher < m_minHigher) {
             higher = m_defaultHigher;
         }

@@ -38,6 +38,7 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_guide(Guide::Parameters(m_parameters.sampleRate, parameters.logger)),
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
+    m_mixedClassifyMags(m_guideConfiguration.classificationFftSize / 2 + 1, 0.0),
     m_inhop(1),
     m_prevOuthop(1),
     m_draining(false)
@@ -389,7 +390,24 @@ R3StretcherImpl::consume()
         // Analysis
         
         for (int c = 0; c < channels; ++c) {
-            analyseChannel(c, inhop, m_prevInhop, m_prevOuthop);
+            analyseChannel(c, inhop, m_prevInhop);
+        }
+        
+        for (int c = 0; c < channels; ++c) {
+            auto &classifyScale = 
+                m_channelData.at(c)->
+                scales.at(m_guideConfiguration.classificationFftSize);
+            if (c == 0) {
+                v_copy(m_mixedClassifyMags.data(), classifyScale->mag.data(),
+                       classifyScale->mag.size());
+            } else {
+                v_add(m_mixedClassifyMags.data(), classifyScale->mag.data(),
+                      classifyScale->mag.size());
+            }
+        }
+        
+        for (int c = 0; c < channels; ++c) {
+            guideChannel(c, m_prevInhop, m_prevOuthop);
         }
 
         // Phase update. This is synchronised across all channels
@@ -465,7 +483,7 @@ R3StretcherImpl::consume()
 }
 
 void
-R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
+R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop)
 {
     int longest = m_guideConfiguration.longestFftSize;
     int classify = m_guideConfiguration.classificationFftSize;
@@ -651,7 +669,17 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     cd->prevSegmentation = cd->segmentation;
     cd->segmentation = cd->nextSegmentation;
     cd->nextSegmentation = cd->segmenter->segment(cd->nextClassification.data());
+}
 
+void
+R3StretcherImpl::guideChannel(int c, int prevInhop, int prevOuthop)
+{
+    auto &cd = m_channelData.at(c);
+    int classify = m_guideConfiguration.classificationFftSize;
+    auto &classifyScale = cd->scales.at(classify);
+
+    
+    
 /*
     if (c == 0) {
         double pb = cd->nextSegmentation.percussiveBelow;
@@ -682,6 +710,7 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     m_guide.updateGuidance(instantaneousRatio,
                            classifyScale->mag.data(),
                            classifyScale->prevMag.data(),
+                           m_mixedClassifyMags.data(),
                            cd->segmentation,
                            cd->prevSegmentation,
                            cd->nextSegmentation,
