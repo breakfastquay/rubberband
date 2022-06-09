@@ -233,6 +233,7 @@ protected:
         FFT fft;
         Window<double> analysisWindow;
         Window<double> synthesisWindow;
+        double windowScaleFactor;
         GuidedPhaseAdvance guided;
         ScaleData(GuidedPhaseAdvance::Parameters guidedParameters) :
             fftSize(guidedParameters.fftSize),
@@ -241,7 +242,16 @@ protected:
                            analysisWindowLength(fftSize)),
             synthesisWindow(synthesisWindowShape(fftSize),
                             synthesisWindowLength(fftSize)),
-            guided(guidedParameters) { }
+            guided(guidedParameters),
+            windowScaleFactor(0.0)
+        {
+            int asz = analysisWindow.getSize(), ssz = synthesisWindow.getSize();
+            int off = (asz - ssz) / 2;
+            for (int i = 0; i < ssz; ++i) {
+                windowScaleFactor += analysisWindow.getValue(i + off) *
+                    synthesisWindow.getValue(i);
+            }
+        }
 
         WindowType analysisWindowShape(int fftSize);
         int analysisWindowLength(int fftSize);

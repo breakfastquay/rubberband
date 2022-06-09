@@ -532,8 +532,6 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     // where the inhop has changed as above, in which case we need to
     // do both readahead and current)
 
-    v_fftshift(readahead.timeDomain.data(), classify);
-
     if (haveValidReadahead) {
         v_copy(classifyScale->mag.data(),
                readahead.mag.data(),
@@ -543,6 +541,7 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                classifyScale->bufSize);
     }
 
+    v_fftshift(readahead.timeDomain.data(), classify);
     m_scaleData.at(classify)->fft.forward(readahead.timeDomain.data(),
                                           classifyScale->real.data(),
                                           classifyScale->imag.data());
@@ -776,18 +775,7 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         auto &scale = cd->scales.at(fftSize);
         auto &scaleData = m_scaleData.at(fftSize);
 
-        //!!! messy and slow, but leave it until we've
-        //!!! discovered whether we need a window accumulator
-        //!!! (we probably do)
-        int analysisWindowSize = scaleData->analysisWindow.getSize();
-        int synthesisWindowSize = scaleData->synthesisWindow.getSize();
-        int offset = (analysisWindowSize - synthesisWindowSize) / 2;
-        double winscale = 0.0;
-        for (int i = 0; i < synthesisWindowSize; ++i) {
-            winscale += scaleData->analysisWindow.getValue(i + offset) *
-                scaleData->synthesisWindow.getValue(i);
-        }
-        winscale = double(outhop) / winscale;
+        double winscale = double(outhop) / scaleData->windowScaleFactor;
 
         // The frequency filter is applied naively in the frequency
         // domain. Aliasing is reduced by the shorter resynthesis
