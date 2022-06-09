@@ -259,7 +259,6 @@ protected:
     Guide m_guide;
     Guide::Configuration m_guideConfiguration;
     ChannelAssembly m_channelAssembly;
-    FixedVector<double> m_mixedClassifyMags;
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
     std::atomic<int> m_inhop;
@@ -269,8 +268,7 @@ protected:
 
     void consume();
     void calculateHop();
-    void analyseChannel(int channel, int inhop, int prevInhop);
-    void guideChannel(int channel, int prevInhop, int prevOuthop);
+    void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
     void analyseFormant(int channel);
     void adjustFormant(int channel);
     void synthesiseChannel(int channel, int outhop);
