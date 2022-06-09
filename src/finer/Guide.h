@@ -256,7 +256,7 @@ public:
         guidance.fftBands[0].f0 = 0.0;
         guidance.fftBands[0].f1 = lower;
 
-        std::cout << "x:" << lower << std::endl;
+//        std::cout << "x:" << lower << std::endl;
         
         guidance.fftBands[1].f0 = lower;
         guidance.fftBands[1].f1 = higher;
