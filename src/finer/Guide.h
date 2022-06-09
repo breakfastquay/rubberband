@@ -213,13 +213,7 @@ public:
             guidance.phaseReset.f1 = std::max(segmentation.residualAbove,
                                               nextSegmentation.residualAbove);
         }
-/*
-        double higher = snapToTrough(m_defaultHigher, troughs);
-        if (higher > m_maxHigher) higher = m_maxHigher;
 
-        double lower = snapToTrough(m_defaultLower, troughs);
-        if (lower > m_maxLower) lower = m_maxLower;
-*/
         double prevLower = guidance.fftBands[0].f1;
         double lower = descendToValley(prevLower, magnitudes);
         if (lower > m_maxLower || lower < m_minLower) {
@@ -232,26 +226,6 @@ public:
             higher = m_defaultHigher;
         }
 
-
-/*
-        double higher = snapToTrough(prevHigher, troughs, magnitudes);
-        if (higher < m_minHigher || higher > m_maxHigher) {
-            higher = snapToTrough(m_defaultHigher, troughs, magnitudes);
-            if (higher < m_minHigher || higher > m_maxHigher) {
-                higher = prevHigher;
-            }
-        }
-*/
-        /*
-        double higher = m_defaultHigher;
-        
-        if (lower < m_minLower || lower > m_maxLower) {
-            lower = snapToTrough(m_defaultLower, troughs, magnitudes);
-            if (lower < m_minLower || lower > m_maxLower) {
-                lower = prevLower;
-            }
-        }
-        */        
         guidance.fftBands[0].f0 = 0.0;
         guidance.fftBands[0].f1 = lower;
 
@@ -354,9 +328,7 @@ protected:
     }
 
     double descendToValley(double f, const double *const magnitudes) const {
-//        return frequencyForBin(troughs[binForFrequency(f)]);
         int b = binForFrequency(f);
-
         for (int i = 0; i < 3; ++i) {
             if (magnitudes[b+1] < magnitudes[b]) {
                 ++b;
@@ -366,18 +338,6 @@ protected:
                 break;
             }
         }
-        
-/*        
-        int snapped = troughs[bin];
-        std::cout << "snapToTrough: " << f << " -> bin " << bin << " -> snapped " << snapped << " -> " << sf << std::endl;
-        for (int i = -3; i <= 3; ++i) {
-            if (i == 0) std::cout << "[";
-            std::cout << magnitudes[bin + i];
-            if (i == 0) std::cout << "]";
-            std::cout << " ";
-        }
-        std::cout << std::endl;
-*/
         double sf = frequencyForBin(b);
         return sf;
     }

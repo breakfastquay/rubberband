@@ -652,7 +652,6 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     cd->segmentation = cd->nextSegmentation;
     cd->nextSegmentation = cd->segmenter->segment(cd->nextClassification.data());
 
-/*
     if (c == 0) {
         double pb = cd->nextSegmentation.percussiveBelow;
         double pa = cd->nextSegmentation.percussiveAbove;
@@ -674,7 +673,6 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         }
         std::cout << std::endl;
     }
-*/
     
     double instantaneousRatio = double(prevOuthop) / double(prevInhop);
     bool specialCaseUnity = true;
