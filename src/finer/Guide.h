@@ -199,19 +199,18 @@ public:
         }
 
         double bigGap = 4000.0;
-        if (ratio > 1.0 &&
-            segmentation.residualAbove >
+        if (segmentation.residualAbove >
             segmentation.percussiveAbove + bigGap &&
             prevSegmentation.residualAbove <
             prevSegmentation.percussiveAbove + bigGap) {
             guidance.phaseReset.present = true;
             guidance.phaseReset.f0 = std::min(segmentation.percussiveAbove,
                                               nextSegmentation.percussiveAbove);
+            guidance.phaseReset.f1 = std::max(segmentation.residualAbove,
+                                              nextSegmentation.residualAbove);
             if (guidance.phaseReset.f0 < 200.0) {
                 guidance.phaseReset.f0 = 0.0;
             }
-            guidance.phaseReset.f1 = std::max(segmentation.residualAbove,
-                                              nextSegmentation.residualAbove);
         }
 
         double prevLower = guidance.fftBands[0].f1;
