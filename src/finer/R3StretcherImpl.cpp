@@ -40,6 +40,7 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_channelAssembly(m_parameters.channels),
     m_inhop(1),
     m_prevOuthop(1),
+    m_totalOutCount(0),
     m_draining(false)
 {
     double maxClassifierFrequency = 16000.0;
@@ -115,12 +116,25 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     if (!m_timeRatio.is_lock_free()) {
         m_parameters.logger("WARNING: std::atomic<double> is not lock-free");
     }
+
+    // Pre-fill to half of the longest frame. The centre of the first
+    // processing frame should be the first sample of the audio. As
+    // with R2, in real-time mode we don't do this -- it's better to
+    // start with a swoosh than introduce more latency, and we don't
+    // want gaps when the ratio changes.
+    
+    if (!(m_parameters.options & RubberBandStretcher::OptionProcessRealTime)) {
+        for (int c = 0; c < m_parameters.channels; ++c) {
+            m_channelData[c]->inbuf->zero
+                (m_guideConfiguration.longestFftSize / 2);
+        }
+    }
 }
 
 WindowType
 R3StretcherImpl::ScaleData::analysisWindowShape(int fftSize)
 {
-    if (fftSize == 4096) return HannWindow;
+    if (fftSize > 2048) return HannWindow;
     else return NiemitaloForwardWindow;
 }
 
@@ -133,14 +147,14 @@ R3StretcherImpl::ScaleData::analysisWindowLength(int fftSize)
 WindowType
 R3StretcherImpl::ScaleData::synthesisWindowShape(int fftSize)
 {
-    if (fftSize == 4096) return HannWindow;
+    if (fftSize > 2048) return HannWindow;
     else return NiemitaloReverseWindow;
 }
 
 int
 R3StretcherImpl::ScaleData::synthesisWindowLength(int fftSize)
 {
-    if (fftSize == 4096) return fftSize/2;
+    if (fftSize > 2048) return HannWindow;
     else return fftSize;
 }
 
@@ -221,7 +235,12 @@ R3StretcherImpl::getPitchScale() const
 size_t
 R3StretcherImpl::getLatency() const
 {
-    return 0; //!!!
+    if (!(m_parameters.options & RubberBandStretcher::OptionProcessRealTime)) {
+        return 0;
+    } else {
+        double factor = m_pitchScale * 0.5;
+        return size_t(ceil(m_guideConfiguration.longestFftSize * factor));
+    }
 }
 
 size_t
@@ -442,14 +461,29 @@ R3StretcherImpl::consume()
 
         // Emit
 
+        // In non-RT mode, we don't want to write the first startSkip
+        // samples, because the first chunk is centred on the start of
+        // the output.  In RT mode we didn't apply any pre-padding, so
+        // we don't want to remove any here.
+
+        int startSkip = 0;
+        if (!(m_parameters.options & RubberBandStretcher::OptionProcessRealTime)) {
+            double factor = m_pitchScale * 0.5;
+            startSkip = int(ceil(m_guideConfiguration.longestFftSize * factor));
+        }
+
+        //!!! now actually do the skipping
+
         for (int c = 0; c < channels; ++c) {
             auto &cd = m_channelData.at(c);
             if (m_resampler) {
                 cd->outbuf->write(cd->resampled.data(), resampledCount);
+                m_totalOutCount += resampledCount;
             } else {
                 cd->outbuf->write(cd->mixdown.data(), outhop);
+                m_totalOutCount += outhop;
             }
-        
+            
             int readSpace = cd->inbuf->getReadSpace();
             if (readSpace < inhop) {
                 // This should happen only when draining
@@ -458,7 +492,7 @@ R3StretcherImpl::consume()
                 cd->inbuf->skip(inhop);
             }
         }
-
+        
         m_prevInhop = inhop;
         m_prevOuthop = outhop;
     }

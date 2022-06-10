@@ -274,6 +274,7 @@ protected:
     std::atomic<int> m_inhop;
     int m_prevInhop;
     int m_prevOuthop;
+    int64_t m_totalOutCount;
     bool m_draining;
 
     void consume();
