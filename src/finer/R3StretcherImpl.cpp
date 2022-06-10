@@ -40,7 +40,7 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_channelAssembly(m_parameters.channels),
     m_inhop(1),
     m_prevOuthop(1),
-    m_totalOutCount(0),
+    m_startSkip(0),
     m_draining(false)
 {
     double maxClassifierFrequency = 16000.0;
@@ -117,17 +117,18 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
         m_parameters.logger("WARNING: std::atomic<double> is not lock-free");
     }
 
-    // Pre-fill to half of the longest frame. The centre of the first
-    // processing frame should be the first sample of the audio. As
-    // with R2, in real-time mode we don't do this -- it's better to
-    // start with a swoosh than introduce more latency, and we don't
-    // want gaps when the ratio changes.
+    // Pad to half of the longest frame. As with R2, in real-time mode
+    // we don't do this -- it's better to start with a swoosh than
+    // introduce more latency, and we don't want gaps when the ratio
+    // changes.
     
     if (!(m_parameters.options & RubberBandStretcher::OptionProcessRealTime)) {
+        int pad = m_guideConfiguration.longestFftSize / 2;
         for (int c = 0; c < m_parameters.channels; ++c) {
-            m_channelData[c]->inbuf->zero
-                (m_guideConfiguration.longestFftSize / 2);
+            m_channelData[c]->inbuf->zero(pad);
         }
+        // By the time we skip this later we will have resampled
+        m_startSkip = int(round(pad / m_pitchScale));
     }
 }
 
@@ -461,27 +462,12 @@ R3StretcherImpl::consume()
 
         // Emit
 
-        // In non-RT mode, we don't want to write the first startSkip
-        // samples, because the first chunk is centred on the start of
-        // the output.  In RT mode we didn't apply any pre-padding, so
-        // we don't want to remove any here.
-
-        int startSkip = 0;
-        if (!(m_parameters.options & RubberBandStretcher::OptionProcessRealTime)) {
-            double factor = m_pitchScale * 0.5;
-            startSkip = int(ceil(m_guideConfiguration.longestFftSize * factor));
-        }
-
-        //!!! now actually do the skipping
-
         for (int c = 0; c < channels; ++c) {
             auto &cd = m_channelData.at(c);
             if (m_resampler) {
                 cd->outbuf->write(cd->resampled.data(), resampledCount);
-                m_totalOutCount += resampledCount;
             } else {
                 cd->outbuf->write(cd->mixdown.data(), outhop);
-                m_totalOutCount += outhop;
             }
             
             int readSpace = cd->inbuf->getReadSpace();
@@ -491,6 +477,15 @@ R3StretcherImpl::consume()
             } else {
                 cd->inbuf->skip(inhop);
             }
+        }
+
+        if (m_startSkip > 0) {
+            int toSkip = std::min
+                (m_startSkip, m_channelData.at(0)->outbuf->getReadSpace());
+            for (int c = 0; c < channels; ++c) {
+                m_channelData.at(c)->outbuf->skip(toSkip);
+            }
+            m_startSkip -= toSkip;
         }
         
         m_prevInhop = inhop;
