@@ -37,19 +37,27 @@
 namespace RubberBand
 {
 
+/**
+ * A median or modal filter implemented using sorting, for continuous
+ * values. Pushing a value updates the sorted record, after which you
+ * can get() the median.  You can call drop() to drop the oldest value
+ * without pushing a new one, for example to drain the filter at the
+ * tail of the sequence.
+ */
 template <typename T>
 class MovingMedian : public SampleFilter<T>
 {
+    static constexpr float fifty = 50.f;
+    
 public:
-    MovingMedian(int filterLength, float percentile = 50.f) :
+    MovingMedian(int filterLength, float percentile = fifty) :
         m_buffer(filterLength),
-        m_sortspace(filterLength, {})
-    {
-        setPercentile(percentile);
-    }
+        m_sortspace(filterLength, {}),
+        m_fill(0),
+        m_percentile(percentile)
+    { }
 
-    ~MovingMedian() { 
-    }
+    ~MovingMedian() { }
 
     MovingMedian(const MovingMedian &) =default;
     MovingMedian &operator=(const MovingMedian &) =default;
@@ -57,31 +65,44 @@ public:
     int getSize() const {
         return m_buffer.getSize();
     }
-    
-    void setPercentile(float p) {
-        int length = getSize();
-        m_index = int((length * p) / 100.f);
-        if (m_index >= length) m_index = length-1;
-        if (m_index < 0) m_index = 0;
-    }
 
+    void setPercentile(float p) {
+        m_percentile = p;
+    }
+    
     void push(T value) {
         if (value != value) {
             std::cerr << "WARNING: MovingMedian: NaN encountered" << std::endl;
             value = T();
         }
-        if (m_buffer.getWriteSpace() == 0) {
+        if (m_fill == getSize()) {
             T toDrop = m_buffer.readOne();
             dropAndPut(toDrop, value);
-            m_buffer.writeOne(value);
         } else {
             put(value);
-            m_buffer.writeOne(value);
         }
+        m_buffer.writeOne(value);
     }
 
+    void drop() {
+        if (m_fill > 0) {
+            T toDrop = m_buffer.readOne();
+            drop(toDrop);
+        }
+    }
+    
+    /** Return the median of the values in the filter currently. If
+     *  the median lies between two values, return the first of them.
+     */
     T get() const {
-	return m_sortspace[m_index];
+        int n = m_fill - 1;
+        if (m_percentile == fifty) { // exact default value
+            return m_sortspace[n / 2];
+        } else {
+            int index = float(n) * m_percentile / 100.f;
+            if (index >= m_fill) index = m_fill - 1;
+            return m_sortspace[index];
+        }
     }
 
     void reset() {
@@ -93,26 +114,22 @@ public:
     // in-place. Array has length n. Modifies both the filter and the
     // array.
     //
-    static void filter(MovingMedian<T> &mm, T *v, int n) {
-        int fn = mm.getSize();
-        int lag = fn / 2;
-        mm.reset();
-        int i = 0;
-        for (; i < lag; ++i) {
-            if (i < n) mm.push(v[i]);
-        }
-        for (; i < n; ++i) {
-            mm.push(v[i]);
-            v[i-lag] = mm.get();
-        }
-        for (; i < lag; ++i) {
-            // just for the unusual case where lag > n
-            mm.push(T());
-            (void)mm.get();
-        }
-        for (; i < n + lag; ++i) {
-            mm.push(T());
-            v[i-lag] = mm.get();
+    static void filter(MovingMedian<T> &f, T *v, int n) {
+        f.reset();
+        int flen = f.getSize();
+        int i = -(flen / 2);
+        int j = 0;
+        while (i != n) {
+            if (j < n) {
+                f.push(v[j]);
+            } else if (j >= flen) {
+                f.drop();
+            }
+            if (i >= 0) {
+                v[i] = f.get();
+            }
+            ++i;
+            ++j;
         }
     }
 
@@ -125,18 +142,26 @@ public:
 private:
     SingleThreadRingBuffer<T> m_buffer;
     std::vector<T> m_sortspace;
-    int m_index;
+    int m_fill;
+    float m_percentile;
 
     void dropAndPut(const T &toDrop, const T &toPut) {
-	// precondition: sorted contains m_length values, one of which is toDrop
-	// postcondition: sorted contains m_length values, one of which is toPut
+	// precondition: sorted contains getSize values, one of which is toDrop
+	// postcondition: sorted contains getSize values, one of which is toPut
         // (and one instance of toDrop has been removed)
 
         // This implementation was timed for rather short filters (no
         // longer than maybe 16 items). Two binary searches plus a
         // memmove should be faster for longer ones.
         
-        const int n = getSize();
+        const int n = m_fill;
+
+#ifdef DEBUG_MM
+        if (n != getSize()) {
+            throw std::logic_error("length mismatch");
+        }
+#endif
+        
         T *sorted = m_sortspace.data();
         int dropIx;
         if (toDrop <= *sorted) {
@@ -158,7 +183,7 @@ private:
         std::cout << "toDrop = " << toDrop << ", dropIx = " << dropIx << std::endl;
         std::cout << "toPut = " << toPut << std::endl;
         if (sorted[dropIx] != toDrop) {
-            throw std::logic_error("element not found");
+            throw std::logic_error("element not found (a)");
         }
 #endif
         
@@ -198,14 +223,15 @@ private:
     }
 
     void put(const T &toPut) {
-	// precondition: sorted contains fewer than m_length values,
+	// precondition: sorted contains m_fill values, m_fill < m_length,
 	// packed at the start
-	// postcondition: sorted contains up to m_length values,
+	// postcondition: m_fill is incremented, sorted contains m_fill values,
         // packed at the start, one of which is toPut
-        const int n = m_buffer.getReadSpace(); // items in sorted
+
+        int n = m_fill;
 
 #ifdef DEBUG_MM
-        if (n >= m_length) {
+        if (n >= getSize()) {
             throw std::logic_error("length mismatch");
         }
 #endif
@@ -229,27 +255,81 @@ private:
         }
         sorted[putIx] = toPut;
 
+        ++m_fill;
+
 #ifdef DEBUG_MM
         std::cout << "after: [";
-        for (int i = 0; i < n + 1; ++i) {
+        for (int i = 0; i < m_fill; ++i) {
             if (i > 0) std::cout << ",";
             std::cout << sorted[i];
         }
         std::cout << "]" << std::endl;
 
-        if (!std::is_sorted(sorted, sorted + n)) {
+        if (!std::is_sorted(sorted, sorted + m_fill)) {
             throw std::logic_error("array is not sorted");
         }
 #endif
     }
+
+    void drop(const T &toDrop) {
+	// precondition: sorted contains m_fill values, m_fill > 0, <= m_length,
+	// packed at the start, one of which is toDrop
+	// postcondition: m_fill decremented, sorted contains m_fill values,
+        // packed at the start, none of which is toDrop
+
+        int n = m_fill;
+
+#ifdef DEBUG_MM
+        if (n <= 0 || n > getSize()) {
+            throw std::logic_error("length mismatch");
+        }
+#endif
+            
+        T *sorted = m_sortspace.data();
+        int dropIx = std::lower_bound(sorted, sorted + n, toDrop) - sorted;
+
+#ifdef DEBUG_MM
+        std::cout << "\nbefore: [";
+        for (int i = 0; i < n; ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << sorted[i];
+        }
+        std::cout << "]" << std::endl;
+
+        std::cout << "toDrop = " << toDrop << ", dropIx = " << dropIx << std::endl;
+        if (sorted[dropIx] != toDrop) {
+            throw std::logic_error("element not found (b)");
+        }
+#endif
+
+        if (dropIx < n - 1) {
+            v_move(sorted + dropIx, sorted + dropIx + 1, n - dropIx - 1);
+        }
+
+        --m_fill;
+        
+#ifdef DEBUG_MM
+        std::cout << "after: [";
+        for (int i = 0; i < m_fill; ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << sorted[i];
+        }
+        std::cout << "]" << std::endl;
+
+        if (!std::is_sorted(sorted, sorted + m_fill)) {
+            throw std::logic_error("array is not sorted");
+        }
+#endif
+    }
+
 };
 
 template <typename T>
 class MovingMedianStack
 {
 public:
-    MovingMedianStack(int nfilters, int size, float percentile = 50.f) :
-        m_stack(nfilters, { size, percentile })
+    MovingMedianStack(int nfilters, int size) :
+        m_stack(nfilters, { size })
     {
     }
 
@@ -258,12 +338,6 @@ public:
 
     int getSize() const {
         return m_stack[0].getSize();
-    }
-
-    void setPercentile(float p) {
-        for (auto &f: m_stack) {
-            f.setPercentile(p);
-        }
     }
 
     void push(int filter, T value) {

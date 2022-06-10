@@ -34,13 +34,6 @@ namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_SUITE(TestSignalBits)
 
-// NB our moving median has different lag behaviour from bsq - we
-// begin padded with zeros, while bsq begins with an empty vector. The
-// bsq behaviour is imho more correct, and this really shows up in the
-// n_1 case below (where the correct answer is surely {1.0} rather
-// than {0.0}) but ours is not wholly wrong, more efficient, "usually
-// fine"
-
 BOOST_AUTO_TEST_CASE(moving_median_simple_3)
 {
     MovingMedian<double> mm(3);
@@ -54,7 +47,7 @@ BOOST_AUTO_TEST_CASE(moving_median_simple_4)
 {
     MovingMedian<double> mm(4);
     vector<double> arr { 1.0, 2.0, 3.0, 4.0 };
-    vector<double> expected { 2.0, 3.0, 3.0, 3.0 };
+    vector<double> expected { 2.0, 2.0, 3.0, 3.0 };
     MovingMedian<double>::filter(mm, arr);
     BOOST_TEST(arr == expected, tt::per_element());
 }
@@ -72,7 +65,7 @@ BOOST_AUTO_TEST_CASE(moving_median_simple_5_4)
 {
     MovingMedian<double> mm(5);
     vector<double> arr { 1.2, 0.6, 1.0e-6, 1.0 };
-    vector<double> expected { 1.0e-6, 0.6, 0.6, 1.0e-6 };
+    vector<double> expected { 0.6, 0.6, 0.6, 0.6 };
     MovingMedian<double>::filter(mm, arr);
     BOOST_TEST(arr == expected, tt::per_element());
 }
@@ -90,7 +83,7 @@ BOOST_AUTO_TEST_CASE(moving_median_n_1)
 {
     MovingMedian<double> mm(6);
     vector<double> arr { 1.0 };
-    vector<double> expected { 0.0 };
+    vector<double> expected { 1.0 };
     MovingMedian<double>::filter(mm, arr);
     BOOST_TEST(arr == expected, tt::per_element());
 }

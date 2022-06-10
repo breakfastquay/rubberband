@@ -44,8 +44,8 @@ class HistogramFilter
 public:
     HistogramFilter(int nValues, int filterLength) :
         m_buffer(filterLength),
-        m_histogram(nValues, 0) {
-    }
+        m_histogram(nValues, 0),
+        m_mode(-1) { }
     ~HistogramFilter() { }
 
     int getFilterLength() const {
@@ -65,13 +65,21 @@ public:
             --m_histogram[toDrop];
         }
         m_buffer.writeOne(value);
-        ++m_histogram[value];
+        int height = ++m_histogram[value];
+        if (m_mode >= 0 && height >= m_histogram[m_mode]) {
+            if (height > m_histogram[m_mode] || value < m_mode) {
+                m_mode = value;
+            }
+        }
     }
 
     void drop() {
         if (m_buffer.getReadSpace() > 0) {
             int toDrop = m_buffer.readOne();
             --m_histogram[toDrop];
+            if (toDrop == m_mode) {
+                m_mode = -1;
+            }
         }
     }
 
@@ -95,6 +103,9 @@ public:
      *  an equal number of times, return the smallest of them.
      */
     int getMode() const {
+        if (m_mode >= 0) {
+            return m_mode;
+        }
         int max = 0;
         int mode = 0;
         for (int i = 0; i < m_histogram.size(); ++i) {
@@ -104,6 +115,7 @@ public:
                 mode = i;
             }
         }
+        m_mode = mode;
         return mode;
     }
 
@@ -168,7 +180,7 @@ public:
 private:
     SingleThreadRingBuffer<int> m_buffer;
     std::vector<int> m_histogram;
-    int m_mode;
+    mutable int m_mode;
 };
 
 }
