@@ -155,7 +155,7 @@ R3StretcherImpl::ScaleData::synthesisWindowShape(int fftSize)
 int
 R3StretcherImpl::ScaleData::synthesisWindowLength(int fftSize)
 {
-    if (fftSize > 2048) return HannWindow;
+    if (fftSize > 2048) return fftSize/2;
     else return fftSize;
 }
 
