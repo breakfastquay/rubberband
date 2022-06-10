@@ -106,6 +106,7 @@ public:
     void reset() {
         m_buffer.reset();
 	v_zero(m_sortspace.data(), m_sortspace.size());
+        m_fill = 0;
     }
 
     // Convenience function that applies a given filter to an array
