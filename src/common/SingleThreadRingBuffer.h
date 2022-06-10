@@ -56,6 +56,15 @@ public:
         m_reader(0),
         m_size(n + 1) { }
 
+    SingleThreadRingBuffer() :
+        m_buffer(1, T()),
+        m_writer(0),
+        m_reader(0),
+        m_size(1) { }
+
+    SingleThreadRingBuffer (const SingleThreadRingBuffer &other) =default;
+    SingleThreadRingBuffer &operator=(const SingleThreadRingBuffer &other) =default;
+        
     virtual ~SingleThreadRingBuffer() { }
 
     /**
@@ -132,10 +141,6 @@ protected:
     int m_writer;
     int m_reader;
     int m_size;
-
-private:
-    SingleThreadRingBuffer(const SingleThreadRingBuffer &); // not provided
-    SingleThreadRingBuffer &operator=(const SingleThreadRingBuffer &); // not provided
 };
 
 }

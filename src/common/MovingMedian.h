@@ -27,6 +27,7 @@
 #include "SampleFilter.h"
 #include "FixedVector.h"
 #include "Allocators.h"
+#include "SingleThreadRingBuffer.h"
 
 #include <algorithm>
 #include <iostream>
@@ -41,7 +42,8 @@ class MovingMedianStack
 {
 public:
     MovingMedianStack(int nfilters, int filterLength, float percentile = 50.f) :
-        m_buffer(nfilters * filterLength * 2, {}),
+        m_buffers(nfilters, filterLength),
+        m_sortspace(nfilters * filterLength, {}),
         m_length(filterLength)
     {
         setPercentile(percentile);
@@ -51,7 +53,7 @@ public:
     }
 
     int getNFilters() const {
-        return m_buffer.size() / (m_length * 2);
+        return m_buffers.size();
     }
     
     int getSize() const {
@@ -69,11 +71,15 @@ public:
             std::cerr << "WARNING: MovingMedian: NaN encountered" << std::endl;
             value = T();
         }
-        T *frame = frameFor(filter);
-        T toDrop = frame[0];
-	v_move(frame, frame+1, m_length-1);
-	frame[m_length-1] = value;
-        dropAndPut(filter, toDrop, value);
+        auto &buf = m_buffers[filter];
+        if (buf.getWriteSpace() == 0) {
+            T toDrop = buf.readOne();
+            dropAndPut(filter, toDrop, value);
+            buf.writeOne(value);
+        } else {
+            put(filter, value);
+            buf.writeOne(value);
+        }
     }
 
     T get(int filter) const {
@@ -82,25 +88,21 @@ public:
     }
 
     void reset() {
-	v_zero(m_buffer.data(), m_buffer.size());
+        for (auto &buf : m_buffers) buf.reset();
+	v_zero(m_sortspace.data(), m_sortspace.size());
     }
     
 private:
-    FixedVector<T> m_buffer;
+    FixedVector<SingleThreadRingBuffer<T>> m_buffers;
+    FixedVector<T> m_sortspace;
     int m_length;
     int m_index;
 
-    const T *frameFor(int filter) const {
-        return m_buffer.data() + filter * m_length * 2;
-    }
-    T *frameFor(int filter) {
-        return m_buffer.data() + filter * m_length * 2;
-    }
     const T *sortedFor(int filter) const {
-        return frameFor(filter) + m_length;
+        return m_sortspace.data() + filter * m_length;
     }
     T *sortedFor(int filter) {
-        return frameFor(filter) + m_length;
+        return m_sortspace.data() + filter * m_length;
     }
 
     void dropAndPut(int filter, const T &toDrop, const T &toPut) {
@@ -134,7 +136,7 @@ private:
         std::cout << "toDrop = " << toDrop << ", dropIx = " << dropIx << std::endl;
         std::cout << "toPut = " << toPut << std::endl;
         if (sorted[dropIx] != toDrop) {
-            throw std::runtime_error("element not found");
+            throw std::logic_error("element not found");
         }
 #endif
         
@@ -168,7 +170,53 @@ private:
         std::cout << "]" << std::endl;
 
         if (!std::is_sorted(sorted, sorted + n)) {
-            throw std::runtime_error("array is not sorted");
+            throw std::logic_error("array is not sorted");
+        }
+#endif
+    }
+
+    void put(int filter, const T &toPut) {
+	// precondition: sorted contains fewer than m_length values,
+	// packed at the start
+	// postcondition: sorted contains up to m_length values,
+        // packed at the start, one of which is toPut
+        const int n = m_buffers[filter].getReadSpace(); // items in sorted
+
+#ifdef DEBUG_MM
+        if (n >= m_length) {
+            throw std::logic_error("length mismatch");
+        }
+#endif
+            
+        T *sorted = sortedFor(filter);
+        int putIx = std::lower_bound(sorted, sorted + n, toPut) - sorted;
+
+#ifdef DEBUG_MM
+        std::cout << "\nbefore: [";
+        for (int i = 0; i < n; ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << sorted[i];
+        }
+        std::cout << "]" << std::endl;
+
+        std::cout << "toPut = " << toPut << ", putIx = " << putIx << std::endl;
+#endif
+
+        if (putIx < n) {
+            v_move(sorted + putIx + 1, sorted + putIx, n - putIx);
+        }
+        sorted[putIx] = toPut;
+
+#ifdef DEBUG_MM
+        std::cout << "after: [";
+        for (int i = 0; i < n + 1; ++i) {
+            if (i > 0) std::cout << ",";
+            std::cout << sorted[i];
+        }
+        std::cout << "]" << std::endl;
+
+        if (!std::is_sorted(sorted, sorted + n)) {
+            throw std::logic_error("array is not sorted");
         }
 #endif
     }
