@@ -32,8 +32,6 @@
 #include <algorithm>
 #include <iostream>
 
-//#define DEBUG_MM 1
-
 namespace RubberBand
 {
 
@@ -155,13 +153,6 @@ private:
         // memmove should be faster for longer ones.
         
         const int n = m_fill;
-
-#ifdef DEBUG_MM
-        if (n != getSize()) {
-            throw std::logic_error("length mismatch");
-        }
-#endif
-        
         T *sorted = m_sortspace.data();
         int dropIx;
         if (toDrop <= *sorted) {
@@ -171,22 +162,6 @@ private:
         } else {
             dropIx = std::lower_bound(sorted, sorted + n, toDrop) - sorted;
         }
-
-#ifdef DEBUG_MM
-        std::cout << "\nbefore: [";
-        for (int i = 0; i < n; ++i) {
-            if (i > 0) std::cout << ",";
-            std::cout << sorted[i];
-        }
-        std::cout << "]" << std::endl;
-
-        std::cout << "toDrop = " << toDrop << ", dropIx = " << dropIx << std::endl;
-        std::cout << "toPut = " << toPut << std::endl;
-        if (sorted[dropIx] != toDrop) {
-            throw std::logic_error("element not found (a)");
-        }
-#endif
-        
         if (toPut > toDrop) {
             int i = dropIx;
             while (i+1 < n) {
@@ -207,19 +182,6 @@ private:
             }
             sorted[i+1] = toPut;
         }
-
-#ifdef DEBUG_MM
-        std::cout << "after: [";
-        for (int i = 0; i < n; ++i) {
-            if (i > 0) std::cout << ",";
-            std::cout << sorted[i];
-        }
-        std::cout << "]" << std::endl;
-
-        if (!std::is_sorted(sorted, sorted + n)) {
-            throw std::logic_error("array is not sorted");
-        }
-#endif
     }
 
     void put(const T &toPut) {
@@ -227,48 +189,14 @@ private:
 	// packed at the start
 	// postcondition: m_fill is incremented, sorted contains m_fill values,
         // packed at the start, one of which is toPut
-
         int n = m_fill;
-
-#ifdef DEBUG_MM
-        if (n >= getSize()) {
-            throw std::logic_error("length mismatch");
-        }
-#endif
-            
         T *sorted = m_sortspace.data();
         int putIx = std::lower_bound(sorted, sorted + n, toPut) - sorted;
-
-#ifdef DEBUG_MM
-        std::cout << "\nbefore: [";
-        for (int i = 0; i < n; ++i) {
-            if (i > 0) std::cout << ",";
-            std::cout << sorted[i];
-        }
-        std::cout << "]" << std::endl;
-
-        std::cout << "toPut = " << toPut << ", putIx = " << putIx << std::endl;
-#endif
-
         if (putIx < n) {
             v_move(sorted + putIx + 1, sorted + putIx, n - putIx);
         }
         sorted[putIx] = toPut;
-
         ++m_fill;
-
-#ifdef DEBUG_MM
-        std::cout << "after: [";
-        for (int i = 0; i < m_fill; ++i) {
-            if (i > 0) std::cout << ",";
-            std::cout << sorted[i];
-        }
-        std::cout << "]" << std::endl;
-
-        if (!std::is_sorted(sorted, sorted + m_fill)) {
-            throw std::logic_error("array is not sorted");
-        }
-#endif
     }
 
     void drop(const T &toDrop) {
@@ -276,50 +204,13 @@ private:
 	// packed at the start, one of which is toDrop
 	// postcondition: m_fill decremented, sorted contains m_fill values,
         // packed at the start, none of which is toDrop
-
         int n = m_fill;
-
-#ifdef DEBUG_MM
-        if (n <= 0 || n > getSize()) {
-            throw std::logic_error("length mismatch");
-        }
-#endif
-            
         T *sorted = m_sortspace.data();
         int dropIx = std::lower_bound(sorted, sorted + n, toDrop) - sorted;
-
-#ifdef DEBUG_MM
-        std::cout << "\nbefore: [";
-        for (int i = 0; i < n; ++i) {
-            if (i > 0) std::cout << ",";
-            std::cout << sorted[i];
-        }
-        std::cout << "]" << std::endl;
-
-        std::cout << "toDrop = " << toDrop << ", dropIx = " << dropIx << std::endl;
-        if (sorted[dropIx] != toDrop) {
-            throw std::logic_error("element not found (b)");
-        }
-#endif
-
         if (dropIx < n - 1) {
             v_move(sorted + dropIx, sorted + dropIx + 1, n - dropIx - 1);
         }
-
         --m_fill;
-        
-#ifdef DEBUG_MM
-        std::cout << "after: [";
-        for (int i = 0; i < m_fill; ++i) {
-            if (i > 0) std::cout << ",";
-            std::cout << sorted[i];
-        }
-        std::cout << "]" << std::endl;
-
-        if (!std::is_sorted(sorted, sorted + m_fill)) {
-            throw std::logic_error("array is not sorted");
-        }
-#endif
     }
 
 };
