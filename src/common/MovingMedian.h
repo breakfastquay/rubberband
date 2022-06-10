@@ -107,6 +107,11 @@ private:
 	// precondition: sorted contains m_length values, one of which is toDrop
 	// postcondition: sorted contains m_length values, one of which is toPut
         // (and one instance of toDrop has been removed)
+
+        // This implementation was timed for rather short filters (no
+        // longer than maybe 16 items). Two binary searches plus a
+        // memmove should be faster for longer ones.
+        
         const int n = m_length;
         T *sorted = sortedFor(filter);
         int dropIx;

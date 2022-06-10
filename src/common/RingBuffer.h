@@ -44,7 +44,6 @@ namespace RubberBand {
  * RingBuffer is thread-safe provided only one thread writes and only
  * one thread reads.
  */
-
 template <typename T>
 class RingBuffer
 {

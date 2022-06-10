@@ -25,6 +25,7 @@
 #define RUBBERBAND_BIN_SEGMENTER_H
 
 #include "BinClassifier.h"
+#include "../common/HistogramFilter.h"
 
 #include <vector>
 
@@ -54,7 +55,7 @@ public:
     BinSegmenter(Parameters parameters) :
         m_parameters(parameters),
         m_numeric(m_parameters.binCount, 0),
-        m_classFilter(15)
+        m_classFilter(3, 15)
     {
     }
 
@@ -70,7 +71,7 @@ public:
                 m_numeric[i] = 2; break;
             }
         }
-        MovingMedian<int>::filter(m_classFilter, m_numeric);
+        HistogramFilter::modalFilter(m_classFilter, m_numeric);
 /*
         std::cout << "c:";
         for (int i = 0; i < n; ++i) {
@@ -125,7 +126,7 @@ public:
 protected:
     Parameters m_parameters;
     std::vector<int> m_numeric;
-    MovingMedian<int> m_classFilter;
+    HistogramFilter m_classFilter;
 
     //!!! dupes
     int binForFrequency(double f) const {

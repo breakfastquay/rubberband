@@ -25,6 +25,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "../common/MovingMedian.h"
+#include "../common/HistogramFilter.h"
 #include "../finer/Peak.h"
 
 using namespace RubberBand;
@@ -91,6 +92,114 @@ BOOST_AUTO_TEST_CASE(moving_median_n_1)
     vector<double> arr { 1.0 };
     vector<double> expected { 0.0 };
     MovingMedian<double>::filter(mm, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(histogram_median_simple_3)
+{
+    HistogramFilter hf(5, 3); // nValues, filterLength
+    vector<int> arr { 1, 2, 3 };
+    vector<int> expected { 1, 2, 2 };
+    HistogramFilter::medianFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(histogram_median_simple_4)
+{
+    HistogramFilter hf(5, 4); // nValues, filterLength
+    vector<int> arr { 1, 2, 3, 4 };
+    vector<int> expected { 2, 2, 3, 3 };
+    HistogramFilter::medianFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(histogram_median_simple_3_4)
+{
+    HistogramFilter hf(5, 3); // nValues, filterLength
+    vector<int> arr { 3, 1, 0, 2 };
+    vector<int> expected { 1, 1, 1, 0 };
+    HistogramFilter::medianFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(histogram_median_simple_5_4)
+{
+    HistogramFilter hf(5, 5);
+    vector<int> arr { 3, 1, 0, 2 };
+    vector<int> expected { 1, 1, 1, 1 };
+    HistogramFilter::medianFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+  
+BOOST_AUTO_TEST_CASE(histogram_median_order_1)
+{
+    HistogramFilter hf(4, 1);
+    vector<int> arr { 3, 1, 0, 0 };
+    vector<int> expected = arr;
+    HistogramFilter::medianFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+  
+BOOST_AUTO_TEST_CASE(histogram_median_n_1)
+{
+    HistogramFilter hf(3, 6);
+    vector<int> arr { 1 };
+    vector<int> expected { 1 };
+    HistogramFilter::medianFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(histogram_mode_simple_3)
+{
+    HistogramFilter hf(5, 3); // nValues, filterLength
+    vector<int> arr { 1, 2, 2 };
+    vector<int> expected { 1, 2, 2 };
+    HistogramFilter::modalFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(histogram_mode_simple_4)
+{
+    HistogramFilter hf(5, 4); // nValues, filterLength
+    vector<int> arr { 1, 2, 2, 4 };
+    vector<int> expected { 2, 2, 2, 2 };
+    HistogramFilter::modalFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(histogram_mode_simple_3_4)
+{
+    HistogramFilter hf(5, 3); // nValues, filterLength
+    vector<int> arr { 3, 1, 0, 0 };
+    vector<int> expected { 1, 0, 0, 0 };
+    HistogramFilter::modalFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(histogram_mode_simple_5_4)
+{
+    HistogramFilter hf(5, 5);
+    vector<int> arr { 3, 1, 0, 0 };
+    vector<int> expected { 0, 0, 0, 0 };
+    HistogramFilter::modalFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+  
+BOOST_AUTO_TEST_CASE(histogram_mode_order_1)
+{
+    HistogramFilter hf(4, 1);
+    vector<int> arr { 3, 1, 0, 0 };
+    vector<int> expected = arr;
+    HistogramFilter::modalFilter(hf, arr);
+    BOOST_TEST(arr == expected, tt::per_element());
+}
+  
+BOOST_AUTO_TEST_CASE(histogram_mode_n_1)
+{
+    HistogramFilter hf(3, 6);
+    vector<int> arr { 1 };
+    vector<int> expected { 1 };
+    HistogramFilter::modalFilter(hf, arr);
     BOOST_TEST(arr == expected, tt::per_element());
 }
 
