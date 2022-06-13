@@ -71,7 +71,8 @@ public:
                         float curveValue,
                         size_t increment,
                         size_t analysisWindowSize,
-                        size_t synthesisWindowSize);
+                        size_t synthesisWindowSize,
+                        bool alignFrameStarts);
 
     void setUseHardPeaks(bool use) { m_useHardPeaks = use; }
 

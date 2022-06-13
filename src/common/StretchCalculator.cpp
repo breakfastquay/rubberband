@@ -141,10 +141,16 @@ StretchCalculator::calculate(double ratio, size_t inputDuration,
         size_t regionDuration = regionEnd - regionStart;
 
         size_t nchunks = regionEndChunk - regionStartChunk;
+ 
+        if (m_debugLevel > 1) {
+            std::cerr << "region from " << regionStartChunk << " to " << regionEndChunk << " (samples " << regionStart << " to " << regionEnd << ")" << std::endl;
+        }
 
         if (nchunks == 0) {
-            //!!!
-            break;
+            if (m_debugLevel > 1) {
+                std::cerr << "note: nchunks == 0" << std::endl;
+            }
+            continue;
         }
 
         double per = double(regionDuration) / double(nchunks);
@@ -335,7 +341,8 @@ StretchCalculator::calculateSingle(double timeRatio,
                                    float df,
                                    size_t inIncrement,
                                    size_t analysisWindowSize,
-                                   size_t synthesisWindowSize)
+                                   size_t synthesisWindowSize,
+                                   bool alignFrameStarts)
 {
     double ratio = timeRatio / effectivePitchRatio;
     
@@ -413,11 +420,18 @@ StretchCalculator::calculateSingle(double timeRatio,
 
         std::cerr << "The next sample out is input sample " << m_inFrameCounter << std::endl;
     }
-    
-    int64_t intended = expectedOutFrame
-        (m_inFrameCounter + analysisWindowSize/4, timeRatio);
-    int64_t projected = int64_t
-        (round(m_outFrameCounter + (synthesisWindowSize/4 * effectivePitchRatio)));
+
+    int64_t intended, projected;
+    if (alignFrameStarts) { // R3
+        intended = expectedOutFrame(m_inFrameCounter, timeRatio);
+        projected = m_outFrameCounter;
+    } else { // R2
+        intended = expectedOutFrame
+            (m_inFrameCounter + analysisWindowSize/4, timeRatio);
+        projected =
+            int64_t(round(m_outFrameCounter +
+                          (synthesisWindowSize/4 * effectivePitchRatio)));
+    }
 
     int64_t divergence = projected - intended;
 

@@ -128,12 +128,15 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     // changes.
     
     if (!isRealTime()) {
+        m_parameters.logger("Offline mode: pre-padding");
         int pad = m_guideConfiguration.longestFftSize / 2;
         for (int c = 0; c < m_parameters.channels; ++c) {
             m_channelData[c]->inbuf->zero(pad);
         }
         // By the time we skip this later we will have resampled
         m_startSkip = int(round(pad / m_pitchScale));
+    } else {
+        m_parameters.logger("RT mode: no internal pre-pad");
     }
 }
 
@@ -452,6 +455,7 @@ R3StretcherImpl::consume()
     int longest = m_guideConfiguration.longestFftSize;
     int channels = m_parameters.channels;
 
+    //!!! todo: wire debug level & logger throughout
 //    m_calculator->setDebugLevel(3);
 
     int inhop = m_inhop;
@@ -466,8 +470,9 @@ R3StretcherImpl::consume()
                                                1.f,
                                                inhop,
                                                longest,
-                                               longest);
-
+                                               longest,
+                                               true);
+    
     // Now inhop is the distance by which the input stream will be
     // advanced after our current frame has been read, and outhop is
     // the distance by which the output will be advanced after it has
@@ -489,7 +494,7 @@ R3StretcherImpl::consume()
         std::cout << "Note: outhop has changed from " << m_prevOuthop
                   << " to " << outhop << std::endl;
     }
-*/    
+*/
     while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
 
         // NB our ChannelData, ScaleData, and ChannelScaleData maps

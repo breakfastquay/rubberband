@@ -626,7 +626,7 @@ RubberBandStretcher::Impl::calculateIncrements(size_t &phaseIncrementRtn,
     
     int incr = m_stretchCalculator->calculateSingle
         (m_timeRatio, effectivePitchRatio, df, m_increment,
-         m_aWindowSize, m_sWindowSize);
+         m_aWindowSize, m_sWindowSize, false);
 
     if (m_lastProcessPhaseResetDf.getWriteSpace() > 0) {
         m_lastProcessPhaseResetDf.write(&df, 1);
