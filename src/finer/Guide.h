@@ -312,15 +312,6 @@ protected:
     double m_maxLower;
     double m_maxHigher;
     
-    int binForFrequency(double f) const {
-        return int(round(f * double(m_configuration.classificationFftSize) /
-                         m_parameters.sampleRate));
-    }
-    double frequencyForBin(int b) const {
-        return (double(b) * m_parameters.sampleRate)
-            / double(m_configuration.classificationFftSize);
-    }
-
     // near-dupe with R2 RubberBandStretcher::Impl
     int roundUp(int value) const {
         if (value < 1) return 1;
@@ -333,7 +324,8 @@ protected:
     
     bool checkPotentialKick(const double *const magnitudes,
                             const double *const prevMagnitudes) const {
-        int b = binForFrequency(200.0);
+        int b = binForFrequency(200.0, m_configuration.classificationFftSize,
+                                m_parameters.sampleRate);
         double here = 0.0, there = 0.0;
         for (int i = 1; i <= b; ++i) {
             here += magnitudes[i];
@@ -345,7 +337,8 @@ protected:
     }
 
     double descendToValley(double f, const double *const magnitudes) const {
-        int b = binForFrequency(f);
+        int b = binForFrequency(f, m_configuration.classificationFftSize,
+                                m_parameters.sampleRate);
         for (int i = 0; i < 3; ++i) {
             if (magnitudes[b+1] < magnitudes[b]) {
                 ++b;
@@ -355,7 +348,8 @@ protected:
                 break;
             }
         }
-        double sf = frequencyForBin(b);
+        double sf = frequencyForBin(b, m_configuration.classificationFftSize,
+                                    m_parameters.sampleRate);
         return sf;
     }
 

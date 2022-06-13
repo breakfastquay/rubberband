@@ -25,7 +25,9 @@
 #define RUBBERBAND_BIN_SEGMENTER_H
 
 #include "BinClassifier.h"
+
 #include "../common/HistogramFilter.h"
+#include "../common/mathmisc.h"
 
 #include <vector>
 
@@ -83,11 +85,12 @@ public:
             }
         }
         std::cout << std::endl;
-*/            
+*/
         double f0 = 0.0;
         for (int i = 1; i < n; ++i) {
             if (m_numeric[i] != 1) {
-                f0 = frequencyForBin(i);
+                f0 = frequencyForBin
+                    (i, m_parameters.fftSize, m_parameters.sampleRate);
                 break;
             }
         }
@@ -102,14 +105,17 @@ public:
                     continue;
                 } else if (c == 1) { // percussive
                     inPercussive = true;
-                    f2 = frequencyForBin(i);
+                    f2 = frequencyForBin
+                        (i, m_parameters.fftSize, m_parameters.sampleRate);
                 } else { // harmonic
-                    f1 = f2 = frequencyForBin(i);
+                    f1 = f2 = frequencyForBin
+                        (i, m_parameters.fftSize, m_parameters.sampleRate);
                     break;
                 }
             } else { // inPercussive
                 if (c != 1) { // non-percussive
-                    f1 = frequencyForBin(i);
+                    f1 = frequencyForBin
+                        (i, m_parameters.fftSize, m_parameters.sampleRate);
                     break;
                 }
             }
@@ -128,16 +134,6 @@ protected:
     std::vector<int> m_numeric;
     HistogramFilter m_classFilter;
 
-    //!!! dupes
-    int binForFrequency(double f) const {
-        return int(round(f * double(m_parameters.fftSize) /
-                         m_parameters.sampleRate));
-    }
-    double frequencyForBin(int b) const {
-        return (double(b) * m_parameters.sampleRate)
-            / double(m_parameters.fftSize);
-    }
-    
     BinSegmenter(const BinSegmenter &) =delete;
     BinSegmenter &operator=(const BinSegmenter &) =delete;
 };

@@ -294,16 +294,6 @@ protected:
     static void logCout(const std::string &message) {
         std::cout << "RubberBandStretcher: " << message << std::endl;
     }
-
-    //!!! dupes
-    int binForFrequency(double f, int fftSize) const {
-        return int(round(f * double(fftSize) /
-                         m_parameters.sampleRate));
-    }
-    double frequencyForBin(int b, int fftSize) const {
-        return (double(b) * m_parameters.sampleRate)
-            / double(fftSize);
-    }
 };
 
 }

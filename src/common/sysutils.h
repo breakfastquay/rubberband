@@ -92,16 +92,6 @@ struct timeval { long tv_sec; long tv_usec; };
 void gettimeofday(struct timeval *p, void *tz);
 #endif // _WIN32
 
-inline double mod(double x, double y) { return x - (y * floor(x / y)); }
-inline float modf(float x, float y) { return x - (y * float(floor(x / y))); }
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif // M_PI
-
-inline double princarg(double a) { return mod(a + M_PI, -2.0 * M_PI) + M_PI; }
-inline float princargf(float a) { return modf(a + (float)M_PI, -2.f * (float)M_PI) + (float)M_PI; }
-
 } // end namespace
 
 // The following should be functions in the RubberBand namespace, really

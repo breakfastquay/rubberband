@@ -688,9 +688,9 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         double pb = cd->nextSegmentation.percussiveBelow;
         double pa = cd->nextSegmentation.percussiveAbove;
         double ra = cd->nextSegmentation.residualAbove;
-        int pbb = binForFrequency(pb, classify);
-        int pab = binForFrequency(pa, classify);
-        int rab = binForFrequency(ra, classify);
+        int pbb = binForFrequency(pb, classify, m_parameters.sampleRate);
+        int pab = binForFrequency(pa, classify, m_parameters.sampleRate);
+        int rab = binForFrequency(ra, classify, m_parameters.sampleRate);
         std::cout << "pb = " << pb << ", pbb = " << pbb << std::endl;
         std::cout << "pa = " << pa << ", pab = " << pab << std::endl;
         std::cout << "ra = " << ra << ", rab = " << rab << std::endl;
@@ -804,8 +804,10 @@ R3StretcherImpl::adjustPreKick(int c)
     auto fftSize = cd->guidance.fftBands[0].fftSize;
     if (cd->guidance.preKick.present) {
         auto &scale = cd->scales.at(fftSize);
-        int from = binForFrequency(cd->guidance.preKick.f0, fftSize);
-        int to = binForFrequency(cd->guidance.preKick.f1, fftSize);
+        int from = binForFrequency(cd->guidance.preKick.f0,
+                                   fftSize, m_parameters.sampleRate);
+        int to = binForFrequency(cd->guidance.preKick.f1,
+                                 fftSize, m_parameters.sampleRate);
         for (int i = from; i <= to; ++i) {
             double diff = scale->mag[i] - scale->prevMag[i];
             if (diff > 0.0) {
@@ -815,8 +817,10 @@ R3StretcherImpl::adjustPreKick(int c)
         }
     } else if (cd->guidance.kick.present) {
         auto &scale = cd->scales.at(fftSize);
-        int from = binForFrequency(cd->guidance.preKick.f0, fftSize);
-        int to = binForFrequency(cd->guidance.preKick.f1, fftSize);
+        int from = binForFrequency(cd->guidance.preKick.f0,
+                                   fftSize, m_parameters.sampleRate);
+        int to = binForFrequency(cd->guidance.preKick.f1,
+                                 fftSize, m_parameters.sampleRate);
         for (int i = from; i <= to; ++i) {
             scale->mag[i] += scale->pendingKick[i];
             scale->pendingKick[i] = 0.0;
@@ -852,12 +856,9 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
         // The frequency filter is applied naively in the frequency
         // domain. Aliasing is reduced by the shorter resynthesis
         // window
-
-        //!!! I don't think we have binForFrequency etc available in
-        //!!! this class - really that's ridiculous
         
-        int lowBin = int(floor(fftSize * band.f0 / m_parameters.sampleRate));
-        int highBin = int(floor(fftSize * band.f1 / m_parameters.sampleRate));
+        int lowBin = binForFrequency(band.f0, fftSize, m_parameters.sampleRate);
+        int highBin = binForFrequency(band.f1, fftSize, m_parameters.sampleRate);
         if (highBin % 2 == 0 && highBin > 0) --highBin;
 
         for (int i = 0; i < lowBin; ++i) {

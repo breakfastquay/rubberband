@@ -26,6 +26,8 @@
 
 #include "Guide.h"
 
+#include "../common/mathmisc.h"
+
 #include <sstream>
 #include <functional>
 
@@ -129,8 +131,10 @@ public:
                 m_currentPeaks[c][i] = i;
             }
             for (const auto &band : guidance[c]->phaseLockBands) {
-                int startBin = binForFrequency(band.f0);
-                int endBin = binForFrequency(band.f1);
+                int startBin = binForFrequency
+                    (band.f0, m_parameters.fftSize, m_parameters.sampleRate);
+                int endBin = binForFrequency
+                    (band.f1, m_parameters.fftSize, m_parameters.sampleRate);
                 if (startBin > highest || endBin < lowest) continue;
                 int count = endBin - startBin + 1;
                 m_peakPicker.findNearestAndNextPeaks(mag[c],
@@ -176,7 +180,8 @@ public:
             const Guide::Guidance *g = guidance[c];
             int phaseLockBand = 0;
             for (int i = lowest; i <= highest; ++i) {
-                double f = frequencyForBin(i);
+                double f = frequencyForBin
+                    (i, m_parameters.fftSize, m_parameters.sampleRate);
                 while (f > g->phaseLockBands[phaseLockBand].f1) {
                     ++phaseLockBand;
                 }
@@ -237,14 +242,6 @@ protected:
     double **m_unlocked;
     bool m_reported;
 
-    int binForFrequency(double f) const {
-        return int(round(f * double(m_parameters.fftSize) /
-                         m_parameters.sampleRate));
-    }
-    double frequencyForBin(int b) const {
-        return (double(b) * m_parameters.sampleRate)
-            / double(m_parameters.fftSize);
-    }
     bool inRange(double f, const Guide::Range &r) {
         return r.present && f >= r.f0 && f < r.f1;
     }
