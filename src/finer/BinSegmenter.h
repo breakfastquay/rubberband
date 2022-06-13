@@ -55,7 +55,7 @@ public:
     BinSegmenter(Parameters parameters) :
         m_parameters(parameters),
         m_numeric(m_parameters.binCount, 0),
-        m_classFilter(3, 15)
+        m_classFilter(3, 18)
     {
     }
 

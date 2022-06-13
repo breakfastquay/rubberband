@@ -436,6 +436,10 @@ R3StretcherImpl::consume()
                  m_prevOuthop);
         }
 
+        for (int c = 0; c < channels; ++c) {
+            adjustPreKick(c);
+        }
+        
         // Resynthesis
         
         for (int c = 0; c < channels; ++c) {
@@ -701,18 +705,30 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         }
         std::cout << std::endl;
     }
-*/    
+*/
     double instantaneousRatio = double(prevOuthop) / double(prevInhop);
     bool specialCaseUnity = true;
         
     m_guide.updateGuidance(instantaneousRatio,
                            classifyScale->mag.data(),
                            classifyScale->prevMag.data(),
+                           cd->readahead.mag.data(),
                            cd->segmentation,
                            cd->prevSegmentation,
                            cd->nextSegmentation,
                            specialCaseUnity,
                            cd->guidance);
+/*
+    if (c == 0) {
+        if (cd->guidance.kick.present) {
+            std::cout << "k:2" << std::endl;
+        } else if (cd->guidance.preKick.present) {
+            std::cout << "k:1" << std::endl;
+        } else {
+            std::cout << "k:0" << std::endl;
+        }
+    }
+*/
 }
 
 void
@@ -779,6 +795,33 @@ R3StretcherImpl::adjustFormant(int c)
             }
         }
     }
+}
+
+void
+R3StretcherImpl::adjustPreKick(int c)
+{
+    auto &cd = m_channelData.at(c);
+    auto fftSize = cd->guidance.fftBands[0].fftSize;
+    if (cd->guidance.preKick.present) {
+        auto &scale = cd->scales.at(fftSize);
+        int from = binForFrequency(cd->guidance.preKick.f0, fftSize);
+        int to = binForFrequency(cd->guidance.preKick.f1, fftSize);
+        for (int i = from; i <= to; ++i) {
+            double diff = scale->mag[i] - scale->prevMag[i];
+            if (diff > 0.0) {
+                scale->pendingKick[i] = diff;
+                scale->mag[i] -= diff;
+            }
+        }
+    } else if (cd->guidance.kick.present) {
+        auto &scale = cd->scales.at(fftSize);
+        int from = binForFrequency(cd->guidance.preKick.f0, fftSize);
+        int to = binForFrequency(cd->guidance.preKick.f1, fftSize);
+        for (int i = from; i <= to; ++i) {
+            scale->mag[i] += scale->pendingKick[i];
+            scale->pendingKick[i] = 0.0;
+        }
+    }                
 }
 
 void

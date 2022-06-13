@@ -110,6 +110,7 @@ protected:
         FixedVector<double> phase;
         FixedVector<double> advancedPhase;
         FixedVector<double> prevMag;
+        FixedVector<double> pendingKick;
         FixedVector<double> accumulator;
 
         ChannelScaleData(int _fftSize, int _longestFftSize) :
@@ -122,6 +123,7 @@ protected:
             phase(bufSize, 0.f),
             advancedPhase(bufSize, 0.f),
             prevMag(bufSize, 0.f),
+            pendingKick(bufSize, 0.f),
             accumulator(_longestFftSize, 0.f)
         { }
 
@@ -282,6 +284,7 @@ protected:
     void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
     void analyseFormant(int channel);
     void adjustFormant(int channel);
+    void adjustPreKick(int channel);
     void synthesiseChannel(int channel, int outhop);
 
     double getEffectiveRatio() const {

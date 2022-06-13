@@ -68,7 +68,7 @@ public:
         FftBand fftBands[3];
         PhaseLockBand phaseLockBands[5];
         Range kick;
-        Range lowPercussive;
+        Range preKick;
         Range highPercussive;
         Range phaseReset;
         Range channelLock;
@@ -140,6 +140,7 @@ public:
     void updateGuidance(double ratio,
                         const double *const magnitudes,
                         const double *const prevMagnitudes,
+                        const double *const nextMagnitudes,
                         const BinSegmenter::Segmentation &segmentation,
                         const BinSegmenter::Segmentation &prevSegmentation,
                         const BinSegmenter::Segmentation &nextSegmentation,
@@ -147,7 +148,7 @@ public:
                         Guidance &guidance) const {
 
         guidance.kick.present = false;
-        guidance.lowPercussive.present = false;
+        guidance.preKick.present = false;
         guidance.highPercussive.present = false;
         guidance.phaseReset.present = false;
 
@@ -180,16 +181,33 @@ public:
         guidance.channelLock.f0 = 0.0;
         guidance.channelLock.f1 = 600.0;
 
-        if (segmentation.percussiveBelow > 40.0) {
-            guidance.lowPercussive.present = true;
-            guidance.lowPercussive.f0 = 0.0;
-            guidance.lowPercussive.f1 = segmentation.percussiveBelow;
-        }
-        
-        bool potentialKick = checkPotentialKick(magnitudes, prevMagnitudes);
+        bool kick =
+            (segmentation.percussiveBelow > 40.0) &&
+            (prevSegmentation.percussiveBelow < 40.0) &&
+            checkPotentialKick(magnitudes, prevMagnitudes);
 
-        if (potentialKick && prevSegmentation.percussiveBelow < 40.0) {
-            guidance.kick = guidance.lowPercussive;
+        bool futureKick = !kick &&
+            (nextSegmentation.percussiveBelow > 40.0) &&
+            (segmentation.percussiveBelow < 40.0) &&
+            checkPotentialKick(nextMagnitudes, magnitudes);
+/*
+        std::cout << "d:"
+                  << prevSegmentation.percussiveBelow << ","
+                  << segmentation.percussiveBelow << ","
+                  << nextSegmentation.percussiveBelow << ","
+                  << checkPotentialKick(magnitudes, prevMagnitudes) << ","
+                  << checkPotentialKick(nextMagnitudes, magnitudes) << ","
+                  << (kick ? "K" : "N") << ","
+                  << (futureKick ? "F" : "N") << std::endl;
+*/        
+        if (kick) {
+            guidance.kick.present = true;
+            guidance.kick.f0 = 0.0;
+            guidance.kick.f1 = segmentation.percussiveBelow;
+        } else if (futureKick) {
+            guidance.preKick.present = true;
+            guidance.preKick.f0 = 0.0;
+            guidance.preKick.f1 = nextSegmentation.percussiveBelow;
         }
         
         if (segmentation.residualAbove > segmentation.percussiveAbove) {
