@@ -69,9 +69,11 @@ public:
     
     void setTimeRatio(double ratio);
     void setPitchScale(double scale);
+    void setFormantScale(double scale);
 
     double getTimeRatio() const;
     double getPitchScale() const;
+    double getFormantScale() const;
 
     void setFormantOption(RubberBandStretcher::Options);
     void setPitchOption(RubberBandStretcher::Options);
@@ -265,6 +267,7 @@ protected:
 
     std::atomic<double> m_timeRatio;
     std::atomic<double> m_pitchScale;
+    std::atomic<double> m_formantScale;
     
     std::vector<std::shared_ptr<ChannelData>> m_channelData;
     std::map<int, std::shared_ptr<ScaleData>> m_scaleData;

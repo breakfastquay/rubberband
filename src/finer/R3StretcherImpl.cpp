@@ -35,6 +35,7 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_parameters(parameters),
     m_timeRatio(initialTimeRatio),
     m_pitchScale(initialPitchScale),
+    m_formantScale(0.0),
     m_guide(Guide::Parameters(m_parameters.sampleRate, parameters.logger)),
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
@@ -174,6 +175,12 @@ R3StretcherImpl::setPitchScale(double scale)
 }
 
 void
+R3StretcherImpl::setFormantScale(double scale)
+{
+    m_formantScale = scale;
+}
+
+void
 R3StretcherImpl::setFormantOption(RubberBandStretcher::Options options)
 {
     int mask = (RubberBandStretcher::OptionFormantShifted |
@@ -231,6 +238,12 @@ double
 R3StretcherImpl::getPitchScale() const
 {
     return m_pitchScale;
+}
+
+double
+R3StretcherImpl::getFormantScale() const
+{
+    return m_formantScale;
 }
 
 size_t
@@ -777,7 +790,9 @@ R3StretcherImpl::adjustFormant(int c)
 
         int highBin = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
         double targetFactor = double(cd->formant->fftSize) / double(fftSize);
-        double sourceFactor = targetFactor * m_pitchScale;
+        double formantScale = m_formantScale;
+        if (formantScale == 0.0) formantScale = 1.0 / m_pitchScale;
+        double sourceFactor = targetFactor / formantScale;
         double maxRatio = 60.0;
         double minRatio = 1.0 / maxRatio;
 

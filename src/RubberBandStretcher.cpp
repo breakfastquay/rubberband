@@ -75,6 +75,12 @@ RubberBandStretcher::setPitchScale(double scale)
     else m_r3d->setPitchScale(scale);
 }
 
+void
+RubberBandStretcher::setFormantScale(double scale)
+{
+    if (m_r3d) m_r3d->setFormantScale(scale);
+}
+
 double
 RubberBandStretcher::getTimeRatio() const
 {
@@ -87,6 +93,13 @@ RubberBandStretcher::getPitchScale() const
 {
     if (m_d) return m_d->getPitchScale();
     else return m_r3d->getPitchScale();
+}
+
+double
+RubberBandStretcher::getFormantScale() const
+{
+    if (m_d) return 0.0;
+    else return m_r3d->getFormantScale();
 }
 
 size_t

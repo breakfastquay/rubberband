@@ -422,6 +422,34 @@ public:
     void setPitchScale(double scale);
 
     /**
+     * Set a pitch scale for the vocal formant envelope separately
+     * from the overall pitch scale.  This is a ratio of target
+     * frequency to source frequency.  For example, a ratio of 2.0
+     * would shift the formant envelope up by one octave; 0.5 down by
+     * one octave; or 1.0 leave the formant unaffected.
+     *
+     * By default this is set to the special value of 0.0, which
+     * causes the scale to be calculated automatically. It will be
+     * treated as 1.0 / the pitch scale if OptionFormantPreserved is
+     * specified, or 1.0 for OptionFormantShifted.
+     *
+     * Conversely, if this is set to a value other than the default
+     * 0.0, formant shifting will happen regardless of the state of
+     * the OptionFormantPreserved/OptionFormantShifted option.
+     *
+     * This function is provided for special effects only. You do not
+     * need to call it for ordinary pitch shifting, with or without
+     * formant preservation - just specify or omit the
+     * OptionFormantPreserved option as appropriate. Use this function
+     * only if you want to shift formants by a distance other than
+     * that of the overall pitch shift.
+     * 
+     * This function is supported only in the R3 (OptionEngineFiner)
+     * engine. It has no effect in R2 (OptionEngineFaster).
+     */
+    void setFormantScale(double scale);
+    
+    /**
      * Return the last time ratio value that was set (either on
      * construction or with setTimeRatio()).
      */
@@ -433,6 +461,16 @@ public:
      */
     double getPitchScale() const;
 
+    /**
+     * Return the last formant scaling ratio that was set with
+     * setFormantScale, or 0.0 if the default automatic scaling is in
+     * effect.
+     * 
+     * This function is supported only in the R3 (OptionEngineFiner)
+     * engine. It always returns 0.0 in R2 (OptionEngineFaster).
+     */     
+    double getFormantScale() const;
+    
     /**
      * Return the output delay or latency of the stretcher.  This is
      * the number of audio samples that one would have to discard at
