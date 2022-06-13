@@ -42,7 +42,11 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_inhop(1),
     m_prevOuthop(1),
     m_startSkip(0),
-    m_draining(false)
+    m_studyInputDuration(0),
+    m_totalTargetDuration(0),
+    m_processInputDuration(0),
+    m_totalOutputDuration(0),
+    m_mode(ProcessMode::JustCreated)
 {
     double maxClassifierFrequency = 16000.0;
     if (maxClassifierFrequency > m_parameters.sampleRate/2) {
@@ -92,7 +96,7 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     Resampler::Parameters resamplerParameters;
     resamplerParameters.quality = Resampler::FastestTolerable;
 
-    if (m_parameters.options & RubberBandStretcher::OptionProcessRealTime) {
+    if (isRealTime()) {
         resamplerParameters.dynamism = Resampler::RatioOftenChanging;
         resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
     } else {
@@ -123,7 +127,7 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     // introduce more latency, and we don't want gaps when the ratio
     // changes.
     
-    if (!(m_parameters.options & RubberBandStretcher::OptionProcessRealTime)) {
+    if (!isRealTime()) {
         int pad = m_guideConfiguration.longestFftSize / 2;
         for (int c = 0; c < m_parameters.channels; ++c) {
             m_channelData[c]->inbuf->zero(pad);
@@ -163,6 +167,15 @@ R3StretcherImpl::ScaleData::synthesisWindowLength(int fftSize)
 void
 R3StretcherImpl::setTimeRatio(double ratio)
 {
+    if (!isRealTime()) {
+        if (m_mode == ProcessMode::Studying ||
+            m_mode == ProcessMode::Processing) {
+            m_parameters.logger("R3StretcherImpl::setTimeRatio: Cannot set time ratio while studying or processing in non-RT mode");
+            return;
+        }
+    }
+
+    if (ratio == m_timeRatio) return;
     m_timeRatio = ratio;
     calculateHop();
 }
@@ -170,6 +183,15 @@ R3StretcherImpl::setTimeRatio(double ratio)
 void
 R3StretcherImpl::setPitchScale(double scale)
 {
+    if (!isRealTime()) {
+        if (m_mode == ProcessMode::Studying ||
+            m_mode == ProcessMode::Processing) {
+            m_parameters.logger("R3StretcherImpl::setTimeRatio: Cannot set pitch scale while studying or processing in non-RT mode");
+            return;
+        }
+    }
+
+    if (scale == m_pitchScale) return;
     m_pitchScale = scale;
     calculateHop();
 }
@@ -177,6 +199,14 @@ R3StretcherImpl::setPitchScale(double scale)
 void
 R3StretcherImpl::setFormantScale(double scale)
 {
+    if (!isRealTime()) {
+        if (m_mode == ProcessMode::Studying ||
+            m_mode == ProcessMode::Processing) {
+            m_parameters.logger("R3StretcherImpl::setTimeRatio: Cannot set formant scale while studying or processing in non-RT mode");
+            return;
+        }
+    }
+
     m_formantScale = scale;
 }
 
@@ -190,16 +220,19 @@ R3StretcherImpl::setFormantOption(RubberBandStretcher::Options options)
     m_parameters.options |= options;
 }
 
-//!!! unused?
 void
-R3StretcherImpl::setPitchOption(RubberBandStretcher::Options options)
+R3StretcherImpl::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 {
-    int mask = (RubberBandStretcher::OptionPitchHighQuality |
-                RubberBandStretcher::OptionPitchHighSpeed |
-                RubberBandStretcher::OptionPitchHighConsistency);
-    m_parameters.options &= ~mask;
-    options &= mask;
-    m_parameters.options |= options;
+    if (isRealTime()) {
+        m_parameters.logger("R3StretcherImpl::setKeyFrameMap: Cannot specify key frame map in RT mode");
+        return;
+    }
+    if (m_mode == ProcessMode::Processing || m_mode == ProcessMode::Finished) {
+        m_parameters.logger("R3StretcherImpl::setKeyFrameMap: Cannot specify key frame map after process() has begun");
+        return;
+    }
+
+    m_keyFrameMap = mapping;
 }
 
 void
@@ -229,6 +262,14 @@ R3StretcherImpl::calculateHop()
 //    std::cout << "R3StretcherImpl::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
 }
 
+void
+R3StretcherImpl::updateRatioFromMap()
+{
+    if (m_keyFrameMap.empty()) return;
+    auto itr = m_keyFrameMap.upper_bound(m_processInputDuration);
+      
+}
+
 double
 R3StretcherImpl::getTimeRatio() const
 {
@@ -250,7 +291,7 @@ R3StretcherImpl::getFormantScale() const
 size_t
 R3StretcherImpl::getLatency() const
 {
-    if (!(m_parameters.options & RubberBandStretcher::OptionProcessRealTime)) {
+    if (!isRealTime()) {
         return 0;
     } else {
         double factor = m_pitchScale * 0.5;
@@ -280,6 +321,35 @@ R3StretcherImpl::reset()
 
     m_prevInhop = m_inhop;
     m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
+
+    m_studyInputDuration = 0;
+    m_totalTargetDuration = 0;
+    m_processInputDuration = 0;
+    m_totalOutputDuration = 0;
+    m_keyFrameMap.clear();
+
+    m_mode = ProcessMode::JustCreated;
+}
+
+void
+R3StretcherImpl::study(const float *const *, size_t samples, bool)
+{
+    if (isRealTime()) {
+        m_parameters.logger("R3StretcherImpl::study: Not meaningful in realtime mode");
+        return;
+    }
+
+    if (m_mode == ProcessMode::Processing || m_mode == ProcessMode::Finished) {
+        m_parameters.logger("R3StretcherImpl::study: Cannot study after processing");
+        return;
+    }
+    
+    if (m_mode == ProcessMode::JustCreated) {
+        m_studyInputDuration = 0;
+    }
+
+    m_mode = ProcessMode::Studying;
+    m_studyInputDuration += samples;
 }
 
 size_t
@@ -301,10 +371,26 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 {
     //!!! todo: final
 
-//!!!    m_parameters.logger("process called");
+    if (m_mode == ProcessMode::Finished) {
+        m_parameters.logger("R3StretcherImpl::process: Cannot process again after final chunk");
+        return;
+    }
+
+    if (!isRealTime() && !m_keyFrameMap.empty()) {
+        if (m_mode == ProcessMode::Studying) {
+            m_totalTargetDuration =
+                round(m_studyInputDuration * getEffectiveRatio());
+        }
+    }
+
     if (final) {
-//        m_parameters.logger("final = true");
-        m_draining = true;
+        // We don't distinguish between Finished and "draining, but
+        // haven't yet delivered all the samples" because the
+        // distinction is meaningless internally - it only affects
+        // whether available() finds any samples in the buffer
+        m_mode = ProcessMode::Finished;
+    } else {
+        m_mode = ProcessMode::Processing;
     }
     
     bool allConsumed = false;
@@ -324,6 +410,8 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
         m_channelData[c]->inbuf->write(input[c], samples);
     }
 
+    m_processInputDuration += samples;
+    
     consume();
 }
 
@@ -331,17 +419,18 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 int
 R3StretcherImpl::available() const
 {
-//!!!    m_parameters.logger("available called");
     int av = int(m_channelData[0]->outbuf->getReadSpace());
-    if (av == 0 && m_draining) return -1;
-    else return av;
+    if (av == 0 && m_mode == ProcessMode::Finished) {
+        return -1;
+    } else {
+        return av;
+    }
 }
 
 //!!! __attribute__((annotate("realtime")))
 size_t
 R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 {
-//!!!    m_parameters.logger("retrieve called");
     size_t got = samples;
     
     for (size_t c = 0; c < m_parameters.channels; ++c) {
@@ -411,7 +500,7 @@ R3StretcherImpl::consume()
 
         int readSpace = m_channelData.at(0)->inbuf->getReadSpace();
         if (readSpace < longest) {
-            if (m_draining) {
+            if (m_mode == ProcessMode::Finished) {
                 if (readSpace == 0) {
                     break;
                 }
@@ -475,7 +564,7 @@ R3StretcherImpl::consume()
                  m_channelAssembly.mixdown.data(),
                  outhop,
                  1.0 / m_pitchScale,
-                 m_draining && readSpace < longest);
+                 m_mode == ProcessMode::Finished && readSpace < longest);
         }
 
         // Emit
@@ -490,7 +579,7 @@ R3StretcherImpl::consume()
             
             int readSpace = cd->inbuf->getReadSpace();
             if (readSpace < inhop) {
-                // This should happen only when draining
+                // This should happen only when draining (Finished)
                 cd->inbuf->skip(readSpace);
             } else {
                 cd->inbuf->skip(inhop);

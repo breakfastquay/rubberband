@@ -140,7 +140,6 @@ void
 RubberBandStretcher::setPitchOption(Options options)
 {
     if (m_d) m_d->setPitchOption(options);
-    else if (m_r3d) m_r3d->setPitchOption(options);
 }
 
 void
@@ -159,7 +158,7 @@ void
 RubberBandStretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 {
     if (m_d) m_d->setKeyFrameMap(mapping);
-    //!!!
+    else m_r3d->setKeyFrameMap(mapping);
 }
 
 size_t
@@ -174,7 +173,7 @@ RubberBandStretcher::study(const float *const *input, size_t samples,
                            bool final)
 {
     if (m_d) m_d->study(input, samples, final);
-    //!!!
+    else m_r3d->study(input, samples, final);
 }
 
 void

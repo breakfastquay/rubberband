@@ -75,9 +75,11 @@ public:
     double getPitchScale() const;
     double getFormantScale() const;
 
+    void setKeyFrameMap(const std::map<size_t, size_t> &);
+
     void setFormantOption(RubberBandStretcher::Options);
-    void setPitchOption(RubberBandStretcher::Options);
     
+    void study(const float *const *input, size_t samples, bool final);
     size_t getSamplesRequired() const;
     void process(const float *const *input, size_t samples, bool final);
     int available() const;
@@ -280,10 +282,24 @@ protected:
     int m_prevInhop;
     int m_prevOuthop;
     int m_startSkip;
-    bool m_draining;
+
+    size_t m_studyInputDuration;
+    size_t m_totalTargetDuration;
+    size_t m_processInputDuration;
+    size_t m_totalOutputDuration;
+    std::map<size_t, size_t> m_keyFrameMap;
+    
+    enum class ProcessMode {
+        JustCreated,
+        Studying,
+        Processing,
+        Finished
+    };
+    ProcessMode m_mode;
 
     void consume();
     void calculateHop();
+    void updateRatioFromMap();
     void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
     void analyseFormant(int channel);
     void adjustFormant(int channel);
@@ -292,6 +308,11 @@ protected:
 
     double getEffectiveRatio() const {
         return m_timeRatio * m_pitchScale;
+    }
+
+    bool isRealTime() const {
+        return m_parameters.options &
+            RubberBandStretcher::OptionProcessRealTime;
     }
     
     static void logCout(const std::string &message) {
