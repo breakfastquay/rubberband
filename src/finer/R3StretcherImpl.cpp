@@ -190,6 +190,7 @@ R3StretcherImpl::setFormantOption(RubberBandStretcher::Options options)
     m_parameters.options |= options;
 }
 
+//!!! unused?
 void
 R3StretcherImpl::setPitchOption(RubberBandStretcher::Options options)
 {

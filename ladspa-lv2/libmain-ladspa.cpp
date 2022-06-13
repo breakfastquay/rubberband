@@ -24,6 +24,7 @@
 #define RB_PLUGIN_LADSPA 1
 #undef RB_PLUGIN_LV2
 #include "RubberBandPitchShifter.cpp"
+#include "RubberBandR3PitchShifter.cpp"
 
 #include <stdio.h>
 
@@ -31,7 +32,11 @@ extern "C" {
 
 const LADSPA_Descriptor *ladspa_descriptor(unsigned long index)
 {
-    return RubberBandPitchShifter::getDescriptor(index);
+    if (index < 2) {
+        return RubberBandPitchShifter::getDescriptor(index);
+    } else {
+        return RubberBandR3PitchShifter::getDescriptor(index - 2);
+    }
 }
 
 }

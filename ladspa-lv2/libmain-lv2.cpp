@@ -24,6 +24,7 @@
 #define RB_PLUGIN_LV2 1
 #undef RB_PLUGIN_LADSPA
 #include "RubberBandPitchShifter.cpp"
+#include "RubberBandR3PitchShifter.cpp"
 
 #include <stdio.h>
 
@@ -32,7 +33,11 @@ extern "C" {
 LV2_SYMBOL_EXPORT
 const LV2_Descriptor *lv2_descriptor(uint32_t index)
 {
-    return RubberBandPitchShifter::getDescriptor(index);
+    if (index < 2) {
+        return RubberBandPitchShifter::getDescriptor(index);
+    } else {
+        return RubberBandR3PitchShifter::getDescriptor(index - 2);
+    }
 }
 
 }
