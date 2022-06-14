@@ -53,7 +53,7 @@ public:
         m_binCount(parameters.fftSize / 2 + 1),
         m_peakPicker(m_binCount),
         m_reported(false) {
-        size_t ch = m_parameters.channels;
+        int ch = m_parameters.channels;
         m_currentPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
         m_prevPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
         m_greatestChannel = allocate_and_zero<int>(m_binCount);
@@ -69,7 +69,7 @@ public:
     }
 
     ~GuidedPhaseAdvance() {
-        size_t ch = m_parameters.channels;
+        int ch = m_parameters.channels;
         deallocate_channels(m_currentPeaks, ch);
         deallocate_channels(m_prevPeaks, ch);
         deallocate(m_greatestChannel);
@@ -79,7 +79,7 @@ public:
     }
 
     void reset() {
-        size_t ch = m_parameters.channels;
+        int ch = m_parameters.channels;
         v_zero_channels(m_prevPeaks, ch, m_binCount);
         v_zero_channels(m_prevInPhase, ch, m_binCount);
         v_zero_channels(m_prevOutPhase, ch, m_binCount);

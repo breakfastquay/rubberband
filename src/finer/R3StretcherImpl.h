@@ -248,8 +248,8 @@ protected:
                            analysisWindowLength(fftSize)),
             synthesisWindow(synthesisWindowShape(fftSize),
                             synthesisWindowLength(fftSize)),
-            guided(guidedParameters),
-            windowScaleFactor(0.0)
+            windowScaleFactor(0.0),
+            guided(guidedParameters)
         {
             int asz = analysisWindow.getSize(), ssz = synthesisWindow.getSize();
             int off = (asz - ssz) / 2;

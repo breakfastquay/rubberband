@@ -279,7 +279,7 @@ void
 R3StretcherImpl::updateRatioFromMap()
 {
     if (m_keyFrameMap.empty()) return;
-    auto itr = m_keyFrameMap.upper_bound(m_processInputDuration);
+//!!!    auto itr = m_keyFrameMap.upper_bound(m_processInputDuration);
       
 }
 
@@ -370,7 +370,7 @@ R3StretcherImpl::getSamplesRequired() const
 {
     if (available() != 0) return 0;
     int longest = m_guideConfiguration.longestFftSize;
-    size_t rs = m_channelData[0]->inbuf->getReadSpace();
+    int rs = m_channelData[0]->inbuf->getReadSpace();
     if (rs < longest) {
         return longest - rs;
     } else {
@@ -406,8 +406,6 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
         m_mode = ProcessMode::Processing;
     }
     
-    bool allConsumed = false;
-
     size_t ws = m_channelData[0]->inbuf->getWriteSpace();
     if (samples > ws) {
         //!!! check this
@@ -444,15 +442,15 @@ R3StretcherImpl::available() const
 size_t
 R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 {
-    size_t got = samples;
+    int got = samples;
     
-    for (size_t c = 0; c < m_parameters.channels; ++c) {
-        size_t gotHere = m_channelData[c]->outbuf->read(output[c], got);
+    for (int c = 0; c < m_parameters.channels; ++c) {
+        int gotHere = m_channelData[c]->outbuf->read(output[c], got);
         if (gotHere < got) {
             if (c > 0) {
                 m_parameters.logger("R3StretcherImpl::retrieve: WARNING: channel imbalance detected");
             }
-            got = gotHere;
+            got = std::min(got, std::max(gotHere, 0));
         }
     }
 

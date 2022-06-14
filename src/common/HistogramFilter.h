@@ -51,10 +51,14 @@ public:
     int getFilterLength() const {
         return m_buffer.getSize();
     }
+
+    int getNValues() const {
+        return int(m_histogram.size());
+    }
     
     void reset() {
         m_buffer.reset();
-        for (int i = 0; i < m_histogram.size(); ++i) {
+        for (int i = 0; i < getNValues(); ++i) {
             m_histogram[i] = 0;
         }
     }
@@ -89,7 +93,8 @@ public:
     int getMedian() const {
         int half = (m_buffer.getReadSpace() + 1) / 2;
         int acc = 0;
-        for (int i = 0; i < m_histogram.size(); ++i) {
+        int nvalues = getNValues();
+        for (int i = 0; i < nvalues; ++i) {
             acc += m_histogram[i];
             if (acc >= half) {
                 return i;
@@ -108,7 +113,8 @@ public:
         }
         int max = 0;
         int mode = 0;
-        for (int i = 0; i < m_histogram.size(); ++i) {
+        int nvalues = getNValues();
+        for (int i = 0; i < nvalues; ++i) {
             int h = m_histogram[i];
             if (i == 0 || h > max) {
                 max = h;
