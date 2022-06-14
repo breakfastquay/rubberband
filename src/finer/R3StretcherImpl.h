@@ -36,7 +36,7 @@
 #include "../common/Allocators.h"
 #include "../common/Window.h"
 
-#include "../rubberband/RubberBandStretcher.h"
+#include "../../rubberband/RubberBandStretcher.h"
 
 #include <map>
 #include <memory>
