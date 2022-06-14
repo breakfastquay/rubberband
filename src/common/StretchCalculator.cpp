@@ -424,7 +424,8 @@ StretchCalculator::calculateSingle(double timeRatio,
     int64_t intended, projected;
     if (alignFrameStarts) { // R3
         intended = expectedOutFrame(m_inFrameCounter, timeRatio);
-        projected = m_outFrameCounter;
+        projected =
+            int64_t(round(m_outFrameCounter));
     } else { // R2
         intended = expectedOutFrame
             (m_inFrameCounter + analysisWindowSize/4, timeRatio);
