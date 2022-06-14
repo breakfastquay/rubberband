@@ -814,10 +814,9 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         std::cout << std::endl;
     }
 */
-    double instantaneousRatio = double(prevOuthop) / double(prevInhop);
     bool specialCaseUnity = true;
         
-    m_guide.updateGuidance(instantaneousRatio,
+    m_guide.updateGuidance(getEffectiveRatio(),
                            classifyScale->mag.data(),
                            classifyScale->prevMag.data(),
                            cd->readahead.mag.data(),
