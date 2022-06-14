@@ -49,7 +49,10 @@ using RubberBand::gettimeofday;
 #endif
 
 #ifdef _MSC_VER
-using RubberBand::usleep;
+#include <windows.h>
+static void usleep(unsigned long usec) {
+    ::Sleep(usec == 0 ? 0 : usec < 1000 ? 1 : usec / 1000);
+}
 #define strdup _strdup
 #endif
 

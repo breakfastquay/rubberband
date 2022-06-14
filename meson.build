@@ -66,8 +66,8 @@ program_sources = [
 
 if system == 'windows'
   program_sources += [
-    'src/getopt/getopt.c',
-    'src/getopt/getopt_long.c'
+    'src/ext/getopt/getopt.c',
+    'src/ext/getopt/getopt_long.c'
   ]
 endif
 
