@@ -47,6 +47,7 @@ LIBRARY_SOURCES := \
 	src/faster/StretcherChannelData.cpp \
 	src/faster/StretcherImpl.cpp \
 	src/faster/StretcherProcess.cpp \
+	src/common/BQResampler.cpp \
 	src/common/Profiler.cpp \
 	src/common/Resampler.cpp \
 	src/common/FFT.cpp \
