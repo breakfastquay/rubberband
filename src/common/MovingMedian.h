@@ -97,7 +97,7 @@ public:
         if (m_percentile == fifty) { // exact default value
             return m_sortspace[n / 2];
         } else {
-            int index = float(n) * m_percentile / 100.f;
+            int index = int(floorf(float(n) * m_percentile / 100.f));
             if (index >= m_fill) index = m_fill - 1;
             return m_sortspace[index];
         }

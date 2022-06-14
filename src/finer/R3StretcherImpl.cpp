@@ -392,7 +392,7 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
     if (!isRealTime() && !m_keyFrameMap.empty()) {
         if (m_mode == ProcessMode::Studying) {
             m_totalTargetDuration =
-                round(m_studyInputDuration * getEffectiveRatio());
+                size_t(round(m_studyInputDuration * getEffectiveRatio()));
         }
     }
 
