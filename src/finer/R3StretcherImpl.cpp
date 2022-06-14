@@ -242,27 +242,37 @@ void
 R3StretcherImpl::calculateHop()
 {
     double ratio = getEffectiveRatio();
-    double proposedOuthop = 256.0;
-//!!!    if (proposedOuthop * m_pitchScale > 2048.0) {
-//        proposedOuthop = 2048.0 / m_pitchScale;
-//    }
-    double inhop = 1.0;
+
+    // In R2 we generally targeted a certain inhop, and calculated
+    // outhop from that. Here we are the other way around. We aim for
+    // outhop = 256 at ratios around 1, reducing down to 128 for
+    // ratios far below 1 and up to 512 for ratios far above. As soon
+    // as outhop exceeds 256 we have to drop the 1024-bin FFT, as the
+    // overlap will be inadequate for it. That's among the jobs of the
+    // Guide class. (We can't go above 512 without changing the window
+    // shape or dropping the 2048-bin FFT, and we can't do either of
+    // those dynamically.)
     
-    if (ratio > 1.0) {
-        inhop = proposedOuthop / ratio;
-        if (inhop < 1.0) {
-            m_parameters.logger("WARNING: Extreme ratio yields ideal inhop < 1, results may be suspect");
-            inhop = 1.0;
-        }
-    } else {
-        inhop = std::min(proposedOuthop / ratio, 340.0);
+    double proposedOuthop = pow(2.0, 8.0 + 2.0 * log10(ratio));
+    if (proposedOuthop > 512.0) proposedOuthop = 512.0;
+    if (proposedOuthop < 128.0) proposedOuthop = 128.0;
+
+    std::cout << "calculateHop: for ratio " << ratio << " proposedOuthop = "
+              << proposedOuthop << std::endl;
+    
+    double inhop = proposedOuthop / ratio;
+    if (inhop < 1.0) {
+        m_parameters.logger("WARNING: Extreme ratio yields ideal inhop < 1, results may be suspect");
+        inhop = 1.0;
+    }
+    if (inhop > 768.0) {
+        m_parameters.logger("WARNING: Extreme ratio yields ideal inhop > 768, results may be suspect");
+        inhop = 768.0;
     }
 
     m_inhop = int(round(inhop));
 
-    //!!! but if we now have outhop > 4096 ever, we will crash, so we must check
-
-//    std::cout << "R3StretcherImpl::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
+    std::cout << "R3StretcherImpl::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
 }
 
 void
@@ -817,6 +827,7 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     bool specialCaseUnity = true;
         
     m_guide.updateGuidance(getEffectiveRatio(),
+                           prevOuthop,
                            classifyScale->mag.data(),
                            classifyScale->prevMag.data(),
                            cd->readahead.mag.data(),

@@ -138,6 +138,7 @@ public:
     }
     
     void updateGuidance(double ratio,
+                        int outhop,
                         const double *const magnitudes,
                         const double *const prevMagnitudes,
                         const double *const nextMagnitudes,
@@ -253,6 +254,11 @@ public:
         
         guidance.fftBands[2].f0 = higher;
         guidance.fftBands[2].f1 = nyquist;
+
+        if (outhop > 256) {
+            guidance.fftBands[1].f1 = nyquist;
+            guidance.fftBands[2].f0 = nyquist;
+        }
         
         double mid = std::max(lower, 1600.0);
 
