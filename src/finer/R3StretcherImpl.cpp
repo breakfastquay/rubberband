@@ -58,10 +58,10 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     
     BinSegmenter::Parameters segmenterParameters
         (m_guideConfiguration.classificationFftSize,
-         classificationBins, m_parameters.sampleRate);
+         classificationBins, m_parameters.sampleRate, 18);
     
     BinClassifier::Parameters classifierParameters
-        (classificationBins, 9, 1, 10, 2.0, 2.0, 1.0e-7);
+        (classificationBins, 9, 1, 10, 2.0, 2.0);
 
     int inRingBufferSize = m_guideConfiguration.longestFftSize * 2;
     int outRingBufferSize = m_guideConfiguration.longestFftSize * 16;

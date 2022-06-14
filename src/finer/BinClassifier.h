@@ -39,8 +39,7 @@ public:
     enum class Classification {
         Harmonic = 0,
         Percussive = 1,
-        Residual = 2,
-        Silent = 3
+        Residual = 2
     };
 
     struct Parameters {
@@ -50,18 +49,15 @@ public:
         int verticalFilterLength;
         double harmonicThreshold;
         double percussiveThreshold;
-        double silenceThreshold;
         Parameters(int _binCount, int _horizontalFilterLength,
                    int _horizontalFilterLag, int _verticalFilterLength,
-                   double _harmonicThreshold, double _percussiveThreshold,
-                   double _silenceThreshold) :
+                   double _harmonicThreshold, double _percussiveThreshold) :
             binCount(_binCount),
             horizontalFilterLength(_horizontalFilterLength),
             horizontalFilterLag(_horizontalFilterLag),
             verticalFilterLength(_verticalFilterLength),
             harmonicThreshold(_harmonicThreshold),
-            percussiveThreshold(_percussiveThreshold),
-            silenceThreshold(_silenceThreshold) { }
+            percussiveThreshold(_percussiveThreshold) { }
     };
     
     BinClassifier(Parameters parameters) :
@@ -118,13 +114,11 @@ public:
         }
 
         double eps = 1.0e-7;
-        
+            
         for (int i = 0; i < n; ++i) {
             Classification c;
-            if (mag[i] < m_parameters.silenceThreshold) {
-                c = Classification::Silent;
-            } else if (double(m_hf[i]) / (double(m_vf[i]) + eps) >
-                       m_parameters.harmonicThreshold) {
+            if (double(m_hf[i]) / (double(m_vf[i]) + eps) >
+                m_parameters.harmonicThreshold) {
                 c = Classification::Harmonic;
             } else if (double(m_vf[i]) / (double(m_hf[i]) + eps) >
                        m_parameters.percussiveThreshold) {

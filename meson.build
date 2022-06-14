@@ -90,6 +90,7 @@ unit_test_sources = [
   'src/test/TestVectorOpsComplex.cpp',
   'src/test/TestVectorOps.cpp',
   'src/test/TestSignalBits.cpp',
+  'src/test/TestBinClassifier.cpp',
   'src/test/test.cpp',
 ]
 

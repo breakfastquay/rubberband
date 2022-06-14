@@ -193,9 +193,9 @@ protected:
             haveReadahead(false),
             classifier(new BinClassifier(classifierParameters)),
             classification(classifierParameters.binCount,
-                           BinClassifier::Classification::Silent),
+                           BinClassifier::Classification::Residual),
             nextClassification(classifierParameters.binCount,
-                               BinClassifier::Classification::Silent),
+                               BinClassifier::Classification::Residual),
             segmenter(new BinSegmenter(segmenterParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
             mixdown(longestFftSize, 0.f), // though it could be shorter

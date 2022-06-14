@@ -50,14 +50,17 @@ public:
         int fftSize;
         int binCount;
         double sampleRate;
-        Parameters(int _fftSize, int _binCount, double _sampleRate) :
-            fftSize(_fftSize), binCount(_binCount), sampleRate(_sampleRate) { }
+        int classFilterLength;
+        Parameters(int _fftSize, int _binCount, double _sampleRate,
+                   int _classFilterLength) :
+            fftSize(_fftSize), binCount(_binCount), sampleRate(_sampleRate),
+            classFilterLength(_classFilterLength) { }
     };
     
     BinSegmenter(Parameters parameters) :
         m_parameters(parameters),
         m_numeric(m_parameters.binCount, 0),
-        m_classFilter(3, 18)
+        m_classFilter(3, m_parameters.classFilterLength)
     {
     }
 
@@ -78,19 +81,19 @@ public:
         std::cout << "c:";
         for (int i = 0; i < n; ++i) {
             if (i > 0) std::cout << ",";
-            if (m_numeric[i] == 1) {
-                std::cout << "1";
-            } else {
-                std::cout << "0";
-            }
+            std::cout << m_numeric[i];
         }
         std::cout << std::endl;
 */
         double f0 = 0.0;
         for (int i = 1; i < n; ++i) {
-            if (m_numeric[i] != 1) {
-                f0 = frequencyForBin
-                    (i, m_parameters.fftSize, m_parameters.sampleRate);
+            if (m_numeric[i] != 1) { // percussive
+                if (i == 1 && m_numeric[0] != 1) { // percussive
+                    f0 = 0.0;
+                } else {
+                    f0 = frequencyForBin
+                        (i, m_parameters.fftSize, m_parameters.sampleRate);
+                }
                 break;
             }
         }
@@ -101,7 +104,7 @@ public:
         for (int i = n - 1; i > 0; --i) {
             int c = m_numeric[i];
             if (!inPercussive) {
-                if (c == 2) { // residual/silent
+                if (c == 2) { // residual
                     continue;
                 } else if (c == 1) { // percussive
                     inPercussive = true;
