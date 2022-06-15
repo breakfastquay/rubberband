@@ -2,7 +2,7 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '3.0.0',
+  version: '3.0.0-pre',
   license: 'GPL-2.0-or-later',
   default_options: [
     'cpp_std=c++11',
@@ -448,6 +448,7 @@ if cpp.get_id() == 'msvc'
   endif    
   rubberband_library_name = 'rubberband'
   rubberband_program_name = 'rubberband-program'
+  rubberband_program_name_r3 = 'rubberband-program-r3'
   rubberband_ladspa_name = 'ladspa-rubberband'
   rubberband_lv2_name = 'lv2-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
@@ -457,6 +458,7 @@ else
   rubberband_library_name = 'rubberband'
   rubberband_dynamic_name = 'rubberband'
   rubberband_program_name = 'rubberband'
+  rubberband_program_name_r3 = 'rubberband-r3'
   rubberband_ladspa_name = 'ladspa-rubberband'
   rubberband_lv2_name = 'lv2-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
@@ -686,8 +688,8 @@ else
 endif
 
 if have_sndfile
-  target_summary += { 'Command-line utility': [ true, 'Name: ' + rubberband_program_name ] }
-  message('Will build command-line utility')
+  message('Will build command-line utilities')
+  target_summary += { 'Command-line utility (R2)': [ true, 'Name: ' + rubberband_program_name ] }
   rubberband_program = executable(
     rubberband_program_name,
     program_sources,
@@ -705,9 +707,28 @@ if have_sndfile
     ],
     install: true,
   )
+  target_summary += { 'Command-line utility (R3)': [ true, 'Name: ' + rubberband_program_name_r3 ] }
+  rubberband_program_r3 = executable(
+    rubberband_program_name_r3,
+    program_sources,
+    include_directories: general_include_dirs,
+    cpp_args: general_compile_args,
+    c_args: general_compile_args,
+    link_args: [
+      arch_flags,
+      feature_libraries,
+    ],
+    dependencies: [
+      rubberband_objlib_dep,
+      general_dependencies,
+      sndfile_dep,
+    ],
+    install: true,
+  )
 else 
-  target_summary += { 'Command-line utility': false }
-  message('Not building command-line utility: libsndfile dependency not found')
+  message('Not building command-line utilities: libsndfile dependency not found')
+  target_summary += { 'Command-line utility (R2)': false }
+  target_summary += { 'Command-line utility (R3)': false }
 endif
 
 if have_boost_unit_test
