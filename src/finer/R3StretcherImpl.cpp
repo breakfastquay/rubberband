@@ -384,12 +384,10 @@ R3StretcherImpl::getSamplesRequired() const
     }
 }
 
-//!!! __attribute__((annotate("realtime")))
+RTENTRY__
 void
 R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 {
-    //!!! todo: final
-
     if (m_mode == ProcessMode::Finished) {
         m_parameters.logger("R3StretcherImpl::process: Cannot process again after final chunk");
         return;
@@ -432,7 +430,7 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
     consume();
 }
 
-//!!! __attribute__((annotate("realtime")))
+RTENTRY__
 int
 R3StretcherImpl::available() const
 {
@@ -444,7 +442,7 @@ R3StretcherImpl::available() const
     }
 }
 
-//!!! __attribute__((annotate("realtime")))
+RTENTRY__
 size_t
 R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 {

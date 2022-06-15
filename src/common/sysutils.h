@@ -45,6 +45,12 @@
 #  define R__
 #endif
 
+#ifdef __clang__
+#  define RTENTRY__ __attribute__((annotate("realtime")))
+#else
+#  define RTENTRY__
+#endif
+
 #if defined(_MSC_VER)
 #  include <malloc.h>
 #  include <process.h>
