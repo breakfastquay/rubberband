@@ -190,7 +190,7 @@ public:
                     ph = m_unlocked[c][i];
                 } else if (inRange(f, g->phaseReset) || inRange(f, g->kick)) {
                     ph = phase[c][i];
-                } else if (inRange (f, g->highPercussive)) {
+                } else if (inRange (f, g->highUnlocked)) {
                     ph = m_unlocked[c][i];
                 } else {
                     int peak = m_currentPeaks[c][i];

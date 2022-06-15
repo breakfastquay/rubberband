@@ -276,7 +276,7 @@ R3StretcherImpl::calculateHop()
         inhop = 768.0;
     }
 
-    m_inhop = int(round(inhop));
+    m_inhop = int(floor(inhop));
 
     std::cout << "R3StretcherImpl::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
 }
