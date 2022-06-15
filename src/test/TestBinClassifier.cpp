@@ -43,7 +43,7 @@ static constexpr auto _ = BinClassifier::Classification::Residual;
 vector<string> classes_to_strings(const vector<BinClassifier::Classification> &v)
 {
     vector<std::string> sv(v.size(), "*");
-    for (auto i = 0; i < v.size(); ++i) {
+    for (auto i = 0; i < int(v.size()); ++i) {
         switch (v[i]) {
         case H: sv[i] = "H"; break;
         case X: sv[i] = "X"; break;

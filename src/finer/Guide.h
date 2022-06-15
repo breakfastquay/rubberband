@@ -168,9 +168,8 @@ public:
             guidance.fftBands[1].f1 = m_minHigher;
             guidance.fftBands[2].f0 = m_minHigher;
             guidance.fftBands[2].f1 = nyquist;
-            for (int i = 0; i <
-                     sizeof(guidance.phaseLockBands) /
-                     sizeof(guidance.phaseLockBands[0]); ++i) {
+            for (int i = 0; i < int(sizeof(guidance.phaseLockBands) /
+                                    sizeof(guidance.phaseLockBands[0])); ++i) {
                 guidance.phaseLockBands[i].p = 0;
                 guidance.phaseLockBands[i].beta = 1.0;
                 guidance.phaseLockBands[i].f0 = nyquist;
