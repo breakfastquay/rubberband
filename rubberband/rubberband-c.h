@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#define RUBBERBAND_VERSION "3.0.0"
+#define RUBBERBAND_VERSION "3.0.0-beta1"
 #define RUBBERBAND_API_MAJOR_VERSION 2
 #define RUBBERBAND_API_MINOR_VERSION 7
 

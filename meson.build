@@ -2,7 +2,7 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '3.0.0-pre',
+  version: '3.0.0-beta1',
   license: 'GPL-2.0-or-later',
   default_options: [
     'cpp_std=c++11',

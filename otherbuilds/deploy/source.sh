@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eu
-version=$(grep '^ *version:' meson.build | head -1 | sed "s/^.*'\([0-9][0-9.]*\)'.*$/\1/")
+version=$(meson introspect --projectinfo meson.build -i  | grep '"version"' | sed -e 's/^.*: "//' -e 's/".*$//')
 check() {
     text="$1"
     echo -n "$text [yN] "
@@ -44,6 +44,15 @@ echo
 echo "The CHANGELOG should start with a list of changes for this release."
 head -3 CHANGELOG
 check "The first three lines of the CHANGELOG are above. Are they correct?"
+
+hgid=$(hg id | awk '{ print $1; }')
+case "$hgid" in
+    *+) echo "ERROR: Working copy has been modified, please review and commit"
+        echo "as appropriate before continuing"
+        exit 1
+        ;;
+    *);;
+esac
 
 echo
 check "All version checks passed. Continue?"
