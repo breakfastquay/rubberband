@@ -66,10 +66,10 @@ public:
         
     struct Guidance {
         FftBand fftBands[3];
-        PhaseLockBand phaseLockBands[5];
+        PhaseLockBand phaseLockBands[4];
         Range kick;
         Range preKick;
-        Range highPercussive;
+        Range highUnlocked;
         Range phaseReset;
         Range channelLock;
     };
@@ -152,7 +152,7 @@ public:
 
         guidance.kick.present = false;
         guidance.preKick.present = false;
-        guidance.highPercussive.present = false;
+        guidance.highUnlocked.present = false;
         guidance.phaseReset.present = false;
 
         double nyquist = m_parameters.sampleRate / 2.0;
@@ -168,7 +168,9 @@ public:
             guidance.fftBands[1].f1 = m_minHigher;
             guidance.fftBands[2].f0 = m_minHigher;
             guidance.fftBands[2].f1 = nyquist;
-            for (int i = 0; i < 5; ++i) {
+            for (int i = 0; i <
+                     sizeof(guidance.phaseLockBands) /
+                     sizeof(guidance.phaseLockBands[0]); ++i) {
                 guidance.phaseLockBands[i].p = 0;
                 guidance.phaseLockBands[i].beta = 1.0;
                 guidance.phaseLockBands[i].f0 = nyquist;
@@ -214,9 +216,9 @@ public:
         }
         
         if (segmentation.residualAbove > segmentation.percussiveAbove) {
-            guidance.highPercussive.present = true;
-            guidance.highPercussive.f0 = segmentation.percussiveAbove;
-            guidance.highPercussive.f1 = segmentation.residualAbove;
+            guidance.highUnlocked.present = true;
+            guidance.highUnlocked.f0 = segmentation.percussiveAbove;
+            guidance.highUnlocked.f1 = segmentation.residualAbove;
         }
 
         double bigGap = 4000.0;
@@ -283,12 +285,33 @@ public:
         guidance.phaseLockBands[3].beta = betaFor(10000.0, ratio);
         guidance.phaseLockBands[3].f0 = higher;
         guidance.phaseLockBands[3].f1 = nyquist;
+        
+        if (outhop > 256) {
+            guidance.phaseLockBands[3].p = 3;
+        }
 
-        // Currently unused
-        guidance.phaseLockBands[4].p = 0;
-        guidance.phaseLockBands[4].beta = 1.0;
-        guidance.phaseLockBands[4].f0 = nyquist;
-        guidance.phaseLockBands[4].f1 = nyquist;
+        if (ratio > 2.0) {
+            
+            // For very long stretches, diffuse is better than
+            // metallic - gradually unlock the higher frequencies and
+            // reduce the channel lock
+            
+            double channelLimit = guidance.channelLock.f1;
+            channelLimit = channelLimit - (ratio - 2.0) * 150.0;
+            if (channelLimit < 100.0) channelLimit = 100.0;
+            guidance.channelLock.f1 = channelLimit;
+            
+            double unlockedAbove = 12000.0 - (ratio - 2.0) * 400.0;
+            if (unlockedAbove < channelLimit) unlockedAbove = channelLimit;
+            if (guidance.highUnlocked.present) {
+                guidance.highUnlocked.f0 = std::min(guidance.highUnlocked.f0,
+                                                    unlockedAbove);
+            } else {
+                guidance.highUnlocked.f0 = unlockedAbove;
+            }
+            guidance.highUnlocked.f1 = nyquist;
+            guidance.highUnlocked.present = true;
+        }
 
         /*
         std::ostringstream str;
