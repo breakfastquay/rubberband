@@ -227,6 +227,28 @@ BOOST_AUTO_TEST_CASE(peakpick_nearest_2_12)
     BOOST_TEST(out == expected, tt::per_element());
 }
 
+BOOST_AUTO_TEST_CASE(peakpick_nearest_1_12)
+{
+    Peak<double> pp(12);
+    vector<double> in { -0.3, -0.1, -0.2, 1.0, -0.3, -0.5,
+                        -0.5, -0.4, -0.1, -0.1, -0.2, -0.3 };
+    vector<int> out(12);
+    vector<int> expected { 1, 1, 3, 3, 3, 3, 8, 8, 8, 8, 8, 8 };
+    pp.findNearestAndNextPeaks(in.data(), 1, out.data(), nullptr);
+    BOOST_TEST(out == expected, tt::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(peakpick_nearest_0_12)
+{
+    Peak<double> pp(12);
+    vector<double> in { -0.3, -0.1, -0.2, 1.0, -0.3, -0.5,
+                        -0.5, -0.4, -0.1, -0.1, -0.2, -0.3 };
+    vector<int> out(12);
+    vector<int> expected { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+    pp.findNearestAndNextPeaks(in.data(), 0, out.data(), nullptr);
+    BOOST_TEST(out == expected, tt::per_element());
+}
+
 BOOST_AUTO_TEST_CASE(peakpick_next_2_1)
 {
     Peak<double> pp(1);
