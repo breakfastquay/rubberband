@@ -248,12 +248,18 @@ R3StretcherImpl::calculateHop()
     // outhop = 256 at ratios around 1, reducing down to 128 for
     // ratios far below 1 and up to 512 for ratios far above. As soon
     // as outhop exceeds 256 we have to drop the 1024-bin FFT, as the
-    // overlap will be inadequate for it. That's among the jobs of the
-    // Guide class. (We can't go above 512 without changing the window
-    // shape or dropping the 2048-bin FFT, and we can't do either of
-    // those dynamically.)
-    
-    double proposedOuthop = pow(2.0, 8.0 + 2.0 * log10(ratio));
+    // overlap will be inadequate for it (that's among the jobs of the
+    // Guide class) so we don't want to go above 256 until at least
+    // factor 1.5. Also we can't go above 512 without changing the
+    // window shape or dropping the 2048-bin FFT, and we can't do
+    // either of those dynamically.
+
+    double proposedOuthop = 256.0;
+    if (ratio > 1.5) {
+        proposedOuthop = pow(2.0, 8.0 + 2.0 * log10(ratio - 0.5));
+    } else if (ratio < 1.0) {
+        proposedOuthop = pow(2.0, 8.0 + 2.0 * log10(ratio));
+    }        
     if (proposedOuthop > 512.0) proposedOuthop = 512.0;
     if (proposedOuthop < 128.0) proposedOuthop = 128.0;
 
