@@ -34,6 +34,7 @@ if errorlevel 1 exit /b %errorlevel%
 
 cd build
 ren rubberband-program.exe rubberband.exe
+ren rubberband-program-r3.exe rubberband-r3.exe
 set NAME=Christopher Cannam
 signtool sign /v /n "%NAME%" /t http://time.certum.pl /fd sha1 /a rubberband.exe
 if errorlevel 1 exit /b %errorlevel%
@@ -43,6 +44,7 @@ set DIR=rubberband-%VERSION%-gpl-executable-windows
 del /q /s %DIR%
 mkdir %DIR%
 copy build\rubberband.exe %DIR%
+copy build\rubberband-r3.exe %DIR%
 copy "c:\Program Files\libsndfile\bin\sndfile.dll" %DIR%
 copy COPYING %DIR%\COPYING.txt
 copy README.md %DIR%\README.txt

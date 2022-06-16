@@ -133,8 +133,13 @@ int main(int argc, char **argv)
 
     std::string myName(argv[0]);
 
-    bool isR3 = (myName.size() > 3 &&
-                 myName.substr(myName.size() - 3, 3) == "-r3");
+    bool isR3 =
+        ((myName.size() > 3 &&
+          myName.substr(myName.size() - 3, 3) == "-r3") ||
+         (myName.size() > 7 &&
+          myName.substr(myName.size() - 7, 7) == "-r3.exe") ||
+         (myName.size() > 7 &&
+          myName.substr(myName.size() - 7, 7) == "-R3.EXE"));
     
     while (1) {
         int optionIndex = 0;
