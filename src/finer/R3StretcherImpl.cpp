@@ -746,11 +746,12 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                 ToPolarSpec spec;
 
                 // For the classify scale we always want the full
-                // range, as all the magnitudes (though not phases)
-                // are potentially relevant to classification and
-                // formant analysis. But this case here only happens
-                // if we don't haveValidReadahead - the normal case is
-                // above and just copies from the previous readahead.
+                // range, as all the magnitudes (though not
+                // necessarily all phases) are potentially relevant to
+                // classification and formant analysis. But this case
+                // here only happens if we don't haveValidReadahead -
+                // the normal case is above and just copies from the
+                // previous readahead.
                 if (fftSize == classify) {
                     spec.magFromBin = 0;
                     spec.magBinCount = classify/2 + 1;
@@ -955,22 +956,16 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
     int longest = m_guideConfiguration.longestFftSize;
 
     auto &cd = m_channelData.at(c);
-
-    for (auto &it : cd->scales) {
-
-        auto &scale = it.second;
-        int bufSize = scale->bufSize;
-
-        // copy to prevMag before filtering
-        v_copy(scale->prevMag.data(),
-               scale->mag.data(),
-               bufSize);
-    }
         
     for (const auto &band : cd->guidance.fftBands) {
         int fftSize = band.fftSize;
         auto &scale = cd->scales.at(fftSize);
         auto &scaleData = m_scaleData.at(fftSize);
+
+        // copy to prevMag before filtering
+        v_copy(scale->prevMag.data(),
+               scale->mag.data(),
+               scale->bufSize);
 
         double winscale = double(outhop) / scaleData->windowScaleFactor;
 
@@ -997,9 +992,9 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
                              scale->advancedPhase.data() + lowBin,
                              highBin - lowBin);
         
-        if (highBin < fftSize/2 + 1) {
-            v_zero(scale->real.data() + highBin, fftSize/2 + 1 - highBin);
-            v_zero(scale->imag.data() + highBin, fftSize/2 + 1 - highBin);
+        if (highBin < scale->bufSize) {
+            v_zero(scale->real.data() + highBin, scale->bufSize - highBin);
+            v_zero(scale->imag.data() + highBin, scale->bufSize - highBin);
         }
 
         scaleData->fft.inverse(scale->real.data(),
