@@ -24,10 +24,7 @@
 #include "faster/StretcherImpl.h"
 #include "finer/R3StretcherImpl.h"
 
-
 namespace RubberBand {
-
-//#define FASTER 1
 
 RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
                                          size_t channels,
@@ -61,6 +58,7 @@ RubberBandStretcher::reset()
     else m_r3d->reset();
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setTimeRatio(double ratio)
 {
@@ -68,6 +66,7 @@ RubberBandStretcher::setTimeRatio(double ratio)
     else m_r3d->setTimeRatio(ratio);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setPitchScale(double scale)
 {
@@ -75,12 +74,14 @@ RubberBandStretcher::setPitchScale(double scale)
     else m_r3d->setPitchScale(scale);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setFormantScale(double scale)
 {
     if (m_r3d) m_r3d->setFormantScale(scale);
 }
 
+RTENTRY__
 double
 RubberBandStretcher::getTimeRatio() const
 {
@@ -88,6 +89,7 @@ RubberBandStretcher::getTimeRatio() const
     else return m_r3d->getTimeRatio();
 }
 
+RTENTRY__
 double
 RubberBandStretcher::getPitchScale() const
 {
@@ -95,6 +97,7 @@ RubberBandStretcher::getPitchScale() const
     else return m_r3d->getPitchScale();
 }
 
+RTENTRY__
 double
 RubberBandStretcher::getFormantScale() const
 {
@@ -102,6 +105,7 @@ RubberBandStretcher::getFormantScale() const
     else return m_r3d->getFormantScale();
 }
 
+RTENTRY__
 size_t
 RubberBandStretcher::getLatency() const
 {
@@ -111,24 +115,28 @@ RubberBandStretcher::getLatency() const
 
 //!!! review all these
 
+RTENTRY__
 void
 RubberBandStretcher::setTransientsOption(Options options) 
 {
     if (m_d) m_d->setTransientsOption(options);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setDetectorOption(Options options) 
 {
     if (m_d) m_d->setDetectorOption(options);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setPhaseOption(Options options) 
 {
     if (m_d) m_d->setPhaseOption(options);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setFormantOption(Options options)
 {
@@ -136,6 +144,7 @@ RubberBandStretcher::setFormantOption(Options options)
     else if (m_r3d) m_r3d->setFormantOption(options);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setPitchOption(Options options)
 {
@@ -161,6 +170,7 @@ RubberBandStretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
     else m_r3d->setKeyFrameMap(mapping);
 }
 
+RTENTRY__
 size_t
 RubberBandStretcher::getSamplesRequired() const
 {
@@ -176,6 +186,7 @@ RubberBandStretcher::study(const float *const *input, size_t samples,
     else m_r3d->study(input, samples, final);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::process(const float *const *input, size_t samples,
                              bool final)
@@ -184,6 +195,7 @@ RubberBandStretcher::process(const float *const *input, size_t samples,
     else m_r3d->process(input, samples, final);
 }
 
+RTENTRY__
 int
 RubberBandStretcher::available() const
 {
@@ -191,6 +203,7 @@ RubberBandStretcher::available() const
     else return m_r3d->available();
 }
 
+RTENTRY__
 size_t
 RubberBandStretcher::retrieve(float *const *output, size_t samples) const
 {
@@ -239,6 +252,7 @@ RubberBandStretcher::getExactTimePoints() const
     else return {};
 }
 
+RTENTRY__
 size_t
 RubberBandStretcher::getChannelCount() const
 {
