@@ -386,7 +386,6 @@ R3StretcherImpl::getSamplesRequired() const
     }
 }
 
-RTENTRY__
 void
 R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 {
@@ -432,7 +431,6 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
     consume();
 }
 
-RTENTRY__
 int
 R3StretcherImpl::available() const
 {
@@ -444,7 +442,6 @@ R3StretcherImpl::available() const
     }
 }
 
-RTENTRY__
 size_t
 R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 {

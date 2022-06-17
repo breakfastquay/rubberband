@@ -84,8 +84,6 @@ double tempo_convert(const char *str)
 
 int main(int argc, char **argv)
 {
-    int c;
-
     double ratio = 1.0;
     double duration = 0.0;
     double pitchshift = 0.0;
@@ -182,12 +180,12 @@ int main(int argc, char **argv)
             { 0, 0, 0, 0 }
         };
 
-        c = getopt_long(argc, argv,
-                        "t:p:d:RLPFc:f:T:D:qhHVM:23",
-                        longOpts, &optionIndex);
-        if (c == -1) break;
+        int optionChar = getopt_long(argc, argv,
+                                     "t:p:d:RLPFc:f:T:D:qhHVM:23",
+                                     longOpts, &optionIndex);
+        if (optionChar == -1) break;
 
-        switch (c) {
+        switch (optionChar) {
         case 'h': help = true; break;
         case 'H': fullHelp = true; break;
         case 'V': version = true; break;
