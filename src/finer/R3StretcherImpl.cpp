@@ -976,45 +976,30 @@ R3StretcherImpl::synthesiseChannel(int c, int outhop)
 
         // The frequency filter is applied naively in the frequency
         // domain. Aliasing is reduced by the shorter resynthesis
-        // window
-        
+        // window. We resynthesise each scale individually, then sum -
+        // it's easier to manage scaling for in situations with a
+        // varying resynthesis hop
+            
         int lowBin = binForFrequency(band.f0, fftSize, m_parameters.sampleRate);
         int highBin = binForFrequency(band.f1, fftSize, m_parameters.sampleRate);
         if (highBin % 2 == 0 && highBin > 0) --highBin;
 
-        for (int i = 0; i < lowBin; ++i) {
-            scale->mag[i] = 0.0;
+        if (lowBin > 0) {
+            v_zero(scale->real.data(), lowBin);
+            v_zero(scale->imag.data(), lowBin);
         }
-        for (int i = lowBin; i < highBin; ++i) {
-            scale->mag[i] *= winscale;
-        }
-        for (int i = highBin; i < fftSize/2 + 1; ++i) {
-            scale->mag[i] = 0.0;
-        }
-    }
 
-    // Resynthesise each FFT size (scale) individually, then sum. This
-    // is easier to manage scaling for in situations with a varying
-    // resynthesis hop
-            
-    for (auto &it : cd->scales) {
-        int fftSize = it.first;
-        auto &scale = it.second;
-        auto &scaleData = m_scaleData.at(fftSize);
-                
-        for (const auto &b : m_guideConfiguration.fftBandLimits) {
-            if (b.fftSize == fftSize) {
-                int offset = b.b0min;
-                v_zero(scale->real.data(), fftSize/2 + 1);
-                v_zero(scale->imag.data(), fftSize/2 + 1);
-                v_polar_to_cartesian
-                    (scale->real.data() + offset,
-                     scale->imag.data() + offset,
-                     scale->mag.data() + offset,
-                     scale->advancedPhase.data() + offset,
-                     b.b1max - offset);
-                break;
-            }
+        v_scale(scale->mag.data() + lowBin, winscale, highBin - lowBin);
+
+        v_polar_to_cartesian(scale->real.data() + lowBin,
+                             scale->imag.data() + lowBin,
+                             scale->mag.data() + lowBin,
+                             scale->advancedPhase.data() + lowBin,
+                             highBin - lowBin);
+        
+        if (highBin < fftSize/2 + 1) {
+            v_zero(scale->real.data() + highBin, fftSize/2 + 1 - highBin);
+            v_zero(scale->imag.data() + highBin, fftSize/2 + 1 - highBin);
         }
 
         scaleData->fft.inverse(scale->real.data(),
