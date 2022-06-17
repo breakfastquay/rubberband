@@ -40,7 +40,9 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
     m_inhop(1),
+    m_prevInhop(1),
     m_prevOuthop(1),
+    m_unityCount(0),
     m_startSkip(0),
     m_studyInputDuration(0),
     m_totalTargetDuration(0),
@@ -826,9 +828,16 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         std::cout << std::endl;
     }
 */
-    bool specialCaseUnity = true;
+
+    double ratio = getEffectiveRatio();
+
+    if (fabs(ratio - 1.0) < 1.0e-6) {
+        ++m_unityCount;
+    } else {
+        m_unityCount = 0;
+    }
         
-    m_guide.updateGuidance(getEffectiveRatio(),
+    m_guide.updateGuidance(ratio,
                            prevOuthop,
                            classifyScale->mag.data(),
                            classifyScale->prevMag.data(),
@@ -836,7 +845,8 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                            cd->segmentation,
                            cd->prevSegmentation,
                            cd->nextSegmentation,
-                           specialCaseUnity,
+                           v_mean(classifyScale->mag.data() + 1, classify/2),
+                           m_unityCount,
                            cd->guidance);
 /*
     if (c == 0) {

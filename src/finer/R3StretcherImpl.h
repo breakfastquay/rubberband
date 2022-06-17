@@ -281,6 +281,7 @@ protected:
     std::atomic<int> m_inhop;
     int m_prevInhop;
     int m_prevOuthop;
+    uint32_t m_unityCount;
     int m_startSkip;
 
     size_t m_studyInputDuration;

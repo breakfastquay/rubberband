@@ -186,19 +186,20 @@ public:
                     ++phaseLockBand;
                 }
                 double ph = 0.0;
-                if (inhop == outhop) {
-                    ph = m_unlocked[c][i];
-                } else if (inRange(f, g->phaseReset) || inRange(f, g->kick)) {
+                if (inRange(f, g->phaseReset) || inRange(f, g->kick)) {
                     ph = phase[c][i];
+                } else if (inhop == outhop) {
+                    ph = m_unlocked[c][i];
                 } else if (inRange (f, g->highUnlocked)) {
                     ph = m_unlocked[c][i];
                 } else {
                     int peak = m_currentPeaks[c][i];
                     int prevPeak = m_prevPeaks[c][peak];
                     int peakCh = c;
-                    if (inRange (f, g->channelLock)) {
+                    if (inRange(f, g->channelLock)) {
                         int other = m_greatestChannel[i];
-                        if (other != c) {
+                        if (other != c &&
+                            inRange(f, guidance[other]->channelLock)) {
                             int otherPeak = m_currentPeaks[other][i];
                             int otherPrevPeak = m_prevPeaks[other][otherPeak];
                             if (otherPrevPeak == prevPeak) {
@@ -216,7 +217,7 @@ public:
                         double(g->phaseLockBands[phaseLockBand].beta);
                     ph = peakNew + beta * diff;
                 }
-                outPhase[c][i] = ph;
+                outPhase[c][i] = princarg(ph);
             }
         }
                 

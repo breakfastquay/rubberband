@@ -147,37 +147,37 @@ public:
                         const BinSegmenter::Segmentation &segmentation,
                         const BinSegmenter::Segmentation &prevSegmentation,
                         const BinSegmenter::Segmentation &nextSegmentation,
-                        bool specialCaseUnity,
+                        double meanMagnitude,
+                        int unityCount,
                         Guidance &guidance) const {
 
+        bool hadPhaseReset = guidance.phaseReset.present;
+
+        guidance.phaseReset.present = false;
         guidance.kick.present = false;
         guidance.preKick.present = false;
         guidance.highUnlocked.present = false;
-        guidance.phaseReset.present = false;
+        guidance.channelLock.present = false;
 
         double nyquist = m_parameters.sampleRate / 2.0;
-
         guidance.fftBands[0].fftSize = roundUp(int(ceil(nyquist/8.0)));
         guidance.fftBands[1].fftSize = roundUp(int(ceil(nyquist/16.0)));
         guidance.fftBands[2].fftSize = roundUp(int(ceil(nyquist/32.0)));
 
-        if (specialCaseUnity && (fabs(ratio - 1.0) < 1.0e-6)) {
-            guidance.fftBands[0].f0 = 0.0;
-            guidance.fftBands[0].f1 = 0.0;
-            guidance.fftBands[1].f0 = 0.0;
-            guidance.fftBands[1].f1 = m_minHigher;
-            guidance.fftBands[2].f0 = m_minHigher;
-            guidance.fftBands[2].f1 = nyquist;
-            for (int i = 0; i < int(sizeof(guidance.phaseLockBands) /
-                                    sizeof(guidance.phaseLockBands[0])); ++i) {
-                guidance.phaseLockBands[i].p = 0;
-                guidance.phaseLockBands[i].beta = 1.0;
-                guidance.phaseLockBands[i].f0 = nyquist;
-                guidance.phaseLockBands[i].f1 = nyquist;
-            }
-            guidance.phaseLockBands[0].f0 = 0.0;
-            guidance.phaseLockBands[0].f1 = nyquist;
-            guidance.channelLock.present = false;
+        // This is a vital stop case for PhaseAdvance
+        guidance.phaseLockBands[3].f1 = nyquist;
+
+        if (meanMagnitude < 1.0e-6) {
+            updateForSilence(guidance);
+            return;
+        }
+
+        if (unityCount > 0) {
+            updateForUnity(guidance,
+                           hadPhaseReset,
+                           unityCount,
+                           magnitudes,
+                           segmentation);
             return;
         }
 
@@ -351,7 +351,69 @@ protected:
         value = 1 << bits;
         return value;
     }
-    
+
+    void updateForSilence(Guidance &guidance) const {
+//        std::cout << "phase reset on silence" << std::endl;
+        double nyquist = m_parameters.sampleRate / 2.0;
+        guidance.fftBands[0].f0 = 0.0;
+        guidance.fftBands[0].f1 = 0.0;
+        guidance.fftBands[1].f0 = 0.0;
+        guidance.fftBands[1].f1 = nyquist;
+        guidance.fftBands[2].f0 = nyquist;
+        guidance.fftBands[2].f1 = nyquist;
+        guidance.phaseReset.present = true;
+        guidance.phaseReset.f0 = 0.0;
+        guidance.phaseReset.f1 = nyquist;
+    }
+
+    void updateForUnity(Guidance &guidance,
+                        bool hadPhaseReset,
+                        uint32_t unityCount,
+                        const double *const magnitudes,
+                        const BinSegmenter::Segmentation &segmentation) const {
+        
+//        std::cout << "unity" << std::endl;
+        
+        double nyquist = m_parameters.sampleRate / 2.0;
+
+        guidance.fftBands[0].f0 = 0.0;
+        guidance.fftBands[0].f1 = m_minLower;
+        guidance.fftBands[1].f0 = m_minLower;
+        guidance.fftBands[1].f1 = m_minHigher;
+        guidance.fftBands[2].f0 = m_minHigher;
+        guidance.fftBands[2].f1 = nyquist;
+
+        guidance.phaseReset.present = true;
+
+        if (!hadPhaseReset) {
+            guidance.phaseReset.f0 = 16000.0;
+            guidance.phaseReset.f1 = nyquist;
+//            std::cout << "f0 = " << guidance.phaseReset.f0 << std::endl;
+            return;
+        } else {
+            guidance.phaseReset.f0 *= 0.9;
+            guidance.phaseReset.f1 *= 1.1;
+        }
+
+        if (guidance.phaseReset.f0 < segmentation.residualAbove) {
+            guidance.phaseReset.f0 = std::min(guidance.phaseReset.f0,
+                                              segmentation.percussiveAbove);
+        }
+
+        if (guidance.phaseReset.f1 > 16000.0) {
+            guidance.phaseReset.f1 = nyquist;
+        }
+        
+        if (guidance.phaseReset.f0 < 100.0) {
+            guidance.phaseReset.f0 = 0.0;
+        }
+
+//        if (guidance.phaseReset.f0 > 0.0) {
+//            std::cout << unityCount << ": f0 = " << guidance.phaseReset.f0
+//                      << ", f1 = " << guidance.phaseReset.f1 << std::endl;
+//        }
+    }
+
     bool checkPotentialKick(const double *const magnitudes,
                             const double *const prevMagnitudes) const {
         int b = binForFrequency(200.0, m_configuration.classificationFftSize,
