@@ -288,6 +288,7 @@ protected:
     size_t m_studyInputDuration;
     size_t m_totalTargetDuration;
     size_t m_processInputDuration;
+    size_t m_lastKeyFrameSurpassed;
     size_t m_totalOutputDuration;
     std::map<size_t, size_t> m_keyFrameMap;
     

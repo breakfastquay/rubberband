@@ -47,6 +47,7 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
     m_studyInputDuration(0),
     m_totalTargetDuration(0),
     m_processInputDuration(0),
+    m_lastKeyFrameSurpassed(0),
     m_totalOutputDuration(0),
     m_mode(ProcessMode::JustCreated)
 {
@@ -287,8 +288,59 @@ void
 R3StretcherImpl::updateRatioFromMap()
 {
     if (m_keyFrameMap.empty()) return;
-//!!!    auto itr = m_keyFrameMap.upper_bound(m_processInputDuration);
-      
+
+    if (m_processInputDuration == 0) {
+        m_timeRatio = double(m_keyFrameMap.begin()->second) /
+            double(m_keyFrameMap.begin()->first);
+        std::cout << "initial key-frame map entry " << m_keyFrameMap.begin()->first << " -> " << m_keyFrameMap.begin()->second << " gives initial ratio " << m_timeRatio << std::endl;
+        calculateHop();
+        m_lastKeyFrameSurpassed = 0;
+        return;
+    }
+    
+    auto i0 = m_keyFrameMap.upper_bound(m_lastKeyFrameSurpassed);
+
+    if (i0 == m_keyFrameMap.end()) {
+        return;
+    }
+
+    if (m_processInputDuration >= i0->first) {
+
+        std::cout << "at " << m_processInputDuration << " (output = " << m_totalOutputDuration << ") we have passed " << i0->first << ", looking ahead to next key frame" << std::endl;
+        
+        auto i1 = m_keyFrameMap.upper_bound(m_processInputDuration);
+
+        size_t keyFrameAtInput, keyFrameAtOutput;
+    
+        if (i1 != m_keyFrameMap.end()) {
+            keyFrameAtInput = i1->first;
+            keyFrameAtOutput = i1->second;
+        } else {
+            keyFrameAtInput = m_studyInputDuration;
+            keyFrameAtOutput = m_totalTargetDuration;
+        }
+        
+//        size_t toKeyFrameAtInput = keyFrameAtInput - i0->first;
+//        size_t toKeyFrameAtOutput = keyFrameAtOutput - i0->second;
+        size_t toKeyFrameAtInput = keyFrameAtInput - m_processInputDuration;
+        size_t toKeyFrameAtOutput = 0;
+
+        if (keyFrameAtOutput > m_totalOutputDuration) {
+            toKeyFrameAtOutput = keyFrameAtOutput - m_totalOutputDuration;
+        }
+
+        double ratio = double(toKeyFrameAtOutput) / double(toKeyFrameAtInput);
+
+        std::cout << "keyFrameAtInput = " << keyFrameAtInput << ", keyFrameAtOutput = " << keyFrameAtOutput << std::endl;
+        std::cout << "currently at input = " << m_processInputDuration << ", currently at output = " << m_totalOutputDuration << std::endl;
+        std::cout << "toKeyFrameAtInput = " << toKeyFrameAtInput << ", toKeyFrameAtOutput = " << toKeyFrameAtOutput << std::endl;
+        std::cout << "ratio = " << ratio << std::endl;
+    
+        m_timeRatio = ratio;
+        calculateHop();
+
+        m_lastKeyFrameSurpassed = i0->first;
+    }
 }
 
 double
@@ -346,6 +398,7 @@ R3StretcherImpl::reset()
     m_studyInputDuration = 0;
     m_totalTargetDuration = 0;
     m_processInputDuration = 0;
+    m_lastKeyFrameSurpassed = 0;
     m_totalOutputDuration = 0;
     m_keyFrameMap.clear();
 
@@ -399,6 +452,7 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
             m_totalTargetDuration =
                 size_t(round(m_studyInputDuration * getEffectiveRatio()));
         }
+        updateRatioFromMap();
     }
 
     if (final) {
@@ -589,8 +643,10 @@ R3StretcherImpl::consume()
             auto &cd = m_channelData.at(c);
             if (m_resampler) {
                 cd->outbuf->write(cd->resampled.data(), resampledCount);
+                if (c == 0) m_totalOutputDuration += resampledCount;
             } else {
                 cd->outbuf->write(cd->mixdown.data(), outhop);
+                if (c == 0) m_totalOutputDuration += outhop;
             }
             
             int readSpace = cd->inbuf->getReadSpace();
