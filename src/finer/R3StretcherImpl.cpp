@@ -700,26 +700,17 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 
     for (const auto &b : m_guideConfiguration.fftBandLimits) {
         if (b.fftSize == classify) {
-            if (b.b0min > 0) {
-                v_cartesian_to_magnitudes(readahead.mag.data(),
-                                          classifyScale->real.data(),
-                                          classifyScale->imag.data(),
-                                          b.b0min);
-            }
-                    
-            v_cartesian_to_polar(readahead.mag.data() + b.b0min,
-                                 readahead.phase.data() + b.b0min,
-                                 classifyScale->real.data() + b.b0min,
-                                 classifyScale->imag.data() + b.b0min,
-                                 b.b1max - b.b0min);
-                    
-            if (b.b1max < classify/2 + 1) {
-                v_cartesian_to_magnitudes
-                    (readahead.mag.data() + b.b1max,
-                     classifyScale->real.data() + b.b1max,
-                     classifyScale->imag.data() + b.b1max,
-                     classify/2 + 1 - b.b1max);
-            }
+
+            ToPolarSpec spec;
+            spec.magFromBin = 0;
+            spec.magBinCount = classify/2 + 1;
+            spec.polarFromBin = b.b0min;
+            spec.polarBinCount = b.b1max - b.b0min + 1;
+            convertToPolar(readahead.mag.data(),
+                           readahead.phase.data(),
+                           classifyScale->real.data(),
+                           classifyScale->imag.data(),
+                           spec);
                     
             v_scale(classifyScale->mag.data(),
                     1.0 / double(classify),
@@ -749,38 +740,39 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                                              scale->real.data(),
                                              scale->imag.data());
 
-        // For the classify scale we always want the full range, as
-        // all the magnitudes (though not phases) are potentially
-        // relevant to classification and formant analysis. But this
-        // case here only happens if we don't haveValidReadahead - the
-        // normal case is above and just copies from the previous
-        // readahead.
-        if (fftSize == classify) {
-            //!!! and because not all the phases are relevant, there
-            //!!! is room for an optimisation here, though this is
-            //!!! used only when ratio changes
-            v_cartesian_to_polar(scale->mag.data(),
-                                 scale->phase.data(),
-                                 scale->real.data(),
-                                 scale->imag.data(),
-                                 fftSize/2 + 1);
-            v_scale(scale->mag.data(),
-                    1.0 / double(fftSize),
-                    scale->mag.size());
-            continue;
-        }
-        
-        //!!! should this be a map?
         for (const auto &b : m_guideConfiguration.fftBandLimits) {
             if (b.fftSize == fftSize) {
-                v_cartesian_to_polar(scale->mag.data() + b.b0min,
-                                     scale->phase.data() + b.b0min,
-                                     scale->real.data() + b.b0min,
-                                     scale->imag.data() + b.b0min,
-                                     b.b1max - b.b0min);
-                v_scale(scale->mag.data() + b.b0min,
+
+                ToPolarSpec spec;
+
+                // For the classify scale we always want the full
+                // range, as all the magnitudes (though not phases)
+                // are potentially relevant to classification and
+                // formant analysis. But this case here only happens
+                // if we don't haveValidReadahead - the normal case is
+                // above and just copies from the previous readahead.
+                if (fftSize == classify) {
+                    spec.magFromBin = 0;
+                    spec.magBinCount = classify/2 + 1;
+                    spec.polarFromBin = b.b0min;
+                    spec.polarBinCount = b.b1max - b.b0min + 1;
+                } else {
+                    spec.magFromBin = b.b0min;
+                    spec.magBinCount = b.b1max - b.b0min + 1;
+                    spec.polarFromBin = spec.magFromBin;
+                    spec.polarBinCount = spec.magBinCount;
+                }
+
+                convertToPolar(scale->mag.data(),
+                               scale->phase.data(),
+                               scale->real.data(),
+                               scale->imag.data(),
+                               spec);
+
+                v_scale(scale->mag.data() + spec.magFromBin,
                         1.0 / double(fftSize),
-                        b.b1max - b.b0min);
+                        spec.magBinCount);
+                
                 break;
             }
         }

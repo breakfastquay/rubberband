@@ -35,6 +35,7 @@
 #include "../common/FixedVector.h"
 #include "../common/Allocators.h"
 #include "../common/Window.h"
+#include "../common/VectorOpsComplex.h"
 
 #include "../../rubberband/RubberBandStretcher.h"
 
@@ -307,6 +308,36 @@ protected:
     void adjustPreKick(int channel);
     void synthesiseChannel(int channel, int outhop);
 
+    struct ToPolarSpec {
+        int magFromBin;
+        int magBinCount;
+        int polarFromBin;
+        int polarBinCount;
+    };
+    
+    void convertToPolar(double *mag, double *phase,
+                        const double *real, const double *imag,
+                        const ToPolarSpec &s) const {
+        v_cartesian_to_polar(mag + s.polarFromBin,
+                             phase + s.polarFromBin,
+                             real + s.polarFromBin,
+                             imag + s.polarFromBin,
+                             s.polarBinCount);
+        if (s.magFromBin < s.polarFromBin) {
+            v_cartesian_to_magnitudes(mag + s.magFromBin,
+                                      real + s.magFromBin,
+                                      imag + s.magFromBin,
+                                      s.polarFromBin - s.magFromBin);
+        }
+        if (s.magFromBin + s.magBinCount > s.polarFromBin + s.polarBinCount) {
+            v_cartesian_to_magnitudes(mag + s.polarFromBin + s.polarBinCount,
+                                      real + s.polarFromBin + s.polarBinCount,
+                                      imag + s.polarFromBin + s.polarBinCount,
+                                      s.magFromBin + s.magBinCount -
+                                      s.polarFromBin - s.polarBinCount);
+        }
+    }
+    
     double getEffectiveRatio() const {
         return m_timeRatio * m_pitchScale;
     }
