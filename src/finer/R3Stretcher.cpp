@@ -21,7 +21,7 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#include "R3StretcherImpl.h"
+#include "R3Stretcher.h"
 
 #include "../common/VectorOpsComplex.h"
 
@@ -29,9 +29,9 @@
 
 namespace RubberBand {
 
-R3StretcherImpl::R3StretcherImpl(Parameters parameters,
-                                 double initialTimeRatio,
-                                 double initialPitchScale) :
+R3Stretcher::R3Stretcher(Parameters parameters,
+                         double initialTimeRatio,
+                         double initialPitchScale) :
     m_parameters(parameters),
     m_timeRatio(initialTimeRatio),
     m_pitchScale(initialPitchScale),
@@ -144,39 +144,39 @@ R3StretcherImpl::R3StretcherImpl(Parameters parameters,
 }
 
 WindowType
-R3StretcherImpl::ScaleData::analysisWindowShape(int fftSize)
+R3Stretcher::ScaleData::analysisWindowShape(int fftSize)
 {
     if (fftSize > 2048) return HannWindow;
     else return NiemitaloForwardWindow;
 }
 
 int
-R3StretcherImpl::ScaleData::analysisWindowLength(int fftSize)
+R3Stretcher::ScaleData::analysisWindowLength(int fftSize)
 {
     return fftSize;
 }
 
 WindowType
-R3StretcherImpl::ScaleData::synthesisWindowShape(int fftSize)
+R3Stretcher::ScaleData::synthesisWindowShape(int fftSize)
 {
     if (fftSize > 2048) return HannWindow;
     else return NiemitaloReverseWindow;
 }
 
 int
-R3StretcherImpl::ScaleData::synthesisWindowLength(int fftSize)
+R3Stretcher::ScaleData::synthesisWindowLength(int fftSize)
 {
     if (fftSize > 2048) return fftSize/2;
     else return fftSize;
 }
 
 void
-R3StretcherImpl::setTimeRatio(double ratio)
+R3Stretcher::setTimeRatio(double ratio)
 {
     if (!isRealTime()) {
         if (m_mode == ProcessMode::Studying ||
             m_mode == ProcessMode::Processing) {
-            m_parameters.logger("R3StretcherImpl::setTimeRatio: Cannot set time ratio while studying or processing in non-RT mode");
+            m_parameters.logger("R3Stretcher::setTimeRatio: Cannot set time ratio while studying or processing in non-RT mode");
             return;
         }
     }
@@ -187,12 +187,12 @@ R3StretcherImpl::setTimeRatio(double ratio)
 }
 
 void
-R3StretcherImpl::setPitchScale(double scale)
+R3Stretcher::setPitchScale(double scale)
 {
     if (!isRealTime()) {
         if (m_mode == ProcessMode::Studying ||
             m_mode == ProcessMode::Processing) {
-            m_parameters.logger("R3StretcherImpl::setTimeRatio: Cannot set pitch scale while studying or processing in non-RT mode");
+            m_parameters.logger("R3Stretcher::setTimeRatio: Cannot set pitch scale while studying or processing in non-RT mode");
             return;
         }
     }
@@ -203,12 +203,12 @@ R3StretcherImpl::setPitchScale(double scale)
 }
 
 void
-R3StretcherImpl::setFormantScale(double scale)
+R3Stretcher::setFormantScale(double scale)
 {
     if (!isRealTime()) {
         if (m_mode == ProcessMode::Studying ||
             m_mode == ProcessMode::Processing) {
-            m_parameters.logger("R3StretcherImpl::setTimeRatio: Cannot set formant scale while studying or processing in non-RT mode");
+            m_parameters.logger("R3Stretcher::setTimeRatio: Cannot set formant scale while studying or processing in non-RT mode");
             return;
         }
     }
@@ -217,7 +217,7 @@ R3StretcherImpl::setFormantScale(double scale)
 }
 
 void
-R3StretcherImpl::setFormantOption(RubberBandStretcher::Options options)
+R3Stretcher::setFormantOption(RubberBandStretcher::Options options)
 {
     int mask = (RubberBandStretcher::OptionFormantShifted |
                 RubberBandStretcher::OptionFormantPreserved);
@@ -227,14 +227,14 @@ R3StretcherImpl::setFormantOption(RubberBandStretcher::Options options)
 }
 
 void
-R3StretcherImpl::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
+R3Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 {
     if (isRealTime()) {
-        m_parameters.logger("R3StretcherImpl::setKeyFrameMap: Cannot specify key frame map in RT mode");
+        m_parameters.logger("R3Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode");
         return;
     }
     if (m_mode == ProcessMode::Processing || m_mode == ProcessMode::Finished) {
-        m_parameters.logger("R3StretcherImpl::setKeyFrameMap: Cannot specify key frame map after process() has begun");
+        m_parameters.logger("R3Stretcher::setKeyFrameMap: Cannot specify key frame map after process() has begun");
         return;
     }
 
@@ -242,7 +242,7 @@ R3StretcherImpl::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 }
 
 void
-R3StretcherImpl::calculateHop()
+R3Stretcher::calculateHop()
 {
     double ratio = getEffectiveRatio();
 
@@ -281,11 +281,11 @@ R3StretcherImpl::calculateHop()
 
     m_inhop = int(floor(inhop));
 
-    std::cout << "R3StretcherImpl::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
+    std::cout << "R3Stretcher::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
 }
 
 void
-R3StretcherImpl::updateRatioFromMap()
+R3Stretcher::updateRatioFromMap()
 {
     if (m_keyFrameMap.empty()) return;
 
@@ -344,25 +344,25 @@ R3StretcherImpl::updateRatioFromMap()
 }
 
 double
-R3StretcherImpl::getTimeRatio() const
+R3Stretcher::getTimeRatio() const
 {
     return m_timeRatio;
 }
 
 double
-R3StretcherImpl::getPitchScale() const
+R3Stretcher::getPitchScale() const
 {
     return m_pitchScale;
 }
 
 double
-R3StretcherImpl::getFormantScale() const
+R3Stretcher::getFormantScale() const
 {
     return m_formantScale;
 }
 
 size_t
-R3StretcherImpl::getLatency() const
+R3Stretcher::getLatency() const
 {
     if (!isRealTime()) {
         return 0;
@@ -373,13 +373,13 @@ R3StretcherImpl::getLatency() const
 }
 
 size_t
-R3StretcherImpl::getChannelCount() const
+R3Stretcher::getChannelCount() const
 {
     return m_parameters.channels;
 }
 
 void
-R3StretcherImpl::reset()
+R3Stretcher::reset()
 {
     m_calculator->reset();
     m_resampler->reset();
@@ -406,15 +406,15 @@ R3StretcherImpl::reset()
 }
 
 void
-R3StretcherImpl::study(const float *const *, size_t samples, bool)
+R3Stretcher::study(const float *const *, size_t samples, bool)
 {
     if (isRealTime()) {
-        m_parameters.logger("R3StretcherImpl::study: Not meaningful in realtime mode");
+        m_parameters.logger("R3Stretcher::study: Not meaningful in realtime mode");
         return;
     }
 
     if (m_mode == ProcessMode::Processing || m_mode == ProcessMode::Finished) {
-        m_parameters.logger("R3StretcherImpl::study: Cannot study after processing");
+        m_parameters.logger("R3Stretcher::study: Cannot study after processing");
         return;
     }
     
@@ -427,7 +427,7 @@ R3StretcherImpl::study(const float *const *, size_t samples, bool)
 }
 
 size_t
-R3StretcherImpl::getSamplesRequired() const
+R3Stretcher::getSamplesRequired() const
 {
     if (available() != 0) return 0;
     int longest = m_guideConfiguration.longestFftSize;
@@ -440,10 +440,10 @@ R3StretcherImpl::getSamplesRequired() const
 }
 
 void
-R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
+R3Stretcher::process(const float *const *input, size_t samples, bool final)
 {
     if (m_mode == ProcessMode::Finished) {
-        m_parameters.logger("R3StretcherImpl::process: Cannot process again after final chunk");
+        m_parameters.logger("R3Stretcher::process: Cannot process again after final chunk");
         return;
     }
 
@@ -468,7 +468,7 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
     size_t ws = m_channelData[0]->inbuf->getWriteSpace();
     if (samples > ws) {
         //!!! check this
-        m_parameters.logger("R3StretcherImpl::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called or process is being called repeatedly without retrieve.");
+        m_parameters.logger("R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called or process is being called repeatedly without retrieve.");
         size_t newSize = m_channelData[0]->inbuf->getSize() - ws + samples;
         for (int c = 0; c < m_parameters.channels; ++c) {
             auto newBuf = m_channelData[c]->inbuf->resized(newSize);
@@ -486,7 +486,7 @@ R3StretcherImpl::process(const float *const *input, size_t samples, bool final)
 }
 
 int
-R3StretcherImpl::available() const
+R3Stretcher::available() const
 {
     int av = int(m_channelData[0]->outbuf->getReadSpace());
     if (av == 0 && m_mode == ProcessMode::Finished) {
@@ -497,7 +497,7 @@ R3StretcherImpl::available() const
 }
 
 size_t
-R3StretcherImpl::retrieve(float *const *output, size_t samples) const
+R3Stretcher::retrieve(float *const *output, size_t samples) const
 {
     int got = samples;
     
@@ -505,7 +505,7 @@ R3StretcherImpl::retrieve(float *const *output, size_t samples) const
         int gotHere = m_channelData[c]->outbuf->read(output[c], got);
         if (gotHere < got) {
             if (c > 0) {
-                m_parameters.logger("R3StretcherImpl::retrieve: WARNING: channel imbalance detected");
+                m_parameters.logger("R3Stretcher::retrieve: WARNING: channel imbalance detected");
             }
             got = std::min(got, std::max(gotHere, 0));
         }
@@ -515,7 +515,7 @@ R3StretcherImpl::retrieve(float *const *output, size_t samples) const
 }
 
 void
-R3StretcherImpl::consume()
+R3Stretcher::consume()
 {
     int longest = m_guideConfiguration.longestFftSize;
     int channels = m_parameters.channels;
@@ -673,7 +673,7 @@ R3StretcherImpl::consume()
 }
 
 void
-R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
+R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 {
     int longest = m_guideConfiguration.longestFftSize;
     int classify = m_guideConfiguration.classificationFftSize;
@@ -908,7 +908,7 @@ R3StretcherImpl::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 }
 
 void
-R3StretcherImpl::analyseFormant(int c)
+R3Stretcher::analyseFormant(int c)
 {
     auto &cd = m_channelData.at(c);
     auto &f = *cd->formant;
@@ -942,7 +942,7 @@ R3StretcherImpl::analyseFormant(int c)
 }
 
 void
-R3StretcherImpl::adjustFormant(int c)
+R3Stretcher::adjustFormant(int c)
 {
     auto &cd = m_channelData.at(c);
         
@@ -976,7 +976,7 @@ R3StretcherImpl::adjustFormant(int c)
 }
 
 void
-R3StretcherImpl::adjustPreKick(int c)
+R3Stretcher::adjustPreKick(int c)
 {
     auto &cd = m_channelData.at(c);
     auto fftSize = cd->guidance.fftBands[0].fftSize;
@@ -1007,7 +1007,7 @@ R3StretcherImpl::adjustPreKick(int c)
 }
 
 void
-R3StretcherImpl::synthesiseChannel(int c, int outhop)
+R3Stretcher::synthesiseChannel(int c, int outhop)
 {
     int longest = m_guideConfiguration.longestFftSize;
 

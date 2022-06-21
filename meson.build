@@ -39,8 +39,8 @@ library_sources = [
   'src/faster/HighFrequencyAudioCurve.cpp',
   'src/faster/SilentAudioCurve.cpp',
   'src/faster/PercussiveAudioCurve.cpp',
+  'src/faster/R2Stretcher.cpp',
   'src/faster/StretcherChannelData.cpp',
-  'src/faster/StretcherImpl.cpp',
   'src/faster/StretcherProcess.cpp',
   'src/common/Profiler.cpp',
   'src/common/Resampler.cpp',
@@ -49,7 +49,7 @@ library_sources = [
   'src/common/StretchCalculator.cpp',
   'src/common/sysutils.cpp',
   'src/common/Thread.cpp',
-  'src/finer/R3StretcherImpl.cpp', 
+  'src/finer/R3Stretcher.cpp', 
 ]
 
 jni_sources = [

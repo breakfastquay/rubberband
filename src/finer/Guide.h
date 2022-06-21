@@ -124,8 +124,9 @@ public:
         m_configuration.fftBandLimits[0] =
             BandLimits(bandFftSize, rate, 0.0, m_maxLower);
 
-        // This is the classification and fallback FFT: we need the
-        // full range for it
+        // This is the classification and fallback FFT: we need it to
+        // go up to Nyquist so we can seamlessly switch to it for
+        // longer stretches
         bandFftSize = roundUp(int(ceil(rate/32.0)));
         m_configuration.fftBandLimits[1] =
             BandLimits(bandFftSize, rate, 0.0, rate / 2.0);

@@ -88,6 +88,12 @@
 
 namespace RubberBand {
 
+#ifdef PROCESS_SAMPLE_TYPE
+typedef PROCESS_SAMPLE_TYPE process_t;
+#else
+typedef double process_t;
+#endif
+
 extern const char *system_get_platform_tag();
 extern bool system_is_multiprocessor();
 extern void system_specific_initialise();

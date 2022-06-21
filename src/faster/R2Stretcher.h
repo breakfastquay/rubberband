@@ -42,21 +42,16 @@
 namespace RubberBand
 {
 
-#ifdef PROCESS_SAMPLE_TYPE
-typedef PROCESS_SAMPLE_TYPE process_t;
-#else
-typedef double process_t;
-#endif
-
 class AudioCurveCalculator;
 class StretchCalculator;
 
-class RubberBandStretcher::Impl
+class R2Stretcher
 {
 public:
-    Impl(size_t sampleRate, size_t channels, Options options,
-         double initialTimeRatio, double initialPitchScale);
-    ~Impl();
+    R2Stretcher(size_t sampleRate, size_t channels,
+                RubberBandStretcher::Options options,
+                double initialTimeRatio, double initialPitchScale);
+    ~R2Stretcher();
     
     void reset();
     void setTimeRatio(double ratio);
@@ -67,11 +62,11 @@ public:
 
     size_t getLatency() const;
 
-    void setTransientsOption(Options);
-    void setDetectorOption(Options);
-    void setPhaseOption(Options);
-    void setFormantOption(Options);
-    void setPitchOption(Options);
+    void setTransientsOption(RubberBandStretcher::Options);
+    void setDetectorOption(RubberBandStretcher::Options);
+    void setPhaseOption(RubberBandStretcher::Options);
+    void setFormantOption(RubberBandStretcher::Options);
+    void setPitchOption(RubberBandStretcher::Options);
 
     void setExpectedInputDuration(size_t samples);
     void setMaxProcessSize(size_t samples);
@@ -178,7 +173,7 @@ protected:
 #endif
 
     bool m_realtime;
-    Options m_options;
+    RubberBandStretcher::Options m_options;
     int m_debugLevel;
 
     enum ProcessMode {
@@ -203,12 +198,12 @@ protected:
     class ProcessThread : public Thread
     {
     public:
-        ProcessThread(Impl *s, size_t c);
+        ProcessThread(R2Stretcher *s, size_t c);
         void run();
         void signalDataAvailable();
         void abandon();
     private:
-        Impl *m_s;
+        R2Stretcher *m_s;
         size_t m_channel;
         Condition m_dataAvailable;
         bool m_abandoning;

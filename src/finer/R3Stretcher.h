@@ -46,7 +46,7 @@
 namespace RubberBand
 {
 
-class R3StretcherImpl
+class R3Stretcher
 {
 public:
     struct Parameters {
@@ -61,10 +61,10 @@ public:
             logger(_log) { }
     };
     
-    R3StretcherImpl(Parameters parameters,
-                    double initialTimeRatio,
-                    double initialPitchScale);
-    ~R3StretcherImpl() { }
+    R3Stretcher(Parameters parameters,
+                double initialTimeRatio,
+                double initialPitchScale);
+    ~R3Stretcher() { }
 
     void reset();
     

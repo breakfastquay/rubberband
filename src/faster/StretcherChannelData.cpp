@@ -31,27 +31,27 @@
 namespace RubberBand 
 {
       
-RubberBandStretcher::Impl::ChannelData::ChannelData(size_t windowSize,
-                                                    size_t fftSize,
-                                                    size_t outbufSize)
+R2Stretcher::ChannelData::ChannelData(size_t windowSize,
+                                      size_t fftSize,
+                                      size_t outbufSize)
 {
     std::set<size_t> s;
     construct(s, windowSize, fftSize, outbufSize);
 }
 
-RubberBandStretcher::Impl::ChannelData::ChannelData(const std::set<size_t> &sizes,
-                                                    size_t initialWindowSize,
-                                                    size_t initialFftSize,
-                                                    size_t outbufSize)
+R2Stretcher::ChannelData::ChannelData(const std::set<size_t> &sizes,
+                                      size_t initialWindowSize,
+                                      size_t initialFftSize,
+                                      size_t outbufSize)
 {
     construct(sizes, initialWindowSize, initialFftSize, outbufSize);
 }
 
 void
-RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &sizes,
-                                                  size_t initialWindowSize,
-                                                  size_t initialFftSize,
-                                                  size_t outbufSize)
+R2Stretcher::ChannelData::construct(const std::set<size_t> &sizes,
+                                    size_t initialWindowSize,
+                                    size_t initialFftSize,
+                                    size_t outbufSize)
 {
     size_t maxSize = initialWindowSize * 2;
     if (initialFftSize > maxSize) maxSize = initialFftSize;
@@ -114,7 +114,7 @@ RubberBandStretcher::Impl::ChannelData::construct(const std::set<size_t> &sizes,
 
 
 void
-RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,
+R2Stretcher::ChannelData::setSizes(size_t windowSize,
                                                  size_t fftSize)
 {
 //    std::cerr << "ChannelData::setSizes: windowSize = " << windowSize << ", fftSize = " << fftSize << std::endl;
@@ -206,7 +206,7 @@ RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,
 }
 
 void
-RubberBandStretcher::Impl::ChannelData::setOutbufSize(size_t outbufSize)
+R2Stretcher::ChannelData::setOutbufSize(size_t outbufSize)
 {
     size_t oldSize = outbuf->getSize();
 
@@ -224,13 +224,13 @@ RubberBandStretcher::Impl::ChannelData::setOutbufSize(size_t outbufSize)
 }
 
 void
-RubberBandStretcher::Impl::ChannelData::setResampleBufSize(size_t sz)
+R2Stretcher::ChannelData::setResampleBufSize(size_t sz)
 {
     resamplebuf = reallocate_and_zero<float>(resamplebuf, resamplebufSize, sz);
     resamplebufSize = sz;
 }
 
-RubberBandStretcher::Impl::ChannelData::~ChannelData()
+R2Stretcher::ChannelData::~ChannelData()
 {
     delete resampler;
 
@@ -259,7 +259,7 @@ RubberBandStretcher::Impl::ChannelData::~ChannelData()
 }
 
 void
-RubberBandStretcher::Impl::ChannelData::reset()
+R2Stretcher::ChannelData::reset()
 {
     inbuf->reset();
     outbuf->reset();

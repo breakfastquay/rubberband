@@ -106,7 +106,7 @@ Rubber Band consists of:
 
 ## 2. Using the Rubber Band command-line tool
 
-The Rubber Band command-line tool builds as `bin/rubberband`.  The
+The Rubber Band command-line tool builds as `build/rubberband`.  The
 basic incantation is
 
 ```

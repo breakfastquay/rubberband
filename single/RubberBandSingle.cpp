@@ -70,7 +70,7 @@
 #include "../src/common/sysutils.cpp"
 #include "../src/common/Thread.cpp"
 #include "../src/faster/StretcherChannelData.cpp"
-#include "../src/faster/StretcherImpl.cpp"
+#include "../src/faster/R2StretcherImpl.cpp"
 #include "../src/faster/StretcherProcess.cpp"
 #include "../src/finer/R3StretcherImpl.cpp"
 

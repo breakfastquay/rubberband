@@ -24,7 +24,7 @@
 #ifndef RUBBERBAND_STRETCHERCHANNELDATA_H
 #define RUBBERBAND_STRETCHERCHANNELDATA_H
 
-#include "StretcherImpl.h"
+#include "R2Stretcher.h"
 
 #include <set>
 #include <atomic>
@@ -34,7 +34,7 @@ namespace RubberBand
 
 class Resampler;
 
-class RubberBandStretcher::Impl::ChannelData
+class R2Stretcher::ChannelData
 {
 public:        
     /**
