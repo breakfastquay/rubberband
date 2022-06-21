@@ -37,7 +37,8 @@ namespace RubberBand
 	
 StretchCalculator::StretchCalculator(size_t sampleRate,
                                      size_t inputIncrement,
-                                     bool useHardPeaks) :
+                                     bool useHardPeaks,
+                                     Log log) :
     m_sampleRate(sampleRate),
     m_increment(inputIncrement),
     m_prevDf(0),
@@ -49,7 +50,8 @@ StretchCalculator::StretchCalculator(size_t sampleRate,
     m_useHardPeaks(useHardPeaks),
     m_inFrameCounter(0),
     m_frameCheckpoint(0, 0),
-    m_outFrameCounter(0)
+    m_outFrameCounter(0),
+    m_log(log)
 {
 //    std::cerr << "StretchCalculator::StretchCalculator: useHardPeaks = " << useHardPeaks << std::endl;
 }    

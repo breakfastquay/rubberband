@@ -36,12 +36,12 @@
 #include "../common/Allocators.h"
 #include "../common/Window.h"
 #include "../common/VectorOpsComplex.h"
+#include "../common/Log.h"
 
 #include "../../rubberband/RubberBandStretcher.h"
 
 #include <map>
 #include <memory>
-#include <functional>
 
 namespace RubberBand
 {
@@ -53,17 +53,15 @@ public:
         double sampleRate;
         int channels;
         RubberBandStretcher::Options options;
-        std::function<void(const std::string &)> logger;
         Parameters(double _sampleRate, int _channels,
-                   RubberBandStretcher::Options _options,
-                   std::function<void(const std::string &)> _log = &logCout) :
-            sampleRate(_sampleRate), channels(_channels), options(_options),
-            logger(_log) { }
+                   RubberBandStretcher::Options _options) :
+            sampleRate(_sampleRate), channels(_channels), options(_options) { }
     };
     
     R3Stretcher(Parameters parameters,
                 double initialTimeRatio,
-                double initialPitchScale);
+                double initialPitchScale,
+                Log log);
     ~R3Stretcher() { }
 
     void reset();
@@ -89,6 +87,10 @@ public:
     size_t getLatency() const;
     size_t getChannelCount() const;
     
+    void setDebugLevel(int level) {
+        m_log.setDebugLevel(level); //!!! +others
+    }
+
 protected:
     struct ClassificationReadaheadData {
         FixedVector<double> timeDomain;
@@ -242,7 +244,8 @@ protected:
         Window<double> synthesisWindow;
         double windowScaleFactor;
         GuidedPhaseAdvance guided;
-        ScaleData(GuidedPhaseAdvance::Parameters guidedParameters) :
+        ScaleData(GuidedPhaseAdvance::Parameters guidedParameters,
+                  Log log) :
             fftSize(guidedParameters.fftSize),
             fft(fftSize),
             analysisWindow(analysisWindowShape(fftSize),
@@ -250,7 +253,7 @@ protected:
             synthesisWindow(synthesisWindowShape(fftSize),
                             synthesisWindowLength(fftSize)),
             windowScaleFactor(0.0),
-            guided(guidedParameters)
+            guided(guidedParameters, log)
         {
             int asz = analysisWindow.getSize(), ssz = synthesisWindow.getSize();
             int off = (asz - ssz) / 2;
@@ -267,6 +270,7 @@ protected:
     };
     
     Parameters m_parameters;
+    Log m_log;
 
     std::atomic<double> m_timeRatio;
     std::atomic<double> m_pitchScale;
@@ -346,10 +350,6 @@ protected:
     bool isRealTime() const {
         return m_parameters.options &
             RubberBandStretcher::OptionProcessRealTime;
-    }
-    
-    static void logCout(const std::string &message) {
-        std::cout << "RubberBandStretcher: " << message << std::endl;
     }
 };
 

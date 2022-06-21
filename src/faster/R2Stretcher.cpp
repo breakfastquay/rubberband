@@ -65,7 +65,8 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
                          size_t channels,
                          RubberBandStretcher::Options options,
                          double initialTimeRatio,
-                         double initialPitchScale) :
+                         double initialPitchScale,
+                         Log log) :
     m_sampleRate(sampleRate),
     m_channels(channels),
     m_timeRatio(initialTimeRatio),
@@ -82,6 +83,7 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
 #endif
     m_realtime(false),
     m_options(options),
+    m_log(log),
     m_debugLevel(m_defaultDebugLevel),
     m_mode(JustCreated),
     m_awindow(0),
@@ -700,7 +702,8 @@ R2Stretcher::configure()
     delete m_stretchCalculator;
     m_stretchCalculator = new StretchCalculator
         (m_sampleRate, m_increment,
-         !(m_options & RubberBandStretcher::OptionTransientsSmooth));
+         !(m_options & RubberBandStretcher::OptionTransientsSmooth),
+         m_log);
 
     m_stretchCalculator->setDebugLevel(m_debugLevel);
     m_inputDuration = 0;

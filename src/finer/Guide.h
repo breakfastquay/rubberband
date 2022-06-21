@@ -24,6 +24,8 @@
 #ifndef RUBBERBAND_GUIDE_H
 #define RUBBERBAND_GUIDE_H
 
+#include "../common/Log.h"
+
 #include <functional>
 #include <sstream>
 
@@ -102,15 +104,12 @@ public:
     
     struct Parameters {
         double sampleRate;
-        std::function<void(const std::string &)> logger;
-        Parameters(double _sampleRate,
-                   std::function<void(const std::string &)> _log) :
-            sampleRate(_sampleRate),
-            logger(_log) { }
+        Parameters(double _sampleRate) : sampleRate(_sampleRate) { }
     };
 
-    Guide(Parameters parameters) :
+    Guide(Parameters parameters, Log log) :
         m_parameters(parameters),
+        m_log(log),
         m_configuration(roundUp(int(ceil(parameters.sampleRate / 16.0))),
                         roundUp(int(ceil(parameters.sampleRate / 64.0))),
                         roundUp(int(ceil(parameters.sampleRate / 32.0)))),
@@ -334,6 +333,7 @@ public:
 
 protected:
     Parameters m_parameters;
+    Log m_log;
     Configuration m_configuration;
 
     double m_minLower;

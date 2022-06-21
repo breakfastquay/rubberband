@@ -30,13 +30,18 @@
 #include <map>
 #include <cstdint>
 
+#include "Log.h"
+
 namespace RubberBand
 {
 
 class StretchCalculator
 {
 public:
-    StretchCalculator(size_t sampleRate, size_t inputIncrement, bool useHardPeaks);
+    StretchCalculator(size_t sampleRate,
+                      size_t inputIncrement,
+                      bool useHardPeaks,
+                      Log log);
     virtual ~StretchCalculator();
 
     /**
@@ -107,6 +112,7 @@ protected:
     std::pair<int64_t, int64_t> m_frameCheckpoint;
     int64_t expectedOutFrame(int64_t inFrame, double timeRatio);
     double m_outFrameCounter;
+    Log m_log;
 
     std::map<size_t, size_t> m_keyFrameMap;
     std::vector<Peak> m_peaks;

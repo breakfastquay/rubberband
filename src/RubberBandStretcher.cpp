@@ -30,18 +30,39 @@ class RubberBandStretcher::Impl
 {
     R2Stretcher *m_r2;
     R3Stretcher *m_r3;
-    
+
+    Log makeRBLog(std::shared_ptr<RubberBandStretcher::Logger> logger) {
+        if (logger) {
+            return Log(
+                [=](const char *message) {
+                    logger->log0(message);
+                },
+                [=](const char *message, double arg0) {
+                    logger->log1(message, arg0);
+                },
+                [=](const char *message, double arg0, double arg1) {
+                    logger->log2(message, arg0, arg1);
+                }
+                );
+        } else {
+            return Log::makeCoutLog();
+        }
+    }
+
 public:
     Impl(size_t sampleRate, size_t channels, Options options,
+         std::shared_ptr<RubberBandStretcher::Logger> logger,
          double initialTimeRatio, double initialPitchScale) :
         m_r2 (!(options & OptionEngineFiner) ?
               new R2Stretcher(sampleRate, channels, options,
-                              initialTimeRatio, initialPitchScale)
+                              initialTimeRatio, initialPitchScale,
+                              makeRBLog(logger))
               : nullptr),
         m_r3 ((options & OptionEngineFiner) ?
               new R3Stretcher(R3Stretcher::Parameters
                               (double(sampleRate), channels, options),
-                              initialTimeRatio, initialPitchScale)
+                              initialTimeRatio, initialPitchScale,
+                              makeRBLog(logger))
               : nullptr)
     {
     }
@@ -272,13 +293,14 @@ public:
     setDebugLevel(int level)
     {
         if (m_r2) m_r2->setDebugLevel(level);
+        else m_r3->setDebugLevel(level);
     }
 
     static void
     setDefaultDebugLevel(int level)
     {
-        R2Stretcher::setDefaultDebugLevel(level);
-//!!!        R3Stretcher::setDefaultDebugLevel(level);
+        Log::setDefaultDebugLevel(level);
+        R2Stretcher::setDefaultDebugLevel(level); //!!!
     }
 };
 
@@ -287,7 +309,18 @@ RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
                                          Options options,
                                          double initialTimeRatio,
                                          double initialPitchScale) :
-    m_d(new Impl(sampleRate, channels, options,
+    m_d(new Impl(sampleRate, channels, options, nullptr,
+                 initialTimeRatio, initialPitchScale))
+{
+}
+
+RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
+                                         size_t channels,
+                                         std::shared_ptr<Logger> logger,
+                                         Options options,
+                                         double initialTimeRatio,
+                                         double initialPitchScale) :
+    m_d(new Impl(sampleRate, channels, options, logger,
                  initialTimeRatio, initialPitchScale))
 {
 }

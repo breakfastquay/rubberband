@@ -463,7 +463,9 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
 
     int rate = m_sampleRate;
 
-    RubberBand::StretchCalculator sc(rate, m_stretcher->getInputIncrement(), true);
+    RubberBand::StretchCalculator sc
+        (rate, m_stretcher->getInputIncrement(), true,
+         RubberBand::Log::makeCoutLog());
 
     size_t inputIncrement = m_stretcher->getInputIncrement();
     std::vector<int> outputIncrements = m_stretcher->getOutputIncrements();
