@@ -90,8 +90,8 @@ R3Stretcher::R3Stretcher(Parameters parameters,
         int fftSize = band.fftSize;
         GuidedPhaseAdvance::Parameters guidedParameters
             (fftSize, m_parameters.sampleRate, m_parameters.channels);
-        m_scaleData[fftSize] = std::make_shared<ScaleData>(guidedParameters,
-                                                           m_log);
+        m_scaleData[fftSize] = std::make_shared<ScaleData>
+            (guidedParameters, m_log);
     }
 
     m_calculator = std::unique_ptr<StretchCalculator>
@@ -294,7 +294,12 @@ R3Stretcher::updateRatioFromMap()
     if (m_processInputDuration == 0) {
         m_timeRatio = double(m_keyFrameMap.begin()->second) /
             double(m_keyFrameMap.begin()->first);
-        std::cout << "initial key-frame map entry " << m_keyFrameMap.begin()->first << " -> " << m_keyFrameMap.begin()->second << " gives initial ratio " << m_timeRatio << std::endl;
+
+        m_log.log2(1, "initial key-frame map entry ",
+                   double(m_keyFrameMap.begin()->first),
+                   double(m_keyFrameMap.begin()->second));
+        m_log.log1(1, "giving initial ratio ", m_timeRatio);
+        
         calculateHop();
         m_lastKeyFrameSurpassed = 0;
         return;
@@ -308,7 +313,8 @@ R3Stretcher::updateRatioFromMap()
 
     if (m_processInputDuration >= i0->first) {
 
-        std::cout << "at " << m_processInputDuration << " (output = " << m_totalOutputDuration << ") we have passed " << i0->first << ", looking ahead to next key frame" << std::endl;
+        m_log.log2(2, "input duration surpasses pending key frame",
+                   double(m_processInputDuration), double(i0->first));
         
         auto i1 = m_keyFrameMap.upper_bound(m_processInputDuration);
 
@@ -333,10 +339,13 @@ R3Stretcher::updateRatioFromMap()
 
         double ratio = double(toKeyFrameAtOutput) / double(toKeyFrameAtInput);
 
-        std::cout << "keyFrameAtInput = " << keyFrameAtInput << ", keyFrameAtOutput = " << keyFrameAtOutput << std::endl;
-        std::cout << "currently at input = " << m_processInputDuration << ", currently at output = " << m_totalOutputDuration << std::endl;
-        std::cout << "toKeyFrameAtInput = " << toKeyFrameAtInput << ", toKeyFrameAtOutput = " << toKeyFrameAtOutput << std::endl;
-        std::cout << "ratio = " << ratio << std::endl;
+        m_log.log2(2, "next key frame input and output",
+                   double(keyFrameAtInput), double(keyFrameAtOutput));
+        m_log.log2(2, "current input and output",
+                   double(m_processInputDuration), double(m_totalOutputDuration));
+        m_log.log2(2, "to next key frame input and output",
+                   double(toKeyFrameAtInput), double(toKeyFrameAtOutput));
+        m_log.log1(2, "new ratio", ratio);
     
         m_timeRatio = ratio;
         calculateHop();
@@ -552,16 +561,14 @@ R3Stretcher::consume()
     // advanced the input and output since the previous frame, not the
     // distances we are about to advance them, so they use the m_prev
     // values.
-/*
+
     if (inhop != m_prevInhop) {
-        std::cout << "Note: inhop has changed from " << m_prevInhop
-                  << " to " << inhop << std::endl;
+        m_log.log2(2, "change in inhop", double(m_prevInhop), double(inhop));
     }
     if (outhop != m_prevOuthop) {
-        std::cout << "Note: outhop has changed from " << m_prevOuthop
-                  << " to " << outhop << std::endl;
+        m_log.log2(2, "change in outhop", double(m_prevOuthop), double(outhop));
     }
-*/
+    
     while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
 
         // NB our ChannelData, ScaleData, and ChannelScaleData maps
