@@ -126,17 +126,13 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
         (options & RubberBandStretcher::OptionWindowLong)) {
         if ((options & RubberBandStretcher::OptionWindowShort) &&
             (options & RubberBandStretcher::OptionWindowLong)) {
-            cerr << "R2Stretcher::R2Stretcher: Cannot specify OptionWindowLong and OptionWindowShort together; falling back to OptionWindowStandard" << endl;
+            m_log.log0(0, "R2Stretcher::R2Stretcher: Cannot specify OptionWindowLong and OptionWindowShort together; falling back to OptionWindowStandard");
         } else if (options & RubberBandStretcher::OptionWindowShort) {
             m_baseFftSize = m_baseFftSize / 2;
-            if (m_debugLevel > 0) {
-                cerr << "setting baseFftSize to " << m_baseFftSize << endl;
-            }
+            m_log.log1(1, "setting baseFftSize", m_baseFftSize);
         } else if (options & RubberBandStretcher::OptionWindowLong) {
             m_baseFftSize = m_baseFftSize * 2;
-            if (m_debugLevel > 0) {
-                cerr << "setting baseFftSize to " << m_baseFftSize << endl;
-            }
+            m_log.log1(1, "setting baseFftSize", m_baseFftSize);
         }
         m_fftSize = m_baseFftSize;
         m_aWindowSize = m_baseFftSize;
@@ -163,8 +159,8 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
             m_threaded = false;
         }
 
-        if (m_threaded && m_debugLevel > 0) {
-            cerr << "Going multithreaded..." << endl;
+        if (m_threaded) {
+            m_log.log0(1, "Going multithreaded...");
         }
     }
 #endif
@@ -179,9 +175,7 @@ R2Stretcher::~R2Stretcher()
         MutexLocker locker(&m_threadSetMutex);
         for (set<ProcessThread *>::iterator i = m_threadSet.begin();
              i != m_threadSet.end(); ++i) {
-            if (m_debugLevel > 0) {
-                cerr << "RubberBandStretcher::~RubberBandStretcher: joining (channel " << *i << ")" << endl;
-            }
+            m_log.log1(1, "RubberBandStretcher::~RubberBandStretcher: joining for channel", (*i)->channel());
             (*i)->abandon();
             (*i)->wait();
             delete *i;
@@ -216,9 +210,7 @@ R2Stretcher::reset()
         m_threadSetMutex.lock();
         for (set<ProcessThread *>::iterator i = m_threadSet.begin();
              i != m_threadSet.end(); ++i) {
-            if (m_debugLevel > 0) {
-                cerr << "RubberBandStretcher::~RubberBandStretcher: joining (channel " << *i << ")" << endl;
-            }
+            m_log.log1(1, "RubberBandStretcher::~RubberBandStretcher: joining for channel", (*i)->channel());
             (*i)->abandon();
             (*i)->wait();
             delete *i;
@@ -255,7 +247,7 @@ R2Stretcher::setTimeRatio(double ratio)
 {
     if (!m_realtime) {
         if (m_mode == Studying || m_mode == Processing) {
-            cerr << "R2Stretcher::setTimeRatio: Cannot set ratio while studying or processing in non-RT mode" << endl;
+            m_log.log0(0, "R2Stretcher::setTimeRatio: Cannot set ratio while studying or processing in non-RT mode");
             return;
         }
     }
@@ -271,7 +263,7 @@ R2Stretcher::setPitchScale(double fs)
 {
     if (!m_realtime) {
         if (m_mode == Studying || m_mode == Processing) {
-            cerr << "R2Stretcher::setPitchScale: Cannot set ratio while studying or processing in non-RT mode" << endl;
+            m_log.log0(0, "R2Stretcher::setPitchScale: Cannot set ratio while studying or processing in non-RT mode");
             return;
         }
     }
@@ -333,11 +325,11 @@ R2Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &
                                           mapping)
 {
     if (m_realtime) {
-        cerr << "R2Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode" << endl;
+        m_log.log0(0, "R2Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode");
         return;
     }
     if (m_mode == Processing) {
-        cerr << "R2Stretcher::setKeyFrameMap: Cannot specify key frame map after process() has begun" << endl;
+        m_log.log0(0, "R2Stretcher::setKeyFrameMap: Cannot specify key frame map after process() has begun");
         return;
     }
 
@@ -405,12 +397,12 @@ R2Stretcher::calculateSizes()
         // This special case is likelier than one might hope, because
         // of naive initialisations in programs that set it from a
         // variable
-        std::cerr << "RubberBandStretcher: WARNING: Pitch scale must be greater than zero!\nResetting it from " << m_pitchScale << " to the default of 1.0: no pitch change will occur" << std::endl;
+        m_log.log1(0, "WARNING: Pitch scale must be greater than zero! Resetting it to default, no pitch shift will happen", m_pitchScale);
         m_pitchScale = 1.0;
     }
     if (m_timeRatio <= 0.0) {
         // Likewise
-        std::cerr << "RubberBandStretcher: WARNING: Time ratio must be greater than zero!\nResetting it from " << m_timeRatio << " to the default of 1.0: no time stretch will occur" << std::endl;
+        m_log.log1(0, "WARNING: Time ratio must be greater than zero! Resetting it to default, no time stretch will happen", m_timeRatio);
         m_timeRatio = 1.0;
     }
 
@@ -532,10 +524,11 @@ R2Stretcher::calculateSizes()
     // twice the basic output increment (i.e. input increment times
     // ratio) for any chunk.
 
-    if (m_debugLevel > 0) {
-        cerr << "calculateSizes: time ratio = " << m_timeRatio << ", pitch scale = " << m_pitchScale << ", effective ratio = " << getEffectiveRatio() << endl;
-        cerr << "calculateSizes: analysis window size = " << m_aWindowSize << ", synthesis window size = " << m_sWindowSize << ", fft size = " << m_fftSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
-    }
+    m_log.log2(1, "calculateSizes: time ratio and pitch scale", m_timeRatio, m_pitchScale);
+    m_log.log1(1, "effective ratio", getEffectiveRatio());
+    m_log.log2(1, "analysis and synthesis window sizes", m_aWindowSize, m_sWindowSize);
+    m_log.log1(1, "fft size", m_fftSize);
+    m_log.log2(1, "input increment and mean output increment", m_increment, m_increment * getEffectiveRatio());
 
     if (std::max(m_aWindowSize, m_sWindowSize) > m_maxProcessSize) {
         m_maxProcessSize = std::max(m_aWindowSize, m_sWindowSize);

@@ -205,6 +205,7 @@ protected:
         void run();
         void signalDataAvailable();
         void abandon();
+        size_t channel() { return m_channel; }
     private:
         R2Stretcher *m_s;
         size_t m_channel;
