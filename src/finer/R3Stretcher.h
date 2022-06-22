@@ -88,7 +88,12 @@ public:
     size_t getChannelCount() const;
     
     void setDebugLevel(int level) {
-        m_log.setDebugLevel(level); //!!! +others
+        m_log.setDebugLevel(level);
+        for (auto &sd : m_scaleData) {
+            sd.second->guided.setDebugLevel(level);
+        }
+        m_guide.setDebugLevel(level);
+        m_calculator->setDebugLevel(level);
     }
 
 protected:

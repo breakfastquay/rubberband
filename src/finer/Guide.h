@@ -119,10 +119,12 @@ public:
     {
         double rate = m_parameters.sampleRate;
 
+        m_log.log(1, "Guide: rate", rate);
+        
         int bandFftSize = roundUp(int(ceil(rate/16.0)));
         m_configuration.fftBandLimits[0] =
             BandLimits(bandFftSize, rate, 0.0, m_maxLower);
-
+        
         // This is the classification and fallback FFT: we need it to
         // go up to Nyquist so we can seamlessly switch to it for
         // longer stretches
@@ -133,6 +135,9 @@ public:
         bandFftSize = roundUp(int(ceil(rate/64.0)));
         m_configuration.fftBandLimits[2] =
             BandLimits(bandFftSize, rate, m_minHigher, rate/2.0);
+
+        m_log.log(1, "Guide: classification FFT size",
+                  m_configuration.classificationFftSize);
     }
 
     const Configuration &getConfiguration() const {
@@ -331,6 +336,10 @@ public:
         */
     }
 
+    void setDebugLevel(int level) {
+        m_log.setDebugLevel(level);
+    }
+    
 protected:
     Parameters m_parameters;
     Log m_log;

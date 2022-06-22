@@ -300,7 +300,6 @@ public:
     setDefaultDebugLevel(int level)
     {
         Log::setDefaultDebugLevel(level);
-        R2Stretcher::setDefaultDebugLevel(level); //!!!
     }
 };
 

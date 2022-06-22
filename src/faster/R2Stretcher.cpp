@@ -54,9 +54,6 @@ R2Stretcher::m_defaultIncrement = 256;
 const size_t
 R2Stretcher::m_defaultFftSize = 2048;
 
-int
-R2Stretcher::m_defaultDebugLevel = 0;
-
 static bool _initialised = false;
 
 R2Stretcher::R2Stretcher(size_t sampleRate,
@@ -82,7 +79,6 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
     m_realtime(false),
     m_options(options),
     m_log(log),
-    m_debugLevel(m_defaultDebugLevel),
     m_mode(JustCreated),
     m_awindow(0),
     m_afilter(0),
@@ -110,7 +106,10 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
         _initialised = true;
     }
 
-    m_log.log(1, "R2Stretcher::R2Stretcher: rate, options", m_sampleRate, options);
+    m_log.log(1, "R2Stretcher::R2Stretcher: rate, options",
+              m_sampleRate, options);
+    m_log.log(1, "R2Stretcher::R2Stretcher: initial time ratio and pitch scale",
+              m_timeRatio, m_pitchScale);
 
     // Window size will vary according to the audio sample rate, but
     // we don't let it drop below the 48k default
@@ -641,7 +640,7 @@ R2Stretcher::configure()
 
     if (!m_realtime && fftSizeChanged) {
         delete m_studyFFT;
-        m_studyFFT = new FFT(m_fftSize, m_debugLevel);
+        m_studyFFT = new FFT(m_fftSize, m_log.getDebugLevel());
         m_studyFFT->initFloat();
     }
 
@@ -666,7 +665,8 @@ R2Stretcher::configure()
             }
             
             params.maxBufferSize = 4096 * 16;
-            params.debugLevel = (m_debugLevel > 0 ? m_debugLevel-1 : 0);
+            int myLevel = m_log.getDebugLevel();
+            params.debugLevel = (myLevel > 0 ? myLevel-1 : 0);
             
             m_channelData[c]->resampler = new Resampler(params, 1);
 
@@ -695,7 +695,7 @@ R2Stretcher::configure()
          !(m_options & RubberBandStretcher::OptionTransientsSmooth),
          m_log);
 
-    m_stretchCalculator->setDebugLevel(m_debugLevel);
+    m_stretchCalculator->setDebugLevel(m_log.getDebugLevel());
     m_inputDuration = 0;
 
     // Prepare the inbufs with half a chunk of emptiness.  The centre
@@ -801,7 +801,8 @@ R2Stretcher::reconfigure()
             params.dynamism = Resampler::RatioOftenChanging;
             params.ratioChange = Resampler::SmoothRatioChange;
             params.maxBufferSize = m_sWindowSize;
-            params.debugLevel = (m_debugLevel > 0 ? m_debugLevel-1 : 0);
+            int myLevel = m_log.getDebugLevel();
+            params.debugLevel = (myLevel > 0 ? myLevel-1 : 0);
             
             m_channelData[c]->resampler = new Resampler(params, 1);
 
@@ -1152,8 +1153,10 @@ R2Stretcher::calculateStretch()
 void
 R2Stretcher::setDebugLevel(int level)
 {
-    m_debugLevel = level;
-    if (m_stretchCalculator) m_stretchCalculator->setDebugLevel(level);
+    m_log.setDebugLevel(level);
+    if (m_stretchCalculator) {
+        m_stretchCalculator->setDebugLevel(level);
+    }
 }	
 
 size_t

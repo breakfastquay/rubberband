@@ -441,7 +441,7 @@ R2Stretcher::processChunkForChannel(size_t c,
         modifyChunk(c, phaseIncrement, phaseReset);
         synthesiseChunk(c, shiftIncrement); // reads from cd.mag, cd.phase
 
-        if (m_debugLevel > 2) {
+        if (m_log.getDebugLevel() > 2) {
             if (phaseReset) {
                 for (int i = 0; i < 10; ++i) {
                     cd.accumulator[i] = 1.2f - (i % 3) * 1.2f;

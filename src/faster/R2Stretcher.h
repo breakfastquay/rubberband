@@ -100,7 +100,6 @@ public:
     void calculateStretch();
 
     void setDebugLevel(int level);
-    static void setDefaultDebugLevel(int level) { m_defaultDebugLevel = level; }
 
 protected:
     size_t m_sampleRate;
@@ -177,7 +176,6 @@ protected:
     bool m_realtime;
     RubberBandStretcher::Options m_options;
     Log m_log;
-    int m_debugLevel; //!!! to go once Log switch complete
 
     enum ProcessMode {
         JustCreated,
@@ -255,7 +253,6 @@ protected:
     void writeOutput(RingBuffer<float> &to, float *from,
                      size_t qty, size_t &outCount, size_t theoreticalOut);
 
-    static int m_defaultDebugLevel; //!!! to go
     static const size_t m_defaultIncrement;
     static const size_t m_defaultFftSize;
 };

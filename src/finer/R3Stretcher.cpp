@@ -53,6 +53,11 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_totalOutputDuration(0),
     m_mode(ProcessMode::JustCreated)
 {
+    m_log.log(1, "R3Stretcher::R3Stretcher: rate, options",
+              m_parameters.sampleRate, m_parameters.options);
+    m_log.log(1, "R3Stretcher::R3Stretcher: initial time ratio and pitch scale",
+              m_timeRatio, m_pitchScale);
+
     double maxClassifierFrequency = 16000.0;
     if (maxClassifierFrequency > m_parameters.sampleRate/2) {
         maxClassifierFrequency = m_parameters.sampleRate/2;

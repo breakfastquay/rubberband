@@ -111,17 +111,17 @@ public:
         int highest = configuration.fftBandLimits[myFftBand].b1max;
         
         if (m_log.getDebugLevel() > 0 && !m_reported) {
-            std::ostringstream ostr;
-            ostr << "PhaseAdvance: fftSize = " << m_parameters.fftSize
-                 << ": bins = " << bs << ", channels = " << channels
-                 << ", inhop = "<< inhop << ", outhop = " << outhop
-                 << ", ratio = " << ratio << std::endl;
-            ostr << "PhaseAdvance: lowest possible bin = " << lowest
-                 << " (" << configuration.fftBandLimits[myFftBand].f0min
-                 << "Hz), highest = " << highest
-                 << " (" << configuration.fftBandLimits[myFftBand].f1max
-                 << "Hz)" << std::endl;
-            m_log.log(1, ostr.str().c_str());
+            m_log.log(1, "PhaseAdvance: for fftSize and bins",
+                      m_parameters.fftSize, bs);
+            m_log.log(1, "PhaseAdvance: channels", channels);
+            m_log.log(1, "PhaseAdvance: widest bin range for this size",
+                      lowest, highest);
+            m_log.log(1, "PhaseAdvance: widest freq range for this size",
+                      configuration.fftBandLimits[myFftBand].f0min,
+                      configuration.fftBandLimits[myFftBand].f1max);
+            m_log.log(1, "PhaseAdvance: initial inhop and outhop",
+                      inhop, outhop);
+            m_log.log(1, "PhaseAdvance: initial ratio", ratio);
             m_reported = true;
         }
         
