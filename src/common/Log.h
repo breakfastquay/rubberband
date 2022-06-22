@@ -58,15 +58,13 @@ public:
 
     static void setDefaultDebugLevel(int level) { m_defaultDebugLevel = level; }
     
-    void log0(int level, const char *message) const {
+    void log(int level, const char *message) const {
         if (level <= m_debugLevel) m_log0(message);
     }
-    void log1(int level, const char *message, double arg0) const {
+    void log(int level, const char *message, double arg0) const {
         if (level <= m_debugLevel) m_log1(message, arg0);
     }
-
-    //!!! On reflection, log2 is a dumb choice of name
-    void log2(int level, const char *message, double arg0, double arg1) const {
+    void log(int level, const char *message, double arg0, double arg1) const {
         if (level <= m_debugLevel) m_log2(message, arg0, arg1);
     }
 

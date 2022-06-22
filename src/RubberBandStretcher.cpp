@@ -35,13 +35,13 @@ class RubberBandStretcher::Impl
         if (logger) {
             return Log(
                 [=](const char *message) {
-                    logger->log0(message);
+                    logger->log(message);
                 },
                 [=](const char *message, double arg0) {
-                    logger->log1(message, arg0);
+                    logger->log(message, arg0);
                 },
                 [=](const char *message, double arg0, double arg1) {
-                    logger->log2(message, arg0, arg1);
+                    logger->log(message, arg0, arg1);
                 }
                 );
         } else {

@@ -121,7 +121,7 @@ public:
                  << "Hz), highest = " << highest
                  << " (" << configuration.fftBandLimits[myFftBand].f1max
                  << "Hz)" << std::endl;
-            m_log.log0(1, ostr.str().c_str());
+            m_log.log(1, ostr.str().c_str());
             m_reported = true;
         }
         

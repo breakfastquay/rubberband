@@ -333,9 +333,9 @@ public:
     };
 
     struct Logger {
-        virtual void log0(const char *) = 0;
-        virtual void log1(const char *, double) = 0;
-        virtual void log2(const char *, double, double) = 0;
+        virtual void log(const char *) = 0;
+        virtual void log(const char *, double) = 0;
+        virtual void log(const char *, double, double) = 0;
         virtual ~Logger() { }
     };
     

@@ -23,7 +23,8 @@
 
 #include "Log.h"
 
-namespace RubberBand {
+namespace RubberBand
+{
 
 int Log::m_defaultDebugLevel = 0;
 

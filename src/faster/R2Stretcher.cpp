@@ -126,13 +126,13 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
         (options & RubberBandStretcher::OptionWindowLong)) {
         if ((options & RubberBandStretcher::OptionWindowShort) &&
             (options & RubberBandStretcher::OptionWindowLong)) {
-            m_log.log0(0, "R2Stretcher::R2Stretcher: Cannot specify OptionWindowLong and OptionWindowShort together; falling back to OptionWindowStandard");
+            m_log.log(0, "R2Stretcher::R2Stretcher: Cannot specify OptionWindowLong and OptionWindowShort together; falling back to OptionWindowStandard");
         } else if (options & RubberBandStretcher::OptionWindowShort) {
             m_baseFftSize = m_baseFftSize / 2;
-            m_log.log1(1, "setting baseFftSize", m_baseFftSize);
+            m_log.log(1, "setting baseFftSize", m_baseFftSize);
         } else if (options & RubberBandStretcher::OptionWindowLong) {
             m_baseFftSize = m_baseFftSize * 2;
-            m_log.log1(1, "setting baseFftSize", m_baseFftSize);
+            m_log.log(1, "setting baseFftSize", m_baseFftSize);
         }
         m_fftSize = m_baseFftSize;
         m_aWindowSize = m_baseFftSize;
@@ -160,7 +160,7 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
         }
 
         if (m_threaded) {
-            m_log.log0(1, "Going multithreaded...");
+            m_log.log(1, "Going multithreaded...");
         }
     }
 #endif
@@ -175,7 +175,7 @@ R2Stretcher::~R2Stretcher()
         MutexLocker locker(&m_threadSetMutex);
         for (set<ProcessThread *>::iterator i = m_threadSet.begin();
              i != m_threadSet.end(); ++i) {
-            m_log.log1(1, "RubberBandStretcher::~RubberBandStretcher: joining for channel", (*i)->channel());
+            m_log.log(1, "RubberBandStretcher::~RubberBandStretcher: joining for channel", (*i)->channel());
             (*i)->abandon();
             (*i)->wait();
             delete *i;
@@ -210,7 +210,7 @@ R2Stretcher::reset()
         m_threadSetMutex.lock();
         for (set<ProcessThread *>::iterator i = m_threadSet.begin();
              i != m_threadSet.end(); ++i) {
-            m_log.log1(1, "RubberBandStretcher::~RubberBandStretcher: joining for channel", (*i)->channel());
+            m_log.log(1, "RubberBandStretcher::~RubberBandStretcher: joining for channel", (*i)->channel());
             (*i)->abandon();
             (*i)->wait();
             delete *i;
@@ -247,7 +247,7 @@ R2Stretcher::setTimeRatio(double ratio)
 {
     if (!m_realtime) {
         if (m_mode == Studying || m_mode == Processing) {
-            m_log.log0(0, "R2Stretcher::setTimeRatio: Cannot set ratio while studying or processing in non-RT mode");
+            m_log.log(0, "R2Stretcher::setTimeRatio: Cannot set ratio while studying or processing in non-RT mode");
             return;
         }
     }
@@ -263,7 +263,7 @@ R2Stretcher::setPitchScale(double fs)
 {
     if (!m_realtime) {
         if (m_mode == Studying || m_mode == Processing) {
-            m_log.log0(0, "R2Stretcher::setPitchScale: Cannot set ratio while studying or processing in non-RT mode");
+            m_log.log(0, "R2Stretcher::setPitchScale: Cannot set ratio while studying or processing in non-RT mode");
             return;
         }
     }
@@ -325,11 +325,11 @@ R2Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &
                                           mapping)
 {
     if (m_realtime) {
-        m_log.log0(0, "R2Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode");
+        m_log.log(0, "R2Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode");
         return;
     }
     if (m_mode == Processing) {
-        m_log.log0(0, "R2Stretcher::setKeyFrameMap: Cannot specify key frame map after process() has begun");
+        m_log.log(0, "R2Stretcher::setKeyFrameMap: Cannot specify key frame map after process() has begun");
         return;
     }
 
@@ -397,12 +397,12 @@ R2Stretcher::calculateSizes()
         // This special case is likelier than one might hope, because
         // of naive initialisations in programs that set it from a
         // variable
-        m_log.log1(0, "WARNING: Pitch scale must be greater than zero! Resetting it to default, no pitch shift will happen", m_pitchScale);
+        m_log.log(0, "WARNING: Pitch scale must be greater than zero! Resetting it to default, no pitch shift will happen", m_pitchScale);
         m_pitchScale = 1.0;
     }
     if (m_timeRatio <= 0.0) {
         // Likewise
-        m_log.log1(0, "WARNING: Time ratio must be greater than zero! Resetting it to default, no time stretch will happen", m_timeRatio);
+        m_log.log(0, "WARNING: Time ratio must be greater than zero! Resetting it to default, no time stretch will happen", m_timeRatio);
         m_timeRatio = 1.0;
     }
 
@@ -524,11 +524,11 @@ R2Stretcher::calculateSizes()
     // twice the basic output increment (i.e. input increment times
     // ratio) for any chunk.
 
-    m_log.log2(1, "calculateSizes: time ratio and pitch scale", m_timeRatio, m_pitchScale);
-    m_log.log1(1, "effective ratio", getEffectiveRatio());
-    m_log.log2(1, "analysis and synthesis window sizes", m_aWindowSize, m_sWindowSize);
-    m_log.log1(1, "fft size", m_fftSize);
-    m_log.log2(1, "input increment and mean output increment", m_increment, m_increment * getEffectiveRatio());
+    m_log.log(1, "calculateSizes: time ratio and pitch scale", m_timeRatio, m_pitchScale);
+    m_log.log(1, "effective ratio", getEffectiveRatio());
+    m_log.log(1, "analysis and synthesis window sizes", m_aWindowSize, m_sWindowSize);
+    m_log.log(1, "fft size", m_fftSize);
+    m_log.log(1, "input increment and mean output increment", m_increment, m_increment * getEffectiveRatio());
 
     if (std::max(m_aWindowSize, m_sWindowSize) > m_maxProcessSize) {
         m_maxProcessSize = std::max(m_aWindowSize, m_sWindowSize);
