@@ -56,8 +56,6 @@ R2Stretcher::ChannelData::construct(const std::set<size_t> &sizes,
     size_t maxSize = initialWindowSize * 2;
     if (initialFftSize > maxSize) maxSize = initialFftSize;
 
-//    std::cerr << "ChannelData::construct: initialWindowSize = " << initialWindowSize << ", initialFftSize = " << initialFftSize << ", outbufSize = " << outbufSize << std::endl;
-
     // std::set is ordered by value
     std::set<size_t>::const_iterator i = sizes.end();
     if (i != sizes.begin()) {
@@ -68,8 +66,6 @@ R2Stretcher::ChannelData::construct(const std::set<size_t> &sizes,
     // max possible size of the real "half" of freq data
     size_t realSize = maxSize / 2 + 1;
 
-//    std::cerr << "ChannelData::construct([" << sizes.size() << "], " << maxSize << ", " << realSize << ", " << outbufSize << ")" << std::endl;
-    
     if (outbufSize < maxSize) outbufSize = maxSize;
 
     inbuf = new RingBuffer<float>(maxSize);
@@ -117,8 +113,6 @@ void
 R2Stretcher::ChannelData::setSizes(size_t windowSize,
                                                  size_t fftSize)
 {
-//    std::cerr << "ChannelData::setSizes: windowSize = " << windowSize << ", fftSize = " << fftSize << std::endl;
-
     size_t maxSize = 2 * std::max(windowSize, fftSize);
     size_t realSize = maxSize / 2 + 1;
     size_t oldMax = inbuf->getSize();
@@ -209,8 +203,6 @@ void
 R2Stretcher::ChannelData::setOutbufSize(size_t outbufSize)
 {
     size_t oldSize = outbuf->getSize();
-
-//    std::cerr << "ChannelData::setOutbufSize(" << outbufSize << ") [from " << oldSize << "]" << std::endl;
 
     if (oldSize < outbufSize) {
 

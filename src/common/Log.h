@@ -68,21 +68,7 @@ public:
         if (level <= m_debugLevel) m_log2(message, arg0, arg1);
     }
 
-    static Log makeCoutLog() {
-        return Log(
-            [](const char *message) {
-                std::cout << "RubberBand: " << message << "\n";
-            },
-            [](const char *message, double arg0) {
-                std::cout << "RubberBand: " << message
-                          << ": " << arg0 << "\n";
-            },
-            [](const char *message, double arg0, double arg1) {
-                std::cout << "RubberBand: " << message
-                          << ": (" << arg0 << "," << arg1 << ")" << "\n";
-            }
-            );
-    }        
+    static Log makeCoutLog();
     
 private:
     std::function<void(const char *)> m_log0;

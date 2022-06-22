@@ -28,4 +28,27 @@ namespace RubberBand
 
 int Log::m_defaultDebugLevel = 0;
 
+Log
+Log::makeCoutLog()
+{
+    return Log(
+        [](const char *message) {
+            std::cout << "RubberBand: " << message << "\n";
+        },
+        [](const char *message, double arg0) {
+            auto prec = std::cout.precision();
+            std::cout.precision(10);
+            std::cout << "RubberBand: " << message << ": " << arg0 << "\n";
+            std::cout.precision(prec);
+        },
+        [](const char *message, double arg0, double arg1) {
+            auto prec = std::cout.precision();
+            std::cout.precision(10);
+            std::cout << "RubberBand: " << message
+                      << ": (" << arg0 << ", " << arg1 << ")" << "\n";
+            std::cout.precision(prec);
+        }
+        );
+}
+
 }

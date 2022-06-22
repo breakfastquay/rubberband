@@ -134,15 +134,15 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     // changes.
     
     if (!isRealTime()) {
-        m_log.log(1, "Offline mode: pre-padding");
         int pad = m_guideConfiguration.longestFftSize / 2;
+        m_log.log(1, "offline mode: prefilling with", pad);
         for (int c = 0; c < m_parameters.channels; ++c) {
             m_channelData[c]->inbuf->zero(pad);
         }
         // By the time we skip this later we will have resampled
         m_startSkip = int(round(pad / m_pitchScale));
     } else {
-        m_log.log(1, "RT mode: no internal pre-pad");
+        m_log.log(1, "realtime mode: no prefill");
     }
 }
 
