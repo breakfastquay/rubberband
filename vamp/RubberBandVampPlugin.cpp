@@ -454,6 +454,28 @@ RubberBandVampPlugin::Impl::processOffline(const float *const *inputBuffers,
     return FeatureSet();
 }
 
+static RubberBand::Log makeCerrLog()
+{
+    auto log0 = [](const char *message) {
+        std::cerr << "RubberBand: " << message << "\n";
+    };
+    auto log1 = [](const char *message, double arg0) {
+        auto prec = std::cerr.precision();
+        std::cerr.precision(10);
+        std::cerr << "RubberBand: " << message << ": " << arg0 << "\n";
+        std::cerr.precision(prec);
+    };
+    auto log2 = [](const char *message, double arg0, double arg1) {
+        auto prec = std::cerr.precision();
+        std::cerr.precision(10);
+        std::cerr << "RubberBand: " << message
+                  << ": (" << arg0 << ", " << arg1 << ")" << "\n";
+        std::cerr.precision(prec);
+    };
+
+    return RubberBand::Log(log0, log1, log2);
+}
+
 RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
 {
@@ -464,8 +486,7 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
     int rate = m_sampleRate;
 
     RubberBand::StretchCalculator sc
-        (rate, m_stretcher->getInputIncrement(), true,
-         RubberBand::Log::makeCoutLog());
+        (rate, m_stretcher->getInputIncrement(), true, makeCerrLog());
 
     size_t inputIncrement = m_stretcher->getInputIncrement();
     std::vector<int> outputIncrements = m_stretcher->getOutputIncrements();

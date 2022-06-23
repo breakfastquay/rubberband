@@ -24,12 +24,34 @@
 #include "faster/R2Stretcher.h"
 #include "finer/R3Stretcher.h"
 
+#include <iostream>
+
 namespace RubberBand {
 
 class RubberBandStretcher::Impl
 {
     R2Stretcher *m_r2;
     R3Stretcher *m_r3;
+
+    class CerrLogger : public RubberBandStretcher::Logger {
+    public:
+        void log(const char *message) override {
+            std::cerr << "RubberBand: " << message << "\n";
+        }
+        void log(const char *message, double arg0) override {
+            auto prec = std::cerr.precision();
+            std::cerr.precision(10);
+            std::cerr << "RubberBand: " << message << ": " << arg0 << "\n";
+            std::cerr.precision(prec);
+        }
+        void log(const char *message, double arg0, double arg1) override {
+            auto prec = std::cerr.precision();
+            std::cerr.precision(10);
+            std::cerr << "RubberBand: " << message
+                      << ": (" << arg0 << ", " << arg1 << ")" << "\n";
+            std::cerr.precision(prec);
+        }
+    };
 
     Log makeRBLog(std::shared_ptr<RubberBandStretcher::Logger> logger) {
         if (logger) {
@@ -45,7 +67,8 @@ class RubberBandStretcher::Impl
                 }
                 );
         } else {
-            return Log::makeCoutLog();
+            return makeRBLog(std::shared_ptr<RubberBandStretcher::Logger>
+                             (new CerrLogger()));
         }
     }
 

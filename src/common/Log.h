@@ -39,19 +39,10 @@ public:
         m_log2(_log2),
         m_debugLevel(m_defaultDebugLevel) { }
 
-    Log(const Log &other) :
-        m_log0(other.m_log0),
-        m_log1(other.m_log1),
-        m_log2(other.m_log2),
-        m_debugLevel(other.m_debugLevel) { }
-
-    Log &operator=(const Log &other) {
-        m_log0 = other.m_log0;
-        m_log1 = other.m_log1;
-        m_log2 = other.m_log2;
-        m_debugLevel = other.m_debugLevel;
-        return *this;
-    }
+    Log(const Log &other) =default;
+    Log(Log &&other) =default;
+    Log &operator=(const Log &other) =default;
+    Log &operator=(Log &&other) =default;
 
     void setDebugLevel(int level) { m_debugLevel = level; }
     int getDebugLevel() const { return m_debugLevel; }
@@ -68,8 +59,6 @@ public:
         if (level <= m_debugLevel) m_log2(message, arg0, arg1);
     }
 
-    static Log makeCoutLog();
-    
 private:
     std::function<void(const char *)> m_log0;
     std::function<void(const char *, double)> m_log1;

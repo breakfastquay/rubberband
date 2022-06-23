@@ -383,8 +383,8 @@ public:
      * Note that although the supplied logger gets to decide what to
      * do with log messages, the separately-set debug level (see
      * setDebugLevel() and setDefaultDebugLevel()) still determines
-     * whether any given debug message is generated and sent to the
-     * logger in the first place.
+     * whether any given debug message is sent to the logger in the
+     * first place.
      */
     RubberBandStretcher(size_t sampleRate,
                         size_t channels,
