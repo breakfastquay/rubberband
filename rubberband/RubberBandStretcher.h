@@ -37,6 +37,8 @@
 
 #include <vector>
 #include <map>
+#include <string>
+#include <memory>
 #include <cstddef>
 
 /**
@@ -277,7 +279,6 @@ public:
      * provided for backward compatibility only. They are ignored by
      * the stretcher.
      */
-    
     enum Option {
 
         OptionProcessOffline       = 0x00000000,
@@ -331,6 +332,13 @@ public:
         PercussiveOptions          = 0x00102000
     };
 
+    struct Logger {
+        virtual void log(const char *) = 0;
+        virtual void log(const char *, double) = 0;
+        virtual void log(const char *, double, double) = 0;
+        virtual ~Logger() { }
+    };
+    
     /**
      * Construct a time and pitch stretcher object to run at the given
      * sample rate, with the given number of channels.
@@ -361,6 +369,30 @@ public:
                         Options options = DefaultOptions,
                         double initialTimeRatio = 1.0,
                         double initialPitchScale = 1.0);
+
+    /**
+     * Construct a time and pitch stretcher object with a custom debug
+     * logger. This may be useful for debugging if the default logger
+     * output (which simply goes to cout) is not visible in the
+     * runtime environment, or if the application has a standard or
+     * more realtime-appropriate logging mechanism.
+     *
+     * See the documentation for the other constructor above for
+     * details of the arguments other than the logger.
+     *
+     * Note that although the supplied logger gets to decide what to
+     * do with log messages, the separately-set debug level (see
+     * setDebugLevel() and setDefaultDebugLevel()) still determines
+     * whether any given debug message is sent to the logger in the
+     * first place.
+     */
+    RubberBandStretcher(size_t sampleRate,
+                        size_t channels,
+                        std::shared_ptr<Logger> logger,
+                        Options options = DefaultOptions,
+                        double initialTimeRatio = 1.0,
+                        double initialPitchScale = 1.0);
+    
     ~RubberBandStretcher();
 
     /**

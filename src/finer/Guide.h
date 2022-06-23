@@ -24,6 +24,8 @@
 #ifndef RUBBERBAND_GUIDE_H
 #define RUBBERBAND_GUIDE_H
 
+#include "../common/Log.h"
+
 #include <functional>
 #include <sstream>
 
@@ -102,15 +104,12 @@ public:
     
     struct Parameters {
         double sampleRate;
-        std::function<void(const std::string &)> logger;
-        Parameters(double _sampleRate,
-                   std::function<void(const std::string &)> _log) :
-            sampleRate(_sampleRate),
-            logger(_log) { }
+        Parameters(double _sampleRate) : sampleRate(_sampleRate) { }
     };
 
-    Guide(Parameters parameters) :
+    Guide(Parameters parameters, Log log) :
         m_parameters(parameters),
+        m_log(log),
         m_configuration(roundUp(int(ceil(parameters.sampleRate / 16.0))),
                         roundUp(int(ceil(parameters.sampleRate / 64.0))),
                         roundUp(int(ceil(parameters.sampleRate / 32.0)))),
@@ -120,10 +119,12 @@ public:
     {
         double rate = m_parameters.sampleRate;
 
+        m_log.log(1, "Guide: rate", rate);
+        
         int bandFftSize = roundUp(int(ceil(rate/16.0)));
         m_configuration.fftBandLimits[0] =
             BandLimits(bandFftSize, rate, 0.0, m_maxLower);
-
+        
         // This is the classification and fallback FFT: we need it to
         // go up to Nyquist so we can seamlessly switch to it for
         // longer stretches
@@ -134,6 +135,9 @@ public:
         bandFftSize = roundUp(int(ceil(rate/64.0)));
         m_configuration.fftBandLimits[2] =
             BandLimits(bandFftSize, rate, m_minHigher, rate/2.0);
+
+        m_log.log(1, "Guide: classification FFT size",
+                  m_configuration.classificationFftSize);
     }
 
     const Configuration &getConfiguration() const {
@@ -332,8 +336,13 @@ public:
         */
     }
 
+    void setDebugLevel(int level) {
+        m_log.setDebugLevel(level);
+    }
+    
 protected:
     Parameters m_parameters;
+    Log m_log;
     Configuration m_configuration;
 
     double m_minLower;

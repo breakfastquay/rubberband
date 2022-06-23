@@ -40,9 +40,6 @@
 
 using namespace RubberBand;
 
-using std::cerr;
-using std::endl;
-
 namespace RubberBand {
 
 #ifndef NO_THREADING
@@ -57,20 +54,13 @@ R2Stretcher::ProcessThread::ProcessThread(R2Stretcher *s, size_t c) :
 void
 R2Stretcher::ProcessThread::run()
 {
-    if (m_s->m_debugLevel > 1) {
-        cerr << "thread " << m_channel << " getting going" << endl;
-    }
+    m_s->m_log.log(2, "thread getting going for channel", m_channel);
 
     ChannelData &cd = *m_s->m_channelData[m_channel];
 
     while (cd.inputSize == -1 ||
            cd.inbuf->getReadSpace() > 0) {
 
-//        if (cd.inputSize != -1) {
-//            cerr << "inputSize == " << cd.inputSize
-//                 << ", readSpace == " << cd.inbuf->getReadSpace() << endl;
-//        }
-        
         bool any = false, last = false;
         m_s->processChunks(m_channel, any, last);
 
@@ -89,9 +79,7 @@ R2Stretcher::ProcessThread::run()
         m_dataAvailable.unlock();
 
         if (m_abandoning) {
-            if (m_s->m_debugLevel > 1) {
-                cerr << "thread " << m_channel << " abandoning" << endl;
-            }
+            m_s->m_log.log(2, "thread abandoning for channel", m_channel);
             return;
         }
     }
@@ -102,9 +90,7 @@ R2Stretcher::ProcessThread::run()
     m_s->m_spaceAvailable.signal();
     m_s->m_spaceAvailable.unlock();
     
-    if (m_s->m_debugLevel > 1) {
-        cerr << "thread " << m_channel << " done" << endl;
-    }
+    m_s->m_log.log(2, "thread done for channel", m_channel);
 }
 
 void
@@ -205,8 +191,7 @@ R2Stretcher::consumeChannel(size_t c,
 
         size_t reqSize = int(ceil(samples / m_pitchScale));
         if (reqSize > cd.resamplebufSize) {
-            cerr << "WARNING: R2Stretcher::consumeChannel: resizing resampler buffer from "
-                 << cd.resamplebufSize << " to " << reqSize << endl;
+            m_log.log(0, "WARNING: R2Stretcher::consumeChannel: resizing resampler buffer from and to", cd.resamplebufSize, reqSize);
             cd.setResampleBufSize(reqSize);
         }
 
@@ -286,9 +271,7 @@ R2Stretcher::processChunks(size_t c, bool &any, bool &last)
     while (!last) {
 
         if (!testInbufReadSpace(c)) {
-            if (m_debugLevel > 1) {
-                cerr << "processChunks: out of input" << endl;
-            }
+            m_log.log(2, "processChunks: out of input");
             break;
         }
 
@@ -311,9 +294,7 @@ R2Stretcher::processChunks(size_t c, bool &any, bool &last)
                 (c, phaseIncrement, shiftIncrement, phaseReset);
         } else {
             size_t bit = m_aWindowSize/4;
-            if (m_debugLevel > 1) {
-                cerr << "channel " << c << " breaking down overlong increment " << shiftIncrement << " into " << bit << "-size bits" << endl;
-            }
+            m_log.log(2, "breaking down overlong increment into chunks from and to", shiftIncrement, bit);
             if (!tmp) tmp = allocate<float>(m_aWindowSize);
             analyseChunk(c);
             v_copy(tmp, cd.fltbuf, m_aWindowSize);
@@ -330,9 +311,8 @@ R2Stretcher::processChunks(size_t c, bool &any, bool &last)
         }
 
         cd.chunkCount++;
-        if (m_debugLevel > 2) {
-            cerr << "channel " << c << ": last = " << last << ", chunkCount = " << cd.chunkCount << endl;
-        }
+        m_log.log(3, "channel/last", c, last);
+        m_log.log(3, "channel/chunkCount", c, cd.chunkCount);
     }
 
     if (tmp) deallocate(tmp);
@@ -351,9 +331,7 @@ R2Stretcher::processOneChunk()
 
     for (size_t c = 0; c < m_channels; ++c) {
         if (!testInbufReadSpace(c)) {
-            if (m_debugLevel > 1) {
-                cerr << "processOneChunk: out of input" << endl;
-            }
+            m_log.log(2, "processOneChunk: out of input");
             return false;
         }
         ChannelData &cd = *m_channelData[c];
@@ -405,11 +383,7 @@ R2Stretcher::testInbufReadSpace(size_t c)
 #ifndef NO_THREADING
             if (!m_threaded) {
 #endif
-                if (m_debugLevel > 1) {
-                    cerr << "Note: RubberBandStretcher: read space < chunk size ("
-                         << inbuf.getReadSpace() << " < " << m_aWindowSize
-                         << ") when not all input written, on processChunks for channel " << c << endl;
-                }
+                m_log.log(2, "Note: read space < chunk size when not all input written", inbuf.getReadSpace(), m_aWindowSize);
 
 #ifndef NO_THREADING
             }
@@ -418,18 +392,10 @@ R2Stretcher::testInbufReadSpace(size_t c)
         }
         
         if (rs == 0) {
-
-            if (m_debugLevel > 1) {
-                cerr << "read space = 0, giving up" << endl;
-            }
+            m_log.log(2, "read space = 0, giving up");
             return false;
-
         } else if (rs < m_aWindowSize/2) {
-
-            if (m_debugLevel > 1) {
-                cerr << "read space = " << rs << ", setting draining true" << endl;
-            }
-            
+            m_log.log(2, "setting draining true with read space", rs);
             cd.draining = true;
         }
     }
@@ -450,9 +416,9 @@ R2Stretcher::processChunkForChannel(size_t c,
     // using e.g. testInbufReadSpace first.  Return true if this is
     // the last chunk on the channel.
 
-    if (phaseReset && (m_debugLevel > 1)) {
-        cerr << "processChunkForChannel: phase reset found, incrs "
-             << phaseIncrement << ":" << shiftIncrement << endl;
+    if (phaseReset) {
+        m_log.log(2, "processChunkForChannel: phase reset found, increments",
+                  phaseIncrement, shiftIncrement);
     }
 
     ChannelData &cd = *m_channelData[c];
@@ -475,7 +441,7 @@ R2Stretcher::processChunkForChannel(size_t c,
         modifyChunk(c, phaseIncrement, phaseReset);
         synthesiseChunk(c, shiftIncrement); // reads from cd.mag, cd.phase
 
-        if (m_debugLevel > 2) {
+        if (m_log.getDebugLevel() > 2) {
             if (phaseReset) {
                 for (int i = 0; i < 10; ++i) {
                     cd.accumulator[i] = 1.2f - (i % 3) * 1.2f;
@@ -487,19 +453,13 @@ R2Stretcher::processChunkForChannel(size_t c,
     bool last = false;
 
     if (cd.draining) {
-        if (m_debugLevel > 1) {
-            cerr << "draining: accumulator fill = " << cd.accumulatorFill << " (shiftIncrement = " << shiftIncrement << ")" <<  endl;
-        }
+        m_log.log(2, "draining: accumulator fill and shift increment", cd.accumulatorFill, shiftIncrement);
         if (shiftIncrement == 0) {
-            cerr << "WARNING: draining: shiftIncrement == 0, can't handle that in this context: setting to " << m_increment << endl;
+            m_log.log(0, "WARNING: draining: shiftIncrement == 0, can't handle that in this context: setting to", m_increment);
             shiftIncrement = m_increment;
         }
         if (cd.accumulatorFill <= shiftIncrement) {
-            if (m_debugLevel > 1) {
-                cerr << "reducing shift increment from " << shiftIncrement
-                          << " to " << cd.accumulatorFill
-                          << " and marking as last" << endl;
-            }
+            m_log.log(2, "draining: marking as last and reducing shift increment from and to", shiftIncrement, cd.accumulatorFill);
             shiftIncrement = cd.accumulatorFill;
             last = true;
         }
@@ -513,9 +473,7 @@ R2Stretcher::processChunkForChannel(size_t c,
 
     int ws = cd.outbuf->getWriteSpace();
     if (ws < required) {
-        if (m_debugLevel > 0) {
-            cerr << "Buffer overrun on output for channel " << c << endl;
-        }
+        m_log.log(1, "Buffer overrun on output for channel", c);
 
         // The only correct thing we can do here is resize the buffer.
         // We can't wait for the client thread to read some data out
@@ -528,12 +486,10 @@ R2Stretcher::processChunkForChannel(size_t c,
         RingBuffer<float> *oldbuf = cd.outbuf;
         cd.outbuf = oldbuf->resized(oldbuf->getSize() * 2);
 
-        if (m_debugLevel > 1) {
-            cerr << "(Write space was " << ws << ", needed " << required
-                 << ": resized output buffer from " << oldbuf->getSize()
-                 << " to " << cd.outbuf->getSize() << ")" << endl;
-        }
-
+        m_log.log(2, "write space and space needed", ws, required);
+        m_log.log(2, "resized output buffer from and to", oldbuf->getSize(),
+                  cd.outbuf->getSize());
+        
         m_emergencyScavenger.claim(oldbuf);
     }
 
@@ -548,8 +504,6 @@ R2Stretcher::calculateIncrements(size_t &phaseIncrementRtn,
 {
     Profiler profiler("R2Stretcher::calculateIncrements");
 
-//    cerr << "calculateIncrements" << endl;
-    
     // Calculate the next upcoming phase and shift increment, on the
     // basis that both channels are in sync.  This is in contrast to
     // getIncrements, which requires that all the increments have been
@@ -572,7 +526,7 @@ R2Stretcher::calculateIncrements(size_t &phaseIncrementRtn,
     size_t bc = cd.chunkCount;
     for (size_t c = 1; c < m_channels; ++c) {
         if (m_channelData[c]->chunkCount != bc) {
-            cerr << "ERROR: R2Stretcher::calculateIncrements: Channels are not in sync" << endl;
+            m_log.log(0, "ERROR: R2Stretcher::calculateIncrements: Channels are not in sync");
             return;
         }
     }
@@ -669,10 +623,7 @@ R2Stretcher::calculateIncrements(size_t &phaseIncrementRtn,
 
     if (m_silentHistory >= int(m_aWindowSize / m_increment) && !phaseReset) {
         phaseReset = true;
-        if (m_debugLevel > 1) {
-            cerr << "calculateIncrements: phase reset on silence (silent history == "
-                 << m_silentHistory << ")" << endl;
-        }
+        m_log.log(2, "calculateIncrements: phase reset on silence: silent history", m_silentHistory);
     }
 }
 
@@ -711,9 +662,6 @@ R2Stretcher::getIncrements(size_t channel,
     bool gotData = true;
 
     if (cd.chunkCount >= m_outputIncrements.size()) {
-//        cerr << "WARNING: R2Stretcher::getIncrements:"
-//             << " chunk count " << cd.chunkCount << " >= "
-//             << m_outputIncrements.size() << endl;
         if (m_outputIncrements.size() == 0) {
             phaseIncrementRtn = m_increment;
             shiftIncrementRtn = m_increment;
@@ -740,12 +688,12 @@ R2Stretcher::getIncrements(size_t channel,
     if (shiftIncrement < 0) {
         shiftIncrement = -shiftIncrement;
     }
-    /*
-    if (shiftIncrement >= int(m_windowSize)) {
-        cerr << "*** ERROR: R2Stretcher::processChunks: shiftIncrement " << shiftIncrement << " >= windowSize " << m_windowSize << " at " << cd.chunkCount << " (of " << m_outputIncrements.size() << ")" << endl;
-        shiftIncrement = m_windowSize;
+
+    if (shiftIncrement >= int(m_aWindowSize)) {
+        m_log.log(1, "WARNING: shiftIncrement >= analysis window size", shiftIncrement, m_aWindowSize);
+        m_log.log(1, "at chunk of total", cd.chunkCount, m_outputIncrements.size());
     }
-    */
+
     phaseIncrementRtn = phaseIncrement;
     shiftIncrementRtn = shiftIncrement;
     if (cd.chunkCount == 0) phaseReset = true; // don't mess with the first chunk
@@ -782,8 +730,8 @@ R2Stretcher::modifyChunk(size_t channel,
 
     ChannelData &cd = *m_channelData[channel];
 
-    if (phaseReset && m_debugLevel > 1) {
-        cerr << "phase reset: leaving phases unmodified" << endl;
+    if (phaseReset) {
+        m_log.log(2, "phase reset: leaving phases unmodified");
     }
 
     const process_t rate = process_t(m_sampleRate);
@@ -904,15 +852,13 @@ R2Stretcher::modifyChunk(size_t channel,
         cd.unwrappedPhase[i] = outphase;
     }
 
-    if (m_debugLevel > 2) {
-        cerr << "mean inheritance distance = " << distacc / count << endl;
-    }
+    m_log.log(3, "mean inheritance distance", distacc / count);
 
     if (fullReset) unchanged = true;
     cd.unchanged = unchanged;
 
-    if (unchanged && m_debugLevel > 1) {
-        cerr << "frame unchanged on channel " << channel << endl;
+    if (unchanged) {
+        m_log.log(2, "frame unchanged on channel", channel);
     }
 }    
 
@@ -935,8 +881,6 @@ R2Stretcher::formantShiftChunk(size_t channel)
     cd.fft->inverseCepstral(mag, dblbuf);
 
     const int cutoff = m_sampleRate / 700;
-
-//    cerr <<"cutoff = "<< cutoff << ", m_sampleRate/cutoff = " << m_sampleRate/cutoff << endl;
 
     dblbuf[0] /= 2;
     dblbuf[cutoff-1] /= 2;
@@ -1061,8 +1005,10 @@ R2Stretcher::writeChunk(size_t channel, size_t shiftIncrement, bool last)
     const int sz = cd.accumulatorFill;
     const int si = shiftIncrement;
 
-    if (m_debugLevel > 2) {
-        cerr << "writeChunk(" << channel << ", " << shiftIncrement << ", " << last << ")" << endl;
+    m_log.log(3, "writeChunk: channel and shiftIncrement",
+              channel, shiftIncrement);
+    if (last) {
+        m_log.log(3, "writeChunk: last true");
     }
 
     v_divide(accumulator, windowAccumulator, si);
@@ -1090,11 +1036,9 @@ R2Stretcher::writeChunk(size_t channel, size_t shiftIncrement, bool last)
             // first place.  But we retain this check in case the
             // pitch scale has changed since then, or the stretch
             // calculator has gone mad, or something.
-            cerr << "WARNING: R2Stretcher::writeChunk: resizing resampler buffer from "
-                      << cd.resamplebufSize << " to " << reqSize << endl;
+            m_log.log(0, "WARNING: R2Stretcher::writeChunk: resizing resampler buffer from and to", cd.resamplebufSize, reqSize);
             cd.setResampleBufSize(reqSize);
         }
-
 
 #if defined(STRETCHER_IMPL_RESAMPLER_MUTEX_REQUIRED)
         if (m_threaded) {
@@ -1134,9 +1078,7 @@ R2Stretcher::writeChunk(size_t channel, size_t shiftIncrement, bool last)
     } else {
         cd.accumulatorFill = 0;
         if (cd.draining) {
-            if (m_debugLevel > 1) {
-                cerr << "R2Stretcher::processChunks: setting outputComplete to true" << endl;
-            }
+            m_log.log(2, "processChunks: setting outputComplete to true");
             cd.outputComplete = true;
         }
     }
@@ -1162,31 +1104,23 @@ R2Stretcher::writeOutput(RingBuffer<float> &to, float *from, size_t qty, size_t 
         // this is the normal case
 
         if (theoreticalOut > 0) {
-            if (m_debugLevel > 1) {
-                cerr << "theoreticalOut = " << theoreticalOut
-                     << ", outCount = " << outCount
-                     << ", startSkip = " << startSkip
-                     << ", qty = " << qty << endl;
-            }
+            m_log.log(2, "theoreticalOut and outCount",
+                      theoreticalOut, outCount);
+            m_log.log(2, "startSkip and qty",
+                      startSkip, qty);
             if (outCount - startSkip <= theoreticalOut &&
                 outCount - startSkip + qty > theoreticalOut) {
                 qty = theoreticalOut - (outCount - startSkip);
-                if (m_debugLevel > 1) {
-                    cerr << "reduce qty to " << qty << endl;
-                }
+                m_log.log(2, "reducing qty to", qty);
             }
         }
 
-        if (m_debugLevel > 2) {
-            cerr << "writing " << qty << endl;
-        }
+        m_log.log(3, "writing", qty);
 
         size_t written = to.write(from, qty);
 
         if (written < qty) {
-            cerr << "WARNING: R2Stretcher::writeOutput: "
-                 << "Buffer overrun on output: wrote " << written
-                 << " of " << qty << " samples" << endl;
+            m_log.log(0, "WARNING: writeOutput: buffer overrun: wanted to write and able to write", qty, written);
         }
 
         outCount += written;
@@ -1196,22 +1130,16 @@ R2Stretcher::writeOutput(RingBuffer<float> &to, float *from, size_t qty, size_t 
     // the rest of this is only used during the first startSkip samples
 
     if (outCount + qty <= startSkip) {
-        if (m_debugLevel > 1) {
-            cerr << "qty = " << qty << ", startSkip = "
-                 << startSkip << ", outCount = " << outCount
-                 << ", discarding" << endl;
-        }
+        m_log.log(2, "discarding with startSkip", startSkip);
+        m_log.log(2, "qty and outCount", qty, outCount);
         outCount += qty;
         return;
     }
 
     size_t off = startSkip - outCount;
-    if (m_debugLevel > 1) {
-        cerr << "qty = " << qty << ", startSkip = "
-             << startSkip << ", outCount = " << outCount
-             << ", writing " << qty - off
-             << " from start offset " << off << endl;
-    }
+    m_log.log(2, "shortening with startSkip", startSkip);
+    m_log.log(2, "qty and outCount", qty, outCount);
+    m_log.log(2, "start offset and number written", off, qty - off);
     to.write(from + off, qty - off);
     outCount += qty;
 }
@@ -1235,11 +1163,8 @@ R2Stretcher::available() const
 #endif
         for (size_t c = 0; c < m_channels; ++c) {
             if (m_channelData[c]->inputSize >= 0) {
-//                cerr << "available: m_done true" << endl;
                 if (m_channelData[c]->inbuf->getReadSpace() > 0) {
-                    if (m_debugLevel > 1) {
-                        cerr << "calling processChunks(" << c << ") from available" << endl;
-                    }
+                    m_log.log(2, "calling processChunks from available, channel" , c);
                     //!!! do we ever actually do this? if so, this method should not be const
                     // ^^^ yes, we do sometimes -- e.g. when fed a very short file
                     bool any = false, last = false;
@@ -1258,9 +1183,7 @@ R2Stretcher::available() const
     for (size_t i = 0; i < m_channels; ++i) {
         size_t availIn = m_channelData[i]->inbuf->getReadSpace();
         size_t availOut = m_channelData[i]->outbuf->getReadSpace();
-        if (m_debugLevel > 2) {
-            cerr << "available on channel " << i << ": " << availOut << " (waiting: " << availIn << ")" << endl;
-        }
+        m_log.log(3, "available in and out", availIn, availOut);
         if (i == 0 || availOut < min) min = availOut;
         if (!m_channelData[i]->outputComplete) consumed = false;
         if (m_channelData[i]->resampler) haveResamplers = true;
@@ -1284,9 +1207,7 @@ R2Stretcher::retrieve(float *const *output, size_t samples) const
         size_t gotHere = m_channelData[c]->outbuf->read(output[c], got);
         if (gotHere < got) {
             if (c > 0) {
-                if (m_debugLevel > 0) {
-                    cerr << "R2Stretcher::retrieve: WARNING: channel imbalance detected" << endl;
-                }
+                m_log.log(0, "R2Stretcher::retrieve: WARNING: channel imbalance detected");
             }
             got = gotHere;
         }

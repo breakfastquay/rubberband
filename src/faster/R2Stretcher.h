@@ -31,6 +31,7 @@
 #include "../common/RingBuffer.h"
 #include "../common/Scavenger.h"
 #include "../common/Thread.h"
+#include "../common/Log.h"
 #include "../common/sysutils.h"
 
 #include "SincWindow.h"
@@ -50,7 +51,8 @@ class R2Stretcher
 public:
     R2Stretcher(size_t sampleRate, size_t channels,
                 RubberBandStretcher::Options options,
-                double initialTimeRatio, double initialPitchScale);
+                double initialTimeRatio, double initialPitchScale,
+                Log log);
     ~R2Stretcher();
     
     void reset();
@@ -98,7 +100,6 @@ public:
     void calculateStretch();
 
     void setDebugLevel(int level);
-    static void setDefaultDebugLevel(int level) { m_defaultDebugLevel = level; }
 
 protected:
     size_t m_sampleRate;
@@ -174,7 +175,7 @@ protected:
 
     bool m_realtime;
     RubberBandStretcher::Options m_options;
-    int m_debugLevel;
+    Log m_log;
 
     enum ProcessMode {
         JustCreated,
@@ -202,6 +203,7 @@ protected:
         void run();
         void signalDataAvailable();
         void abandon();
+        size_t channel() { return m_channel; }
     private:
         R2Stretcher *m_s;
         size_t m_channel;
@@ -251,7 +253,6 @@ protected:
     void writeOutput(RingBuffer<float> &to, float *from,
                      size_t qty, size_t &outCount, size_t theoreticalOut);
 
-    static int m_defaultDebugLevel;
     static const size_t m_defaultIncrement;
     static const size_t m_defaultFftSize;
 };

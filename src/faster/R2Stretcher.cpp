@@ -40,8 +40,6 @@
 #include <map>
 #include <algorithm>
 
-using std::cerr;
-using std::endl;
 using std::vector;
 using std::map;
 using std::set;
@@ -56,16 +54,14 @@ R2Stretcher::m_defaultIncrement = 256;
 const size_t
 R2Stretcher::m_defaultFftSize = 2048;
 
-int
-R2Stretcher::m_defaultDebugLevel = 0;
-
 static bool _initialised = false;
 
 R2Stretcher::R2Stretcher(size_t sampleRate,
                          size_t channels,
                          RubberBandStretcher::Options options,
                          double initialTimeRatio,
-                         double initialPitchScale) :
+                         double initialPitchScale,
+                         Log log) :
     m_sampleRate(sampleRate),
     m_channels(channels),
     m_timeRatio(initialTimeRatio),
@@ -82,7 +78,7 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
 #endif
     m_realtime(false),
     m_options(options),
-    m_debugLevel(m_defaultDebugLevel),
+    m_log(log),
     m_mode(JustCreated),
     m_awindow(0),
     m_afilter(0),
@@ -110,9 +106,10 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
         _initialised = true;
     }
 
-    if (m_debugLevel > 0) {
-        cerr << "R2Stretcher::R2Stretcher: rate = " << m_sampleRate << ", options = " << options << endl;
-    }
+    m_log.log(1, "R2Stretcher::R2Stretcher: rate, options",
+              m_sampleRate, options);
+    m_log.log(1, "R2Stretcher::R2Stretcher: initial time ratio and pitch scale",
+              m_timeRatio, m_pitchScale);
 
     // Window size will vary according to the audio sample rate, but
     // we don't let it drop below the 48k default
@@ -124,17 +121,13 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
         (options & RubberBandStretcher::OptionWindowLong)) {
         if ((options & RubberBandStretcher::OptionWindowShort) &&
             (options & RubberBandStretcher::OptionWindowLong)) {
-            cerr << "R2Stretcher::R2Stretcher: Cannot specify OptionWindowLong and OptionWindowShort together; falling back to OptionWindowStandard" << endl;
+            m_log.log(0, "R2Stretcher::R2Stretcher: Cannot specify OptionWindowLong and OptionWindowShort together; falling back to OptionWindowStandard");
         } else if (options & RubberBandStretcher::OptionWindowShort) {
             m_baseFftSize = m_baseFftSize / 2;
-            if (m_debugLevel > 0) {
-                cerr << "setting baseFftSize to " << m_baseFftSize << endl;
-            }
+            m_log.log(1, "setting baseFftSize", m_baseFftSize);
         } else if (options & RubberBandStretcher::OptionWindowLong) {
             m_baseFftSize = m_baseFftSize * 2;
-            if (m_debugLevel > 0) {
-                cerr << "setting baseFftSize to " << m_baseFftSize << endl;
-            }
+            m_log.log(1, "setting baseFftSize", m_baseFftSize);
         }
         m_fftSize = m_baseFftSize;
         m_aWindowSize = m_baseFftSize;
@@ -161,8 +154,8 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
             m_threaded = false;
         }
 
-        if (m_threaded && m_debugLevel > 0) {
-            cerr << "Going multithreaded..." << endl;
+        if (m_threaded) {
+            m_log.log(1, "Going multithreaded...");
         }
     }
 #endif
@@ -177,9 +170,7 @@ R2Stretcher::~R2Stretcher()
         MutexLocker locker(&m_threadSetMutex);
         for (set<ProcessThread *>::iterator i = m_threadSet.begin();
              i != m_threadSet.end(); ++i) {
-            if (m_debugLevel > 0) {
-                cerr << "RubberBandStretcher::~RubberBandStretcher: joining (channel " << *i << ")" << endl;
-            }
+            m_log.log(1, "RubberBandStretcher::~RubberBandStretcher: joining for channel", (*i)->channel());
             (*i)->abandon();
             (*i)->wait();
             delete *i;
@@ -214,9 +205,7 @@ R2Stretcher::reset()
         m_threadSetMutex.lock();
         for (set<ProcessThread *>::iterator i = m_threadSet.begin();
              i != m_threadSet.end(); ++i) {
-            if (m_debugLevel > 0) {
-                cerr << "RubberBandStretcher::~RubberBandStretcher: joining (channel " << *i << ")" << endl;
-            }
+            m_log.log(1, "RubberBandStretcher::~RubberBandStretcher: joining for channel", (*i)->channel());
             (*i)->abandon();
             (*i)->wait();
             delete *i;
@@ -253,7 +242,7 @@ R2Stretcher::setTimeRatio(double ratio)
 {
     if (!m_realtime) {
         if (m_mode == Studying || m_mode == Processing) {
-            cerr << "R2Stretcher::setTimeRatio: Cannot set ratio while studying or processing in non-RT mode" << endl;
+            m_log.log(0, "R2Stretcher::setTimeRatio: Cannot set ratio while studying or processing in non-RT mode");
             return;
         }
     }
@@ -269,7 +258,7 @@ R2Stretcher::setPitchScale(double fs)
 {
     if (!m_realtime) {
         if (m_mode == Studying || m_mode == Processing) {
-            cerr << "R2Stretcher::setPitchScale: Cannot set ratio while studying or processing in non-RT mode" << endl;
+            m_log.log(0, "R2Stretcher::setPitchScale: Cannot set ratio while studying or processing in non-RT mode");
             return;
         }
     }
@@ -331,11 +320,11 @@ R2Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &
                                           mapping)
 {
     if (m_realtime) {
-        cerr << "R2Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode" << endl;
+        m_log.log(0, "R2Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode");
         return;
     }
     if (m_mode == Processing) {
-        cerr << "R2Stretcher::setKeyFrameMap: Cannot specify key frame map after process() has begun" << endl;
+        m_log.log(0, "R2Stretcher::setKeyFrameMap: Cannot specify key frame map after process() has begun");
         return;
     }
 
@@ -403,12 +392,12 @@ R2Stretcher::calculateSizes()
         // This special case is likelier than one might hope, because
         // of naive initialisations in programs that set it from a
         // variable
-        std::cerr << "RubberBandStretcher: WARNING: Pitch scale must be greater than zero!\nResetting it from " << m_pitchScale << " to the default of 1.0: no pitch change will occur" << std::endl;
+        m_log.log(0, "WARNING: Pitch scale must be greater than zero! Resetting it to default, no pitch shift will happen", m_pitchScale);
         m_pitchScale = 1.0;
     }
     if (m_timeRatio <= 0.0) {
         // Likewise
-        std::cerr << "RubberBandStretcher: WARNING: Time ratio must be greater than zero!\nResetting it from " << m_timeRatio << " to the default of 1.0: no time stretch will occur" << std::endl;
+        m_log.log(0, "WARNING: Time ratio must be greater than zero! Resetting it to default, no time stretch will happen", m_timeRatio);
         m_timeRatio = 1.0;
     }
 
@@ -461,7 +450,7 @@ R2Stretcher::calculateSizes()
             if (windowSize < minwin) windowSize = minwin;
 
             if (rsb) {
-//                cerr << "adjusting window size from " << windowSize;
+                size_t oldWindowSize = windowSize;
                 size_t newWindowSize = roundUp(lrint(windowSize / m_pitchScale));
                 if (newWindowSize < 512) newWindowSize = 512;
                 size_t div = windowSize / newWindowSize;
@@ -470,7 +459,8 @@ R2Stretcher::calculateSizes()
                     outputIncrement /= div;
                     windowSize /= div;
                 }
-//                cerr << " to " << windowSize << " (inputIncrement = " << inputIncrement << ", outputIncrement = " << outputIncrement << ")" << endl;
+                m_log.log(2, "adjusting window size from/to", oldWindowSize, windowSize);
+                m_log.log(2, "input and output increments", inputIncrement, outputIncrement);
             }
         }
 
@@ -530,10 +520,11 @@ R2Stretcher::calculateSizes()
     // twice the basic output increment (i.e. input increment times
     // ratio) for any chunk.
 
-    if (m_debugLevel > 0) {
-        cerr << "calculateSizes: time ratio = " << m_timeRatio << ", pitch scale = " << m_pitchScale << ", effective ratio = " << getEffectiveRatio() << endl;
-        cerr << "calculateSizes: analysis window size = " << m_aWindowSize << ", synthesis window size = " << m_sWindowSize << ", fft size = " << m_fftSize << ", increment = " << m_increment << " (approx output increment = " << int(lrint(m_increment * getEffectiveRatio())) << ")" << endl;
-    }
+    m_log.log(1, "calculateSizes: time ratio and pitch scale", m_timeRatio, m_pitchScale);
+    m_log.log(1, "effective ratio", getEffectiveRatio());
+    m_log.log(1, "analysis and synthesis window sizes", m_aWindowSize, m_sWindowSize);
+    m_log.log(1, "fft size", m_fftSize);
+    m_log.log(1, "input increment and mean output increment", m_increment, m_increment * getEffectiveRatio());
 
     if (std::max(m_aWindowSize, m_sWindowSize) > m_maxProcessSize) {
         m_maxProcessSize = std::max(m_aWindowSize, m_sWindowSize);
@@ -561,18 +552,19 @@ R2Stretcher::calculateSizes()
 #endif
     }
 
-    if (m_debugLevel > 0) {
-        cerr << "calculateSizes: outbuf size = " << m_outbufSize << endl;
-    }
+    m_log.log(1, "calculateSizes: outbuf size", m_outbufSize);
 }
 
 void
 R2Stretcher::configure()
 {
-    if (m_debugLevel > 0) {
-        std::cerr << "configure[" << this << "]: realtime = " << m_realtime << ", pitch scale = "
-                  << m_pitchScale << ", channels = " << m_channels << std::endl;
-    }
+    if (m_realtime) {
+        m_log.log(1, "configure, realtime: pitch scale and channels",
+                  m_pitchScale, m_channels);
+    } else {
+        m_log.log(1, "configure, offline: pitch scale and channels",
+                  m_pitchScale, m_channels);
+    }              
 
     size_t prevFftSize = m_fftSize;
     size_t prevAWindowSize = m_aWindowSize;
@@ -626,9 +618,8 @@ R2Stretcher::configure()
         m_afilter = m_sincs[m_aWindowSize];
         m_swindow = m_windows[m_sWindowSize];
 
-        if (m_debugLevel > 0) {
-            cerr << "Window area: " << m_awindow->getArea() << "; synthesis window area: " << m_swindow->getArea() << endl;
-        }
+        m_log.log(1, "analysis and synthesis window areas",
+                  m_awindow->getArea(), m_swindow->getArea());
     }
 
     if (windowSizeChanged || outbufSizeChanged) {
@@ -649,7 +640,7 @@ R2Stretcher::configure()
 
     if (!m_realtime && fftSizeChanged) {
         delete m_studyFFT;
-        m_studyFFT = new FFT(m_fftSize, m_debugLevel);
+        m_studyFFT = new FFT(m_fftSize, m_log.getDebugLevel());
         m_studyFFT->initFloat();
     }
 
@@ -674,7 +665,8 @@ R2Stretcher::configure()
             }
             
             params.maxBufferSize = 4096 * 16;
-            params.debugLevel = (m_debugLevel > 0 ? m_debugLevel-1 : 0);
+            int myLevel = m_log.getDebugLevel();
+            params.debugLevel = (myLevel > 0 ? myLevel-1 : 0);
             
             m_channelData[c]->resampler = new Resampler(params, 1);
 
@@ -700,9 +692,10 @@ R2Stretcher::configure()
     delete m_stretchCalculator;
     m_stretchCalculator = new StretchCalculator
         (m_sampleRate, m_increment,
-         !(m_options & RubberBandStretcher::OptionTransientsSmooth));
+         !(m_options & RubberBandStretcher::OptionTransientsSmooth),
+         m_log);
 
-    m_stretchCalculator->setDebugLevel(m_debugLevel);
+    m_stretchCalculator->setDebugLevel(m_log.getDebugLevel());
     m_inputDuration = 0;
 
     // Prepare the inbufs with half a chunk of emptiness.  The centre
@@ -717,16 +710,15 @@ R2Stretcher::configure()
     // want gaps when the ratio changes.
 
     if (!m_realtime) {
-        if (m_debugLevel > 1) {
-            cerr << "Not real time mode: prefilling with " << m_aWindowSize/2 << " samples" << endl;
-        }
+        m_log.log(1, "offline mode: prefilling with", m_aWindowSize/2);
         for (size_t c = 0; c < m_channels; ++c) {
             m_channelData[c]->reset();
             m_channelData[c]->inbuf->zero(m_aWindowSize/2);
         }
+    } else {
+        m_log.log(1, "realtime mode: no prefill");
     }
 }
-
 
 void
 R2Stretcher::reconfigure()
@@ -763,7 +755,7 @@ R2Stretcher::reconfigure()
         m_sWindowSize != prevSWindowSize) {
 
         if (m_windows.find(m_aWindowSize) == m_windows.end()) {
-            std::cerr << "WARNING: reconfigure(): window allocation (size " << m_aWindowSize << ") required in RT mode" << std::endl;
+            m_log.log(0, "WARNING: reconfigure(): window allocation required in realtime mode, size", m_aWindowSize);
             m_windows[m_aWindowSize] = new Window<float>
                 (HannWindow, m_aWindowSize);
             m_sincs[m_aWindowSize] = new SincWindow<float>
@@ -771,7 +763,7 @@ R2Stretcher::reconfigure()
         }
 
         if (m_windows.find(m_sWindowSize) == m_windows.end()) {
-            std::cerr << "WARNING: reconfigure(): window allocation (size " << m_sWindowSize << ") required in RT mode" << std::endl;
+            m_log.log(0, "WARNING: reconfigure(): window allocation required in realtime mode, size", m_sWindowSize);
             m_windows[m_sWindowSize] = new Window<float>
                 (HannWindow, m_sWindowSize);
             m_sincs[m_sWindowSize] = new SincWindow<float>
@@ -802,14 +794,15 @@ R2Stretcher::reconfigure()
 
             if (m_channelData[c]->resampler) continue;
 
-            std::cerr << "WARNING: reconfigure(): resampler construction required in RT mode" << std::endl;
+            m_log.log(0, "WARNING: reconfigure(): resampler construction required in RT mode");
 
             Resampler::Parameters params;
             params.quality = Resampler::FastestTolerable;
             params.dynamism = Resampler::RatioOftenChanging;
             params.ratioChange = Resampler::SmoothRatioChange;
             params.maxBufferSize = m_sWindowSize;
-            params.debugLevel = (m_debugLevel > 0 ? m_debugLevel-1 : 0);
+            int myLevel = m_log.getDebugLevel();
+            params.debugLevel = (myLevel > 0 ? myLevel-1 : 0);
             
             m_channelData[c]->resampler = new Resampler(params, 1);
 
@@ -828,12 +821,10 @@ R2Stretcher::reconfigure()
         somethingChanged = true;
     }
 
-    if (m_debugLevel > 0) {
-        if (somethingChanged) {
-            std::cerr << "reconfigure: at least one parameter changed" << std::endl;
-        } else {
-            std::cerr << "reconfigure: nothing changed" << std::endl;
-        }
+    if (somethingChanged) {
+        m_log.log(1, "reconfigure: at least one parameter changed");
+    } else {
+        m_log.log(1, "reconfigure: nothing changed");
     }
 }
 
@@ -848,7 +839,7 @@ void
 R2Stretcher::setTransientsOption(RubberBandStretcher::Options options)
 {
     if (!m_realtime) {
-        cerr << "R2Stretcher::setTransientsOption: Not permissible in non-realtime mode" << endl;
+        m_log.log(0, "R2Stretcher::setTransientsOption: Not permissible in non-realtime mode");
         return;
     }
     int mask = (RubberBandStretcher::OptionTransientsMixed |
@@ -866,7 +857,7 @@ void
 R2Stretcher::setDetectorOption(RubberBandStretcher::Options options)
 {
     if (!m_realtime) {
-        cerr << "R2Stretcher::setDetectorOption: Not permissible in non-realtime mode" << endl;
+        m_log.log(0, "R2Stretcher::setDetectorOption: Not permissible in non-realtime mode");
         return;
     }
     int mask = (RubberBandStretcher::OptionDetectorPercussive |
@@ -915,7 +906,7 @@ void
 R2Stretcher::setPitchOption(RubberBandStretcher::Options options)
 {
     if (!m_realtime) {
-        cerr << "R2Stretcher::setPitchOption: Pitch option is not used in non-RT mode" << endl;
+        m_log.log(0, "R2Stretcher::setPitchOption: Pitch option is not used in non-RT mode");
         return;
     }
 
@@ -937,14 +928,12 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
     Profiler profiler("R2Stretcher::study");
 
     if (m_realtime) {
-        if (m_debugLevel > 1) {
-            cerr << "R2Stretcher::study: Not meaningful in realtime mode" << endl;
-        }
+        m_log.log(0, "R2Stretcher::study: Not meaningful in realtime mode");
         return;
     }
 
     if (m_mode == Processing || m_mode == Finished) {
-        cerr << "R2Stretcher::study: Cannot study after processing" << endl;
+        m_log.log(0, "R2Stretcher::study: Cannot study after processing");
         return;
     }
     m_mode = Studying;
@@ -987,7 +976,8 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
 
 	if (writable == 0) {
             // warn
-            cerr << "WARNING: writable == 0 (consumed = " << consumed << ", samples = " << samples << ")" << endl;
+            m_log.log(0, "WARNING: writable == 0: consumed, samples",
+                      consumed, samples);
 	} else {
             inbuf.write(mixdown + consumed, writable);
             consumed += writable;
@@ -1048,8 +1038,8 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
 
             df = m_silentAudioCurve->processFloat(cd.fltbuf, m_increment);
             bool silent = (df > 0.f);
-            if (silent && m_debugLevel > 1) {
-                cerr << "silence found at " << m_inputDuration << endl;
+            if (silent) {
+                m_log.log(2, "silence at", m_inputDuration);
             }
             m_silence.push_back(silent);
 
@@ -1063,7 +1053,6 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
             // extra afterwards.
 
             m_inputDuration += m_increment;
-//                cerr << "incr input duration by increment: " << m_increment << " -> " << m_inputDuration << endl;
             inbuf.skip(m_increment);
 	}
     }
@@ -1071,8 +1060,6 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
     if (final) {
         int rs = inbuf.getReadSpace();
         m_inputDuration += rs;
-//        cerr << "incr input duration by read space: " << rs << " -> " << m_inputDuration << endl;
-
         if (m_inputDuration > m_aWindowSize/2) { // deducting the extra
             m_inputDuration -= m_aWindowSize/2;
         }
@@ -1132,7 +1119,7 @@ R2Stretcher::calculateStretch()
 
     if (!m_realtime && m_expectedInputDuration > 0) {
         if (m_expectedInputDuration != inputDuration) {
-            std::cerr << "RubberBandStretcher: WARNING: Actual study() duration differs from duration set by setExpectedInputDuration (" << m_inputDuration << " vs " << m_expectedInputDuration << ", diff = " << (m_expectedInputDuration - m_inputDuration) << "), using the latter for calculation" << std::endl;
+            m_log.log(0, "WARNING: Actual study() duration differs from duration set by setExpectedInputDuration - using the latter for calculation", m_inputDuration, m_expectedInputDuration);
             inputDuration = m_expectedInputDuration;
         }
     }
@@ -1149,10 +1136,7 @@ R2Stretcher::calculateStretch()
         else history = 0;
         if (history >= int(m_aWindowSize / m_increment) && increments[i] >= 0) {
             increments[i] = -increments[i];
-            if (m_debugLevel > 1) {
-                std::cerr << "phase reset on silence (silent history == "
-                          << history << ")" << std::endl;
-            }
+            m_log.log(2, "phase reset on silence: silent history", history);
         }
     }
 
@@ -1169,8 +1153,10 @@ R2Stretcher::calculateStretch()
 void
 R2Stretcher::setDebugLevel(int level)
 {
-    m_debugLevel = level;
-    if (m_stretchCalculator) m_stretchCalculator->setDebugLevel(level);
+    m_log.setDebugLevel(level);
+    if (m_stretchCalculator) {
+        m_stretchCalculator->setDebugLevel(level);
+    }
 }	
 
 size_t
@@ -1191,9 +1177,7 @@ R2Stretcher::getSamplesRequired() const
         size_t rs = inbuf.getReadSpace();
         size_t ws = outbuf.getReadSpace();
 
-        if (m_debugLevel > 2) {
-            cerr << "getSamplesRequired: ws = " << ws << ", rs = " << rs << ", m_aWindowSize = " << m_aWindowSize << endl;
-        }
+        m_log.log(3, "getSamplesRequired: ws and rs ", ws, rs);
 
         // We should never return zero in non-threaded modes if
         // available() would also return zero, i.e. if ws == 0.  If we
@@ -1230,7 +1214,7 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
     Profiler profiler("R2Stretcher::process");
 
     if (m_mode == Finished) {
-        cerr << "R2Stretcher::process: Cannot process again after final chunk" << endl;
+        m_log.log(0, "R2Stretcher::process: Cannot process again after final chunk");
         return;
     }
 
@@ -1243,9 +1227,7 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
             if (!m_realtime) {
                 // See note in configure() above. Of course, we should
                 // never enter Studying unless we are non-RT anyway
-                if (m_debugLevel > 1) {
-                    cerr << "Not real time mode: prefilling" << endl;
-                }
+                m_log.log(1, "offline mode: prefilling with", m_aWindowSize/2);
                 for (size_t c = 0; c < m_channels; ++c) {
                     m_channelData[c]->reset();
                     m_channelData[c]->inbuf->zero(m_aWindowSize/2);
@@ -1262,10 +1244,8 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
                 m_threadSet.insert(thread);
                 thread->start();
             }
-            
-            if (m_debugLevel > 0) {
-                cerr << m_channels << " threads created" << endl;
-            }
+
+            m_log.log(1, "created threads", m_channels);
         }
 #endif
         
@@ -1297,12 +1277,10 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
                                           final);
             if (consumed[c] < samples) {
                 allConsumed = false;
-//                cerr << "process: waiting on input consumption for channel " << c << endl;
             } else {
                 if (final) {
                     m_channelData[c]->inputSize = m_channelData[c]->inCount;
                 }
-//                cerr << "process: happy with channel " << c << endl;
             }
             if (
 #ifndef NO_THREADING
@@ -1335,14 +1313,10 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
         }
 #endif
 
-        if (m_debugLevel > 1) {
-            if (!allConsumed) cerr << "process looping" << endl;
-        }
+        m_log.log(2, "process looping");
     }
 
-    if (m_debugLevel > 1) {
-        cerr << "process returning" << endl;
-    }
+    m_log.log(2, "process returning");
 
     if (final) m_mode = Finished;
 }

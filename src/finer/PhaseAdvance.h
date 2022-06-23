@@ -26,6 +26,7 @@
 
 #include "Guide.h"
 
+#include "../common/Log.h"
 #include "../common/mathmisc.h"
 
 #include <sstream>
@@ -41,15 +42,13 @@ public:
         int fftSize;
         double sampleRate;
         int channels;
-        std::function<void(const std::string &)> logger;
-        Parameters(int _fftSize, double _sampleRate, int _channels,
-                   std::function<void(const std::string &)> _log) :
-            fftSize(_fftSize), sampleRate(_sampleRate),
-            channels(_channels), logger(_log) { }
+        Parameters(int _fftSize, double _sampleRate, int _channels) :
+            fftSize(_fftSize), sampleRate(_sampleRate), channels(_channels) { }
     };
     
-    GuidedPhaseAdvance(Parameters parameters) :
+    GuidedPhaseAdvance(Parameters parameters, Log log) :
         m_parameters(parameters),
+        m_log(log),
         m_binCount(parameters.fftSize / 2 + 1),
         m_peakPicker(m_binCount),
         m_reported(false) {
@@ -111,18 +110,18 @@ public:
         int lowest = configuration.fftBandLimits[myFftBand].b0min;
         int highest = configuration.fftBandLimits[myFftBand].b1max;
         
-        if (!m_reported) {
-            std::ostringstream ostr;
-            ostr << "PhaseAdvance: fftSize = " << m_parameters.fftSize
-                 << ": bins = " << bs << ", channels = " << channels
-                 << ", inhop = "<< inhop << ", outhop = " << outhop
-                 << ", ratio = " << ratio << std::endl;
-            ostr << "PhaseAdvance: lowest possible bin = " << lowest
-                 << " (" << configuration.fftBandLimits[myFftBand].f0min
-                 << "Hz), highest = " << highest
-                 << " (" << configuration.fftBandLimits[myFftBand].f1max
-                 << "Hz)" << std::endl;
-            m_parameters.logger(ostr.str());
+        if (m_log.getDebugLevel() > 0 && !m_reported) {
+            m_log.log(1, "PhaseAdvance: for fftSize and bins",
+                      m_parameters.fftSize, bs);
+            m_log.log(1, "PhaseAdvance: channels", channels);
+            m_log.log(1, "PhaseAdvance: widest bin range for this size",
+                      lowest, highest);
+            m_log.log(1, "PhaseAdvance: widest freq range for this size",
+                      configuration.fftBandLimits[myFftBand].f0min,
+                      configuration.fftBandLimits[myFftBand].f1max);
+            m_log.log(1, "PhaseAdvance: initial inhop and outhop",
+                      inhop, outhop);
+            m_log.log(1, "PhaseAdvance: initial ratio", ratio);
             m_reported = true;
         }
         
@@ -231,8 +230,13 @@ public:
         }
     }
 
+    void setDebugLevel(int debugLevel) {
+        m_log.setDebugLevel(debugLevel);
+    }
+    
 protected:
     Parameters m_parameters;
+    Log m_log;
     int m_binCount;
     Peak<double> m_peakPicker;
     int **m_currentPeaks;

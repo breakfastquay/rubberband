@@ -31,12 +31,14 @@ namespace RubberBand {
 
 R3Stretcher::R3Stretcher(Parameters parameters,
                          double initialTimeRatio,
-                         double initialPitchScale) :
+                         double initialPitchScale,
+                         Log log) :
     m_parameters(parameters),
+    m_log(log),
     m_timeRatio(initialTimeRatio),
     m_pitchScale(initialPitchScale),
     m_formantScale(0.0),
-    m_guide(Guide::Parameters(m_parameters.sampleRate, parameters.logger)),
+    m_guide(Guide::Parameters(m_parameters.sampleRate), m_log),
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
     m_inhop(1),
@@ -51,6 +53,11 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_totalOutputDuration(0),
     m_mode(ProcessMode::JustCreated)
 {
+    m_log.log(1, "R3Stretcher::R3Stretcher: rate, options",
+              m_parameters.sampleRate, m_parameters.options);
+    m_log.log(1, "R3Stretcher::R3Stretcher: initial time ratio and pitch scale",
+              m_timeRatio, m_pitchScale);
+
     double maxClassifierFrequency = 16000.0;
     if (maxClassifierFrequency > m_parameters.sampleRate/2) {
         maxClassifierFrequency = m_parameters.sampleRate/2;
@@ -83,18 +90,19 @@ R3Stretcher::R3Stretcher(Parameters parameters,
                 (fftSize, m_guideConfiguration.longestFftSize);
         }
     }
-        
+    
     for (auto band: m_guideConfiguration.fftBandLimits) {
         int fftSize = band.fftSize;
         GuidedPhaseAdvance::Parameters guidedParameters
-            (fftSize, m_parameters.sampleRate, m_parameters.channels,
-             m_parameters.logger);
-        m_scaleData[fftSize] = std::make_shared<ScaleData>(guidedParameters);
+            (fftSize, m_parameters.sampleRate, m_parameters.channels);
+        m_scaleData[fftSize] = std::make_shared<ScaleData>
+            (guidedParameters, m_log);
     }
 
     m_calculator = std::unique_ptr<StretchCalculator>
         (new StretchCalculator(int(round(m_parameters.sampleRate)), //!!! which is a double...
-                               1, false)); // no fixed inputIncrement
+                               1, false, // no fixed inputIncrement
+                               m_log));
 
     Resampler::Parameters resamplerParameters;
     resamplerParameters.quality = Resampler::FastestTolerable;
@@ -119,10 +127,10 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
 
     if (!m_inhop.is_lock_free()) {
-        m_parameters.logger("WARNING: std::atomic<int> is not lock-free");
+        m_log.log(0, "WARNING: std::atomic<int> is not lock-free");
     }
     if (!m_timeRatio.is_lock_free()) {
-        m_parameters.logger("WARNING: std::atomic<double> is not lock-free");
+        m_log.log(0, "WARNING: std::atomic<double> is not lock-free");
     }
 
     // Pad to half of the longest frame. As with R2, in real-time mode
@@ -131,15 +139,15 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     // changes.
     
     if (!isRealTime()) {
-        m_parameters.logger("Offline mode: pre-padding");
         int pad = m_guideConfiguration.longestFftSize / 2;
+        m_log.log(1, "offline mode: prefilling with", pad);
         for (int c = 0; c < m_parameters.channels; ++c) {
             m_channelData[c]->inbuf->zero(pad);
         }
         // By the time we skip this later we will have resampled
         m_startSkip = int(round(pad / m_pitchScale));
     } else {
-        m_parameters.logger("RT mode: no internal pre-pad");
+        m_log.log(1, "realtime mode: no prefill");
     }
 }
 
@@ -176,7 +184,7 @@ R3Stretcher::setTimeRatio(double ratio)
     if (!isRealTime()) {
         if (m_mode == ProcessMode::Studying ||
             m_mode == ProcessMode::Processing) {
-            m_parameters.logger("R3Stretcher::setTimeRatio: Cannot set time ratio while studying or processing in non-RT mode");
+            m_log.log(0, "R3Stretcher::setTimeRatio: Cannot set time ratio while studying or processing in non-RT mode");
             return;
         }
     }
@@ -192,7 +200,7 @@ R3Stretcher::setPitchScale(double scale)
     if (!isRealTime()) {
         if (m_mode == ProcessMode::Studying ||
             m_mode == ProcessMode::Processing) {
-            m_parameters.logger("R3Stretcher::setTimeRatio: Cannot set pitch scale while studying or processing in non-RT mode");
+            m_log.log(0, "R3Stretcher::setTimeRatio: Cannot set pitch scale while studying or processing in non-RT mode");
             return;
         }
     }
@@ -208,7 +216,7 @@ R3Stretcher::setFormantScale(double scale)
     if (!isRealTime()) {
         if (m_mode == ProcessMode::Studying ||
             m_mode == ProcessMode::Processing) {
-            m_parameters.logger("R3Stretcher::setTimeRatio: Cannot set formant scale while studying or processing in non-RT mode");
+            m_log.log(0, "R3Stretcher::setTimeRatio: Cannot set formant scale while studying or processing in non-RT mode");
             return;
         }
     }
@@ -230,11 +238,11 @@ void
 R3Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 {
     if (isRealTime()) {
-        m_parameters.logger("R3Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode");
+        m_log.log(0, "R3Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode");
         return;
     }
     if (m_mode == ProcessMode::Processing || m_mode == ProcessMode::Finished) {
-        m_parameters.logger("R3Stretcher::setKeyFrameMap: Cannot specify key frame map after process() has begun");
+        m_log.log(0, "R3Stretcher::setKeyFrameMap: Cannot specify key frame map after process() has begun");
         return;
     }
 
@@ -266,22 +274,21 @@ R3Stretcher::calculateHop()
     if (proposedOuthop > 512.0) proposedOuthop = 512.0;
     if (proposedOuthop < 128.0) proposedOuthop = 128.0;
 
-    std::cout << "calculateHop: for ratio " << ratio << " proposedOuthop = "
-              << proposedOuthop << std::endl;
+    m_log.log(1, "calculateHop: ratio and proposed outhop", ratio, proposedOuthop);
     
     double inhop = proposedOuthop / ratio;
     if (inhop < 1.0) {
-        m_parameters.logger("WARNING: Extreme ratio yields ideal inhop < 1, results may be suspect");
+        m_log.log(0, "WARNING: Extreme ratio yields ideal inhop < 1, results may be suspect", ratio, inhop);
         inhop = 1.0;
     }
     if (inhop > 768.0) {
-        m_parameters.logger("WARNING: Extreme ratio yields ideal inhop > 768, results may be suspect");
+        m_log.log(0, "WARNING: Extreme ratio yields ideal inhop > 768, results may be suspect", ratio, inhop);
         inhop = 768.0;
     }
 
     m_inhop = int(floor(inhop));
 
-    std::cout << "R3Stretcher::calculateHop: inhop = " << m_inhop << ", proposed outhop = " << proposedOuthop << ", mean outhop = " << m_inhop * ratio << std::endl;
+    m_log.log(1, "calculateHop: inhop and mean outhop", m_inhop, m_inhop * ratio);
 }
 
 void
@@ -292,7 +299,12 @@ R3Stretcher::updateRatioFromMap()
     if (m_processInputDuration == 0) {
         m_timeRatio = double(m_keyFrameMap.begin()->second) /
             double(m_keyFrameMap.begin()->first);
-        std::cout << "initial key-frame map entry " << m_keyFrameMap.begin()->first << " -> " << m_keyFrameMap.begin()->second << " gives initial ratio " << m_timeRatio << std::endl;
+
+        m_log.log(1, "initial key-frame map entry ",
+                   double(m_keyFrameMap.begin()->first),
+                   double(m_keyFrameMap.begin()->second));
+        m_log.log(1, "giving initial ratio ", m_timeRatio);
+        
         calculateHop();
         m_lastKeyFrameSurpassed = 0;
         return;
@@ -306,7 +318,8 @@ R3Stretcher::updateRatioFromMap()
 
     if (m_processInputDuration >= i0->first) {
 
-        std::cout << "at " << m_processInputDuration << " (output = " << m_totalOutputDuration << ") we have passed " << i0->first << ", looking ahead to next key frame" << std::endl;
+        m_log.log(2, "input duration surpasses pending key frame",
+                   double(m_processInputDuration), double(i0->first));
         
         auto i1 = m_keyFrameMap.upper_bound(m_processInputDuration);
 
@@ -331,10 +344,13 @@ R3Stretcher::updateRatioFromMap()
 
         double ratio = double(toKeyFrameAtOutput) / double(toKeyFrameAtInput);
 
-        std::cout << "keyFrameAtInput = " << keyFrameAtInput << ", keyFrameAtOutput = " << keyFrameAtOutput << std::endl;
-        std::cout << "currently at input = " << m_processInputDuration << ", currently at output = " << m_totalOutputDuration << std::endl;
-        std::cout << "toKeyFrameAtInput = " << toKeyFrameAtInput << ", toKeyFrameAtOutput = " << toKeyFrameAtOutput << std::endl;
-        std::cout << "ratio = " << ratio << std::endl;
+        m_log.log(2, "next key frame input and output",
+                   double(keyFrameAtInput), double(keyFrameAtOutput));
+        m_log.log(2, "current input and output",
+                   double(m_processInputDuration), double(m_totalOutputDuration));
+        m_log.log(2, "to next key frame input and output",
+                   double(toKeyFrameAtInput), double(toKeyFrameAtOutput));
+        m_log.log(2, "new ratio", ratio);
     
         m_timeRatio = ratio;
         calculateHop();
@@ -409,12 +425,12 @@ void
 R3Stretcher::study(const float *const *, size_t samples, bool)
 {
     if (isRealTime()) {
-        m_parameters.logger("R3Stretcher::study: Not meaningful in realtime mode");
+        m_log.log(0, "R3Stretcher::study: Not meaningful in realtime mode");
         return;
     }
 
     if (m_mode == ProcessMode::Processing || m_mode == ProcessMode::Finished) {
-        m_parameters.logger("R3Stretcher::study: Cannot study after processing");
+        m_log.log(0, "R3Stretcher::study: Cannot study after processing");
         return;
     }
     
@@ -443,7 +459,7 @@ void
 R3Stretcher::process(const float *const *input, size_t samples, bool final)
 {
     if (m_mode == ProcessMode::Finished) {
-        m_parameters.logger("R3Stretcher::process: Cannot process again after final chunk");
+        m_log.log(0, "R3Stretcher::process: Cannot process again after final chunk");
         return;
     }
 
@@ -468,7 +484,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     size_t ws = m_channelData[0]->inbuf->getWriteSpace();
     if (samples > ws) {
         //!!! check this
-        m_parameters.logger("R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called or process is being called repeatedly without retrieve.");
+        m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called or process is being called repeatedly without retrieve.");
         size_t newSize = m_channelData[0]->inbuf->getSize() - ws + samples;
         for (int c = 0; c < m_parameters.channels; ++c) {
             auto newBuf = m_channelData[c]->inbuf->resized(newSize);
@@ -505,7 +521,7 @@ R3Stretcher::retrieve(float *const *output, size_t samples) const
         int gotHere = m_channelData[c]->outbuf->read(output[c], got);
         if (gotHere < got) {
             if (c > 0) {
-                m_parameters.logger("R3Stretcher::retrieve: WARNING: channel imbalance detected");
+                m_log.log(0, "R3Stretcher::retrieve: WARNING: channel imbalance detected");
             }
             got = std::min(got, std::max(gotHere, 0));
         }
@@ -550,16 +566,14 @@ R3Stretcher::consume()
     // advanced the input and output since the previous frame, not the
     // distances we are about to advance them, so they use the m_prev
     // values.
-/*
+
     if (inhop != m_prevInhop) {
-        std::cout << "Note: inhop has changed from " << m_prevInhop
-                  << " to " << inhop << std::endl;
+        m_log.log(2, "change in inhop", double(m_prevInhop), double(inhop));
     }
     if (outhop != m_prevOuthop) {
-        std::cout << "Note: outhop has changed from " << m_prevOuthop
-                  << " to " << outhop << std::endl;
+        m_log.log(2, "change in outhop", double(m_prevOuthop), double(outhop));
     }
-*/
+    
     while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
 
         // NB our ChannelData, ScaleData, and ChannelScaleData maps
