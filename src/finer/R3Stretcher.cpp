@@ -104,22 +104,13 @@ R3Stretcher::R3Stretcher(Parameters parameters,
                                1, false, // no fixed inputIncrement
                                m_log));
 
-    Resampler::Parameters resamplerParameters;
-    resamplerParameters.quality = Resampler::FastestTolerable;
-
     if (isRealTime()) {
-        resamplerParameters.dynamism = Resampler::RatioOftenChanging;
-        resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
-    } else {
-        // ratio can't be changed in offline mode
-        resamplerParameters.dynamism = Resampler::RatioMostlyFixed;
-        resamplerParameters.ratioChange = Resampler::SuddenRatioChange;
+        createResampler();
+        // In offline mode we don't create the resampler yet - we
+        // don't want to have one at all if the pitch ratio is 1.0,
+        // but that could change before the first process call, so we
+        // create the resampler if needed then
     }
-        
-    resamplerParameters.initialSampleRate = m_parameters.sampleRate;
-    resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize; //!!!???
-    m_resampler = std::unique_ptr<Resampler>
-        (new Resampler(resamplerParameters, m_parameters.channels));
 
     calculateHop();
 
@@ -131,23 +122,6 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     }
     if (!m_timeRatio.is_lock_free()) {
         m_log.log(0, "WARNING: std::atomic<double> is not lock-free");
-    }
-
-    // Pad to half of the longest frame. As with R2, in real-time mode
-    // we don't do this -- it's better to start with a swoosh than
-    // introduce more latency, and we don't want gaps when the ratio
-    // changes.
-    
-    if (!isRealTime()) {
-        int pad = m_guideConfiguration.longestFftSize / 2;
-        m_log.log(1, "offline mode: prefilling with", pad);
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            m_channelData[c]->inbuf->zero(pad);
-        }
-        // By the time we skip this later we will have resampled
-        m_startSkip = int(round(pad / m_pitchScale));
-    } else {
-        m_log.log(1, "realtime mode: no prefill");
     }
 }
 
@@ -247,6 +221,27 @@ R3Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
     }
 
     m_keyFrameMap = mapping;
+}
+
+void
+R3Stretcher::createResampler()
+{
+    Resampler::Parameters resamplerParameters;
+    resamplerParameters.quality = Resampler::FastestTolerable;
+    resamplerParameters.initialSampleRate = m_parameters.sampleRate;
+    resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize;
+
+    if (isRealTime()) {
+        resamplerParameters.dynamism = Resampler::RatioOftenChanging;
+        resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+    } else {
+        // ratio can't be changed in offline mode
+        resamplerParameters.dynamism = Resampler::RatioMostlyFixed;
+        resamplerParameters.ratioChange = Resampler::SuddenRatioChange;
+    }
+    
+    m_resampler = std::unique_ptr<Resampler>
+        (new Resampler(resamplerParameters, m_parameters.channels));
 }
 
 void
@@ -398,7 +393,9 @@ void
 R3Stretcher::reset()
 {
     m_calculator->reset();
-    m_resampler->reset();
+    if (m_resampler) {
+        m_resampler->reset();
+    }
 
     for (auto &it : m_scaleData) {
         it.second->guided.reset();
@@ -463,12 +460,36 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
         return;
     }
 
-    if (!isRealTime() && !m_keyFrameMap.empty()) {
-        if (m_mode == ProcessMode::Studying) {
-            m_totalTargetDuration =
-                size_t(round(m_studyInputDuration * getEffectiveRatio()));
+    if (!isRealTime()) {
+
+        if (m_mode == ProcessMode::JustCreated ||
+            m_mode == ProcessMode::Studying) {
+
+            if (m_pitchScale != 1.0 && !m_resampler) {
+                createResampler();
+            }
+
+            // Pad to half of the longest frame. As with R2, in
+            // real-time mode we don't do this -- it's better to start
+            // with a swoosh than introduce more latency, and we don't
+            // want gaps when the ratio changes.
+    
+            int pad = m_guideConfiguration.longestFftSize / 2;
+            m_log.log(1, "offline mode: prefilling with", pad);
+            for (int c = 0; c < m_parameters.channels; ++c) {
+                m_channelData[c]->inbuf->zero(pad);
+            }
+            // By the time we skip this later we will have resampled
+            m_startSkip = int(round(pad / m_pitchScale));
         }
-        updateRatioFromMap();
+        
+        if (!m_keyFrameMap.empty()) {
+            if (m_mode == ProcessMode::Studying) {
+                m_totalTargetDuration =
+                    size_t(round(m_studyInputDuration * getEffectiveRatio()));
+            }
+            updateRatioFromMap();
+        }
     }
 
     if (final) {
@@ -891,7 +912,7 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 
     double ratio = getEffectiveRatio();
 
-    if (fabs(ratio - 1.0) < 1.0e-6) {
+    if (fabs(ratio - 1.0) < 1.0e-7) {
         ++m_unityCount;
     } else {
         m_unityCount = 0;
@@ -907,6 +928,7 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                            cd->nextSegmentation,
                            v_mean(classifyScale->mag.data() + 1, classify/2),
                            m_unityCount,
+                           isRealTime(),
                            cd->guidance);
 /*
     if (c == 0) {
@@ -1070,7 +1092,7 @@ R3Stretcher::synthesiseChannel(int c, int outhop)
         scaleData->fft.inverse(scale->real.data(),
                                scale->imag.data(),
                                scale->timeDomain.data());
-
+        
         v_fftshift(scale->timeDomain.data(), fftSize);
 
         // Synthesis window may be shorter than analysis window, so

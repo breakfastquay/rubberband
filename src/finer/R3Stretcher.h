@@ -310,6 +310,7 @@ protected:
     ProcessMode m_mode;
 
     void consume();
+    void createResampler();
     void calculateHop();
     void updateRatioFromMap();
     void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);

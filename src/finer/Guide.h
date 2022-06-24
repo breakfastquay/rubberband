@@ -127,7 +127,8 @@ public:
         
         // This is the classification and fallback FFT: we need it to
         // go up to Nyquist so we can seamlessly switch to it for
-        // longer stretches
+        // longer stretches, and down to 0.0 so we can use it for
+        // unity in offline mode
         bandFftSize = roundUp(int(ceil(rate/32.0)));
         m_configuration.fftBandLimits[1] =
             BandLimits(bandFftSize, rate, 0.0, rate / 2.0);
@@ -154,6 +155,7 @@ public:
                         const BinSegmenter::Segmentation &nextSegmentation,
                         double meanMagnitude,
                         int unityCount,
+                        bool realtime,
                         Guidance &guidance) const {
 
         bool hadPhaseReset = guidance.phaseReset.present;
@@ -182,7 +184,8 @@ public:
                            hadPhaseReset,
                            unityCount,
                            magnitudes,
-                           segmentation);
+                           segmentation,
+                           realtime);
             return;
         }
 
@@ -380,11 +383,27 @@ protected:
                         bool hadPhaseReset,
                         uint32_t unityCount,
                         const double *const magnitudes,
-                        const BinSegmenter::Segmentation &segmentation) const {
+                        const BinSegmenter::Segmentation &segmentation,
+                        bool realtime) const {
         
 //        std::cout << "unity" << std::endl;
         
         double nyquist = m_parameters.sampleRate / 2.0;
+
+        if (!realtime) {
+            // ratio can't change, so we are just running 1.0 ratio
+            // throughout
+            guidance.fftBands[0].f0 = 0.0;
+            guidance.fftBands[0].f1 = 0.0;
+            guidance.fftBands[1].f0 = 0.0;
+            guidance.fftBands[1].f1 = nyquist;
+            guidance.fftBands[2].f0 = nyquist;
+            guidance.fftBands[2].f1 = nyquist;
+            guidance.phaseReset.present = true;
+            guidance.phaseReset.f0 = 0.0;
+            guidance.phaseReset.f1 = nyquist;
+            return;
+        }
 
         guidance.fftBands[0].f0 = 0.0;
         guidance.fftBands[0].f1 = m_minLower;
