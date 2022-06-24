@@ -86,6 +86,8 @@ public:
 
     size_t getLatency() const;
     size_t getChannelCount() const;
+
+    void setMaxProcessSize(size_t samples);
     
     void setDebugLevel(int level) {
         m_log.setDebugLevel(level);

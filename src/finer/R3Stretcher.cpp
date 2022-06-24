@@ -453,6 +453,23 @@ R3Stretcher::getSamplesRequired() const
 }
 
 void
+R3Stretcher::setMaxProcessSize(size_t n)
+{
+    size_t oldSize = m_channelData[0]->inbuf->getSize();
+    size_t newSize = m_guideConfiguration.longestFftSize + n;
+
+    if (newSize > oldSize) {
+        m_log.log(1, "setMaxProcessSize: resizing from and to", oldSize, newSize);
+        for (int c = 0; c < m_parameters.channels; ++c) {
+            m_channelData[c]->inbuf = std::unique_ptr<RingBuffer<float>>
+                (m_channelData[c]->inbuf->resized(newSize));
+        }
+    } else {
+        m_log.log(1, "setMaxProcessSize: nothing to be done, newSize <= oldSize", newSize, oldSize);
+    }
+}
+
+void
 R3Stretcher::process(const float *const *input, size_t samples, bool final)
 {
     if (m_mode == ProcessMode::Finished) {
@@ -505,8 +522,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     
     size_t ws = m_channelData[0]->inbuf->getWriteSpace();
     if (samples > ws) {
-        //!!! check this
-        m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called or process is being called repeatedly without retrieve.");
+        m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called or process is being called repeatedly without retrieve. Write space and samples", ws, samples);
         size_t newSize = m_channelData[0]->inbuf->getSize() - ws + samples;
         for (int c = 0; c < m_parameters.channels; ++c) {
             auto newBuf = m_channelData[c]->inbuf->resized(newSize);

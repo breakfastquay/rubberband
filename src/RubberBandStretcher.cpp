@@ -206,7 +206,8 @@ public:
     void
     setMaxProcessSize(size_t samples)
     {
-        if (m_r2) m_r2->setMaxProcessSize(samples); //!!!  definitely need for r3d
+        if (m_r2) m_r2->setMaxProcessSize(samples);
+        else m_r3->setMaxProcessSize(samples);
     }
 
     void
