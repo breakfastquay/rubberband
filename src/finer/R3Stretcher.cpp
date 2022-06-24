@@ -487,6 +487,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             if (m_mode == ProcessMode::Studying) {
                 m_totalTargetDuration =
                     size_t(round(m_studyInputDuration * getEffectiveRatio()));
+                m_log.log(1, "for keyframe map: study duration and target duration", m_studyInputDuration, m_totalTargetDuration);
             }
             updateRatioFromMap();
         }
@@ -560,7 +561,8 @@ R3Stretcher::consume()
 
     double effectivePitchRatio = 1.0 / m_pitchScale;
     if (m_resampler) {
-        effectivePitchRatio = m_resampler->getEffectiveRatio(effectivePitchRatio);
+        effectivePitchRatio =
+            m_resampler->getEffectiveRatio(effectivePitchRatio);
     }
     
     int outhop = m_calculator->calculateSingle(m_timeRatio,
@@ -650,6 +652,16 @@ R3Stretcher::consume()
             synthesiseChannel(c, outhop);
         }
 
+        // We now have outhop samples at the start of the mixdown
+        // buffer, but they aren't necessarily all valid, because we
+        // might have had fewer than outhop at the start of inbuf
+        // (when finished and draining)
+
+        int validCount = outhop;
+        if (readSpace < outhop) {
+            validCount = readSpace;
+        }
+        
         // Resample
 
         int resampledCount = 0;
@@ -663,9 +675,9 @@ R3Stretcher::consume()
                 (m_channelAssembly.resampled.data(),
                  m_channelData[0]->resampled.size(),
                  m_channelAssembly.mixdown.data(),
-                 outhop,
+                 validCount,
                  1.0 / m_pitchScale,
-                 m_mode == ProcessMode::Finished && readSpace < longest);
+                 m_mode == ProcessMode::Finished && readSpace < inhop);
         }
 
         // Emit
@@ -674,21 +686,27 @@ R3Stretcher::consume()
             auto &cd = m_channelData.at(c);
             if (m_resampler) {
                 cd->outbuf->write(cd->resampled.data(), resampledCount);
-                if (c == 0) m_totalOutputDuration += resampledCount;
             } else {
-                cd->outbuf->write(cd->mixdown.data(), outhop);
-                if (c == 0) m_totalOutputDuration += outhop;
+                cd->outbuf->write(cd->mixdown.data(), validCount);
             }
             
-            int readSpace = cd->inbuf->getReadSpace();
             if (readSpace < inhop) {
                 // This should happen only when draining (Finished)
+                if (m_mode != ProcessMode::Finished) {
+                    m_log.log(0, "WARNING: readSpace < inhop when processing is not yet finished", readSpace, inhop);
+                }
                 cd->inbuf->skip(readSpace);
             } else {
                 cd->inbuf->skip(inhop);
             }
         }
 
+        if (m_resampler) {
+            m_totalOutputDuration += resampledCount;
+        } else {
+            m_totalOutputDuration += validCount;
+        }
+        
         if (m_startSkip > 0) {
             int toSkip = std::min
                 (m_startSkip, m_channelData.at(0)->outbuf->getReadSpace());
