@@ -378,8 +378,8 @@ R3Stretcher::getLatency() const
     if (!isRealTime()) {
         return 0;
     } else {
-        double factor = m_pitchScale * 0.5;
-        return size_t(ceil(m_guideConfiguration.longestFftSize * factor));
+        return size_t(ceil(m_guideConfiguration.longestFftSize
+                           * 0.5 * m_pitchScale));
     }
 }
 
