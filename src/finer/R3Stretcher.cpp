@@ -474,7 +474,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             // with a swoosh than introduce more latency, and we don't
             // want gaps when the ratio changes.
     
-            int pad = m_guideConfiguration.longestFftSize / 2;
+            int pad = m_guideConfiguration.longestFftSize;
             m_log.log(1, "offline mode: prefilling with", pad);
             for (int c = 0; c < m_parameters.channels; ++c) {
                 m_channelData[c]->inbuf->zero(pad);
@@ -556,10 +556,6 @@ R3Stretcher::consume()
 {
     int longest = m_guideConfiguration.longestFftSize;
     int channels = m_parameters.channels;
-
-    //!!! todo: wire debug level & logger throughout
-//    m_calculator->setDebugLevel(3);
-
     int inhop = m_inhop;
 
     double effectivePitchRatio = 1.0 / m_pitchScale;
