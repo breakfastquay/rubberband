@@ -486,18 +486,28 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
                 createResampler();
             }
 
-            // Pad to half of the longest frame. As with R2, in
-            // real-time mode we don't do this -- it's better to start
-            // with a swoosh than introduce more latency, and we don't
-            // want gaps when the ratio changes.
-    
-            int pad = m_guideConfiguration.longestFftSize;
+            // Pad to the longest frame. As with R2, in real-time mode
+            // we don't do this -- it's better to start with a swoosh
+            // than introduce more latency, and we don't want gaps
+            // when the ratio changes.
+
+            int half = m_guideConfiguration.longestFftSize / 2;
+            int pad = half + half;
             m_log.log(1, "offline mode: prefilling with", pad);
             for (int c = 0; c < m_parameters.channels; ++c) {
                 m_channelData[c]->inbuf->zero(pad);
             }
-            // By the time we skip this later we will have resampled
-            m_startSkip = int(round(pad / m_pitchScale));
+
+            // NB by the time we skip this later we may have resampled
+            // as well as stretched
+
+            m_startSkip = half + int(round(half / m_pitchScale * m_timeRatio));
+            if (m_startSkip < 0) {
+                m_log.log(0, "WARNING: calculated start skip < 0", m_startSkip);
+                m_startSkip = 0;
+            } else {
+                m_log.log(1, "start skip is", m_startSkip);
+            }
         }
         
         if (!m_keyFrameMap.empty()) {
