@@ -36,6 +36,14 @@ namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_SUITE(TestStretcher)
 
+BOOST_AUTO_TEST_CASE(engine_version)
+{
+    RubberBandStretcher s2(44100, 1, RubberBandStretcher::OptionEngineFaster);
+    BOOST_TEST(s2.getEngineVersion() == 2);
+    RubberBandStretcher s3(44100, 1, RubberBandStretcher::OptionEngineFiner);
+    BOOST_TEST(s3.getEngineVersion() == 3);
+}
+
 BOOST_AUTO_TEST_CASE(sinusoid_unchanged_single_offline_faster)
 {
     int n = 10000;
@@ -204,11 +212,82 @@ BOOST_AUTO_TEST_CASE(impulses_2_offline_faster)
     BOOST_TEST(peak0 == 0);
     BOOST_TEST(peak1 == n - 1);
     BOOST_TEST(peak2 == n*2 - 2);
-
+/*
     std::cout << "ms\tV" << std::endl;
     for (int i = 0; i < n*2; ++i) {
         std::cout << i << "\t" << out[i] << std::endl;
     }
+*/
+}
+
+BOOST_AUTO_TEST_CASE(impulses_2_offline_finer)
+{
+    int n = 10000;
+    float freq = 440.f;
+    int rate = 44100;
+    RubberBandStretcher stretcher
+        (rate, 1, RubberBandStretcher::OptionEngineFiner, 2.0, 1.0);
+
+    vector<float> in(n, 0.f), out(n * 2, 0.f);
+
+    in[0] = 1.f;
+    in[1] = -1.f;
+
+    in[4999] = 1.f;
+    in[5000] = -1.f;
+
+    in[9998] = 1.f;
+    in[9999] = -1.f;
+    
+    float *inp = in.data(), *outp = out.data();
+
+    stretcher.setMaxProcessSize(n);
+    stretcher.setExpectedInputDuration(n);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.study(&inp, n, true);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.process(&inp, n, true);
+    BOOST_TEST(stretcher.available() == n * 2);
+
+    BOOST_TEST(stretcher.getLatency() == 0); // offline mode
+    
+    size_t got = stretcher.retrieve(&outp, n * 2);
+    BOOST_TEST(got == n * 2);
+    BOOST_TEST(stretcher.available() == -1);
+
+    float max;
+    int peak0, peak1, peak2;
+    
+    for (int i = 0, max = -2.f; i < n/2; ++i) {
+        if (out[i] > max) {
+            max = out[i];
+            peak0 = i;
+        }
+    }
+    for (int i = n/2, max = -2.f; i < (n*3)/2; ++i) {
+        if (out[i] > max) {
+            max = out[i];
+            peak1 = i;
+        }
+    }
+    for (int i = (n*3)/2, max = -2.f; i < n*2; ++i) {
+        if (out[i] > max) {
+            max = out[i];
+            peak2 = i;
+        }
+    }
+
+    BOOST_TEST(peak0 == 0);
+    BOOST_TEST(peak1 == n - 1);
+    BOOST_TEST(peak2 == n*2 - 2);
+
+//    std::cout << "ms\tV" << std::endl;
+//    for (int i = 0; i < n*2; ++i) {
+//        std::cout << i << "\t" << out[i] << std::endl;
+//    }
+
 }
 
 #endif

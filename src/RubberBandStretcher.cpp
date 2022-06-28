@@ -96,6 +96,12 @@ public:
         delete m_r3;
     }
 
+    int getEngineVersion() const
+    {
+        if (m_r3) return 3;
+        else return 2;
+    }
+    
     void reset()
     {
         if (m_r2) m_r2->reset();
@@ -357,6 +363,12 @@ void
 RubberBandStretcher::reset()
 {
     m_d->reset();
+}
+
+int
+RubberBandStretcher::getEngineVersion() const
+{
+    return m_d->getEngineVersion();
 }
 
 RTENTRY__

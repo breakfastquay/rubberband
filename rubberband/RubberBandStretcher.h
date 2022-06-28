@@ -111,6 +111,36 @@ public:
      * non-real-time operation on seekable files: Offline; real-time
      * or streaming operation: RealTime.
      *
+     * 2. Flags prefixed \c OptionEngine select the core Rubber Band
+     * processing engine to be used. These options may not be changed
+     * after construction.
+     *
+     *   \li \c OptionEngineFaster - Use the Rubber Band Library R2
+     *   (Faster) engine. This is the engine implemented in Rubber
+     *   Band Library v1.x and v2.x, and it remains the default for
+     *   backward compatibility. It uses substantially less CPU than
+     *   the R3 engine and there are still many situations in which it
+     *   is likely to be the more appropriate choice.
+     *
+     *   \li \c OptionEngineFiner - Use the Rubber Band Library R3
+     *   (Finer) engine. This engine was added in Rubber Band Library
+     *   v3.0. It produces higher-quality results than the R2 engine
+     *   for most material, especially complex mixes, vocals and other
+     *   sounds that have soft onsets and smooth pitch changes, and
+     *   music with substantial bass content. However, it uses much
+     *   more CPU power than the R2 engine.
+     *
+     *   Important note: Consider calling getEngineVersion() after
+     *   construction to make sure the engine you requested is
+     *   active. That's not because engine selection can fail, but
+     *   because Rubber Band Library ignores any unknown options
+     *   supplied on construction - so a program that requests the R3
+     *   engine but ends up linked against an older version of the
+     *   library (prior to v3.0) will silently use the R2 engine
+     *   instead. Calling the v3.0 function getEngineVersion() will
+     *   ensure a link failure in this situation instead, and supply a
+     *   reassuring run-time check.
+     *
      * 3. Flags prefixed \c OptionTransients control the component
      * frequency phase-reset mechanism that may be used at transient
      * points to provide clarity and realism to percussion and other
@@ -403,6 +433,15 @@ public:
     void reset();
 
     /**
+     * Return the active internal engine version, according to the \c
+     * OptionEngine flag supplied on construction. This will return 2
+     * for the R2 (Faster) engine or 3 for the R3 (Finer) engine.
+     *
+     * This function was added in Rubber Band Library v3.0.
+     */
+    int getEngineVersion() const;
+    
+    /**
      * Set the time ratio for the stretcher.  This is the ratio of
      * stretched to unstretched duration -- not tempo.  For example, a
      * ratio of 2.0 would make the audio twice as long (i.e. halve the
@@ -477,6 +516,8 @@ public:
      * 
      * This function is supported only in the R3 (OptionEngineFiner)
      * engine. It has no effect in R2 (OptionEngineFaster).
+     *
+     * This function was added in Rubber Band Library v3.0.
      */
     void setFormantScale(double scale);
     
@@ -499,6 +540,8 @@ public:
      * 
      * This function is supported only in the R3 (OptionEngineFiner)
      * engine. It always returns 0.0 in R2 (OptionEngineFaster).
+     *
+     * This function was added in Rubber Band Library v3.0.
      */     
     double getFormantScale() const;
     
