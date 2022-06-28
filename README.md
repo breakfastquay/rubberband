@@ -124,8 +124,25 @@ duration, shifts it up in pitch by a whole tone, and writes the output
 to `output.wav`.
 
 Several further options are available: run `rubberband -h` for help.
-In particular, different types of music may benefit from different
-"crispness" options (`-c` flag, with a numerical argument from 0 to 6).
+
+The most important are the options `-2` and `-3`. These select between
+two different processing engines, known as the R2 (Faster) engine and
+the R3 (Finer) engine. The R3 engine produces higher-quality results
+than R2 for most material, especially complex mixes, vocals and other
+sounds that have soft onsets and smooth pitch changes, and music with
+substantial bass content. However, it uses much more CPU than the R2
+engine.
+
+The R2 engine was the only method available in Rubber Band Library up
+to versions 2.x, and for compatibility it remains the default (in the
+case that neither `-2` nor `-3` is requested explicitly) whenever the
+command-line tool is invoked as `rubberband`. The R3 engine is the
+default if the tool is invoked as `rubberband-r3`.
+
+Many further options are available, most of which only have an effect
+when using the R2 engine.  In particular, different types of music may
+benefit from different "crispness" options (`-c` flag, with a
+numerical argument from 0 to 6).
 
 
 ## 3. Using Rubber Band Library
