@@ -381,8 +381,8 @@ protected:
 
     void updateForUnity(Guidance &guidance,
                         bool hadPhaseReset,
-                        uint32_t unityCount,
-                        const double *const magnitudes,
+                        uint32_t /* unityCount */,
+                        const double *const /* magnitudes */,
                         const BinSegmenter::Segmentation &segmentation,
                         bool realtime) const {
         
