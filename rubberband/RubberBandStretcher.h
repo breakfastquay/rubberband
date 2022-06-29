@@ -41,49 +41,85 @@
 #include <memory>
 #include <cstddef>
 
-/**
- * @mainpage RubberBand
- * 
- * The Rubber Band API is contained in the single class
- * RubberBand::RubberBandStretcher.
- *
- * The Rubber Band stretcher supports two processing modes, offline
- * and real-time. The choice of mode is fixed on construction. In
- * offline mode, you must provide the audio block-by-block in two
- * passes: in the first pass calling study(), in the second pass
- * calling process() and receiving the output via retrieve(). In
- * real-time mode, there is no study pass, just a single streaming
- * pass in which the audio is passed to process() and output received
- * via retrieve().
- *
- * In real-time mode you can change the time and pitch ratios at any
- * time, but in offline mode they are fixed and cannot be changed
- * after the study pass has begun. (However, see setKeyFrameMap() for
- * a way to do pre-planned variable time stretching in offline mode.)
- * Offline mode typically produces slightly more precise results.
- *
- * Threading notes for real-time applications:
- * 
- * Multiple instances of RubberBandStretcher may be created and used
- * in separate threads concurrently.  However, for any single instance
- * of RubberBandStretcher, you may not call process() more than once
- * concurrently, and you may not change the time or pitch ratio while
- * a process() call is being executed (if the stretcher was created in
- * "real-time mode"; in "offline mode" you can't change the ratios
- * during use anyway).
- * 
- * So you can run process() in its own thread if you like, but if you
- * want to change ratios dynamically from a different thread, you will
- * need some form of mutex in your code.  Changing the time or pitch
- * ratio is real-time safe except in extreme circumstances, so for
- * most applications that may change these dynamically it probably
- * makes most sense to do so from the same thread as calls process(),
- * even if that is a real-time thread.
- */
-
 namespace RubberBand
 {
 
+/**
+ * @mainpage RubberBand
+ *
+ * ### Summary
+ * 
+ * The Rubber Band Library API is contained in the single class
+ * RubberBand::RubberBandStretcher.
+ *
+ * The Rubber Band stretcher supports two processing modes, offline
+ * and real-time, and two processing "engines", known as the R2 or
+ * Faster engine and the R3 or Finer engine. The choices of processing
+ * mode and engine are fixed on construction: see
+ * RubberBandStretcher::RubberBandStretcher. The two engines work
+ * identically in API terms, and both of them support both offline and
+ * real-time modes as described below.
+ *
+ * ### Offline mode
+ *
+ * In offline mode, you must provide the audio block-by-block in
+ * two passes. In the first pass, call RubberBandStretcher::study() on
+ * each block; in the second pass, call RubberBandStretcher::process()
+ * on each block and receive the output via
+ * RubberBandStretcher::retrieve().
+ *
+ * In offline mode, the time and pitch ratios are fixed as soon as the
+ * study pass has begun and cannot be changed afterwards. (But see
+ * RubberBandStretcher::setKeyFrameMap() for a way to do pre-planned
+ * variable time stretching in offline mode.) Offline mode also
+ * performs latency compensation so that the stretched result has an
+ * exact start and duration.
+ *
+ * ### Real-time mode
+ *
+ * In \b real-time mode, there is no study pass, just a single
+ * streaming pass in which the audio is passed to
+ * RubberBandStretcher::process() and output received via
+ * RubberBandStretcher::retrieve().
+ *
+ * In real-time mode you can change the time and pitch ratios at any
+ * time.
+ *
+ * You may need to perform latency compensation in real-time mode; see
+ * RubberBandStretcher::getLatency() for details.
+ *
+ * Rubber Band Library is RT-safe when used in real-time mode with
+ * "normal" processing parameters. That is, it performs no allocation,
+ * locking, or blocking operations after initialisation during normal
+ * use, even when the time and pitch ratios change. There are certain
+ * exceptions that include error states and extremely rapid changes
+ * between extreme ratios, as well as the case in which more frames
+ * are passed to RubberBandStretcher::process() than the values
+ * returned by RubberBandStretcher::getSamplesRequired() or set using
+ * RubberBandStretcher::setMaxProcessSize(), when buffer reallocation
+ * may occur. See the latter function's documentation for
+ * details. Note that offline mode is never RT-safe.
+ *
+ * ### Thread safety
+ * 
+ * Multiple instances of RubberBandStretcher may be created and used
+ * in separate threads concurrently.  However, for any single instance
+ * of RubberBandStretcher, you may not call
+ * RubberBandStretcher::process() more than once concurrently, and you
+ * may not change the time or pitch ratio while a
+ * RubberBandStretcher::process() call is being executed (if the
+ * stretcher was created in "real-time mode"; in "offline mode" you
+ * can't change the ratios during use anyway).
+ * 
+ * So you can run RubberBandStretcher::process() in its own thread if
+ * you like, but if you want to change ratios dynamically from a
+ * different thread, you will need some form of mutex in your code.
+ * Changing the time or pitch ratio is real-time safe except in
+ * extreme circumstances, so for most applications that may change
+ * these dynamically it probably makes most sense to do so from the
+ * same thread as calls RubberBandStretcher::process(), even if that
+ * is a real-time thread.
+ */
 class RUBBERBAND_DLLEXPORT
 RubberBandStretcher
 {
@@ -365,6 +401,10 @@ public:
         // n.b. Options is int, so we must stop before 0x80000000
     };
 
+    /**
+     * A bitwise OR of values from the RubberBandStretcher::Option
+     * enum.
+     */
     typedef int Options;
 
     enum PresetOption {
@@ -372,10 +412,34 @@ public:
         PercussiveOptions          = 0x00102000
     };
 
+    /**
+     * Interface for log callbacks that may optionally be provided to
+     * the stretcher on construction.
+     *
+     * If a Logger is provided, the stretcher will call one of these
+     * functions instead of sending output to \c cerr when there is
+     * something to report. This allows debug output to be diverted to
+     * an application's logging facilities, and/or handled in an
+     * RT-safe way. See setDebugLevel() for details about how and when
+     * RubberBandStretcher reports something in this way.
+     *
+     * The message text passed to each of these log functions is a
+     * C-style string with no particular guaranteed lifespan. If you
+     * need to retain it, copy it before returning. Do not free it.
+     *
+     * @see setDebugLevel
+     * @see setDefaultDebugLevel
+     */
     struct Logger {
+        /// Receive a log message with no numeric values.
         virtual void log(const char *) = 0;
+
+        /// Receive a log message and one accompanying numeric value.
         virtual void log(const char *, double) = 0;
+
+        /// Receive a log message and two accompanying numeric values.
         virtual void log(const char *, double, double) = 0;
+        
         virtual ~Logger() { }
     };
     
@@ -413,7 +477,7 @@ public:
     /**
      * Construct a time and pitch stretcher object with a custom debug
      * logger. This may be useful for debugging if the default logger
-     * output (which simply goes to cout) is not visible in the
+     * output (which simply goes to \c cerr) is not visible in the
      * runtime environment, or if the application has a standard or
      * more realtime-appropriate logging mechanism.
      *
@@ -576,10 +640,16 @@ public:
     size_t getLatency() const;
 
     /**
-     * Change an OptionTransients configuration setting.  This may be
+     * Return the number of channels this stretcher was constructed
+     * with.
+     */
+    size_t getChannelCount() const;
+
+    /**
+     * Change an OptionTransients configuration setting. This may be
      * called at any time in RealTime mode.  It may not be called in
      * Offline mode (for which the transients option is fixed on
-     * construction).
+     * construction). This has no effect when using the R3 engine.
      */
     void setTransientsOption(Options options);
 
@@ -587,13 +657,14 @@ public:
      * Change an OptionDetector configuration setting.  This may be
      * called at any time in RealTime mode.  It may not be called in
      * Offline mode (for which the detector option is fixed on
-     * construction).
+     * construction). This has no effect when using the R3 engine.
      */
     void setDetectorOption(Options options);
 
     /**
      * Change an OptionPhase configuration setting.  This may be
-     * called at any time in any mode.
+     * called at any time in any mode. This has no effect when using
+     * the R3 engine.
      *
      * Note that if running multi-threaded in Offline mode, the change
      * may not take effect immediately if processing is already under
@@ -615,7 +686,7 @@ public:
      * Change an OptionPitch configuration setting.  This may be
      * called at any time in RealTime mode.  It may not be called in
      * Offline mode (for which the pitch option is fixed on
-     * construction).
+     * construction). This has no effect when using the R3 engine.
      */
     void setPitchOption(Options options);
 
@@ -820,7 +891,8 @@ public:
     /**
      * Retrieve the value of the internal input block increment value.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     size_t getInputIncrement() const;
 
@@ -831,7 +903,8 @@ public:
      * retrieve any output increments that have accumulated since the
      * last call to getOutputIncrements, to a limit of 16.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     std::vector<int> getOutputIncrements() const;
 
@@ -842,7 +915,8 @@ public:
      * retrieve any phase reset points that have accumulated since the
      * last call to getPhaseResetCurve, to a limit of 16.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     std::vector<float> getPhaseResetCurve() const;
 
@@ -852,31 +926,52 @@ public:
      * provided the stretch profile has been calculated.  In realtime
      * mode, return an empty sequence.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     std::vector<int> getExactTimePoints() const;
-
-    /**
-     * Return the number of channels this stretcher was constructed
-     * with.
-     */
-    size_t getChannelCount() const;
 
     /**
      * Force the stretcher to calculate a stretch profile.  Normally
      * this happens automatically for the first process() call in
      * offline mode.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     void calculateStretch();
 
     /**
-     * Set the level of debug output.  The value may be from 0 (errors
-     * only) to 3 (very verbose, with audible ticks in the output at
-     * phase reset points).  The default is whatever has been set
-     * using setDefaultDebugLevel, or 0 if that function has not been
+     * Set the level of debug output.  The supported values are:
+     *
+     * 0. Report errors only.
+     * 
+     * 1. Report some information on construction and ratio
+     * change. Nothing is reported during normal processing unless
+     * something changes.
+     * 
+     * 2. Report a significant amount of information about ongoing
+     * stretch calculations during normal processing.
+     * 
+     * 3. Report a large amount of information and also (in the R2
+     * engine) add audible ticks to the output at phase reset
+     * points. This is seldom useful.
+     *
+     * The default is whatever has been set using
+     * setDefaultDebugLevel(), or 0 if that function has not been
      * called.
+     *
+     * All output goes to \c cerr unless a custom
+     * RubberBandStretcher::Logger has been provided on
+     * construction. Because writing to \c cerr is not RT-safe, only
+     * debug level 0 is RT-safe in normal use by default. Debug levels
+     * 0 and 1 use only C-string constants as debug messages, so they
+     * are RT-safe if your custom logger is RT-safe. Levels 2 and 3
+     * are not guaranteed to be RT-safe in any conditions as they may
+     * construct messages by allocation.
+     *
+     * @see Logger
+     * @see setDefaultDebugLevel
      */
     void setDebugLevel(int level);
 

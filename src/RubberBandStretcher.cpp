@@ -207,6 +207,7 @@ public:
     setExpectedInputDuration(size_t samples) 
     {
         if (m_r2) m_r2->setExpectedInputDuration(samples);
+        //!!! perhaps also for R3
     }
 
     void
