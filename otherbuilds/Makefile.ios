@@ -44,18 +44,19 @@ LIBRARY_SOURCES := \
 	src/faster/HighFrequencyAudioCurve.cpp \
 	src/faster/SilentAudioCurve.cpp \
 	src/faster/PercussiveAudioCurve.cpp \
+	src/faster/R2Stretcher.cpp \
 	src/faster/StretcherChannelData.cpp \
-	src/faster/StretcherImpl.cpp \
 	src/faster/StretcherProcess.cpp \
+	src/common/Allocators.cpp \
 	src/common/BQResampler.cpp \
+	src/common/FFT.cpp \
+	src/common/Log.cpp \
 	src/common/Profiler.cpp \
 	src/common/Resampler.cpp \
-	src/common/FFT.cpp \
-	src/common/Allocators.cpp \
 	src/common/StretchCalculator.cpp \
 	src/common/sysutils.cpp \
 	src/common/Thread.cpp \
-	src/finer/R3StretcherImpl.cpp 
+	src/finer/R3Stretcher.cpp 
 
 LIBRARY_OBJECTS_DEV := $(LIBRARY_SOURCES:.cpp=.dev.o)
 LIBRARY_OBJECTS_DEV := $(LIBRARY_OBJECTS_DEV:.c=.dev.o)

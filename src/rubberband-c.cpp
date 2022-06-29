@@ -73,6 +73,16 @@ double rubberband_get_pitch_scale(const RubberBandState state)
     return state->m_s->getPitchScale();
 }
 
+void rubberband_set_formant_scale(RubberBandState state, double scale)
+{
+    state->m_s->setFormantScale(scale);
+}
+
+double rubberband_get_formant_scale(const RubberBandState state)
+{
+    return state->m_s->getFormantScale();
+}
+
 unsigned int rubberband_get_latency(const RubberBandState state) 
 {
     return state->m_s->getLatency();

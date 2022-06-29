@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#define RUBBERBAND_VERSION "3.0.0-beta2"
+#define RUBBERBAND_VERSION "3.0.0"
 #define RUBBERBAND_API_MAJOR_VERSION 2
 #define RUBBERBAND_API_MINOR_VERSION 7
 
@@ -90,7 +90,10 @@ enum RubberBandOption {
     RubberBandOptionPitchHighConsistency = 0x04000000,
 
     RubberBandOptionChannelsApart        = 0x00000000,
-    RubberBandOptionChannelsTogether     = 0x10000000
+    RubberBandOptionChannelsTogether     = 0x10000000,
+
+    RubberBandOptionEngineFaster         = 0x00000000,
+    RubberBandOptionEngineFiner          = 0x20000000
 };
 
 typedef int RubberBandOptions;
@@ -113,6 +116,9 @@ RB_EXTERN void rubberband_set_pitch_scale(RubberBandState, double scale);
 
 RB_EXTERN double rubberband_get_time_ratio(const RubberBandState);
 RB_EXTERN double rubberband_get_pitch_scale(const RubberBandState);
+
+RB_EXTERN void rubberband_set_formant_scale(RubberBandState, double scale);
+RB_EXTERN double rubberband_get_formant_scale(const RubberBandState);
 
 RB_EXTERN unsigned int rubberband_get_latency(const RubberBandState);
 
