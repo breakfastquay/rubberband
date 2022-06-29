@@ -328,23 +328,17 @@ R3Stretcher::updateRatioFromMap()
             keyFrameAtOutput = m_totalTargetDuration;
         }
         
-//        size_t toKeyFrameAtInput = keyFrameAtInput - i0->first;
-//        size_t toKeyFrameAtOutput = keyFrameAtOutput - i0->second;
-        size_t toKeyFrameAtInput = keyFrameAtInput - m_processInputDuration;
-        size_t toKeyFrameAtOutput = 0;
-
-        if (keyFrameAtOutput > m_totalOutputDuration) {
-            toKeyFrameAtOutput = keyFrameAtOutput - m_totalOutputDuration;
-        }
+        size_t toKeyFrameAtInput = keyFrameAtInput - i0->first;
+        size_t toKeyFrameAtOutput = keyFrameAtOutput - i0->second;
 
         double ratio = double(toKeyFrameAtOutput) / double(toKeyFrameAtInput);
 
         m_log.log(1, "next key frame input and output",
                    double(keyFrameAtInput), double(keyFrameAtOutput));
+        m_log.log(1, "diff to next key frame input and output",
+                   double(toKeyFrameAtInput), double(toKeyFrameAtOutput));
         m_log.log(1, "current input and output",
                    double(m_processInputDuration), double(m_totalOutputDuration));
-        m_log.log(1, "to next key frame input and output",
-                   double(toKeyFrameAtInput), double(toKeyFrameAtOutput));
         m_log.log(1, "new ratio", ratio);
     
         m_timeRatio = ratio;
@@ -487,11 +481,9 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
         }
 
         // Update this on every process round, checking whether we've
-        // surpassed th next key frame yet. It's important that we do
-        // this (the first time through) before the padding
-        // calculation below, since it may change the effective
-        // starting ratio. But it has to follow the overall target
-        // calculation above, which uses the "global" ratio.
+        // surpassed the next key frame yet. This must follow the
+        // overall target calculation above, which uses the "global"
+        // time ratio, but precede any other use of the time ratio.
         
         if (!m_keyFrameMap.empty()) {
             updateRatioFromMap();
@@ -504,13 +496,11 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
                 createResampler();
             }
 
-            // Pad to the longest frame. As with R2, in real-time mode
-            // we don't do this -- it's better to start with a swoosh
-            // than introduce more latency, and we don't want gaps
-            // when the ratio changes.
-
-            int half = m_guideConfiguration.longestFftSize / 2;
-            int pad = half + half;
+            // Pad to half the longest frame. As with R2, in real-time
+            // mode we don't do this -- it's better to start with a
+            // swoosh than introduce more latency, and we don't want
+            // gaps when the ratio changes.
+            int pad = m_guideConfiguration.longestFftSize / 2;
             m_log.log(1, "offline mode: prefilling with", pad);
             for (int c = 0; c < m_parameters.channels; ++c) {
                 m_channelData[c]->inbuf->zero(pad);
@@ -518,8 +508,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
 
             // NB by the time we skip this later we may have resampled
             // as well as stretched
-
-            m_startSkip = half + int(round(half / m_pitchScale * m_timeRatio));
+            m_startSkip = int(round(pad / m_pitchScale));
             if (m_startSkip < 0) {
                 m_log.log(0, "WARNING: calculated start skip < 0", m_startSkip);
                 m_startSkip = 0;
