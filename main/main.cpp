@@ -865,19 +865,21 @@ int main(int argc, char **argv)
             }
 
             if (clipping) {
-                if (!quiet) {
-                    cerr << "NOTE: Clipping detected at output sample "
-                         << countOut << ", restarting with "
-                         << "reduced gain of " << gain
-                         << " (supply --ignore-clipping to avoid this)" << endl;
-                }
                 const float mingain = 0.75f;
                 if (gain < mingain) {
-                    cerr << "WARNING: Clipped values were implausibly high: "
-                         << "something wrong with input or process - "
-                         << "not reducing gain below " << mingain << endl;
+                    cerr << "NOTE: Clipping detected at output sample "
+                         << countOut << ", but not reducing gain as it would "
+                         << "mean dropping below minimum " << mingain << endl;
                     gain = mingain;
                     ignoreClipping = true;
+                } else {
+                    if (!quiet) {
+                        cerr << "NOTE: Clipping detected at output sample "
+                             << countOut << ", restarting with "
+                             << "reduced gain of " << gain
+                             << " (supply --ignore-clipping to avoid this)"
+                             << endl;
+                    }
                 }
                 successful = false;
                 break;
@@ -983,7 +985,11 @@ int main(int argc, char **argv)
 
     if (!quiet) {
 
-        cerr << "in: " << countIn << ", out: " << countOut << ", ratio: " << float(countOut)/float(countIn) << ", ideal output: " << lrint(countIn * ratio) << ", error: " << abs(lrint(countIn * ratio) - int(countOut)) << endl;
+        cerr << "in: " << countIn << ", out: " << countOut
+             << ", ratio: " << float(countOut)/float(countIn)
+             << ", ideal output: " << lrint(countIn * ratio)
+             << ", error: " << abs(lrint(countIn * ratio) - int(countOut))
+             << endl;
 
 #ifdef _WIN32
         RubberBand::
