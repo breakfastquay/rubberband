@@ -117,18 +117,18 @@ public:
      *
      *   \li \c OptionEngineFaster - Use the Rubber Band Library R2
      *   (Faster) engine. This is the engine implemented in Rubber
-     *   Band Library v1.x and v2.x, and it remains the default for
-     *   backward compatibility. It uses substantially less CPU than
-     *   the R3 engine and there are still many situations in which it
-     *   is likely to be the more appropriate choice.
+     *   Band Library v1.x and v2.x, and it remains the default in
+     *   newer versions. It uses substantially less CPU than the R3
+     *   engine and there are still many situations in which it is
+     *   likely to be the more appropriate choice.
      *
      *   \li \c OptionEngineFiner - Use the Rubber Band Library R3
-     *   (Finer) engine. This engine was added in Rubber Band Library
-     *   v3.0. It produces higher-quality results than the R2 engine
-     *   for most material, especially complex mixes, vocals and other
-     *   sounds that have soft onsets and smooth pitch changes, and
-     *   music with substantial bass content. However, it uses much
-     *   more CPU power than the R2 engine.
+     *   (Finer) engine. This engine was introduced in Rubber Band
+     *   Library v3.0. It produces higher-quality results than the R2
+     *   engine for most material, especially complex mixes, vocals
+     *   and other sounds that have soft onsets and smooth pitch
+     *   changes, and music with substantial bass content. However, it
+     *   uses much more CPU power than the R2 engine.
      *
      *   Important note: Consider calling getEngineVersion() after
      *   construction to make sure the engine you requested is
@@ -142,11 +142,12 @@ public:
      *   reassuring run-time check.
      *
      * 3. Flags prefixed \c OptionTransients control the component
-     * frequency phase-reset mechanism that may be used at transient
-     * points to provide clarity and realism to percussion and other
-     * significant transient sounds.  These options may be changed
-     * after construction when running in real-time mode, but not when
-     * running in offline mode.
+     * frequency phase-reset mechanism in the R2 engine, that may be
+     * used at transient points to provide clarity and realism to
+     * percussion and other significant transient sounds. These
+     * options have no effect when using the R3 engine.  These options
+     * may be changed after construction when running in real-time
+     * mode, but not when running in offline mode.
      * 
      *   \li \c OptionTransientsCrisp - Reset component phases at the
      *   peak of each transient (the start of a significant note or
@@ -171,9 +172,10 @@ public:
      *   transients flags.
      *
      * 4. Flags prefixed \c OptionDetector control the type of
-     * transient detector used.  These options may be changed
-     * after construction when running in real-time mode, but not when
-     * running in offline mode.
+     * transient detector used in the R2 engine.  These options have
+     * no effect when using the R3 engine.  These options may be
+     * changed after construction when running in real-time mode, but
+     * not when running in offline mode.
      *
      *   \li \c OptionDetectorCompound - Use a general-purpose
      *   transient detector which is likely to be good for most
@@ -189,9 +191,10 @@ public:
      *   piano music).
      *
      * 5. Flags prefixed \c OptionPhase control the adjustment of
-     * component frequency phases from one analysis window to the next
-     * during non-transient segments.  These options may be changed at
-     * any time.
+     * component frequency phases in the R2 engine from one analysis
+     * window to the next during non-transient segments.  These
+     * options have no effect when using the R3 engine. These options
+     * may be changed at any time.
      *
      *   \li \c OptionPhaseLaminar - Adjust phases when stretching in
      *   such a way as to try to retain the continuity of phase
@@ -208,11 +211,13 @@ public:
      * construction.
      *
      *   \li \c OptionThreadingAuto - Permit the stretcher to
-     *   determine its own threading model.  Usually this means using
-     *   one processing thread per audio channel in offline mode if
-     *   the stretcher is able to determine that more than one CPU is
-     *   available, and one thread only in realtime mode.  This is the
-     *   default.
+     *   determine its own threading model.  In the R2 engine this
+     *   means using one processing thread per audio channel in
+     *   offline mode if the stretcher is able to determine that more
+     *   than one CPU is available, and one thread only in realtime
+     *   mode.  The R3 engine does not currently have a multi-threaded
+     *   mode, but if one is introduced in future, this option may use
+     *   it. This is the default.
      *
      *   \li \c OptionThreadingNever - Never use more than one thread.
      *  
@@ -221,9 +226,10 @@ public:
      *   the check for multiple CPUs and instead assume it to be true.
      *
      * 7. Flags prefixed \c OptionWindow control the window size for
-     * FFT processing.  The window size actually used will depend on
-     * many factors, but it can be influenced.  These options may not
-     * be changed after construction.
+     * FFT processing in the R2 engine.  (The window size actually
+     * used will depend on many factors, but it can be influenced.)
+     * These options have no effect when using the R3 engine.  These
+     * options may not be changed after construction.
      *
      *   \li \c OptionWindowStandard - Use the default window size.
      *   The actual size will vary depending on other parameters.
@@ -239,8 +245,9 @@ public:
      *   clarity and timing.
      *
      * 8. Flags prefixed \c OptionSmoothing control the use of
-     * window-presum FFT and time-domain smoothing.  These options may
-     * not be changed after construction.
+     * window-presum FFT and time-domain smoothing in the R2
+     * engine. These options have no effect when using the R3 engine.
+     * These options may not be changed after construction.
      *
      *   \li \c OptionSmoothingOff - Do not use time-domain smoothing.
      *   This is the default.
@@ -252,8 +259,9 @@ public:
      *   OptionWindowShort.
      *
      * 9. Flags prefixed \c OptionFormant control the handling of
-     * formant shape (spectral envelope) when pitch-shifting.  These
-     * options may be changed at any time.
+     * formant shape (spectral envelope) when pitch-shifting. These
+     * options affect both the R2 and R3 engines.  These options may
+     * be changed at any time.
      *
      *   \li \c OptionFormantShifted - Apply no special formant
      *   processing.  The spectral envelope will be pitch shifted as
@@ -265,9 +273,10 @@ public:
      *   perceived pitch profile of the voice or instrument.
      *
      * 10. Flags prefixed \c OptionPitch control the method used for
-     * pitch shifting.  These options may be changed at any time.
-     * They are only effective in realtime mode; in offline mode, the
-     * pitch-shift method is fixed.
+     * pitch shifting in the R2 engine.  These options have no effect
+     * when using the R3 engine.  These options may be changed at any
+     * time.  They are only effective in realtime mode; in offline
+     * mode, the pitch-shift method is fixed.
      *
      *   \li \c OptionPitchHighSpeed - Use a method with a CPU cost
      *   that is relatively moderate and predictable.  This may
@@ -285,9 +294,10 @@ public:
      *   1.0 pitch scale in real-time; it also consumes more CPU than
      *   the others in the case where the pitch scale is exactly 1.0.
      *
-     * 11. Flags prefixed \c OptionChannels control the method used for
-     * processing two-channel audio.  These options may not be changed
-     * after construction.
+     * 11. Flags prefixed \c OptionChannels control the method used
+     * for processing two-channel audio in the R2 engine.  These
+     * options have no effect when using the R3 engine.  These options
+     * may not be changed after construction.
      *
      *   \li \c OptionChannelsApart - Each channel is processed
      *   individually, though timing is synchronised and phases are
