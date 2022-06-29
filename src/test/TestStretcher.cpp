@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(engine_version)
     BOOST_TEST(s3.getEngineVersion() == 3);
 }
 
-BOOST_AUTO_TEST_CASE(sinusoid_unchanged_single_offline_faster)
+BOOST_AUTO_TEST_CASE(sinusoid_unchanged_offline_faster)
 {
     int n = 10000;
     float freq = 440.f;
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged_single_offline_faster)
                tt::tolerance(0.001f) << tt::per_element());
 }
 
-BOOST_AUTO_TEST_CASE(sinusoid_unchanged_single_offline_finer)
+BOOST_AUTO_TEST_CASE(sinusoid_unchanged_offline_finer)
 {
     int n = 10000;
     float freq = 440.f;
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged_single_offline_finer)
     // what these tolerances mean
     
     BOOST_TEST(out == in,
-               tt::tolerance(0.15f) << tt::per_element());
+               tt::tolerance(0.35f) << tt::per_element());
     
     BOOST_TEST(vector<float>(out.begin() + 1024, out.begin() + n - 1024) ==
                vector<float>(in.begin() + 1024, in.begin() + n - 1024),
@@ -148,26 +148,101 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged_single_offline_finer)
 //    }
 }
 
-#ifdef NOT_YET
+BOOST_AUTO_TEST_CASE(sinusoid_2x_offline_finer)
+{
+    int n = 10000;
+    float freq = 441.f; // so a cycle is an exact number of samples
+    int rate = 44100;
 
-BOOST_AUTO_TEST_CASE(impulses_2_offline_faster)
+    RubberBandStretcher stretcher
+        (rate, 1, RubberBandStretcher::OptionEngineFiner);
+
+    stretcher.setTimeRatio(2.0);
+    
+    vector<float> in(n), out(n*2);
+    for (int i = 0; i < n*2; ++i) {
+        out[i] = sinf(float(i) * freq * M_PI * 2.f / float(rate));
+        if (i < n) {
+            in[i] = out[i];
+        }
+    }
+    float *inp = in.data(), *outp = out.data();
+
+    stretcher.setMaxProcessSize(n);
+    stretcher.setExpectedInputDuration(n);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.study(&inp, n, true);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.process(&inp, n, true);
+    BOOST_TEST(stretcher.available() == n*2);
+
+    BOOST_TEST(stretcher.getLatency() == 0); // offline mode
+    
+    size_t got = stretcher.retrieve(&outp, n*2);
+    BOOST_TEST(got == n*2);
+    BOOST_TEST(stretcher.available() == -1);
+
+    int period = -1;
+    for (int i = 1000; i < 2000; ++i) {
+        if (period >= 0) ++period;
+        if (out[i] <= 0.f && out[i+1] > 0.f) {
+            if (period == -1) period = 0;
+            else break;
+        }
+    }
+    BOOST_TEST(period == 100);
+    
+    int offset = 0;
+    for (int i = 0; i < 200; ++i) {
+        if (out[i] <= 0.f && out[i+1] > -0.01f) {
+            offset = i + 1;
+            break;
+        }
+    }
+
+    // overall
+    
+    double rms = 0.0;
+    for (int i = 0; i < n - offset; ++i) {
+        double diff = out[i + offset] - in[i];
+        rms += diff * diff;
+    }
+    rms = sqrt(rms / double(n - offset));
+    BOOST_TEST(rms < 0.2);
+
+    // steady state
+    
+    rms = 0.0;
+    for (int i = 1500; i < n - offset - 3000; ++i) {
+        double diff = out[i + offset + 1500] - in[i + 1500];
+        rms += diff * diff;
+    }
+    rms = sqrt(rms / double(n - offset - 3000));
+    BOOST_TEST(rms < 0.1);
+}
+
+BOOST_AUTO_TEST_CASE(impulses_2x_offline_faster)
 {
     int n = 10000;
     float freq = 440.f;
     int rate = 44100;
     RubberBandStretcher stretcher
-        (rate, 1, RubberBandStretcher::OptionEngineFaster, 2.0, 1.0);
+        (rate, 1, RubberBandStretcher::OptionEngineFaster);
+
+    stretcher.setTimeRatio(2.0);
 
     vector<float> in(n, 0.f), out(n * 2, 0.f);
 
-    in[0] = 1.f;
-    in[1] = -1.f;
+    in[100] = 1.f;
+    in[101] = -1.f;
 
-    in[4999] = 1.f;
-    in[5000] = -1.f;
+    in[5000] = 1.f;
+    in[5001] = -1.f;
 
-    in[9998] = 1.f;
-    in[9999] = -1.f;
+    in[9900] = 1.f;
+    in[9901] = -1.f;
     
     float *inp = in.data(), *outp = out.data();
 
@@ -187,31 +262,29 @@ BOOST_AUTO_TEST_CASE(impulses_2_offline_faster)
     BOOST_TEST(got == n * 2);
     BOOST_TEST(stretcher.available() == -1);
 
-    float max;
     int peak0, peak1, peak2;
+    float max;
     
-    for (int i = 0, max = -2.f; i < n/2; ++i) {
-        if (out[i] > max) {
-            max = out[i];
-            peak0 = i;
-        }
-    }
-    for (int i = n/2, max = -2.f; i < (n*3)/2; ++i) {
-        if (out[i] > max) {
-            max = out[i];
-            peak1 = i;
-        }
-    }
-    for (int i = (n*3)/2, max = -2.f; i < n*2; ++i) {
-        if (out[i] > max) {
-            max = out[i];
-            peak2 = i;
-        }
+    max = -2.f;
+    for (int i = 0; i < n/2; ++i) {
+        if (out[i] > max) { max = out[i]; peak0 = i; }
     }
 
-    BOOST_TEST(peak0 == 0);
-    BOOST_TEST(peak1 == n - 1);
-    BOOST_TEST(peak2 == n*2 - 2);
+    max = -2.f;
+    for (int i = n/2; i < (n*3)/2; ++i) {
+        if (out[i] > max) { max = out[i]; peak1 = i; }
+    }
+
+    max = -2.f;
+    for (int i = (n*3)/2; i < n*2; ++i) {
+        if (out[i] > max) { max = out[i]; peak2 = i; }
+    }
+
+    BOOST_TEST(peak0 == 100);
+    BOOST_TEST(peak1 > n - 400);
+    BOOST_TEST(peak1 < n + 50);
+    BOOST_TEST(peak2 > n*2 - 600);
+    BOOST_TEST(peak2 < n*2);
 /*
     std::cout << "ms\tV" << std::endl;
     for (int i = 0; i < n*2; ++i) {
@@ -220,24 +293,26 @@ BOOST_AUTO_TEST_CASE(impulses_2_offline_faster)
 */
 }
 
-BOOST_AUTO_TEST_CASE(impulses_2_offline_finer)
+BOOST_AUTO_TEST_CASE(impulses_2x_offline_finer)
 {
     int n = 10000;
     float freq = 440.f;
     int rate = 44100;
     RubberBandStretcher stretcher
-        (rate, 1, RubberBandStretcher::OptionEngineFiner, 2.0, 1.0);
+        (rate, 1, RubberBandStretcher::OptionEngineFiner);
+
+    stretcher.setTimeRatio(2.0);
 
     vector<float> in(n, 0.f), out(n * 2, 0.f);
 
-    in[0] = 1.f;
-    in[1] = -1.f;
+    in[100] = 1.f;
+    in[101] = -1.f;
 
-    in[4999] = 1.f;
-    in[5000] = -1.f;
+    in[5000] = 1.f;
+    in[5001] = -1.f;
 
-    in[9998] = 1.f;
-    in[9999] = -1.f;
+    in[9900] = 1.f;
+    in[9901] = -1.f;
     
     float *inp = in.data(), *outp = out.data();
 
@@ -257,39 +332,106 @@ BOOST_AUTO_TEST_CASE(impulses_2_offline_finer)
     BOOST_TEST(got == n * 2);
     BOOST_TEST(stretcher.available() == -1);
 
-    float max;
     int peak0, peak1, peak2;
-    
-    for (int i = 0, max = -2.f; i < n/2; ++i) {
-        if (out[i] > max) {
-            max = out[i];
-            peak0 = i;
-        }
-    }
-    for (int i = n/2, max = -2.f; i < (n*3)/2; ++i) {
-        if (out[i] > max) {
-            max = out[i];
-            peak1 = i;
-        }
-    }
-    for (int i = (n*3)/2, max = -2.f; i < n*2; ++i) {
-        if (out[i] > max) {
-            max = out[i];
-            peak2 = i;
-        }
+    float max;
+
+    max = -2.f;
+    for (int i = 0; i < n/2; ++i) {
+        if (out[i] > max) { max = out[i]; peak0 = i; }
     }
 
-    BOOST_TEST(peak0 == 0);
-    BOOST_TEST(peak1 == n - 1);
-    BOOST_TEST(peak2 == n*2 - 2);
+    max = -2.f;
+    for (int i = n/2; i < (n*3)/2; ++i) {
+        if (out[i] > max) { max = out[i]; peak1 = i; }
+    }
 
-//    std::cout << "ms\tV" << std::endl;
-//    for (int i = 0; i < n*2; ++i) {
-//        std::cout << i << "\t" << out[i] << std::endl;
-//    }
+    max = -2.f;
+    for (int i = (n*3)/2; i < n*2; ++i) {
+        if (out[i] > max) { max = out[i]; peak2 = i; }
+    }
 
+    BOOST_TEST(peak0 == 100);
+    BOOST_TEST(peak1 > n - 400);
+    BOOST_TEST(peak1 < n + 50);
+    BOOST_TEST(peak2 > n*2 - 600);
+    BOOST_TEST(peak2 < n*2);
+/*
+    std::cout << "ms\tV" << std::endl;
+    for (int i = 0; i < n*2; ++i) {
+        std::cout << i << "\t" << out[i] << std::endl;
+    }
+*/
 }
 
-#endif
+BOOST_AUTO_TEST_CASE(impulses_2x_5up_offline_finer)
+{
+    int n = 10000;
+    float freq = 440.f;
+    int rate = 44100;
+    RubberBandStretcher stretcher
+        (rate, 1, RubberBandStretcher::OptionEngineFiner);
+
+    stretcher.setTimeRatio(2.0);
+    stretcher.setPitchScale(1.5);
+
+    vector<float> in(n, 0.f), out(n * 2, 0.f);
+
+    in[100] = 1.f;
+    in[101] = -1.f;
+
+    in[5000] = 1.f;
+    in[5001] = -1.f;
+
+    in[9900] = 1.f;
+    in[9901] = -1.f;
+    
+    float *inp = in.data(), *outp = out.data();
+
+    stretcher.setMaxProcessSize(n);
+    stretcher.setExpectedInputDuration(n);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.study(&inp, n, true);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.process(&inp, n, true);
+    BOOST_TEST(stretcher.available() == n * 2);
+
+    BOOST_TEST(stretcher.getLatency() == 0); // offline mode
+    
+    size_t got = stretcher.retrieve(&outp, n * 2);
+    BOOST_TEST(got == n * 2);
+    BOOST_TEST(stretcher.available() == -1);
+
+    int peak0, peak1, peak2;
+    float max;
+
+    max = -2.f;
+    for (int i = 0; i < n/2; ++i) {
+        if (out[i] > max) { max = out[i]; peak0 = i; }
+    }
+
+    max = -2.f;
+    for (int i = n/2; i < (n*3)/2; ++i) {
+        if (out[i] > max) { max = out[i]; peak1 = i; }
+    }
+
+    max = -2.f;
+    for (int i = (n*3)/2; i < n*2; ++i) {
+        if (out[i] > max) { max = out[i]; peak2 = i; }
+    }
+
+    BOOST_TEST(peak0 < 100);
+    BOOST_TEST(peak1 > n - 400);
+    BOOST_TEST(peak1 < n + 50);
+    BOOST_TEST(peak2 > n*2 - 600);
+    BOOST_TEST(peak2 < n*2);
+/*
+    std::cout << "ms\tV" << std::endl;
+    for (int i = 0; i < n*2; ++i) {
+        std::cout << i << "\t" << out[i] << std::endl;
+    }
+*/
+}
 
 BOOST_AUTO_TEST_SUITE_END()
