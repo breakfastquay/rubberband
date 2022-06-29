@@ -313,7 +313,7 @@ R3Stretcher::updateRatioFromMap()
 
     if (m_processInputDuration >= i0->first) {
 
-        m_log.log(2, "input duration surpasses pending key frame",
+        m_log.log(1, "input duration surpasses pending key frame",
                    double(m_processInputDuration), double(i0->first));
         
         auto i1 = m_keyFrameMap.upper_bound(m_processInputDuration);
@@ -339,13 +339,13 @@ R3Stretcher::updateRatioFromMap()
 
         double ratio = double(toKeyFrameAtOutput) / double(toKeyFrameAtInput);
 
-        m_log.log(2, "next key frame input and output",
+        m_log.log(1, "next key frame input and output",
                    double(keyFrameAtInput), double(keyFrameAtOutput));
-        m_log.log(2, "current input and output",
+        m_log.log(1, "current input and output",
                    double(m_processInputDuration), double(m_totalOutputDuration));
-        m_log.log(2, "to next key frame input and output",
+        m_log.log(1, "to next key frame input and output",
                    double(toKeyFrameAtInput), double(toKeyFrameAtOutput));
-        m_log.log(2, "new ratio", ratio);
+        m_log.log(1, "new ratio", ratio);
     
         m_timeRatio = ratio;
         calculateHop();
@@ -478,6 +478,24 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     }
 
     if (!isRealTime()) {
+        
+        if (m_mode == ProcessMode::Studying) {
+            m_totalTargetDuration =
+                size_t(round(m_studyInputDuration * m_timeRatio));
+            m_log.log(1, "study duration and target duration",
+                      m_studyInputDuration, m_totalTargetDuration);
+        }
+
+        // Update this on every process round, checking whether we've
+        // surpassed th next key frame yet. It's important that we do
+        // this (the first time through) before the padding
+        // calculation below, since it may change the effective
+        // starting ratio. But it has to follow the overall target
+        // calculation above, which uses the "global" ratio.
+        
+        if (!m_keyFrameMap.empty()) {
+            updateRatioFromMap();
+        }
 
         if (m_mode == ProcessMode::JustCreated ||
             m_mode == ProcessMode::Studying) {
@@ -508,15 +526,6 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             } else {
                 m_log.log(1, "start skip is", m_startSkip);
             }
-        }
-        
-        if (!m_keyFrameMap.empty()) {
-            if (m_mode == ProcessMode::Studying) {
-                m_totalTargetDuration =
-                    size_t(round(m_studyInputDuration * getEffectiveRatio()));
-                m_log.log(1, "for keyframe map: study duration and target duration", m_studyInputDuration, m_totalTargetDuration);
-            }
-            updateRatioFromMap();
         }
     }
 
@@ -708,12 +717,28 @@ R3Stretcher::consume()
 
         // Emit
 
+        int writeCount = validCount;
+        if (m_resampler) {
+            writeCount = resampledCount;
+        }
+
+        if (!isRealTime()) {
+            if (m_totalTargetDuration > 0 &&
+                m_totalOutputDuration + writeCount > m_totalTargetDuration) {
+                m_log.log(1, "writeCount would take output beyond target",
+                          m_totalOutputDuration, m_totalTargetDuration);
+                auto reduced = m_totalTargetDuration - m_totalOutputDuration;
+                m_log.log(1, "reducing writeCount from and to", writeCount, reduced);
+                writeCount = reduced;
+            }
+        }
+        
         for (int c = 0; c < channels; ++c) {
             auto &cd = m_channelData.at(c);
             if (m_resampler) {
-                cd->outbuf->write(cd->resampled.data(), resampledCount);
+                cd->outbuf->write(cd->resampled.data(), writeCount);
             } else {
-                cd->outbuf->write(cd->mixdown.data(), validCount);
+                cd->outbuf->write(cd->mixdown.data(), writeCount);
             }
             
             if (readSpace < inhop) {
@@ -727,19 +752,16 @@ R3Stretcher::consume()
             }
         }
 
-        if (m_resampler) {
-            m_totalOutputDuration += resampledCount;
-        } else {
-            m_totalOutputDuration += validCount;
-        }
+        m_totalOutputDuration += writeCount;
         
         if (m_startSkip > 0) {
-            int toSkip = std::min
-                (m_startSkip, m_channelData.at(0)->outbuf->getReadSpace());
+            int rs = m_channelData.at(0)->outbuf->getReadSpace();
+            int toSkip = std::min(m_startSkip, rs);
             for (int c = 0; c < channels; ++c) {
                 m_channelData.at(c)->outbuf->skip(toSkip);
             }
             m_startSkip -= toSkip;
+            m_totalOutputDuration = rs - toSkip;
         }
         
         m_prevInhop = inhop;
