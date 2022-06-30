@@ -7,7 +7,7 @@ packages:
   - ladspa-sdk
   - lv2-dev
   - vamp-plugin-sdk
-  - libboost
+  - libboost-test-dev
   - meson
   - ninja-build
 sources:
