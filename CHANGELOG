@@ -1,4 +1,27 @@
 
+Changes in Rubber Band v3.0.0
+
+ * Introduce a new processing engine, the R3 (Finer) engine, which
+   typically produces higher-quality output than the existing R2
+   engine but at significantly higher CPU cost. The R2 engine is
+   still the default, and R3 can be selected using the new
+   OptionEngineFiner option on construction. See the documentation
+   for more details.
+ * Add ability to provide a custom set of log callbacks, so that
+   debug and warning logs can be routed to the application's log
+   stream and/or handled in a realtime-safe way
+ * Add option to shift formant independently of pitch (R3 engine
+   only)
+
+The library is both binary and API compatible all the way back to
+version 1.2 for forward compatibility, but not backward compatibility,
+as several new functions and enum values have been added.  Code
+written to use 3.0 is not necessarily compatible with 2.x or 1.x, but
+code written to use any earlier version can update to 3.0 without
+modification (and it will continue to use the same processing engine
+if the calling code is unchanged).
+
+
 Changes in Rubber Band v2.0.2
 
  * Fix a crash in certain configurations when using mid-side
