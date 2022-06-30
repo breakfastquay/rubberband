@@ -115,7 +115,7 @@ fftw3_dep = dependency('fftw3', version: '>= 3.0.0', required: false)
 samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
 sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
-boost_unit_test_dep = dependency('boost_unit_test_framework', required: false)
+boost_unit_test_dep = dependency('boost', modules: ['unit_test_framework'], version: '>= 1.73', required: false)
 thread_dep = dependency('threads')
 have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
 have_lv2 = cpp.has_header('lv2.h', args: extra_include_args)
@@ -328,13 +328,6 @@ if not sndfile_dep.found()
 endif
 have_sndfile = sndfile_dep.found()
 
-if not boost_unit_test_dep.found()
-  boost_unit_test_dep = cpp.find_library('boost_unit_test_framework',
-                                         dirs: get_option('extra_lib_dirs'),
-                                         has_headers: ['boost/test/unit_test.hpp'],
-                                         header_args: extra_include_args,
-                                         required: false)
-endif
 have_boost_unit_test = boost_unit_test_dep.found()
 
 
