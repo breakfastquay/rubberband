@@ -226,7 +226,6 @@ BOOST_AUTO_TEST_CASE(sinusoid_2x_offline_finer)
 BOOST_AUTO_TEST_CASE(impulses_2x_offline_faster)
 {
     int n = 10000;
-    float freq = 440.f;
     int rate = 44100;
     RubberBandStretcher stretcher
         (rate, 1, RubberBandStretcher::OptionEngineFaster);
@@ -262,7 +261,7 @@ BOOST_AUTO_TEST_CASE(impulses_2x_offline_faster)
     BOOST_TEST(got == n * 2);
     BOOST_TEST(stretcher.available() == -1);
 
-    int peak0, peak1, peak2;
+    int peak0 = -1, peak1 = -1, peak2 = -1;
     float max;
     
     max = -2.f;
@@ -296,7 +295,6 @@ BOOST_AUTO_TEST_CASE(impulses_2x_offline_faster)
 BOOST_AUTO_TEST_CASE(impulses_2x_offline_finer)
 {
     int n = 10000;
-    float freq = 440.f;
     int rate = 44100;
     RubberBandStretcher stretcher
         (rate, 1, RubberBandStretcher::OptionEngineFiner);
@@ -332,7 +330,7 @@ BOOST_AUTO_TEST_CASE(impulses_2x_offline_finer)
     BOOST_TEST(got == n * 2);
     BOOST_TEST(stretcher.available() == -1);
 
-    int peak0, peak1, peak2;
+    int peak0 = -1, peak1 = -1, peak2 = -1;
     float max;
 
     max = -2.f;
@@ -366,7 +364,6 @@ BOOST_AUTO_TEST_CASE(impulses_2x_offline_finer)
 BOOST_AUTO_TEST_CASE(impulses_2x_5up_offline_finer)
 {
     int n = 10000;
-    float freq = 440.f;
     int rate = 44100;
     RubberBandStretcher stretcher
         (rate, 1, RubberBandStretcher::OptionEngineFiner);
@@ -403,7 +400,7 @@ BOOST_AUTO_TEST_CASE(impulses_2x_5up_offline_finer)
     BOOST_TEST(got == n * 2);
     BOOST_TEST(stretcher.available() == -1);
 
-    int peak0, peak1, peak2;
+    int peak0 = -1, peak1 = -1, peak2 = -1;
     float max;
 
     max = -2.f;
