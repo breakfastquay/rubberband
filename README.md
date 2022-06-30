@@ -166,11 +166,19 @@ provides a good example of how to use Rubber Band in offline mode; the
 pitch shifter plugin (`ladspa-lv2/RubberBandPitchShifter.cpp`) may be
 used as an example of Rubber Band in real-time mode.
 
-IMPORTANT: Please ensure you have read and understood the licensing
-terms for Rubber Band before using it in your application.  This
-library is provided under the GNU General Public License, which means
-that any application that uses it must also be published under the GPL
-or a compatible licence (i.e. with its full source code also available
-for modification and redistribution) unless you have separately
-acquired a commercial licence from the author.
+**IMPORTANT:** Please ensure you have read and understood the
+licensing terms for Rubber Band before using it in your application.
+This library is provided under the GNU General Public License, which
+means that any application that uses it must also be published under
+the GPL or a compatible licence (i.e. with its full source code also
+available for modification and redistribution) unless you have
+separately acquired a commercial licence from the author.
 
+
+## 4. Further documentation
+
+ * The [API documentation](https://breakfastquay.com/rubberband/code-doc/index.html) is thorough and we encourage you to read it
+ * [Conceptual notes and examples](https://breakfastquay.com/rubberband/integration.html) for integration into an application
+ * [Help text](https://breakfastquay.com/rubberband/usage.txt) of the command-line application
+ * [Rubber Band Library home page](https://breakfastquay.com/rubberband/)
+ 
