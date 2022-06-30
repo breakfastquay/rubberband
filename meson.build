@@ -241,7 +241,7 @@ elif resampler == 'speex'
   config_summary += { 'Resampler': 'Speex' }
   message('For resampler: using Speex')
   message('(consider libsamplerate if time-varying pitch shift is required)')
-  feature_sources += ['src/speex/resample.c']
+  feature_sources += ['src/ext/speex/resample.c']
   feature_defines += ['-DUSE_SPEEX']
   
 elif resampler == 'ipp'

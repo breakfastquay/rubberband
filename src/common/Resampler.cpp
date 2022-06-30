@@ -54,7 +54,7 @@
 #endif
 
 #ifdef USE_SPEEX
-#include "../speex/speex_resampler.h"
+#include "../ext/speex/speex_resampler.h"
 #endif
 
 #ifdef USE_BQRESAMPLER

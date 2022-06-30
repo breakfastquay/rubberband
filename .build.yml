@@ -15,10 +15,23 @@ tasks:
   - setup: |
       cd rubberband
       meson build
+      meson build_speex -Dresampler=speex
+      meson build_libsamplerate -Dresampler=libsamplerate
+      meson build_fftw -Dfft=fftw
   - build: |
       cd rubberband
       ninja -C build
       meson test -C build
+      build/rubberband -V
+      ninja -C build_speex
+      meson test -C build_speex
+      build_speex/rubberband -V
+      ninja -C build_libsamplerate
+      meson test -C build_libsamplerate
+      build_libsamplerate/rubberband -V
+      ninja -C build_fftw
+      meson test -C build_fftw
+      build_fftw/rubberband -V
       ./otherbuilds/check.sh
 triggers:
   - action: email
