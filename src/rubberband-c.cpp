@@ -53,6 +53,11 @@ void rubberband_reset(RubberBandState state)
     state->m_s->reset();
 }
 
+int rubberband_get_engine_version(RubberBandState state)
+{
+    return state->m_s->getEngineVersion(); 
+}
+
 void rubberband_set_time_ratio(RubberBandState state, double ratio)
 {
     state->m_s->setTimeRatio(ratio);

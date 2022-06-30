@@ -111,6 +111,8 @@ RB_EXTERN void rubberband_delete(RubberBandState);
 
 RB_EXTERN void rubberband_reset(RubberBandState);
 
+RB_EXTERN int rubberband_get_engine_version(RubberBandState);
+    
 RB_EXTERN void rubberband_set_time_ratio(RubberBandState, double ratio);
 RB_EXTERN void rubberband_set_pitch_scale(RubberBandState, double scale);
 
