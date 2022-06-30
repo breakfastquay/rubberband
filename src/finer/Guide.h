@@ -458,12 +458,17 @@ protected:
     }
 
     double descendToValley(double f, const double *const magnitudes) const {
+        if (f == 0.0 || f == m_parameters.sampleRate/2.0) {
+            // These are special cases
+            return f;
+        }
         int b = binForFrequency(f, m_configuration.classificationFftSize,
                                 m_parameters.sampleRate);
+        int n = m_configuration.classificationFftSize/2;
         for (int i = 0; i < 3; ++i) {
-            if (magnitudes[b+1] < magnitudes[b]) {
+            if (b < n && magnitudes[b+1] < magnitudes[b]) {
                 ++b;
-            } else if (magnitudes[b-1] < magnitudes[b]) {
+            } else if (b > 0 && magnitudes[b-1] < magnitudes[b]) {
                 --b;
             } else {
                 break;
