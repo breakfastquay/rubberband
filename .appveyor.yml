@@ -22,5 +22,5 @@ build_script:
   # Test the .NET FFI interface build, which is again separate
   - msbuild dotnet\rubberband.sln /t:Restore;Build
   # And test the single-file build
-  - cl main\main.cpp single\RubberBandSingle.cpp .\src\ext\getopt\getopt.c src\ext\getopt\getopt_long.c 'C:\Program Files\libsndfile\lib\sndfile.lib' /O2 /std:c++14 /D_USE_MATH_DEFINES /DNOMINMAX /EHs /I"C:\Program Files\libsndfile\include" /link /out:test_single.exe
+  - cl main\main.cpp single\RubberBandSingle.cpp .\src\ext\getopt\getopt.c src\ext\getopt\getopt_long.c "C:\Program Files\libsndfile\lib\sndfile.lib" /O2 /std:c++14 /D_USE_MATH_DEFINES /DNOMINMAX /EHs /I"C:\Program Files\libsndfile\include" /link /out:test_single.exe
   - .\test_single.exe -V
