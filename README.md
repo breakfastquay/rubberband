@@ -63,14 +63,17 @@ our knowledge. See also the file COMPILING.md for more details.
  * Pommier math functions - BSD-like
  
 
+## Compiling Rubber Band Library
+
+Please refer to the file COMPILING.md for details about how to
+configure and build the library.
+
+
 ## Contents of this README
 
 1. Code components
 2. Using the Rubber Band command-line tool
 3. Using Rubber Band Library
-
-Refer to the file COMPILING.md for details about how to compile the
-library.
 
 
 ## 1. Code components
