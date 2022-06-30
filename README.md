@@ -53,7 +53,8 @@ responsibility to ensure that you redistribute these only in
 accordance with their own licence terms, regardless of the conditions
 under which you are redistributing the Rubber Band code itself. The
 licences for some relevant library code are as follows, to the best of
-our knowledge. See also the file COMPILING.md for more details.
+our knowledge. See also the file [COMPILING.md](COMPILING.md) for more
+details.
 
  * FFTW3 - GPL; proprietary licence needed for redistribution
  * Intel IPP - Proprietary; licence needed for redistribution
@@ -65,8 +66,8 @@ our knowledge. See also the file COMPILING.md for more details.
 
 ## Compiling Rubber Band Library
 
-Please refer to the file COMPILING.md for details about how to
-configure and build the library.
+Please refer to the file [COMPILING.md](COMPILING.md) for details of
+how to configure and build the library.
 
 
 ## Contents of this README
