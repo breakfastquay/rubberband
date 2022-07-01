@@ -172,9 +172,9 @@ elif fft == 'kissfft'
   if fftw3_dep.found()
     message('(to use FFTW instead, reconfigure with -Dfft=fftw)')
   endif
-  feature_sources += ['src/kissfft/kiss_fft.c', 'src/kissfft/kiss_fftr.c']
+  feature_sources += ['src/ext/kissfft/kiss_fft.c', 'src/ext/kissfft/kiss_fftr.c']
   feature_defines += ['-DHAVE_KISSFFT']
-  general_include_dirs += 'src/kissfft'
+  general_include_dirs += 'src/ext/kissfft'
 
 elif fft == 'fftw'
   if fftw3_dep.found()
