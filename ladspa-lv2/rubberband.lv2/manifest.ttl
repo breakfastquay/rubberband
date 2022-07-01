@@ -7,7 +7,17 @@ rubberband:mono
         lv2:binary <lv2-rubberband.so> ;
         rdfs:seeAlso <lv2-rubberband.ttl> .
 
+rubberband:r3mono
+        a lv2:Plugin ;
+        lv2:binary <lv2-rubberband.so> ;
+        rdfs:seeAlso <lv2-rubberband.ttl> .
+
 rubberband:stereo
+        a lv2:Plugin ;
+        lv2:binary <lv2-rubberband.so> ;
+        rdfs:seeAlso <lv2-rubberband.ttl> .
+
+rubberband:r3stereo
         a lv2:Plugin ;
         lv2:binary <lv2-rubberband.so> ;
         rdfs:seeAlso <lv2-rubberband.ttl> .

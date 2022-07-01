@@ -28,9 +28,9 @@
 extern "C" {
 #endif
 
-#define RUBBERBAND_VERSION "2.0.2"
+#define RUBBERBAND_VERSION "3.0.0"
 #define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 6
+#define RUBBERBAND_API_MINOR_VERSION 7
 
 #undef RB_EXTERN
 #ifdef _MSC_VER
@@ -57,8 +57,8 @@ enum RubberBandOption {
     RubberBandOptionProcessOffline       = 0x00000000,
     RubberBandOptionProcessRealTime      = 0x00000001,
 
-    RubberBandOptionStretchElastic       = 0x00000000,
-    RubberBandOptionStretchPrecise       = 0x00000010,
+    RubberBandOptionStretchElastic       = 0x00000000, // obsolete
+    RubberBandOptionStretchPrecise       = 0x00000010, // obsolete
     
     RubberBandOptionTransientsCrisp      = 0x00000000,
     RubberBandOptionTransientsMixed      = 0x00000100,
@@ -90,7 +90,10 @@ enum RubberBandOption {
     RubberBandOptionPitchHighConsistency = 0x04000000,
 
     RubberBandOptionChannelsApart        = 0x00000000,
-    RubberBandOptionChannelsTogether     = 0x10000000
+    RubberBandOptionChannelsTogether     = 0x10000000,
+
+    RubberBandOptionEngineFaster         = 0x00000000,
+    RubberBandOptionEngineFiner          = 0x20000000
 };
 
 typedef int RubberBandOptions;
@@ -108,11 +111,16 @@ RB_EXTERN void rubberband_delete(RubberBandState);
 
 RB_EXTERN void rubberband_reset(RubberBandState);
 
+RB_EXTERN int rubberband_get_engine_version(RubberBandState);
+    
 RB_EXTERN void rubberband_set_time_ratio(RubberBandState, double ratio);
 RB_EXTERN void rubberband_set_pitch_scale(RubberBandState, double scale);
 
 RB_EXTERN double rubberband_get_time_ratio(const RubberBandState);
 RB_EXTERN double rubberband_get_pitch_scale(const RubberBandState);
+
+RB_EXTERN void rubberband_set_formant_scale(RubberBandState, double scale);
+RB_EXTERN double rubberband_get_formant_scale(const RubberBandState);
 
 RB_EXTERN unsigned int rubberband_get_latency(const RubberBandState);
 

@@ -26,3 +26,7 @@ build
 build_*
 build-*
 UpgradeLog*
+out-*/
+playlist-out/*
+formant-out-*/
+out*.wav

@@ -77,7 +77,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MSVC__;WIN32;_DEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;USE_SPEEX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MSVC__;WIN32;_DEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;USE_BQRESAMPLER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -91,7 +91,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MSVC__;WIN32;_DEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;USE_SPEEX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MSVC__;WIN32;_DEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;USE_BQRESAMPLER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -109,7 +109,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <AdditionalIncludeDirectories>..;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MSVC__;WIN32;NDEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;NO_TIMING;USE_SPEEX;NO_THREAD_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MSVC__;WIN32;NDEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;NO_TIMING;USE_BQRESAMPLER;NO_THREAD_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
@@ -127,7 +127,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <AdditionalIncludeDirectories>..;..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MSVC__;WIN32;NDEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;NO_TIMING;USE_SPEEX;NO_THREAD_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MSVC__;WIN32;NDEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_BUILTIN_FFT;NO_TIMING;USE_BQRESAMPLER;NO_THREAD_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
@@ -139,55 +139,26 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\rubberband\rubberband-c.h" />
-    <ClInclude Include="..\rubberband\RubberBandStretcher.h" />
-    <ClInclude Include="..\src\audiocurves\CompoundAudioCurve.h" />
-    <ClInclude Include="..\src\audiocurves\ConstantAudioCurve.h" />
-    <ClInclude Include="..\src\audiocurves\HighFrequencyAudioCurve.h" />
-    <ClInclude Include="..\src\audiocurves\PercussiveAudioCurve.h" />
-    <ClInclude Include="..\src\audiocurves\SilentAudioCurve.h" />
-    <ClInclude Include="..\src\audiocurves\SpectralDifferenceAudioCurve.h" />
-    <ClInclude Include="..\src\base\Profiler.h" />
-    <ClInclude Include="..\src\base\RingBuffer.h" />
-    <ClInclude Include="..\src\base\Scavenger.h" />
-    <ClInclude Include="..\src\dsp\AudioCurveCalculator.h" />
-    <ClInclude Include="..\src\dsp\FFT.h" />
-    <ClInclude Include="..\src\dsp\MovingMedian.h" />
-    <ClInclude Include="..\src\dsp\Resampler.h" />
-    <ClInclude Include="..\src\dsp\SampleFilter.h" />
-    <ClInclude Include="..\src\dsp\SincWindow.h" />
-    <ClInclude Include="..\src\dsp\Window.h" />
-    <ClInclude Include="..\src\float_cast\float_cast.h" />
-    <ClInclude Include="..\src\speex\speex_resampler.h" />
-    <ClInclude Include="..\src\StretchCalculator.h" />
-    <ClInclude Include="..\src\StretcherChannelData.h" />
-    <ClInclude Include="..\src\StretcherImpl.h" />
-    <ClInclude Include="..\src\system\Allocators.h" />
-    <ClInclude Include="..\src\system\sysutils.h" />
-    <ClInclude Include="..\src\system\Thread.h" />
-    <ClInclude Include="..\src\system\VectorOps.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\src\audiocurves\CompoundAudioCurve.cpp" />
-    <ClCompile Include="..\src\audiocurves\ConstantAudioCurve.cpp" />
-    <ClCompile Include="..\src\audiocurves\HighFrequencyAudioCurve.cpp" />
-    <ClCompile Include="..\src\audiocurves\PercussiveAudioCurve.cpp" />
-    <ClCompile Include="..\src\audiocurves\SilentAudioCurve.cpp" />
-    <ClCompile Include="..\src\audiocurves\SpectralDifferenceAudioCurve.cpp" />
-    <ClCompile Include="..\src\base\Profiler.cpp" />
-    <ClCompile Include="..\src\dsp\AudioCurveCalculator.cpp" />
-    <ClCompile Include="..\src\dsp\FFT.cpp" />
-    <ClCompile Include="..\src\dsp\Resampler.cpp" />
     <ClCompile Include="..\src\rubberband-c.cpp" />
     <ClCompile Include="..\src\RubberBandStretcher.cpp" />
-    <ClCompile Include="..\src\speex\resample.c" />
-    <ClCompile Include="..\src\StretchCalculator.cpp" />
-    <ClCompile Include="..\src\StretcherChannelData.cpp" />
-    <ClCompile Include="..\src\StretcherImpl.cpp" />
-    <ClCompile Include="..\src\StretcherProcess.cpp" />
-    <ClCompile Include="..\src\system\Allocators.cpp" />
-    <ClCompile Include="..\src\system\sysutils.cpp" />
-    <ClCompile Include="..\src\system\Thread.cpp" />
+    <ClCompile Include="..\src\faster\AudioCurveCalculator.cpp" />
+    <ClCompile Include="..\src\faster\CompoundAudioCurve.cpp" />
+    <ClCompile Include="..\src\faster\HighFrequencyAudioCurve.cpp" />
+    <ClCompile Include="..\src\faster\SilentAudioCurve.cpp" />
+    <ClCompile Include="..\src\faster\PercussiveAudioCurve.cpp" />
+    <ClCompile Include="..\src\faster\StretcherChannelData.cpp" />
+    <ClCompile Include="..\src\faster\R2Stretcher.cpp" />
+    <ClCompile Include="..\src\faster\StretcherProcess.cpp" />
+    <ClCompile Include="..\src\common\BQResampler.cpp" />
+    <ClCompile Include="..\src\common\Profiler.cpp" />
+    <ClCompile Include="..\src\common\Resampler.cpp" />
+    <ClCompile Include="..\src\common\FFT.cpp" />
+    <ClCompile Include="..\src\common\Log.cpp" />
+    <ClCompile Include="..\src\common\Allocators.cpp" />
+    <ClCompile Include="..\src\common\StretchCalculator.cpp" />
+    <ClCompile Include="..\src\common\sysutils.cpp" />
+    <ClCompile Include="..\src\common\Thread.cpp" />
+    <ClCompile Include="..\src\finer\R3Stretcher.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

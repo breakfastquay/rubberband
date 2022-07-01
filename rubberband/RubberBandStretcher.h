@@ -24,9 +24,9 @@
 #ifndef RUBBERBAND_STRETCHER_H
 #define RUBBERBAND_STRETCHER_H
     
-#define RUBBERBAND_VERSION "2.0.2"
+#define RUBBERBAND_VERSION "3.0.0"
 #define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 6
+#define RUBBERBAND_API_MINOR_VERSION 7
 
 #undef RUBBERBAND_DLLEXPORT
 #ifdef _MSC_VER
@@ -37,51 +37,89 @@
 
 #include <vector>
 #include <map>
+#include <string>
+#include <memory>
 #include <cstddef>
-
-/**
- * @mainpage RubberBand
- * 
- * The Rubber Band API is contained in the single class
- * RubberBand::RubberBandStretcher.
- *
- * The Rubber Band stretcher supports two processing modes, offline
- * and real-time. The choice of mode is fixed on construction. In
- * offline mode, you must provide the audio block-by-block in two
- * passes: in the first pass calling study(), in the second pass
- * calling process() and receiving the output via retrieve(). In
- * real-time mode, there is no study pass, just a single streaming
- * pass in which the audio is passed to process() and output received
- * via retrieve().
- *
- * In real-time mode you can change the time and pitch ratios at any
- * time, but in offline mode they are fixed and cannot be changed
- * after the study pass has begun. (However, see setKeyFrameMap() for
- * a way to do pre-planned variable time stretching in offline mode.)
- * Offline mode typically produces slightly more precise results.
- *
- * Threading notes for real-time applications:
- * 
- * Multiple instances of RubberBandStretcher may be created and used
- * in separate threads concurrently.  However, for any single instance
- * of RubberBandStretcher, you may not call process() more than once
- * concurrently, and you may not change the time or pitch ratio while
- * a process() call is being executed (if the stretcher was created in
- * "real-time mode"; in "offline mode" you can't change the ratios
- * during use anyway).
- * 
- * So you can run process() in its own thread if you like, but if you
- * want to change ratios dynamically from a different thread, you will
- * need some form of mutex in your code.  Changing the time or pitch
- * ratio is real-time safe except in extreme circumstances, so for
- * most applications that may change these dynamically it probably
- * makes most sense to do so from the same thread as calls process(),
- * even if that is a real-time thread.
- */
 
 namespace RubberBand
 {
 
+/**
+ * @mainpage RubberBand
+ *
+ * ### Summary
+ * 
+ * The Rubber Band Library API is contained in the single class
+ * RubberBand::RubberBandStretcher.
+ *
+ * The Rubber Band stretcher supports two processing modes, offline
+ * and real-time, and two processing "engines", known as the R2 or
+ * Faster engine and the R3 or Finer engine. The choices of processing
+ * mode and engine are fixed on construction: see
+ * RubberBandStretcher::RubberBandStretcher. The two engines work
+ * identically in API terms, and both of them support both offline and
+ * real-time modes as described below.
+ *
+ * ### Offline mode
+ *
+ * In offline mode, you must provide the audio block-by-block in
+ * two passes. In the first pass, call RubberBandStretcher::study() on
+ * each block; in the second pass, call RubberBandStretcher::process()
+ * on each block and receive the output via
+ * RubberBandStretcher::retrieve().
+ *
+ * In offline mode, the time and pitch ratios are fixed as soon as the
+ * study pass has begun and cannot be changed afterwards. (But see
+ * RubberBandStretcher::setKeyFrameMap() for a way to do pre-planned
+ * variable time stretching in offline mode.) Offline mode also
+ * performs latency compensation so that the stretched result has an
+ * exact start and duration.
+ *
+ * ### Real-time mode
+ *
+ * In \b real-time mode, there is no study pass, just a single
+ * streaming pass in which the audio is passed to
+ * RubberBandStretcher::process() and output received via
+ * RubberBandStretcher::retrieve().
+ *
+ * In real-time mode you can change the time and pitch ratios at any
+ * time.
+ *
+ * You may need to perform latency compensation in real-time mode; see
+ * RubberBandStretcher::getLatency() for details.
+ *
+ * Rubber Band Library is RT-safe when used in real-time mode with
+ * "normal" processing parameters. That is, it performs no allocation,
+ * locking, or blocking operations after initialisation during normal
+ * use, even when the time and pitch ratios change. There are certain
+ * exceptions that include error states and extremely rapid changes
+ * between extreme ratios, as well as the case in which more frames
+ * are passed to RubberBandStretcher::process() than the values
+ * returned by RubberBandStretcher::getSamplesRequired() or set using
+ * RubberBandStretcher::setMaxProcessSize(), when buffer reallocation
+ * may occur. See the latter function's documentation for
+ * details. Note that offline mode is never RT-safe.
+ *
+ * ### Thread safety
+ * 
+ * Multiple instances of RubberBandStretcher may be created and used
+ * in separate threads concurrently.  However, for any single instance
+ * of RubberBandStretcher, you may not call
+ * RubberBandStretcher::process() more than once concurrently, and you
+ * may not change the time or pitch ratio while a
+ * RubberBandStretcher::process() call is being executed (if the
+ * stretcher was created in "real-time mode"; in "offline mode" you
+ * can't change the ratios during use anyway).
+ * 
+ * So you can run RubberBandStretcher::process() in its own thread if
+ * you like, but if you want to change ratios dynamically from a
+ * different thread, you will need some form of mutex in your code.
+ * Changing the time or pitch ratio is real-time safe except in
+ * extreme circumstances, so for most applications that may change
+ * these dynamically it probably makes most sense to do so from the
+ * same thread as calls RubberBandStretcher::process(), even if that
+ * is a real-time thread.
+ */
 class RUBBERBAND_DLLEXPORT
 RubberBandStretcher
 {
@@ -109,33 +147,43 @@ public:
      * non-real-time operation on seekable files: Offline; real-time
      * or streaming operation: RealTime.
      *
-     * 2. Flags prefixed \c OptionStretch control the profile used for
-     * variable timestretching.  Rubber Band always adjusts the
-     * stretch profile to minimise stretching of busy broadband
-     * transient sounds, but the degree to which it does so is
-     * adjustable.  These options may not be changed after
-     * construction.
+     * 2. Flags prefixed \c OptionEngine select the core Rubber Band
+     * processing engine to be used. These options may not be changed
+     * after construction.
      *
-     *   \li \c OptionStretchElastic - Only meaningful in offline
-     *   mode, and the default in that mode.  The audio will be
-     *   stretched at a variable rate, aimed at preserving the quality
-     *   of transient sounds as much as possible.  The timings of low
-     *   activity regions between transients may be less exact than
-     *   when the precise flag is set.
-     * 
-     *   \li \c OptionStretchPrecise - Although still using a variable
-     *   stretch rate, the audio will be stretched so as to maintain
-     *   as close as possible to a linear stretch ratio throughout.
-     *   Timing may be better than when using \c OptionStretchElastic, at
-     *   slight cost to the sound quality of transients.  This setting
-     *   is always used when running in real-time mode.
+     *   \li \c OptionEngineFaster - Use the Rubber Band Library R2
+     *   (Faster) engine. This is the engine implemented in Rubber
+     *   Band Library v1.x and v2.x, and it remains the default in
+     *   newer versions. It uses substantially less CPU than the R3
+     *   engine and there are still many situations in which it is
+     *   likely to be the more appropriate choice.
+     *
+     *   \li \c OptionEngineFiner - Use the Rubber Band Library R3
+     *   (Finer) engine. This engine was introduced in Rubber Band
+     *   Library v3.0. It produces higher-quality results than the R2
+     *   engine for most material, especially complex mixes, vocals
+     *   and other sounds that have soft onsets and smooth pitch
+     *   changes, and music with substantial bass content. However, it
+     *   uses much more CPU power than the R2 engine.
+     *
+     *   Important note: Consider calling getEngineVersion() after
+     *   construction to make sure the engine you requested is
+     *   active. That's not because engine selection can fail, but
+     *   because Rubber Band Library ignores any unknown options
+     *   supplied on construction - so a program that requests the R3
+     *   engine but ends up linked against an older version of the
+     *   library (prior to v3.0) will silently use the R2 engine
+     *   instead. Calling the v3.0 function getEngineVersion() will
+     *   ensure a link failure in this situation instead, and supply a
+     *   reassuring run-time check.
      *
      * 3. Flags prefixed \c OptionTransients control the component
-     * frequency phase-reset mechanism that may be used at transient
-     * points to provide clarity and realism to percussion and other
-     * significant transient sounds.  These options may be changed
-     * after construction when running in real-time mode, but not when
-     * running in offline mode.
+     * frequency phase-reset mechanism in the R2 engine, that may be
+     * used at transient points to provide clarity and realism to
+     * percussion and other significant transient sounds. These
+     * options have no effect when using the R3 engine.  These options
+     * may be changed after construction when running in real-time
+     * mode, but not when running in offline mode.
      * 
      *   \li \c OptionTransientsCrisp - Reset component phases at the
      *   peak of each transient (the start of a significant note or
@@ -160,9 +208,10 @@ public:
      *   transients flags.
      *
      * 4. Flags prefixed \c OptionDetector control the type of
-     * transient detector used.  These options may be changed
-     * after construction when running in real-time mode, but not when
-     * running in offline mode.
+     * transient detector used in the R2 engine.  These options have
+     * no effect when using the R3 engine.  These options may be
+     * changed after construction when running in real-time mode, but
+     * not when running in offline mode.
      *
      *   \li \c OptionDetectorCompound - Use a general-purpose
      *   transient detector which is likely to be good for most
@@ -178,9 +227,10 @@ public:
      *   piano music).
      *
      * 5. Flags prefixed \c OptionPhase control the adjustment of
-     * component frequency phases from one analysis window to the next
-     * during non-transient segments.  These options may be changed at
-     * any time.
+     * component frequency phases in the R2 engine from one analysis
+     * window to the next during non-transient segments.  These
+     * options have no effect when using the R3 engine. These options
+     * may be changed at any time.
      *
      *   \li \c OptionPhaseLaminar - Adjust phases when stretching in
      *   such a way as to try to retain the continuity of phase
@@ -197,11 +247,13 @@ public:
      * construction.
      *
      *   \li \c OptionThreadingAuto - Permit the stretcher to
-     *   determine its own threading model.  Usually this means using
-     *   one processing thread per audio channel in offline mode if
-     *   the stretcher is able to determine that more than one CPU is
-     *   available, and one thread only in realtime mode.  This is the
-     *   default.
+     *   determine its own threading model.  In the R2 engine this
+     *   means using one processing thread per audio channel in
+     *   offline mode if the stretcher is able to determine that more
+     *   than one CPU is available, and one thread only in realtime
+     *   mode.  The R3 engine does not currently have a multi-threaded
+     *   mode, but if one is introduced in future, this option may use
+     *   it. This is the default.
      *
      *   \li \c OptionThreadingNever - Never use more than one thread.
      *  
@@ -210,9 +262,10 @@ public:
      *   the check for multiple CPUs and instead assume it to be true.
      *
      * 7. Flags prefixed \c OptionWindow control the window size for
-     * FFT processing.  The window size actually used will depend on
-     * many factors, but it can be influenced.  These options may not
-     * be changed after construction.
+     * FFT processing in the R2 engine.  (The window size actually
+     * used will depend on many factors, but it can be influenced.)
+     * These options have no effect when using the R3 engine.  These
+     * options may not be changed after construction.
      *
      *   \li \c OptionWindowStandard - Use the default window size.
      *   The actual size will vary depending on other parameters.
@@ -228,8 +281,9 @@ public:
      *   clarity and timing.
      *
      * 8. Flags prefixed \c OptionSmoothing control the use of
-     * window-presum FFT and time-domain smoothing.  These options may
-     * not be changed after construction.
+     * window-presum FFT and time-domain smoothing in the R2
+     * engine. These options have no effect when using the R3 engine.
+     * These options may not be changed after construction.
      *
      *   \li \c OptionSmoothingOff - Do not use time-domain smoothing.
      *   This is the default.
@@ -241,8 +295,9 @@ public:
      *   OptionWindowShort.
      *
      * 9. Flags prefixed \c OptionFormant control the handling of
-     * formant shape (spectral envelope) when pitch-shifting.  These
-     * options may be changed at any time.
+     * formant shape (spectral envelope) when pitch-shifting. These
+     * options affect both the R2 and R3 engines.  These options may
+     * be changed at any time.
      *
      *   \li \c OptionFormantShifted - Apply no special formant
      *   processing.  The spectral envelope will be pitch shifted as
@@ -254,9 +309,10 @@ public:
      *   perceived pitch profile of the voice or instrument.
      *
      * 10. Flags prefixed \c OptionPitch control the method used for
-     * pitch shifting.  These options may be changed at any time.
-     * They are only effective in realtime mode; in offline mode, the
-     * pitch-shift method is fixed.
+     * pitch shifting in the R2 engine.  These options have no effect
+     * when using the R3 engine.  These options may be changed at any
+     * time.  They are only effective in realtime mode; in offline
+     * mode, the pitch-shift method is fixed.
      *
      *   \li \c OptionPitchHighSpeed - Use a method with a CPU cost
      *   that is relatively moderate and predictable.  This may
@@ -274,9 +330,10 @@ public:
      *   1.0 pitch scale in real-time; it also consumes more CPU than
      *   the others in the case where the pitch scale is exactly 1.0.
      *
-     * 11. Flags prefixed \c OptionChannels control the method used for
-     * processing two-channel audio.  These options may not be changed
-     * after construction.
+     * 11. Flags prefixed \c OptionChannels control the method used
+     * for processing two-channel audio in the R2 engine.  These
+     * options have no effect when using the R3 engine.  These options
+     * may not be changed after construction.
      *
      *   \li \c OptionChannelsApart - Each channel is processed
      *   individually, though timing is synchronised and phases are
@@ -293,15 +350,18 @@ public:
      *   setting).  This usually leads to better focus in the centre
      *   but a loss of stereo space and width.  Any channels beyond
      *   the first two are processed individually.
+     *
+     * Finally, flags prefixed \c OptionStretch are obsolete flags
+     * provided for backward compatibility only. They are ignored by
+     * the stretcher.
      */
-    
     enum Option {
 
         OptionProcessOffline       = 0x00000000,
         OptionProcessRealTime      = 0x00000001,
 
-        OptionStretchElastic       = 0x00000000,
-        OptionStretchPrecise       = 0x00000010,
+        OptionStretchElastic       = 0x00000000, // obsolete
+        OptionStretchPrecise       = 0x00000010, // obsolete
     
         OptionTransientsCrisp      = 0x00000000,
         OptionTransientsMixed      = 0x00000100,
@@ -333,11 +393,18 @@ public:
         OptionPitchHighConsistency = 0x04000000,
 
         OptionChannelsApart        = 0x00000000,
-        OptionChannelsTogether     = 0x10000000
+        OptionChannelsTogether     = 0x10000000,
+
+        OptionEngineFaster         = 0x00000000,
+        OptionEngineFiner          = 0x20000000
 
         // n.b. Options is int, so we must stop before 0x80000000
     };
 
+    /**
+     * A bitwise OR of values from the RubberBandStretcher::Option
+     * enum.
+     */
     typedef int Options;
 
     enum PresetOption {
@@ -345,6 +412,37 @@ public:
         PercussiveOptions          = 0x00102000
     };
 
+    /**
+     * Interface for log callbacks that may optionally be provided to
+     * the stretcher on construction.
+     *
+     * If a Logger is provided, the stretcher will call one of these
+     * functions instead of sending output to \c cerr when there is
+     * something to report. This allows debug output to be diverted to
+     * an application's logging facilities, and/or handled in an
+     * RT-safe way. See setDebugLevel() for details about how and when
+     * RubberBandStretcher reports something in this way.
+     *
+     * The message text passed to each of these log functions is a
+     * C-style string with no particular guaranteed lifespan. If you
+     * need to retain it, copy it before returning. Do not free it.
+     *
+     * @see setDebugLevel
+     * @see setDefaultDebugLevel
+     */
+    struct Logger {
+        /// Receive a log message with no numeric values.
+        virtual void log(const char *) = 0;
+
+        /// Receive a log message and one accompanying numeric value.
+        virtual void log(const char *, double) = 0;
+
+        /// Receive a log message and two accompanying numeric values.
+        virtual void log(const char *, double, double) = 0;
+        
+        virtual ~Logger() { }
+    };
+    
     /**
      * Construct a time and pitch stretcher object to run at the given
      * sample rate, with the given number of channels.
@@ -375,6 +473,30 @@ public:
                         Options options = DefaultOptions,
                         double initialTimeRatio = 1.0,
                         double initialPitchScale = 1.0);
+
+    /**
+     * Construct a time and pitch stretcher object with a custom debug
+     * logger. This may be useful for debugging if the default logger
+     * output (which simply goes to \c cerr) is not visible in the
+     * runtime environment, or if the application has a standard or
+     * more realtime-appropriate logging mechanism.
+     *
+     * See the documentation for the other constructor above for
+     * details of the arguments other than the logger.
+     *
+     * Note that although the supplied logger gets to decide what to
+     * do with log messages, the separately-set debug level (see
+     * setDebugLevel() and setDefaultDebugLevel()) still determines
+     * whether any given debug message is sent to the logger in the
+     * first place.
+     */
+    RubberBandStretcher(size_t sampleRate,
+                        size_t channels,
+                        std::shared_ptr<Logger> logger,
+                        Options options = DefaultOptions,
+                        double initialTimeRatio = 1.0,
+                        double initialPitchScale = 1.0);
+    
     ~RubberBandStretcher();
 
     /**
@@ -384,6 +506,15 @@ public:
      */
     void reset();
 
+    /**
+     * Return the active internal engine version, according to the \c
+     * OptionEngine flag supplied on construction. This will return 2
+     * for the R2 (Faster) engine or 3 for the R3 (Finer) engine.
+     *
+     * This function was added in Rubber Band Library v3.0.
+     */
+    int getEngineVersion() const;
+    
     /**
      * Set the time ratio for the stretcher.  This is the ratio of
      * stretched to unstretched duration -- not tempo.  For example, a
@@ -435,6 +566,36 @@ public:
     void setPitchScale(double scale);
 
     /**
+     * Set a pitch scale for the vocal formant envelope separately
+     * from the overall pitch scale.  This is a ratio of target
+     * frequency to source frequency.  For example, a ratio of 2.0
+     * would shift the formant envelope up by one octave; 0.5 down by
+     * one octave; or 1.0 leave the formant unaffected.
+     *
+     * By default this is set to the special value of 0.0, which
+     * causes the scale to be calculated automatically. It will be
+     * treated as 1.0 / the pitch scale if OptionFormantPreserved is
+     * specified, or 1.0 for OptionFormantShifted.
+     *
+     * Conversely, if this is set to a value other than the default
+     * 0.0, formant shifting will happen regardless of the state of
+     * the OptionFormantPreserved/OptionFormantShifted option.
+     *
+     * This function is provided for special effects only. You do not
+     * need to call it for ordinary pitch shifting, with or without
+     * formant preservation - just specify or omit the
+     * OptionFormantPreserved option as appropriate. Use this function
+     * only if you want to shift formants by a distance other than
+     * that of the overall pitch shift.
+     * 
+     * This function is supported only in the R3 (OptionEngineFiner)
+     * engine. It has no effect in R2 (OptionEngineFaster).
+     *
+     * This function was added in Rubber Band Library v3.0.
+     */
+    void setFormantScale(double scale);
+    
+    /**
      * Return the last time ratio value that was set (either on
      * construction or with setTimeRatio()).
      */
@@ -446,6 +607,18 @@ public:
      */
     double getPitchScale() const;
 
+    /**
+     * Return the last formant scaling ratio that was set with
+     * setFormantScale, or 0.0 if the default automatic scaling is in
+     * effect.
+     * 
+     * This function is supported only in the R3 (OptionEngineFiner)
+     * engine. It always returns 0.0 in R2 (OptionEngineFaster).
+     *
+     * This function was added in Rubber Band Library v3.0.
+     */     
+    double getFormantScale() const;
+    
     /**
      * Return the output delay or latency of the stretcher.  This is
      * the number of audio samples that one would have to discard at
@@ -467,10 +640,16 @@ public:
     size_t getLatency() const;
 
     /**
-     * Change an OptionTransients configuration setting.  This may be
+     * Return the number of channels this stretcher was constructed
+     * with.
+     */
+    size_t getChannelCount() const;
+
+    /**
+     * Change an OptionTransients configuration setting. This may be
      * called at any time in RealTime mode.  It may not be called in
      * Offline mode (for which the transients option is fixed on
-     * construction).
+     * construction). This has no effect when using the R3 engine.
      */
     void setTransientsOption(Options options);
 
@@ -478,13 +657,14 @@ public:
      * Change an OptionDetector configuration setting.  This may be
      * called at any time in RealTime mode.  It may not be called in
      * Offline mode (for which the detector option is fixed on
-     * construction).
+     * construction). This has no effect when using the R3 engine.
      */
     void setDetectorOption(Options options);
 
     /**
      * Change an OptionPhase configuration setting.  This may be
-     * called at any time in any mode.
+     * called at any time in any mode. This has no effect when using
+     * the R3 engine.
      *
      * Note that if running multi-threaded in Offline mode, the change
      * may not take effect immediately if processing is already under
@@ -506,7 +686,7 @@ public:
      * Change an OptionPitch configuration setting.  This may be
      * called at any time in RealTime mode.  It may not be called in
      * Offline mode (for which the pitch option is fixed on
-     * construction).
+     * construction). This has no effect when using the R3 engine.
      */
     void setPitchOption(Options options);
 
@@ -711,7 +891,8 @@ public:
     /**
      * Retrieve the value of the internal input block increment value.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     size_t getInputIncrement() const;
 
@@ -722,7 +903,8 @@ public:
      * retrieve any output increments that have accumulated since the
      * last call to getOutputIncrements, to a limit of 16.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     std::vector<int> getOutputIncrements() const;
 
@@ -733,7 +915,8 @@ public:
      * retrieve any phase reset points that have accumulated since the
      * last call to getPhaseResetCurve, to a limit of 16.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     std::vector<float> getPhaseResetCurve() const;
 
@@ -743,31 +926,52 @@ public:
      * provided the stretch profile has been calculated.  In realtime
      * mode, return an empty sequence.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     std::vector<int> getExactTimePoints() const;
-
-    /**
-     * Return the number of channels this stretcher was constructed
-     * with.
-     */
-    size_t getChannelCount() const;
 
     /**
      * Force the stretcher to calculate a stretch profile.  Normally
      * this happens automatically for the first process() call in
      * offline mode.
      *
-     * This function is provided for diagnostic purposes only.
+     * This function is provided for diagnostic purposes only and
+     * supported only with the R2 engine.
      */
     void calculateStretch();
 
     /**
-     * Set the level of debug output.  The value may be from 0 (errors
-     * only) to 3 (very verbose, with audible ticks in the output at
-     * phase reset points).  The default is whatever has been set
-     * using setDefaultDebugLevel, or 0 if that function has not been
+     * Set the level of debug output.  The supported values are:
+     *
+     * 0. Report errors only.
+     * 
+     * 1. Report some information on construction and ratio
+     * change. Nothing is reported during normal processing unless
+     * something changes.
+     * 
+     * 2. Report a significant amount of information about ongoing
+     * stretch calculations during normal processing.
+     * 
+     * 3. Report a large amount of information and also (in the R2
+     * engine) add audible ticks to the output at phase reset
+     * points. This is seldom useful.
+     *
+     * The default is whatever has been set using
+     * setDefaultDebugLevel(), or 0 if that function has not been
      * called.
+     *
+     * All output goes to \c cerr unless a custom
+     * RubberBandStretcher::Logger has been provided on
+     * construction. Because writing to \c cerr is not RT-safe, only
+     * debug level 0 is RT-safe in normal use by default. Debug levels
+     * 0 and 1 use only C-string constants as debug messages, so they
+     * are RT-safe if your custom logger is RT-safe. Levels 2 and 3
+     * are not guaranteed to be RT-safe in any conditions as they may
+     * construct messages by allocation.
+     *
+     * @see Logger
+     * @see setDefaultDebugLevel
      */
     void setDebugLevel(int level);
 
@@ -782,6 +986,9 @@ public:
 protected:
     class Impl;
     Impl *m_d;
+
+    RubberBandStretcher(const RubberBandStretcher &) =delete;
+    RubberBandStretcher &operator=(const RubberBandStretcher &) =delete;
 };
 
 }

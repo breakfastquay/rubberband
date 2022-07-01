@@ -2,10 +2,11 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '2.0.2',
+  version: '3.0.0-beta3',
   license: 'GPL-2.0-or-later',
   default_options: [
-    'cpp_std=c++14',
+    'cpp_std=c++11',
+    'warning_level=3',
     'buildtype=release',
     'default_library=both',
     'b_ndebug=if-release',
@@ -33,23 +34,23 @@ public_headers = [
 library_sources = [
   'src/rubberband-c.cpp',
   'src/RubberBandStretcher.cpp',
-  'src/StretcherProcess.cpp',
-  'src/StretchCalculator.cpp',
-  'src/base/Profiler.cpp',
-  'src/dsp/AudioCurveCalculator.cpp',
-  'src/audiocurves/CompoundAudioCurve.cpp',
-  'src/audiocurves/SpectralDifferenceAudioCurve.cpp',
-  'src/audiocurves/HighFrequencyAudioCurve.cpp',
-  'src/audiocurves/SilentAudioCurve.cpp',
-  'src/audiocurves/ConstantAudioCurve.cpp',
-  'src/audiocurves/PercussiveAudioCurve.cpp',
-  'src/dsp/Resampler.cpp',
-  'src/dsp/FFT.cpp',
-  'src/system/Allocators.cpp',
-  'src/system/sysutils.cpp',
-  'src/system/Thread.cpp',
-  'src/StretcherChannelData.cpp',
-  'src/StretcherImpl.cpp',
+  'src/faster/AudioCurveCalculator.cpp',
+  'src/faster/CompoundAudioCurve.cpp',
+  'src/faster/HighFrequencyAudioCurve.cpp',
+  'src/faster/SilentAudioCurve.cpp',
+  'src/faster/PercussiveAudioCurve.cpp',
+  'src/faster/R2Stretcher.cpp',
+  'src/faster/StretcherChannelData.cpp',
+  'src/faster/StretcherProcess.cpp',
+  'src/common/Allocators.cpp',
+  'src/common/FFT.cpp',
+  'src/common/Log.cpp',
+  'src/common/Profiler.cpp',
+  'src/common/Resampler.cpp',
+  'src/common/StretchCalculator.cpp',
+  'src/common/sysutils.cpp',
+  'src/common/Thread.cpp',
+  'src/finer/R3Stretcher.cpp', 
 ]
 
 jni_sources = [
@@ -66,8 +67,8 @@ program_sources = [
 
 if system == 'windows'
   program_sources += [
-    'src/getopt/getopt.c',
-    'src/getopt/getopt_long.c'
+    'src/ext/getopt/getopt.c',
+    'src/ext/getopt/getopt_long.c'
   ]
 endif
 
@@ -82,6 +83,19 @@ ladspa_sources = [
 
 lv2_sources = [
   'ladspa-lv2/libmain-lv2.cpp',
+]
+
+unit_test_sources = [
+  'src/test/TestAllocators.cpp',
+  'src/test/TestFFT.cpp',
+  'src/test/TestResampler.cpp',
+  'src/test/TestVectorOpsComplex.cpp',
+  'src/test/TestVectorOps.cpp',
+  'src/test/TestSignalBits.cpp',
+  'src/test/TestStretchCalculator.cpp',
+  'src/test/TestStretcher.cpp',
+  'src/test/TestBinClassifier.cpp',
+  'src/test/test.cpp',
 ]
 
 general_include_dirs = [
@@ -101,6 +115,7 @@ fftw3_dep = dependency('fftw3', version: '>= 3.0.0', required: false)
 samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
 sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
+boost_unit_test_dep = dependency('boost', modules: ['unit_test_framework'], version: '>= 1.73', required: false)
 thread_dep = dependency('threads')
 have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
 have_lv2 = cpp.has_header('lv2.h', args: extra_include_args)
@@ -157,9 +172,9 @@ elif fft == 'kissfft'
   if fftw3_dep.found()
     message('(to use FFTW instead, reconfigure with -Dfft=fftw)')
   endif
-  feature_sources += ['src/kissfft/kiss_fft.c', 'src/kissfft/kiss_fftr.c']
+  feature_sources += ['src/ext/kissfft/kiss_fft.c', 'src/ext/kissfft/kiss_fftr.c']
   feature_defines += ['-DHAVE_KISSFFT']
-  general_include_dirs += 'src/kissfft'
+  general_include_dirs += 'src/ext/kissfft'
 
 elif fft == 'fftw'
   if fftw3_dep.found()
@@ -204,7 +219,7 @@ if resampler == 'builtin'
   if samplerate_dep.found()
     message('(to use libsamplerate instead, reconfigure with -Dresampler=libsamplerate)')
   endif
-  library_sources += 'src/dsp/BQResampler.cpp'
+  library_sources += 'src/common/BQResampler.cpp'
   feature_defines += ['-DUSE_BQRESAMPLER']
 
 elif resampler == 'libsamplerate'
@@ -226,7 +241,7 @@ elif resampler == 'speex'
   config_summary += { 'Resampler': 'Speex' }
   message('For resampler: using Speex')
   message('(consider libsamplerate if time-varying pitch shift is required)')
-  feature_sources += ['src/speex/resample.c']
+  feature_sources += ['src/ext/speex/resample.c']
   feature_defines += ['-DUSE_SPEEX']
   
 elif resampler == 'ipp'
@@ -312,6 +327,8 @@ if not sndfile_dep.found()
   endif
 endif
 have_sndfile = sndfile_dep.found()
+
+have_boost_unit_test = boost_unit_test_dep.found()
 
 
 # General platform and compiler expectations
@@ -427,18 +444,22 @@ if cpp.get_id() == 'msvc'
   endif    
   rubberband_library_name = 'rubberband'
   rubberband_program_name = 'rubberband-program'
+  rubberband_program_name_r3 = 'rubberband-program-r3'
   rubberband_ladspa_name = 'ladspa-rubberband'
   rubberband_lv2_name = 'lv2-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
   rubberband_jni_name = 'rubberband-jni'
+  unit_tests_name = 'tests'
 else
   rubberband_library_name = 'rubberband'
   rubberband_dynamic_name = 'rubberband'
   rubberband_program_name = 'rubberband'
+  rubberband_program_name_r3 = 'rubberband-r3'
   rubberband_ladspa_name = 'ladspa-rubberband'
   rubberband_lv2_name = 'lv2-rubberband'
   rubberband_vamp_name = 'vamp-rubberband'
   rubberband_jni_name = 'rubberband-jni'
+  unit_tests_name = 'tests'
 endif  
 
 rubberband_objlib = static_library(
@@ -663,8 +684,8 @@ else
 endif
 
 if have_sndfile
-  target_summary += { 'Command-line utility': [ true, 'Name: ' + rubberband_program_name ] }
-  message('Will build command-line utility')
+  message('Will build command-line utilities')
+  target_summary += { 'Command-line utility (R2)': [ true, 'Name: ' + rubberband_program_name ] }
   rubberband_program = executable(
     rubberband_program_name,
     program_sources,
@@ -682,9 +703,66 @@ if have_sndfile
     ],
     install: true,
   )
+  target_summary += { 'Command-line utility (R3)': [ true, 'Name: ' + rubberband_program_name_r3 ] }
+  rubberband_program_r3 = executable(
+    rubberband_program_name_r3,
+    program_sources,
+    include_directories: general_include_dirs,
+    cpp_args: general_compile_args,
+    c_args: general_compile_args,
+    link_args: [
+      arch_flags,
+      feature_libraries,
+    ],
+    dependencies: [
+      rubberband_objlib_dep,
+      general_dependencies,
+      sndfile_dep,
+    ],
+    install: true,
+  )
 else 
-  target_summary += { 'Command-line utility': false }
-  message('Not building command-line utility: libsndfile dependency not found')
+  message('Not building command-line utilities: libsndfile dependency not found')
+  target_summary += { 'Command-line utility (R2)': false }
+  target_summary += { 'Command-line utility (R3)': false }
+endif
+
+if have_boost_unit_test
+  target_summary += { 'Unit tests': [ true, 'Name: ' + unit_tests_name ] }
+  message('Will build unit tests: use "meson test -C <builddir>" to run them')
+  unit_tests = executable(
+    unit_tests_name,
+    unit_test_sources,
+    cpp_args: general_compile_args,
+    c_args: general_compile_args,
+    link_args: [
+      arch_flags,
+      feature_libraries,
+    ],
+    dependencies: [
+      rubberband_objlib_dep,
+      general_dependencies,
+      boost_unit_test_dep,
+    ],
+    install: false,
+    build_by_default: false
+  )
+  general_test_args = [ '--log_level=message' ]
+  test('Allocators',
+       unit_tests, args: [ '--run_test=TestAllocators', general_test_args ])
+  test('FFT',
+       unit_tests, args: [ '--run_test=TestFFT', general_test_args ])
+  test('Resampler',
+       unit_tests, args: [ '--run_test=TestResampler', general_test_args ])
+  test('VectorOps',
+       unit_tests, args: [ '--run_test=TestVectorOps', general_test_args ])
+  test('VectorOpsComplex',
+       unit_tests, args: [ '--run_test=TestVectorOpsComplex', general_test_args ])
+  test('SignalBits',
+       unit_tests, args: [ '--run_test=TestSignalBits', general_test_args ])
+else
+  target_summary += { 'Unit tests': false }
+  message('Not building unit tests: boost_unit_test_framework dependency not found')
 endif
 
 pkg.generate(

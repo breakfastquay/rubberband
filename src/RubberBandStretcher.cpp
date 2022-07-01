@@ -21,18 +21,336 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#include "StretcherImpl.h"
+#include "faster/R2Stretcher.h"
+#include "finer/R3Stretcher.h"
 
+#include <iostream>
 
 namespace RubberBand {
 
+class RubberBandStretcher::Impl
+{
+    R2Stretcher *m_r2;
+    R3Stretcher *m_r3;
+
+    class CerrLogger : public RubberBandStretcher::Logger {
+    public:
+        void log(const char *message) override {
+            std::cerr << "RubberBand: " << message << "\n";
+        }
+        void log(const char *message, double arg0) override {
+            auto prec = std::cerr.precision();
+            std::cerr.precision(10);
+            std::cerr << "RubberBand: " << message << ": " << arg0 << "\n";
+            std::cerr.precision(prec);
+        }
+        void log(const char *message, double arg0, double arg1) override {
+            auto prec = std::cerr.precision();
+            std::cerr.precision(10);
+            std::cerr << "RubberBand: " << message
+                      << ": (" << arg0 << ", " << arg1 << ")" << "\n";
+            std::cerr.precision(prec);
+        }
+    };
+
+    Log makeRBLog(std::shared_ptr<RubberBandStretcher::Logger> logger) {
+        if (logger) {
+            return Log(
+                [=](const char *message) {
+                    logger->log(message);
+                },
+                [=](const char *message, double arg0) {
+                    logger->log(message, arg0);
+                },
+                [=](const char *message, double arg0, double arg1) {
+                    logger->log(message, arg0, arg1);
+                }
+                );
+        } else {
+            return makeRBLog(std::shared_ptr<RubberBandStretcher::Logger>
+                             (new CerrLogger()));
+        }
+    }
+
+public:
+    Impl(size_t sampleRate, size_t channels, Options options,
+         std::shared_ptr<RubberBandStretcher::Logger> logger,
+         double initialTimeRatio, double initialPitchScale) :
+        m_r2 (!(options & OptionEngineFiner) ?
+              new R2Stretcher(sampleRate, channels, options,
+                              initialTimeRatio, initialPitchScale,
+                              makeRBLog(logger))
+              : nullptr),
+        m_r3 ((options & OptionEngineFiner) ?
+              new R3Stretcher(R3Stretcher::Parameters
+                              (double(sampleRate), channels, options),
+                              initialTimeRatio, initialPitchScale,
+                              makeRBLog(logger))
+              : nullptr)
+    {
+    }
+
+    ~Impl()
+    {
+        delete m_r2;
+        delete m_r3;
+    }
+
+    int getEngineVersion() const
+    {
+        if (m_r3) return 3;
+        else return 2;
+    }
+    
+    void reset()
+    {
+        if (m_r2) m_r2->reset();
+        else m_r3->reset();
+    }
+
+    RTENTRY__
+    void
+    setTimeRatio(double ratio)
+    {
+        if (m_r2) m_r2->setTimeRatio(ratio);
+        else m_r3->setTimeRatio(ratio);
+    }
+
+    RTENTRY__
+    void
+    setPitchScale(double scale)
+    {
+        if (m_r2) m_r2->setPitchScale(scale);
+        else m_r3->setPitchScale(scale);
+    }
+
+    RTENTRY__
+    void
+    setFormantScale(double scale)
+    {
+        //!!!
+        if (m_r3) m_r3->setFormantScale(scale);
+    }
+
+    RTENTRY__
+    double
+    getTimeRatio() const
+    {
+        if (m_r2) return m_r2->getTimeRatio();
+        else return m_r3->getTimeRatio();
+    }
+
+    RTENTRY__
+    double
+    getPitchScale() const
+    {
+        if (m_r2) return m_r2->getPitchScale();
+        else return m_r3->getPitchScale();
+    }
+
+    RTENTRY__
+    double
+    getFormantScale() const
+    {
+        //!!!
+        if (m_r2) return 0.0;
+        else return m_r3->getFormantScale();
+    }
+
+    RTENTRY__
+    size_t
+    getLatency() const
+    {
+        if (m_r2) return m_r2->getLatency();
+        else return m_r3->getLatency();
+    }
+
+//!!! review all these
+
+    RTENTRY__
+    void
+    setTransientsOption(Options options) 
+    {
+        if (m_r2) m_r2->setTransientsOption(options);
+    }
+
+    RTENTRY__
+    void
+    setDetectorOption(Options options) 
+    {
+        if (m_r2) m_r2->setDetectorOption(options);
+    }
+
+    RTENTRY__
+    void
+    setPhaseOption(Options options) 
+    {
+        if (m_r2) m_r2->setPhaseOption(options);
+    }
+
+    RTENTRY__
+    void
+    setFormantOption(Options options)
+    {
+        if (m_r2) m_r2->setFormantOption(options);
+        else if (m_r3) m_r3->setFormantOption(options);
+    }
+
+    RTENTRY__
+    void
+    setPitchOption(Options options)
+    {
+        if (m_r2) m_r2->setPitchOption(options);
+    }
+
+    void
+    setExpectedInputDuration(size_t samples) 
+    {
+        if (m_r2) m_r2->setExpectedInputDuration(samples);
+        //!!! perhaps also for R3
+    }
+
+    void
+    setMaxProcessSize(size_t samples)
+    {
+        if (m_r2) m_r2->setMaxProcessSize(samples);
+        else m_r3->setMaxProcessSize(samples);
+    }
+
+    void
+    setKeyFrameMap(const std::map<size_t, size_t> &mapping)
+    {
+        if (m_r2) m_r2->setKeyFrameMap(mapping);
+        else m_r3->setKeyFrameMap(mapping);
+    }
+
+    RTENTRY__
+    size_t
+    getSamplesRequired() const
+    {
+        if (m_r2) return m_r2->getSamplesRequired();
+        else return m_r3->getSamplesRequired();
+    }
+
+    void
+    study(const float *const *input, size_t samples,
+          bool final)
+    {
+        if (m_r2) m_r2->study(input, samples, final);
+        else m_r3->study(input, samples, final);
+    }
+
+    RTENTRY__
+    void
+    process(const float *const *input, size_t samples,
+            bool final)
+    {
+        if (m_r2) m_r2->process(input, samples, final);
+        else m_r3->process(input, samples, final);
+    }
+
+    RTENTRY__
+    int
+    available() const
+    {
+        if (m_r2) return m_r2->available();
+        else return m_r3->available();
+    }
+
+    RTENTRY__
+    size_t
+    retrieve(float *const *output, size_t samples) const
+    {
+        if (m_r2) return m_r2->retrieve(output, samples);
+        else return m_r3->retrieve(output, samples);
+    }
+
+    float
+    getFrequencyCutoff(int n) const
+    {
+        if (m_r2) return m_r2->getFrequencyCutoff(n);
+        else return {};
+    }
+
+    void
+    setFrequencyCutoff(int n, float f) 
+    {
+        if (m_r2) m_r2->setFrequencyCutoff(n, f);
+    }
+
+    size_t
+    getInputIncrement() const
+    {
+        if (m_r2) return m_r2->getInputIncrement();
+        else return {};
+    }
+
+    std::vector<int>
+    getOutputIncrements() const
+    {
+        if (m_r2) return m_r2->getOutputIncrements();
+        else return {};
+    }
+
+    std::vector<float>
+    getPhaseResetCurve() const
+    {
+        if (m_r2) return m_r2->getPhaseResetCurve();
+        else return {};
+    }
+
+    std::vector<int>
+    getExactTimePoints() const
+    {
+        if (m_r2) return m_r2->getExactTimePoints();
+        else return {};
+    }
+
+    RTENTRY__
+    size_t
+    getChannelCount() const
+    {
+        if (m_r2) return m_r2->getChannelCount();
+        else return m_r3->getChannelCount();
+    }
+
+    void
+    calculateStretch()
+    {
+        if (m_r2) m_r2->calculateStretch();
+    }
+
+    void
+    setDebugLevel(int level)
+    {
+        if (m_r2) m_r2->setDebugLevel(level);
+        else m_r3->setDebugLevel(level);
+    }
+
+    static void
+    setDefaultDebugLevel(int level)
+    {
+        Log::setDefaultDebugLevel(level);
+    }
+};
 
 RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
                                          size_t channels,
                                          Options options,
                                          double initialTimeRatio,
                                          double initialPitchScale) :
-    m_d(new Impl(sampleRate, channels, options,
+    m_d(new Impl(sampleRate, channels, options, nullptr,
+                 initialTimeRatio, initialPitchScale))
+{
+}
+
+RubberBandStretcher::RubberBandStretcher(size_t sampleRate,
+                                         size_t channels,
+                                         std::shared_ptr<Logger> logger,
+                                         Options options,
+                                         double initialTimeRatio,
+                                         double initialPitchScale) :
+    m_d(new Impl(sampleRate, channels, options, logger,
                  initialTimeRatio, initialPitchScale))
 {
 }
@@ -48,60 +366,90 @@ RubberBandStretcher::reset()
     m_d->reset();
 }
 
+int
+RubberBandStretcher::getEngineVersion() const
+{
+    return m_d->getEngineVersion();
+}
+
+RTENTRY__
 void
 RubberBandStretcher::setTimeRatio(double ratio)
 {
     m_d->setTimeRatio(ratio);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setPitchScale(double scale)
 {
     m_d->setPitchScale(scale);
 }
 
+RTENTRY__
+void
+RubberBandStretcher::setFormantScale(double scale)
+{
+    m_d->setFormantScale(scale);
+}
+
+RTENTRY__
 double
 RubberBandStretcher::getTimeRatio() const
 {
     return m_d->getTimeRatio();
 }
 
+RTENTRY__
 double
 RubberBandStretcher::getPitchScale() const
 {
     return m_d->getPitchScale();
 }
 
+RTENTRY__
+double
+RubberBandStretcher::getFormantScale() const
+{
+    return m_d->getFormantScale();
+}
+
+RTENTRY__
 size_t
 RubberBandStretcher::getLatency() const
 {
     return m_d->getLatency();
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setTransientsOption(Options options) 
 {
     m_d->setTransientsOption(options);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setDetectorOption(Options options) 
 {
     m_d->setDetectorOption(options);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setPhaseOption(Options options) 
 {
     m_d->setPhaseOption(options);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setFormantOption(Options options)
 {
     m_d->setFormantOption(options);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::setPitchOption(Options options)
 {
@@ -126,6 +474,7 @@ RubberBandStretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
     m_d->setKeyFrameMap(mapping);
 }
 
+RTENTRY__
 size_t
 RubberBandStretcher::getSamplesRequired() const
 {
@@ -139,6 +488,7 @@ RubberBandStretcher::study(const float *const *input, size_t samples,
     m_d->study(input, samples, final);
 }
 
+RTENTRY__
 void
 RubberBandStretcher::process(const float *const *input, size_t samples,
                              bool final)
@@ -146,12 +496,14 @@ RubberBandStretcher::process(const float *const *input, size_t samples,
     m_d->process(input, samples, final);
 }
 
+RTENTRY__
 int
 RubberBandStretcher::available() const
 {
     return m_d->available();
 }
 
+RTENTRY__
 size_t
 RubberBandStretcher::retrieve(float *const *output, size_t samples) const
 {
@@ -194,6 +546,7 @@ RubberBandStretcher::getExactTimePoints() const
     return m_d->getExactTimePoints();
 }
 
+RTENTRY__
 size_t
 RubberBandStretcher::getChannelCount() const
 {

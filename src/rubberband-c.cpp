@@ -53,6 +53,11 @@ void rubberband_reset(RubberBandState state)
     state->m_s->reset();
 }
 
+int rubberband_get_engine_version(RubberBandState state)
+{
+    return state->m_s->getEngineVersion(); 
+}
+
 void rubberband_set_time_ratio(RubberBandState state, double ratio)
 {
     state->m_s->setTimeRatio(ratio);
@@ -71,6 +76,16 @@ double rubberband_get_time_ratio(const RubberBandState state)
 double rubberband_get_pitch_scale(const RubberBandState state)
 {
     return state->m_s->getPitchScale();
+}
+
+void rubberband_set_formant_scale(RubberBandState state, double scale)
+{
+    state->m_s->setFormantScale(scale);
+}
+
+double rubberband_get_formant_scale(const RubberBandState state)
+{
+    return state->m_s->getFormantScale();
 }
 
 unsigned int rubberband_get_latency(const RubberBandState state) 

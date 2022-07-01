@@ -7,6 +7,7 @@ packages:
   - ladspa-sdk
   - lv2-dev
   - vamp-plugin-sdk
+  - libboost-test-dev
   - meson
   - ninja-build
 sources:
@@ -15,9 +16,27 @@ tasks:
   - setup: |
       cd rubberband
       meson build
+      meson build_speex -Dresampler=speex
+      meson build_libsamplerate -Dresampler=libsamplerate
+      meson build_fftw -Dfft=fftw
+      meson build_kissfft -Dfft=kissfft
   - build: |
       cd rubberband
       ninja -C build
+      meson test -C build
+      build/rubberband -V
+      ninja -C build_speex
+      meson test -C build_speex
+      build_speex/rubberband -V
+      ninja -C build_libsamplerate
+      meson test -C build_libsamplerate
+      build_libsamplerate/rubberband -V
+      ninja -C build_fftw
+      meson test -C build_fftw
+      build_fftw/rubberband -V
+      ninja -C build_kissfft
+      meson test -C build_kissfft
+      build_kissfft/rubberband -V
       ./otherbuilds/check.sh
 triggers:
   - action: email

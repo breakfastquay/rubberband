@@ -1,16 +1,16 @@
 
-CXX		:= clang++
+CXX		:= clang++ -stdlib=libc++ -std=c++11
 CC		:= clang
 
-OPTFLAGS	:= -DNDEBUG -ffast-math -freciprocal-math -O3 -ftree-vectorize 
+OPTFLAGS	:= -DNDEBUG -ffast-math -O3 -ftree-vectorize 
 
 # For the device
-ARCHFLAGS_DEV	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch armv7 -arch arm64 -fembed-bitcode
+ARCHFLAGS_DEV	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6 -arch armv7 -arch arm64 -fembed-bitcode
 
 # Or for the simulator
-ARCHFLAGS_SIM	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -miphoneos-version-min=6 -stdlib=libc++ -arch i386 -arch x86_64 -fembed-bitcode
+ARCHFLAGS_SIM	:= -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -miphoneos-version-min=6 -arch x86_64 -fembed-bitcode
 
-CXXFLAGS_ANY	:= $(OPTFLAGS) -I. -Isrc -Irubberband -DMALLOC_IS_ALIGNED -DHAVE_VDSP -DUSE_SPEEX -DUSE_POMMIER_MATHFUN -DNO_THREADING -DNO_THREAD_CHECKS -DNO_TIMING -DNO_TIMING_COMPLETE_NOOP -DNDEBUG
+CXXFLAGS_ANY	:= $(OPTFLAGS) -I. -Isrc -Irubberband -DUSE_BQRESAMPLER -DHAVE_VDSP -DNO_THREAD_CHECKS -DUSE_PTHREADS -DNO_TIMING -DMALLOC_IS_ALIGNED -DNDEBUG
 
 CXXFLAGS_DEV	:= $(ARCHFLAGS_DEV) $(CXXFLAGS_ANY)
 CXXFLAGS_SIM	:= $(ARCHFLAGS_SIM) $(CXXFLAGS_ANY)
@@ -36,59 +36,27 @@ PUBLIC_INCLUDES := \
 	rubberband/rubberband-c.h \
 	rubberband/RubberBandStretcher.h
 
-LIBRARY_INCLUDES := \
-	src/StretcherChannelData.h \
-	src/float_cast/float_cast.h \
-	src/StretcherImpl.h \
-	src/StretchCalculator.h \
-	src/base/Profiler.h \
-	src/base/RingBuffer.h \
-	src/base/Scavenger.h \
-	src/dsp/AudioCurveCalculator.h \
-	src/audiocurves/CompoundAudioCurve.h \
-	src/audiocurves/ConstantAudioCurve.h \
-	src/audiocurves/HighFrequencyAudioCurve.h \
-	src/audiocurves/PercussiveAudioCurve.h \
-	src/audiocurves/SilentAudioCurve.h \
-	src/audiocurves/SpectralDifferenceAudioCurve.h \
-	src/dsp/Resampler.h \
-	src/dsp/FFT.h \
-	src/dsp/MovingMedian.h \
-	src/dsp/SincWindow.h \
-	src/dsp/Window.h \
-	src/system/Allocators.h \
-	src/system/Thread.h \
-	src/system/VectorOps.h \
-	src/system/VectorOpsComplex.h \
-	src/system/sysutils.h
-
 LIBRARY_SOURCES := \
 	src/rubberband-c.cpp \
 	src/RubberBandStretcher.cpp \
-	src/StretcherProcess.cpp \
-	src/StretchCalculator.cpp \
-	src/base/Profiler.cpp \
-	src/dsp/AudioCurveCalculator.cpp \
-	src/audiocurves/CompoundAudioCurve.cpp \
-	src/audiocurves/SpectralDifferenceAudioCurve.cpp \
-	src/audiocurves/HighFrequencyAudioCurve.cpp \
-	src/audiocurves/SilentAudioCurve.cpp \
-	src/audiocurves/ConstantAudioCurve.cpp \
-	src/audiocurves/PercussiveAudioCurve.cpp \
-	src/dsp/Resampler.cpp \
-	src/dsp/FFT.cpp \
-	src/system/Allocators.cpp \
-	src/system/sysutils.cpp \
-	src/system/Thread.cpp \
-	src/system/VectorOpsComplex.cpp \
-	src/StretcherChannelData.cpp \
-	src/StretcherImpl.cpp
-
-# For Speex resampler -- comment these lines out if not specifying USE_SPEEX
-LIBRARY_INCLUDES := $(LIBRARY_INCLUDES) \
-	src/speex/speex_resampler.h
-LIBRARY_SOURCES := $(LIBRARY_SOURCES) \
-	src/speex/resample.c
+	src/faster/AudioCurveCalculator.cpp \
+	src/faster/CompoundAudioCurve.cpp \
+	src/faster/HighFrequencyAudioCurve.cpp \
+	src/faster/SilentAudioCurve.cpp \
+	src/faster/PercussiveAudioCurve.cpp \
+	src/faster/R2Stretcher.cpp \
+	src/faster/StretcherChannelData.cpp \
+	src/faster/StretcherProcess.cpp \
+	src/common/Allocators.cpp \
+	src/common/BQResampler.cpp \
+	src/common/FFT.cpp \
+	src/common/Log.cpp \
+	src/common/Profiler.cpp \
+	src/common/Resampler.cpp \
+	src/common/StretchCalculator.cpp \
+	src/common/sysutils.cpp \
+	src/common/Thread.cpp \
+	src/finer/R3Stretcher.cpp 
 
 LIBRARY_OBJECTS_DEV := $(LIBRARY_SOURCES:.cpp=.dev.o)
 LIBRARY_OBJECTS_DEV := $(LIBRARY_OBJECTS_DEV:.c=.dev.o)

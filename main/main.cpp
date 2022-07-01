@@ -33,24 +33,26 @@
 
 #include <fstream>
 
-#include "../src/system/sysutils.h"
+#include "../src/common/sysutils.h"
+#include "../src/common/Profiler.h"
 
 #ifdef _MSC_VER
-#include "../src/getopt/getopt.h"
+#include "../src/ext/getopt/getopt.h"
 #else
 #include <getopt.h>
 #include <unistd.h>
 #include <sys/time.h>
 #endif
 
-#include "../src/base/Profiler.h"
-
 #ifdef _WIN32
 using RubberBand::gettimeofday;
 #endif
 
 #ifdef _MSC_VER
-using RubberBand::usleep;
+#include <windows.h>
+static void usleep(unsigned long usec) {
+    ::Sleep(usec == 0 ? 0 : usec < 1000 ? 1 : usec / 1000);
+}
 #define strdup _strdup
 #endif
 
@@ -82,15 +84,13 @@ double tempo_convert(const char *str)
 
 int main(int argc, char **argv)
 {
-    int c;
-
     double ratio = 1.0;
     double duration = 0.0;
     double pitchshift = 0.0;
     double frequencyshift = 1.0;
     int debug = 0;
     bool realtime = false;
-    bool precise = true;
+    bool precisiongiven = false;
     int threading = 0;
     bool lamination = true;
     bool longwin = false;
@@ -101,7 +101,10 @@ int main(int argc, char **argv)
     bool together = false;
     bool crispchanged = false;
     int crispness = -1;
+    bool faster = false;
+    bool finer = false;
     bool help = false;
+    bool fullHelp = false;
     bool version = false;
     bool quiet = false;
 
@@ -126,11 +129,22 @@ int main(int argc, char **argv)
 
     bool ignoreClipping = false;
 
+    std::string myName(argv[0]);
+
+    bool isR3 =
+        ((myName.size() > 3 &&
+          myName.substr(myName.size() - 3, 3) == "-r3") ||
+         (myName.size() > 7 &&
+          myName.substr(myName.size() - 7, 7) == "-r3.exe") ||
+         (myName.size() > 7 &&
+          myName.substr(myName.size() - 7, 7) == "-R3.EXE"));
+    
     while (1) {
         int optionIndex = 0;
 
         static struct option longOpts[] = {
             { "help",          0, 0, 'h' },
+            { "full-help",     0, 0, 'H' },
             { "version",       0, 0, 'V' },
             { "time",          1, 0, 't' },
             { "tempo",         1, 0, 'T' },
@@ -146,10 +160,10 @@ int main(int argc, char **argv)
             { "formant",       0, 0, 'F' },
             { "no-threads",    0, 0, '0' },
             { "no-transients", 0, 0, '1' },
-            { "no-lamination", 0, 0, '2' },
+            { "no-lamination", 0, 0, '.' },
             { "centre-focus",  0, 0, '7' },
-            { "window-long",   0, 0, '3' },
-            { "window-short",  0, 0, '4' },
+            { "window-long",   0, 0, '>' },
+            { "window-short",  0, 0, '<' },
             { "bl-transients", 0, 0, '8' },
             { "detector-perc", 0, 0, '5' },
             { "detector-soft", 0, 0, '6' },
@@ -161,16 +175,19 @@ int main(int argc, char **argv)
             { "freqmap",       1, 0, 'Q' },
             { "pitchmap",      1, 0, 'C' },
             { "ignore-clipping", 0, 0, 'i' },
+            { "fast",          0, 0, '2' },
+            { "fine",          0, 0, '3' },
             { 0, 0, 0, 0 }
         };
 
-        c = getopt_long(argc, argv,
-                        "t:p:d:RLPFc:f:T:D:qhVM:",
-                        longOpts, &optionIndex);
-        if (c == -1) break;
+        int optionChar = getopt_long(argc, argv,
+                                     "t:p:d:RLPFc:f:T:D:qhHVM:23",
+                                     longOpts, &optionIndex);
+        if (optionChar == -1) break;
 
-        switch (c) {
+        switch (optionChar) {
         case 'h': help = true; break;
+        case 'H': fullHelp = true; break;
         case 'V': version = true; break;
         case 't': ratio *= atof(optarg); haveRatio = true; break;
         case 'T': ratio *= tempo_convert(optarg); haveRatio = true; break;
@@ -179,15 +196,15 @@ int main(int argc, char **argv)
         case 'f': frequencyshift = atof(optarg); haveRatio = true; break;
         case 'd': debug = atoi(optarg); break;
         case 'R': realtime = true; break;
-        case 'L': precise = false; break;
-        case 'P': precise = true; break;
+        case 'L': precisiongiven = true; break;
+        case 'P': precisiongiven = true; break;
         case 'F': formant = true; break;
         case '0': threading = 1; break;
         case '@': threading = 2; break;
         case '1': transients = NoTransients; crispchanged = true; break;
-        case '2': lamination = false; crispchanged = true; break;
-        case '3': longwin = true; crispchanged = true; break;
-        case '4': shortwin = true; crispchanged = true; break;
+        case '.': lamination = false; crispchanged = true; break;
+        case '>': longwin = true; crispchanged = true; break;
+        case '<': shortwin = true; crispchanged = true; break;
         case '5': detector = PercussiveDetector; crispchanged = true; break;
         case '6': detector = SoftDetector; crispchanged = true; break;
         case '7': together = true; break;
@@ -200,6 +217,8 @@ int main(int argc, char **argv)
         case 'Q': freqMapFile = optarg; freqOrPitchMapSpecified = true; break;
         case 'C': pitchMapFile = optarg; freqOrPitchMapSpecified = true; break;
         case 'i': ignoreClipping = true; break;
+        case '2': faster = true; break;
+        case '3': finer = true; break;
         default:  help = true; break;
         }
     }
@@ -218,15 +237,15 @@ int main(int argc, char **argv)
         realtime = true;
     }
     
-    if (help || !haveRatio || optind + 2 != argc) {
+    if (help || fullHelp || !haveRatio || optind + 2 != argc) {
         cerr << endl;
 	cerr << "Rubber Band" << endl;
         cerr << "An audio time-stretching and pitch-shifting library and utility program." << endl;
 	cerr << "Copyright 2007-2022 Particular Programs Ltd." << endl;
         cerr << endl;
-	cerr << "   Usage: " << argv[0] << " [options] <infile.wav> <outfile.wav>" << endl;
+	cerr << "   Usage: " << myName << " [options] <infile.wav> <outfile.wav>" << endl;
         cerr << endl;
-        cerr << "You must specify at least one of the following time and pitch ratio options." << endl;
+        cerr << "You must specify at least one of the following time and pitch ratio options:" << endl;
         cerr << endl;
         cerr << "  -t<X>, --time <X>       Stretch to X times original duration, or" << endl;
         cerr << "  -T<X>, --tempo <X>      Change tempo by multiple X (same as --time 1/X), or" << endl;
@@ -237,7 +256,7 @@ int main(int argc, char **argv)
         cerr << "  -f<X>, --frequency <X>  Change frequency by multiple X" << endl;
         cerr << endl;
         cerr << "The following options provide ways of making the time and frequency ratios" << endl;
-        cerr << "change during the audio." << endl;
+        cerr << "change during the audio:" << endl;
         cerr << endl;
         cerr << "  -M<F>, --timemap <F>    Use file F as the source for time map" << endl;
         cerr << endl;
@@ -265,58 +284,109 @@ int main(int argc, char **argv)
         cerr << "  lists frequency multipliers rather than pitch offsets (like the difference" << endl;
         cerr << "  between pitch and frequency options above)." << endl;
         cerr << endl;
-        cerr << "The following options provide a simple way to adjust the sound. See below" << endl;
-        cerr << "for more details." << endl;
+        cerr << "The following options affect the sound manipulation and quality:" << endl;
         cerr << endl;
-        cerr << "  -c<N>, --crisp <N>      Crispness (N = 0,1,2,3,4,5,6); default 5 (see below)" << endl;
+        cerr << "  -2,    --fast           Use the R2 (faster) engine" << endl;
+        cerr << endl;
+        cerr << "  This is the default (for backward compatibility) when this tool is invoked" << endl;
+        cerr << "  as \"rubberband\". It was the only engine available in versions prior to v3.0." << endl;
+        cerr << endl;
+        cerr << "  -3,    --fine           Use the R3 (finer) engine" << endl;
+        cerr << endl;
+        cerr << "  This is the default when this tool is invoked as \"rubberband-r3\". It almost" << endl;
+        cerr << "  always produces better results than the R2 engine, but with significantly" << endl;
+        cerr << "  higher CPU load." << endl;
+        cerr << endl;
         cerr << "  -F,    --formant        Enable formant preservation when pitch shifting" << endl;
         cerr << endl;
-        cerr << "The remaining options fine-tune the processing mode and stretch algorithm." << endl;
-        cerr << "These are mostly included for test purposes; the default settings and standard" << endl;
-        cerr << "crispness parameter are intended to provide the best sounding set of options" << endl;
-        cerr << "for most situations. The default is to use none of these options." << endl;
+        cerr << "  This option attempts to keep the formant envelope unchanged when changing" << endl;
+        cerr << "  the pitch, retaining the original timbre of vocals and instruments in a" << endl;
+        cerr << "  recognisable way." << endl;
         cerr << endl;
-        cerr << "  -L,    --loose          Relax timing in hope of better transient preservation" << endl;
-        cerr << "  -P,    --precise        Ignored: The opposite of -L, this is default from 1.6" << endl;
-        cerr << "  -R,    --realtime       Select realtime mode (implies --no-threads)" << endl;
-        cerr << "         --no-threads     No extra threads regardless of CPU and channel count" << endl;
-        cerr << "         --threads        Assume multi-CPU even if only one CPU is identified" << endl;
-        cerr << "         --no-transients  Disable phase resynchronisation at transients" << endl;
-        cerr << "         --bl-transients  Band-limit phase resync to extreme frequencies" << endl;
-        cerr << "         --no-lamination  Disable phase lamination" << endl;
-        cerr << "         --window-long    Use longer processing window (actual size may vary)" << endl;
-        cerr << "         --window-short   Use shorter processing window" << endl;
-        cerr << "         --smoothing      Apply window presum and time-domain smoothing" << endl;
-        cerr << "         --detector-perc  Use percussive transient detector (as in pre-1.5)" << endl;
-        cerr << "         --detector-soft  Use soft transient detector" << endl;
-        cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
-        cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
-        cerr << "                          (at a cost in width and individual channel quality)" << endl;
-        cerr << "         --ignore-clipping Ignore clipping at output; the default is to restart" << endl;
-        cerr << "                          with reduced gain if clipping occurs" << endl;
+        if (fullHelp || !isR3) {
+            cerr << "  -c<N>, --crisp <N>      Crispness (N = 0,1,2,3,4,5,6); default 5" << endl;
+            cerr << endl;
+            cerr << "  This option only has an effect when using the R2 (faster) engine. See below" << endl;
+            cerr << "  for details of the different levels." << endl;
+            cerr << endl;
+        }
+        if (fullHelp) {
+            cerr << "The remaining options fine-tune the processing mode and stretch algorithm." << endl;
+            cerr << "These are mostly included for test purposes; the default settings and standard" << endl;
+            cerr << "crispness parameter are intended to provide the best sounding set of options" << endl;
+            cerr << "for most situations. The default is to use none of these options." << endl;
+            cerr << endl;
+            cerr << "  -R,    --realtime       Select realtime mode (implies --no-threads)." << endl;
+            cerr << "                          This utility does not do realtime stream processing;" << endl;
+            cerr << "                          the option merely selects realtime mode for the" << endl;
+            cerr << "                          stretcher it uses" << endl;
+            cerr << "         --no-threads     No extra threads regardless of CPU and channel count" << endl;
+            cerr << "         --threads        Assume multi-CPU even if only one CPU is identified" << endl;
+            cerr << "         --no-transients  Disable phase resynchronisation at transients" << endl;
+            cerr << "         --bl-transients  Band-limit phase resync to extreme frequencies" << endl;
+            cerr << "         --no-lamination  Disable phase lamination" << endl;
+            cerr << "         --window-long    Use longer processing window (actual size may vary)" << endl;
+            cerr << "         --window-short   Use shorter processing window" << endl;
+            cerr << "         --smoothing      Apply window presum and time-domain smoothing" << endl;
+            cerr << "         --detector-perc  Use percussive transient detector (as in pre-1.5)" << endl;
+            cerr << "         --detector-soft  Use soft transient detector" << endl;
+            cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
+            cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
+            cerr << "                          (at a cost in width and individual channel quality)" << endl;
+            cerr << "         --ignore-clipping Ignore clipping at output; the default is to restart" << endl;
+            cerr << "                          with reduced gain if clipping occurs" << endl;
+            cerr << "  -L,    --loose          [Accepted for compatibility but ignored; always off]" << endl;
+            cerr << "  -P,    --precise        [Accepted for compatibility but ignored; always on]" << endl;
+            cerr << endl;
+            cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 0, full 3" << endl;
+            cerr << "                          (N.B. debug level 3 includes audible ticks in output)" << endl;
+            cerr << endl;
+        }
+        cerr << "The following options are for output control and administration:" << endl;
         cerr << endl;
-        cerr << "  -d<N>, --debug <N>      Select debug level (N = 0,1,2,3); default 0, full 3" << endl;
-        cerr << "                          (N.B. debug level 3 includes audible ticks in output)" << endl;
         cerr << "  -q,    --quiet          Suppress progress output" << endl;
-        cerr << endl;
         cerr << "  -V,    --version        Show version number and exit" << endl;
-        cerr << "  -h,    --help           Show this help" << endl;
+        cerr << "  -h,    --help           Show the normal help output" << endl;
+        cerr << "  -H,    --full-help      Show the full help output" << endl;
         cerr << endl;
-        cerr << "\"Crispness\" levels:" << endl;
-        cerr << "  -c 0   equivalent to --no-transients --no-lamination --window-long" << endl;
-        cerr << "  -c 1   equivalent to --detector-soft --no-lamination --window-long (for piano)" << endl;
-        cerr << "  -c 2   equivalent to --no-transients --no-lamination" << endl;
-        cerr << "  -c 3   equivalent to --no-transients" << endl;
-        cerr << "  -c 4   equivalent to --bl-transients" << endl;
-        cerr << "  -c 5   default processing options" << endl;
-        cerr << "  -c 6   equivalent to --no-lamination --window-short (may be good for drums)" << endl;
-        cerr << endl;
+        if (fullHelp) {
+            cerr << "\"Crispness\" levels:" << endl;
+            cerr << "  -c 0   equivalent to --no-transients --no-lamination --window-long" << endl;
+            cerr << "  -c 1   equivalent to --detector-soft --no-lamination --window-long (for piano)" << endl;
+            cerr << "  -c 2   equivalent to --no-transients --no-lamination" << endl;
+            cerr << "  -c 3   equivalent to --no-transients" << endl;
+            cerr << "  -c 4   equivalent to --bl-transients" << endl;
+            cerr << "  -c 5   default processing options" << endl;
+            cerr << "  -c 6   equivalent to --no-lamination --window-short (may be good for drums)" << endl;
+            cerr << endl;
+        } else {
+            cerr << "Numerous other options are available, mostly for tuning the behaviour of" << endl;
+            cerr << "the R2 engine. Run \"" << myName << " --full-help\" for details." << endl;
+            cerr << endl;
+        }            
         return 2;
     }
 
     if (ratio <= 0.0) {
         cerr << "ERROR: Invalid time ratio " << ratio << endl;
         return 1;
+    }
+        
+    if (faster && finer) {
+        cerr << "WARNING: Both fast (R2) and fine (R3) engines selected, will use default for" << endl;
+        cerr << "         this tool (" << (isR3 ? "fine" : "fast") << ")" << endl;
+        faster = false;
+        finer = false;
+    }
+
+    if (isR3) {
+        if (!faster) {
+            finer = true;
+        }
+    } else {
+        if (!finer) {
+            faster = true;
+        }
     }
 
     if (crispness >= 0 && crispchanged) {
@@ -330,6 +400,11 @@ int main(int argc, char **argv)
         hqpitch = false;
     }
 
+    if (precisiongiven) {
+        cerr << "NOTE: The -L/--loose and -P/--precise options are both ignored -- precise" << endl;
+        cerr << "      became the default in v1.6 and loose was removed in v3.0" << endl;
+    }
+    
     switch (crispness) {
     case -1: crispness = 5; break;
     case 0: detector = CompoundDetector; transients = NoTransients; lamination = false; longwin = true; shortwin = false; break;
@@ -342,17 +417,22 @@ int main(int argc, char **argv)
     };
 
     if (!quiet) {
-        cerr << "Using crispness level: " << crispness << " (";
-        switch (crispness) {
-        case 0: cerr << "Mushy"; break;
-        case 1: cerr << "Piano"; break;
-        case 2: cerr << "Smooth"; break;
-        case 3: cerr << "Balanced multitimbral mixture"; break;
-        case 4: cerr << "Unpitched percussion with stable notes"; break;
-        case 5: cerr << "Crisp monophonic instrumental"; break;
-        case 6: cerr << "Unpitched solo percussion"; break;
+        if (finer) {
+            cerr << "Using R3 (finer) engine" << endl;
+        } else {
+            cerr << "Using R2 (faster) engine" << endl;
+            cerr << "Using crispness level: " << crispness << " (";
+            switch (crispness) {
+            case 0: cerr << "Mushy"; break;
+            case 1: cerr << "Piano"; break;
+            case 2: cerr << "Smooth"; break;
+            case 3: cerr << "Balanced multitimbral mixture"; break;
+            case 4: cerr << "Unpitched percussion with stable notes"; break;
+            case 5: cerr << "Crisp monophonic instrumental"; break;
+            case 6: cerr << "Unpitched solo percussion"; break;
+            }
+            cerr << ")" << endl;
         }
-        cerr << ")" << endl;
     }
 
     std::map<size_t, size_t> timeMap;
@@ -492,8 +572,11 @@ int main(int argc, char **argv)
     }
 
     RubberBandStretcher::Options options = 0;
+    if (finer) {
+        options = RubberBandStretcher::OptionEngineFiner;
+    }
+    
     if (realtime)    options |= RubberBandStretcher::OptionProcessRealTime;
-    if (precise)     options |= RubberBandStretcher::OptionStretchPrecise;
     if (!lamination) options |= RubberBandStretcher::OptionPhaseIndependent;
     if (longwin)     options |= RubberBandStretcher::OptionWindowLong;
     if (shortwin)    options |= RubberBandStretcher::OptionWindowShort;
@@ -782,19 +865,21 @@ int main(int argc, char **argv)
             }
 
             if (clipping) {
-                if (!quiet) {
-                    cerr << "NOTE: Clipping detected at output sample "
-                         << countOut << ", restarting with "
-                         << "reduced gain of " << gain
-                         << " (supply --ignore-clipping to avoid this)" << endl;
-                }
                 const float mingain = 0.75f;
                 if (gain < mingain) {
-                    cerr << "WARNING: Clipped values were implausibly high: "
-                         << "something wrong with input or process - "
-                         << "not reducing gain below " << mingain << endl;
+                    cerr << "NOTE: Clipping detected at output sample "
+                         << countOut << ", but not reducing gain as it would "
+                         << "mean dropping below minimum " << mingain << endl;
                     gain = mingain;
                     ignoreClipping = true;
+                } else {
+                    if (!quiet) {
+                        cerr << "NOTE: Clipping detected at output sample "
+                             << countOut << ", restarting with "
+                             << "reduced gain of " << gain
+                             << " (supply --ignore-clipping to avoid this)"
+                             << endl;
+                    }
                 }
                 successful = false;
                 break;
@@ -900,7 +985,11 @@ int main(int argc, char **argv)
 
     if (!quiet) {
 
-        cerr << "in: " << countIn << ", out: " << countOut << ", ratio: " << float(countOut)/float(countIn) << ", ideal output: " << lrint(countIn * ratio) << ", error: " << abs(lrint(countIn * ratio) - int(countOut)) << endl;
+        cerr << "in: " << countIn << ", out: " << countOut
+             << ", ratio: " << float(countOut)/float(countIn)
+             << ", ideal output: " << lrint(countIn * ratio)
+             << ", error: " << abs(lrint(countIn * ratio) - int(countOut))
+             << endl;
 
 #ifdef _WIN32
         RubberBand::
@@ -916,7 +1005,9 @@ int main(int argc, char **argv)
         etv.tv_usec -= tv.tv_usec;
         
         double sec = double(etv.tv_sec) + (double(etv.tv_usec) / 1000000.0);
-        cerr << "elapsed time: " << sec << " sec, in frames/sec: " << countIn/sec << ", out frames/sec: " << countOut/sec << endl;
+        cerr << "elapsed time: " << sec << " sec, in frames/sec: "
+             << int64_t(countIn/sec) << ", out frames/sec: "
+             << int64_t(countOut/sec) << endl;
     }
 
     RubberBand::Profiler::dump();
