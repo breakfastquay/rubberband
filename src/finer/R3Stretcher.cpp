@@ -968,7 +968,10 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     } else {
         m_unityCount = 0;
     }
-        
+
+    bool tighterChannelLock =
+        m_parameters.options & RubberBandStretcher::OptionChannelsTogether;
+    
     m_guide.updateGuidance(ratio,
                            prevOuthop,
                            classifyScale->mag.data(),
@@ -980,6 +983,7 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                            v_mean(classifyScale->mag.data() + 1, classify/2),
                            m_unityCount,
                            isRealTime(),
+                           tighterChannelLock,
                            cd->guidance);
 /*
     if (c == 0) {
