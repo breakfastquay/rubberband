@@ -336,17 +336,17 @@ public:
      * may not be changed after construction.
      *
      *   \li \c OptionChannelsApart - Channels are handled for maximum
-     *   individual fidelity, with less tight synchronisation. In the
-     *   R3 engine, this means stereo synchronisation is maintained
-     *   more closely for lower-frequency content than higher.  In R2,
-     *   it means the stereo channels are processed individually and
-     *   only synchronised at transients.  In both engines this gives
-     *   the highest quality for the individual channels but a more
-     *   diffuse stereo image and an unnatural increase in "width".
-     *   This option is the default.
+     *   individual fidelity, at the expense of synchronisation. In
+     *   the R3 engine, this means frequency-bin synchronisation is
+     *   maintained more closely for lower-frequency content than
+     *   higher.  In R2, it means the stereo channels are processed
+     *   individually and only synchronised at transients.  In both
+     *   engines this gives the highest quality for the individual
+     *   channels but a more diffuse stereo image and an unnatural
+     *   increase in "width".  This option is the default.
      *
      *   \li \c OptionChannelsTogether - Channels are handled for
-     *   tighter synchronisation at the expense of individual
+     *   higher synchronisation at the expense of individual
      *   fidelity. In the R3 engine, this means stereo synchronisation
      *   is maintained more closely for the full frequency range. In
      *   R2, it means the first two channels are considered to be a
