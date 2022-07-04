@@ -156,6 +156,7 @@ public:
                         double meanMagnitude,
                         int unityCount,
                         bool realtime,
+                        bool tighterChannelLock,
                         Guidance &guidance) const {
 
         bool hadPhaseReset = guidance.phaseReset.present;
@@ -191,7 +192,12 @@ public:
 
         guidance.channelLock.present = true;
         guidance.channelLock.f0 = 0.0;
-        guidance.channelLock.f1 = 600.0;
+
+        if (tighterChannelLock) {
+            guidance.channelLock.f1 = nyquist;
+        } else {
+            guidance.channelLock.f1 = 600.0;
+        }
 
         bool kick =
             (segmentation.percussiveBelow > 40.0) &&

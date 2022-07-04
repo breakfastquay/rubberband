@@ -331,25 +331,30 @@ public:
      *   the others in the case where the pitch scale is exactly 1.0.
      *
      * 11. Flags prefixed \c OptionChannels control the method used
-     * for processing two-channel audio in the R2 engine.  These
-     * options have no effect when using the R3 engine.  These options
+     * for processing two-channel stereo audio. These have different,
+     * but related, effects in the R2 and R3 engines.  These options
      * may not be changed after construction.
      *
-     *   \li \c OptionChannelsApart - Each channel is processed
-     *   individually, though timing is synchronised and phases are
-     *   synchronised at transients (depending on the OptionTransients
-     *   setting).  This gives the highest quality for the individual
-     *   channels but a relative lack of stereo focus and unrealistic
-     *   increase in "width".  This is the default.
+     *   \li \c OptionChannelsApart - Channels are handled for maximum
+     *   individual fidelity, with less tight synchronisation. In the
+     *   R3 engine, this means stereo synchronisation is maintained
+     *   more closely for lower-frequency content than higher.  In R2,
+     *   it means the stereo channels are processed individually and
+     *   only synchronised at transients.  In both engines this gives
+     *   the highest quality for the individual channels but a more
+     *   diffuse stereo image and an unnatural increase in "width".
+     *   This option is the default.
      *
-     *   \li \c OptionChannelsTogether - The first two channels (where
-     *   two or more are present) are considered to be a stereo pair
-     *   and are processed in mid-side format; mid and side are
-     *   processed individually, with timing synchronised and phases
-     *   synchronised at transients (depending on the OptionTransients
-     *   setting).  This usually leads to better focus in the centre
-     *   but a loss of stereo space and width.  Any channels beyond
-     *   the first two are processed individually.
+     *   \li \c OptionChannelsTogether - Channels are handled for
+     *   tighter synchronisation at the expense of individual
+     *   fidelity. In the R3 engine, this means stereo synchronisation
+     *   is maintained more closely for the full frequency range. In
+     *   R2, it means the first two channels are considered to be a
+     *   stereo pair and are processed in mid-side format, with mid
+     *   and side processed as if they were separate channels before
+     *   being recombined.  This usually leads to better focus in the
+     *   centre but relatively less stereo space and width and lower
+     *   fidelity for individual channel content.
      *
      * Finally, flags prefixed \c OptionStretch are obsolete flags
      * provided for backward compatibility only. They are ignored by
