@@ -159,10 +159,18 @@ public:
 
     RTENTRY__
     size_t
-    getLatency() const
+    getPreferredStartPad() const
     {
-        if (m_r2) return m_r2->getLatency();
-        else return m_r3->getLatency();
+        if (m_r2) return m_r2->getPreferredStartPad();
+        else return m_r3->getPreferredStartPad();
+    }
+
+    RTENTRY__
+    size_t
+    getStartDelay() const
+    {
+        if (m_r2) return m_r2->getStartDelay();
+        else return m_r3->getStartDelay();
     }
 
 //!!! review all these
@@ -416,9 +424,24 @@ RubberBandStretcher::getFormantScale() const
 
 RTENTRY__
 size_t
+RubberBandStretcher::getPreferredStartPad() const
+{
+    return m_d->getPreferredStartPad();
+}
+
+RTENTRY__
+size_t
+RubberBandStretcher::getStartDelay() const
+{
+    return m_d->getStartDelay();
+}
+
+RTENTRY__
+size_t
 RubberBandStretcher::getLatency() const
 {
-    return m_d->getLatency();
+    // deprecated alias for getStartDelay
+    return m_d->getStartDelay();
 }
 
 RTENTRY__

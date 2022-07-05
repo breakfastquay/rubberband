@@ -726,11 +726,11 @@ int main(int argc, char **argv)
         bool clipping = false;
 
         // The stretcher only pads the start in offline mode; to avoid
-        // a fade in at the start, we pad it manually in RT mode
-        int toDrop = 0;
+        // a fade in at the start, we pad it manually in RT mode. Both
+        // of these functions are defined to return zero in offline mode
+        int toDrop = ts.getStartDelay();
         if (realtime) {
-            toDrop = int(ts.getLatency());
-            int toPad = int(round(toDrop * frequencyshift));
+            int toPad = ts.getPreferredStartPad();
             if (debug > 0) {
                 cerr << "padding start with " << toPad
                      << " samples in RT mode, will drop " << toDrop

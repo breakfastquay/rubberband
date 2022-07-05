@@ -62,7 +62,8 @@ public:
     double getTimeRatio() const;
     double getPitchScale() const;
 
-    size_t getLatency() const;
+    size_t getPreferredStartPad() const;
+    size_t getStartDelay() const;
 
     void setTransientsOption(RubberBandStretcher::Options);
     void setDetectorOption(RubberBandStretcher::Options);

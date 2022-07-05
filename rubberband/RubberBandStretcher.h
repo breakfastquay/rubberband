@@ -72,8 +72,8 @@ namespace RubberBand
  * study pass has begun and cannot be changed afterwards. (But see
  * RubberBandStretcher::setKeyFrameMap() for a way to do pre-planned
  * variable time stretching in offline mode.) Offline mode also
- * performs latency compensation so that the stretched result has an
- * exact start and duration.
+ * performs padding and delay compensation so that the stretched
+ * result has an exact start and duration.
  *
  * ### Real-time mode
  *
@@ -85,8 +85,9 @@ namespace RubberBand
  * In real-time mode you can change the time and pitch ratios at any
  * time.
  *
- * You may need to perform latency compensation in real-time mode; see
- * RubberBandStretcher::getLatency() for details.
+ * You may need to perform signal padding and delay compensation in
+ * real-time mode; see RubberBandStretcher::getPreferredStartPad() and
+ * RubberBandStretcher::getStartDelay() for details.
  *
  * Rubber Band Library is RT-safe when used in real-time mode with
  * "normal" processing parameters. That is, it performs no allocation,
@@ -623,27 +624,68 @@ public:
      * This function was added in Rubber Band Library v3.0.
      */     
     double getFormantScale() const;
+
+    /**
+     * In RealTime mode (unlike in Offline mode) the stretcher
+     * performs no automatic padding or delay/latency compensation at
+     * the start of the signal. This permits applications to have
+     * their own custom requirements, but it also means that by
+     * default some samples will be lost or attenuated at the start of
+     * the output and the correct linear relationship between input
+     * and output sample counts may be lost.
+     *
+     * Most applications using RealTime mode should solve this by
+     * calling getPreferredStartPad() and supplying the returned
+     * number of (silent) samples at the start of their input, before
+     * their first "true" process() call; and then also calling
+     * getStartDelay() and trimming the returned number of samples
+     * from the start of their stretcher's output.
+     *
+     * Ensure you have set the time and pitch scale factors to their
+     * proper starting values before calling getRequiredStartPad() or
+     * getStartDelay().
+     *
+     * In Offline mode, padding and delay compensation are handled
+     * internally and both functions always return zero.
+     *
+     * This function was added in Rubber Band Library v3.0.
+     *
+     * @see getStartDelay
+     */
+    size_t getPreferredStartPad() const;
     
     /**
-     * Return the output delay or latency of the stretcher.  This is
-     * the number of audio samples that one would have to discard at
-     * the start of the output in order to ensure that the resulting
-     * audio aligns with the input audio at the start.  In Offline
-     * mode, this delay is automatically adjusted for and the result
-     * is zero.  In RealTime mode, the delay may depend on the time
-     * and pitch ratio and other options.
-     * 
-     * Note that this is not the same thing as the number of samples
-     * needed at input to cause a block of processing to happen (also
-     * sometimes referred to as latency). That value is reported by
-     * getSamplesRequired() and will vary, but typically will be
-     * higher than the output delay, at least at the start of
-     * processing.
+     * Return the output delay of the stretcher.  This is the number
+     * of audio samples that one should discard at the start of the
+     * output, after padding the start of the input with
+     * getPreferredStartPad(), in order to ensure that the resulting
+     * audio has the expected time alignment with the input.
      *
-     * @see getSamplesRequired
+     * Ensure you have set the time and pitch scale factors to their
+     * proper starting values before calling getPreferredStartPad() or
+     * getStartDelay().
+     *
+     * In Offline mode, padding and delay compensation are handled
+     * internally and both functions always return zero.
+     * 
+     * This function was added in Rubber Band Library v3.0. Previously
+     * it was called getLatency(). It was renamed to avoid confusion
+     * with the number of samples needed at input to cause a block of
+     * processing to handle (returned by getSamplesRequired()) which
+     * is also sometimes referred to as latency.
+     *
+     * @see getPreferredStartPad
+     */
+    size_t getStartDelay() const;
+
+    /**
+     * Return the start delay of the stretcher. This is a deprecated
+     * alias for getStartDelay().
+     *
+     * @deprecated
      */
     size_t getLatency() const;
-
+    
     /**
      * Return the number of channels this stretcher was constructed
      * with.
@@ -765,7 +807,7 @@ public:
      * sampled at 44100Hz yields a value of 44100 sample frames, not
      * 88200.)  This rule applies throughout the Rubber Band API.
      *
-     * @see getLatency
+     * @see getStartDelay
      */
      size_t getSamplesRequired() const;
 

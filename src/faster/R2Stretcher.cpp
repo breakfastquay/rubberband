@@ -829,7 +829,14 @@ R2Stretcher::reconfigure()
 }
 
 size_t
-R2Stretcher::getLatency() const
+R2Stretcher::getPreferredStartPad() const
+{
+    if (!m_realtime) return 0;
+    return m_aWindowSize/2;
+}
+
+size_t
+R2Stretcher::getStartDelay() const
 {
     if (!m_realtime) return 0;
     return lrint((m_aWindowSize/2) / m_pitchScale);

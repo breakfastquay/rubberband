@@ -367,13 +367,23 @@ R3Stretcher::getFormantScale() const
 }
 
 size_t
-R3Stretcher::getLatency() const
+R3Stretcher::getPreferredStartPad() const
 {
     if (!isRealTime()) {
         return 0;
     } else {
-        return size_t(ceil(m_guideConfiguration.longestFftSize
-                           * 0.5 * m_pitchScale));
+        return m_guideConfiguration.longestFftSize / 2;
+    }
+}
+
+size_t
+R3Stretcher::getStartDelay() const
+{
+    if (!isRealTime()) {
+        return 0;
+    } else {
+        double factor = 0.5 / m_pitchScale;
+        return size_t(ceil(m_guideConfiguration.longestFftSize * factor));
     }
 }
 
@@ -509,12 +519,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             // NB by the time we skip this later we may have resampled
             // as well as stretched
             m_startSkip = int(round(pad / m_pitchScale));
-            if (m_startSkip < 0) {
-                m_log.log(0, "WARNING: calculated start skip < 0", m_startSkip);
-                m_startSkip = 0;
-            } else {
-                m_log.log(1, "start skip is", m_startSkip);
-            }
+            m_log.log(1, "start skip is", m_startSkip);
         }
     }
 

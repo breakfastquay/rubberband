@@ -84,7 +84,9 @@ public:
     int available() const;
     size_t retrieve(float *const *output, size_t samples) const;
 
-    size_t getLatency() const;
+    size_t getPreferredStartPad() const;
+    size_t getStartDelay() const;
+    
     size_t getChannelCount() const;
 
     void setMaxProcessSize(size_t samples);
