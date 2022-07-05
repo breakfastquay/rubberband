@@ -225,6 +225,145 @@ BOOST_AUTO_TEST_CASE(sinusoid_2x_offline_finer)
     BOOST_TEST(rms < 0.1);
 }
 
+BOOST_AUTO_TEST_CASE(sinusoid_8x_realtime_finer)
+{
+    int n = 40000;
+    int multiple = 8;
+    int nOut = n * multiple;
+    float freq = 441.f;
+    int rate = 44100;
+    int bs = 512;
+
+    // This test simulates block-by-block realtime processing with
+    // latency compensation, and checks that the output is all in the
+    // expected place
+    
+    RubberBandStretcher stretcher
+        (rate, 1,
+         RubberBandStretcher::OptionEngineFiner |
+         RubberBandStretcher::OptionProcessRealTime |
+         RubberBandStretcher::OptionFormantPreserved,
+         multiple, 1.0);
+
+    stretcher.setMaxProcessSize(bs);
+
+    // The input signal is a fixed frequency sinusoid that steps up in
+    // amplitude every 1/10 of the total duration - from 0.1 at the
+    // start, via increments of 0.1, to 1.0 at the end
+    
+    vector<float> in(n);
+    for (int i = 0; i < n; ++i) {
+        float amplitude = float((i / (n/10)) + 1) / 10.f;
+        float sample = amplitude *
+            sinf(float(i) * freq * M_PI * 2.f / float(rate));
+        in[i] = sample;
+    }
+
+    vector<float> out(nOut, 0.f);
+
+    // Prime the start
+    {
+        float *source = out.data(); // just reuse out because it's silent
+        stretcher.process(&source, stretcher.getLatency(), false);
+    }
+
+    int toSkip = stretcher.getLatency();
+    
+    int inOffset = 0, outOffset = 0;
+
+    while (outOffset < nOut) {
+
+        // Obtain a single block of size bs, simulating realtime
+        // playback. The following might be the content of a
+        // sound-producing callback function
+
+        int needed = std::min(bs, nOut - outOffset);
+        int obtained = 0;
+
+        while (obtained < needed) {
+
+            int available = stretcher.available();
+
+            if (available < 0) { // finished
+                for (int i = obtained; i < needed; ++i) {
+                    out[outOffset++] = 0.f;
+                }
+                break;
+
+            } else if (available == 0) { // need to provide more input
+                int required = stretcher.getSamplesRequired();
+                BOOST_TEST(required > 0); // because available == 0
+                int toProcess = std::min(required, n - inOffset);
+                float *source = in.data() + inOffset;
+                stretcher.process(&source, toProcess, toProcess < required);
+                inOffset += toProcess;
+                BOOST_TEST(stretcher.available() > 0);
+                continue;
+
+            } else { // available > 0
+                float *target = out.data() + outOffset;
+                int toRetrieve = std::min(needed - obtained, available);
+                int retrieved = stretcher.retrieve(&target, toRetrieve);
+                BOOST_TEST(retrieved == toRetrieve);
+                int advance = retrieved;
+                if (toSkip > 0) {
+                    int skipping = std::min(advance, toSkip);
+                    advance -= skipping;
+                    toSkip -= skipping;
+                }
+                obtained += advance;
+                outOffset += advance;
+            }
+        }
+    }
+
+//    std::cout << "sample\tV" << std::endl;
+//    for (int i = 0; i < nOut; ++i) {
+//        std::cout << i << "\t" << out[i] << std::endl;
+//    }
+        
+    // Step through the output signal in chunk of 1/20 of its duration
+    // (i.e. a rather arbitrary two per expected 0.1 increment in
+    // amplitude) and for each chunk, verify that the frequency is
+    // right and the amplitude is what we expect at that point
+
+    for (int chunk = 0; chunk < 20; ++chunk) {
+
+        int i0 = (nOut * chunk) / 20;
+        int i1 = (nOut * (chunk + 1)) / 20;
+
+        // frequency
+
+        int positiveCrossings = 0;
+        for (int i = i0; i + 1 < i1; ++i) {
+            if (out[i] <= 0.f && out[i+1] > 0.f) {
+                ++positiveCrossings;
+            }
+        }
+
+        int expectedCrossings = int(round((freq * double(i1 - i0)) / rate));
+
+        // In the last chunk we can miss one crossing
+        if (chunk == 19) {
+            BOOST_TEST(positiveCrossings <= expectedCrossings);
+            BOOST_TEST(positiveCrossings >= expectedCrossings - 1);
+        } else {
+            BOOST_TEST(positiveCrossings == expectedCrossings);
+        }
+        
+        // amplitude
+        
+        double rms = 0.0;
+        for (int i = i0; i < i1; ++i) {
+            rms += out[i] * out[i];
+        }
+        rms = sqrt(rms / double(i1 - i0));
+
+        double expected = (chunk/2 + 1) * 0.05 * sqrt(2.0);
+        BOOST_TEST(rms - expected < 0.01);
+    }        
+}
+
 BOOST_AUTO_TEST_CASE(impulses_2x_offline_faster)
 {
     int n = 10000;
