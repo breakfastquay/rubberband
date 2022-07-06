@@ -88,6 +88,16 @@ double rubberband_get_formant_scale(const RubberBandState state)
     return state->m_s->getFormantScale();
 }
 
+unsigned int rubberband_get_preferred_start_pad(const RubberBandState state) 
+{
+    return state->m_s->getPreferredStartPad();
+}
+
+unsigned int rubberband_get_start_delay(const RubberBandState state) 
+{
+    return state->m_s->getStartDelay();
+}
+
 unsigned int rubberband_get_latency(const RubberBandState state) 
 {
     return state->m_s->getLatency();

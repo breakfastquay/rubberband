@@ -122,6 +122,8 @@ RB_EXTERN double rubberband_get_pitch_scale(const RubberBandState);
 RB_EXTERN void rubberband_set_formant_scale(RubberBandState, double scale);
 RB_EXTERN double rubberband_get_formant_scale(const RubberBandState);
 
+RB_EXTERN unsigned int rubberband_get_preferred_start_pad(const RubberBandState);
+RB_EXTERN unsigned int rubberband_get_start_delay(const RubberBandState);
 RB_EXTERN unsigned int rubberband_get_latency(const RubberBandState);
 
 RB_EXTERN void rubberband_set_transients_option(RubberBandState, RubberBandOptions options);
