@@ -209,6 +209,7 @@ public:
     setPitchOption(Options options)
     {
         if (m_r2) m_r2->setPitchOption(options);
+        else if (m_r3) m_r3->setPitchOption(options);
     }
 
     void

@@ -312,24 +312,24 @@ int main(int argc, char **argv)
         }
         if (fullHelp) {
             cerr << "The remaining options fine-tune the processing mode and stretch algorithm." << endl;
-            cerr << "These are mostly included for test purposes; the default settings and standard" << endl;
-            cerr << "crispness parameter are intended to provide the best sounding set of options" << endl;
-            cerr << "for most situations. The default is to use none of these options." << endl;
+            cerr << "The default is to use none of these options." << endl;
+            cerr << "The options marked (2) currently only have an effect when using the R2 engine" << endl;
+            cerr << "(see -2, -3 options above)." << endl;
             cerr << endl;
             cerr << "  -R,    --realtime       Select realtime mode (implies --no-threads)." << endl;
             cerr << "                          This utility does not do realtime stream processing;" << endl;
             cerr << "                          the option merely selects realtime mode for the" << endl;
             cerr << "                          stretcher it uses" << endl;
-            cerr << "         --no-threads     No extra threads regardless of CPU and channel count" << endl;
-            cerr << "         --threads        Assume multi-CPU even if only one CPU is identified" << endl;
-            cerr << "         --no-transients  Disable phase resynchronisation at transients" << endl;
-            cerr << "         --bl-transients  Band-limit phase resync to extreme frequencies" << endl;
-            cerr << "         --no-lamination  Disable phase lamination" << endl;
-            cerr << "         --window-long    Use longer processing window (actual size may vary)" << endl;
-            cerr << "         --window-short   Use shorter processing window" << endl;
-            cerr << "         --smoothing      Apply window presum and time-domain smoothing" << endl;
-            cerr << "         --detector-perc  Use percussive transient detector (as in pre-1.5)" << endl;
-            cerr << "         --detector-soft  Use soft transient detector" << endl;
+            cerr << "(2)      --no-threads     No extra threads regardless of CPU and channel count" << endl;
+            cerr << "(2)      --threads        Assume multi-CPU even if only one CPU is identified" << endl;
+            cerr << "(2)      --no-transients  Disable phase resynchronisation at transients" << endl;
+            cerr << "(2)      --bl-transients  Band-limit phase resync to extreme frequencies" << endl;
+            cerr << "(2)      --no-lamination  Disable phase lamination" << endl;
+            cerr << "(2)      --window-long    Use longer processing window (actual size may vary)" << endl;
+            cerr << "(2)      --window-short   Use shorter processing window" << endl;
+            cerr << "(2)      --smoothing      Apply window presum and time-domain smoothing" << endl;
+            cerr << "(2)      --detector-perc  Use percussive transient detector (as in pre-1.5)" << endl;
+            cerr << "(2)      --detector-soft  Use soft transient detector" << endl;
             cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
             cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
             cerr << "                          (at a cost in width and individual channel quality)" << endl;
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
         cerr << "  -H,    --full-help      Show the full help output" << endl;
         cerr << endl;
         if (fullHelp) {
-            cerr << "\"Crispness\" levels:" << endl;
+            cerr << "\"Crispness\" levels: (2)" << endl;
             cerr << "  -c 0   equivalent to --no-transients --no-lamination --window-long" << endl;
             cerr << "  -c 1   equivalent to --detector-soft --no-lamination --window-long (for piano)" << endl;
             cerr << "  -c 2   equivalent to --no-transients --no-lamination" << endl;
@@ -589,7 +589,7 @@ int main(int argc, char **argv)
     } else if (hqpitch) {
         options |= RubberBandStretcher::OptionPitchHighQuality;
     }
-    
+
     switch (threading) {
     case 0:
         options |= RubberBandStretcher::OptionThreadingAuto;

@@ -310,26 +310,29 @@ public:
      *   perceived pitch profile of the voice or instrument.
      *
      * 10. Flags prefixed \c OptionPitch control the method used for
-     * pitch shifting in the R2 engine.  These options have no effect
-     * when using the R3 engine.  These options may be changed at any
-     * time.  They are only effective in realtime mode; in offline
-     * mode, the pitch-shift method is fixed.
+     * pitch shifting. In the R2 engine they may be changed at any
+     * time but affect only realtime mode (in offline mode the method
+     * cannot be changed). In the R3 engine they affect both realtime
+     * and offline modes but are fixed on construction.
      *
-     *   \li \c OptionPitchHighSpeed - Use a method with a CPU cost
-     *   that is relatively moderate and predictable.  This may
-     *   sound less clear than OptionPitchHighQuality, especially
-     *   for large pitch shifts.  This is the default.
+     *   \li \c OptionPitchHighSpeed - Favour CPU cost over sound
+     *   quality. This is the default. Use this when time-stretching
+     *   only, or for fixed pitch shifts where CPU usage is of
+     *   concern. Do not use this for arbitrarily time-varying pitch
+     *   shifts (see OptionPitchHighConsistency below).
+     *
+     *   \li \c OptionPitchHighQuality - Favour sound quality over CPU
+     *   cost. Use this for fixed pitch shifts where sound quality is
+     *   of most concern. Do not use this for arbitrarily time-varying
+     *   pitch shifts (see OptionPitchHighConsistency below).
 
-     *   \li \c OptionPitchHighQuality - Use the highest quality
-     *   method for pitch shifting.  This method has a CPU cost
-     *   approximately proportional to the required frequency shift.
-
-     *   \li \c OptionPitchHighConsistency - Use the method that gives
-     *   greatest consistency when used to create small variations in
-     *   pitch around the 1.0-ratio level.  Unlike the previous two
-     *   options, this avoids discontinuities when moving across the
-     *   1.0 pitch scale in real-time; it also consumes more CPU than
-     *   the others in the case where the pitch scale is exactly 1.0.
+     *   \li \c OptionPitchHighConsistency - Use a method that
+     *   supports dynamic pitch changes without discontinuities,
+     *   including when crossing the 1.0 pitch scale. This may cost
+     *   more in CPU than the other two options, especially when the
+     *   pitch scale is exactly 1.0. You should use this option
+     *   whenever you wish to support dynamically changing pitch
+     *   shifts during processing.
      *
      * 11. Flags prefixed \c OptionChannels control the method used
      * for processing two-channel stereo audio. These have different,

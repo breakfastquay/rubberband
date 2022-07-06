@@ -12,6 +12,9 @@ Changes in Rubber Band v3.0.0
    stream and/or handled in a realtime-safe way
  * Add option to shift formant independently of pitch (R3 engine
    only)
+ * Deprecate the rather ambiguous function getLatency(), effectively
+   replacing it with two new functions getPreferredStartPad() and
+   getStartDelay(). See their documentation for more details
 
 The library is both binary and API compatible all the way back to
 version 1.2 for forward compatibility, but not backward compatibility,

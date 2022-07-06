@@ -209,6 +209,12 @@ R3Stretcher::setFormantOption(RubberBandStretcher::Options options)
 }
 
 void
+R3Stretcher::setPitchOption(RubberBandStretcher::Options)
+{
+    m_log.log(0, "R3Stretcher::setPitchOption: Option change after construction is not supported in R3 engine");
+}
+
+void
 R3Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 {
     if (isRealTime()) {
@@ -227,15 +233,26 @@ void
 R3Stretcher::createResampler()
 {
     Resampler::Parameters resamplerParameters;
-    resamplerParameters.quality = Resampler::FastestTolerable;
+
+    if (m_parameters.options & RubberBandStretcher::OptionPitchHighQuality) {
+        resamplerParameters.quality = Resampler::Best;
+    } else {
+        resamplerParameters.quality = Resampler::FastestTolerable;
+    }
+    
     resamplerParameters.initialSampleRate = m_parameters.sampleRate;
     resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize;
 
     if (isRealTime()) {
-        resamplerParameters.dynamism = Resampler::RatioOftenChanging;
-        resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+        if (m_parameters.options &
+            RubberBandStretcher::OptionPitchHighConsistency) {
+            resamplerParameters.dynamism = Resampler::RatioOftenChanging;
+            resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+        } else {
+            resamplerParameters.dynamism = Resampler::RatioMostlyFixed;
+            resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+        }
     } else {
-        // ratio can't be changed in offline mode
         resamplerParameters.dynamism = Resampler::RatioMostlyFixed;
         resamplerParameters.ratioChange = Resampler::SuddenRatioChange;
     }
@@ -693,8 +710,17 @@ R3Stretcher::consume()
         
         // Resample
 
-        int resampledCount = 0;
+        bool resampling = false;
         if (m_resampler) {
+            if (m_pitchScale != 1.0 ||
+                (m_parameters.options &
+                 RubberBandStretcher::OptionPitchHighConsistency)) {
+                resampling = true;
+            }
+        }
+        
+        int resampledCount = 0;
+        if (resampling) {
             for (int c = 0; c < channels; ++c) {
                 auto &cd = m_channelData.at(c);
                 m_channelAssembly.mixdown[c] = cd->mixdown.data();
@@ -712,7 +738,7 @@ R3Stretcher::consume()
         // Emit
 
         int writeCount = validCount;
-        if (m_resampler) {
+        if (resampling) {
             writeCount = resampledCount;
         }
 
@@ -729,7 +755,7 @@ R3Stretcher::consume()
         
         for (int c = 0; c < channels; ++c) {
             auto &cd = m_channelData.at(c);
-            if (m_resampler) {
+            if (resampling) {
                 cd->outbuf->write(cd->resampled.data(), writeCount);
             } else {
                 cd->outbuf->write(cd->mixdown.data(), writeCount);

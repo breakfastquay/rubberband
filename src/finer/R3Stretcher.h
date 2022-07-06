@@ -77,6 +77,7 @@ public:
     void setKeyFrameMap(const std::map<size_t, size_t> &);
 
     void setFormantOption(RubberBandStretcher::Options);
+    void setPitchOption(RubberBandStretcher::Options);
     
     void study(const float *const *input, size_t samples, bool final);
     size_t getSamplesRequired() const;
