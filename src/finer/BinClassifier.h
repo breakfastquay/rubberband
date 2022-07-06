@@ -62,18 +62,18 @@ public:
     
     BinClassifier(Parameters parameters) :
         m_parameters(parameters),
-        m_hFilters(new MovingMedianStack<double>(m_parameters.binCount,
-                                                 m_parameters.horizontalFilterLength)),
-        m_vFilter(new MovingMedian<double>(m_parameters.verticalFilterLength)),
+        m_hFilters(new MovingMedianStack<process_t>(m_parameters.binCount,
+                                                    m_parameters.horizontalFilterLength)),
+        m_vFilter(new MovingMedian<process_t>(m_parameters.verticalFilterLength)),
         m_vfQueue(parameters.horizontalFilterLag)
     {
         int n = m_parameters.binCount;
 
-        m_hf = allocate_and_zero<double>(n);
-        m_vf = allocate_and_zero<double>(n);
+        m_hf = allocate_and_zero<process_t>(n);
+        m_vf = allocate_and_zero<process_t>(n);
         
         for (int i = 0; i < m_parameters.horizontalFilterLag; ++i) {
-            double *entry = allocate_and_zero<double>(n);
+            process_t *entry = allocate_and_zero<process_t>(n);
             m_vfQueue.write(&entry, 1);
         }
     }
@@ -81,7 +81,7 @@ public:
     ~BinClassifier()
     {
         while (m_vfQueue.getReadSpace() > 0) {
-            double *entry = m_vfQueue.readOne();
+            process_t *entry = m_vfQueue.readOne();
             deallocate(entry);
         }
 
@@ -94,7 +94,7 @@ public:
         m_hFilters->reset();
     }
     
-    void classify(const double *const mag, // input, of at least binCount bins
+    void classify(const process_t *const mag, // input, of at least binCount bins
                   Classification *classification) // output, of binCount bins
     {
         const int n = m_parameters.binCount;
@@ -105,22 +105,22 @@ public:
         }
 
         v_copy(m_vf, mag, n);
-        MovingMedian<double>::filter(*m_vFilter, m_vf, n);
+        MovingMedian<process_t>::filter(*m_vFilter, m_vf, n);
 
         if (m_parameters.horizontalFilterLag > 0) {
-            double *lagged = m_vfQueue.readOne();
+            process_t *lagged = m_vfQueue.readOne();
             m_vfQueue.write(&m_vf, 1);
             m_vf = lagged;
         }
 
-        double eps = 1.0e-7;
+        process_t eps = 1.0e-7;
             
         for (int i = 0; i < n; ++i) {
             Classification c;
-            if (double(m_hf[i]) / (double(m_vf[i]) + eps) >
+            if (process_t(m_hf[i]) / (process_t(m_vf[i]) + eps) >
                 m_parameters.harmonicThreshold) {
                 c = Classification::Harmonic;
-            } else if (double(m_vf[i]) / (double(m_hf[i]) + eps) >
+            } else if (process_t(m_vf[i]) / (process_t(m_hf[i]) + eps) >
                        m_parameters.percussiveThreshold) {
                 c = Classification::Percussive;
             } else {
@@ -132,13 +132,13 @@ public:
 
 protected:
     Parameters m_parameters;
-    std::unique_ptr<MovingMedianStack<double>> m_hFilters;
-    std::unique_ptr<MovingMedian<double>> m_vFilter;
+    std::unique_ptr<MovingMedianStack<process_t>> m_hFilters;
+    std::unique_ptr<MovingMedian<process_t>> m_vFilter;
     // We manage the queued frames through pointer swapping, hence
     // bare pointers here
-    double *m_hf;
-    double *m_vf;
-    RingBuffer<double *> m_vfQueue;
+    process_t *m_hf;
+    process_t *m_vf;
+    RingBuffer<process_t *> m_vfQueue;
 
     BinClassifier(const BinClassifier &) =delete;
     BinClassifier &operator=(const BinClassifier &) =delete;

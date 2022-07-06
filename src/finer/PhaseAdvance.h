@@ -56,9 +56,9 @@ public:
         m_currentPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
         m_prevPeaks = allocate_and_zero_channels<int>(ch, m_binCount);
         m_greatestChannel = allocate_and_zero<int>(m_binCount);
-        m_prevInPhase = allocate_and_zero_channels<double>(ch, m_binCount);
-        m_prevOutPhase = allocate_and_zero_channels<double>(ch, m_binCount);
-        m_unlocked = allocate_and_zero_channels<double>(ch, m_binCount);
+        m_prevInPhase = allocate_and_zero_channels<process_t>(ch, m_binCount);
+        m_prevOutPhase = allocate_and_zero_channels<process_t>(ch, m_binCount);
+        m_unlocked = allocate_and_zero_channels<process_t>(ch, m_binCount);
 
         for (int c = 0; c < ch; ++c) {
             for (int i = 0; i < m_binCount; ++i) {
@@ -84,10 +84,10 @@ public:
         v_zero_channels(m_prevOutPhase, ch, m_binCount);
     }
     
-    void advance(double *const *outPhase,
-                 const double *const *mag,
-                 const double *const *phase,
-                 const double *const *prevMag,
+    void advance(process_t *const *outPhase,
+                 const process_t *const *mag,
+                 const process_t *const *phase,
+                 const process_t *const *prevMag,
                  const Guide::Configuration &configuration,
                  const Guide::Guidance *const *guidance,
                  int inhop,
@@ -163,14 +163,14 @@ public:
             v_zero(m_greatestChannel, bs);
         }
 
-        double omegaFactor = 2.0 * M_PI * double(inhop) /
-            double(m_parameters.fftSize);
+        process_t omegaFactor = 2.0 * M_PI * process_t(inhop) /
+            process_t(m_parameters.fftSize);
         for (int c = 0; c < channels; ++c) {
             for (int i = lowest; i <= highest; ++i) {
-                double omega = omegaFactor * double(i);
-                double expected = m_prevInPhase[c][i] + omega;
-                double error = princarg(phase[c][i] - expected);
-                double advance = ratio * (omega + error);
+                process_t omega = omegaFactor * process_t(i);
+                process_t expected = m_prevInPhase[c][i] + omega;
+                process_t error = princarg(phase[c][i] - expected);
+                process_t advance = ratio * (omega + error);
                 m_unlocked[c][i] = m_prevOutPhase[c][i] + advance;
             }
         }
@@ -179,12 +179,12 @@ public:
             const Guide::Guidance *g = guidance[c];
             int phaseLockBand = 0;
             for (int i = lowest; i <= highest; ++i) {
-                double f = frequencyForBin
+                process_t f = frequencyForBin
                     (i, m_parameters.fftSize, m_parameters.sampleRate);
                 while (f > g->phaseLockBands[phaseLockBand].f1) {
                     ++phaseLockBand;
                 }
-                double ph = 0.0;
+                process_t ph = 0.0;
                 if (inRange(f, g->phaseReset) || inRange(f, g->kick)) {
                     ph = phase[c][i];
                 } else if (inhop == outhop) {
@@ -206,14 +206,14 @@ public:
                             }
                         }
                     }
-                    double peakAdvance =
+                    process_t peakAdvance =
                         m_unlocked[peakCh][peak] - m_prevOutPhase[peakCh][peak];
-                    double peakNew =
+                    process_t peakNew =
                         m_prevOutPhase[peakCh][prevPeak] + peakAdvance;
-                    double diff =
-                        double(phase[c][i]) - double(phase[peakCh][peak]);
-                    double beta =
-                        double(g->phaseLockBands[phaseLockBand].beta);
+                    process_t diff =
+                        process_t(phase[c][i]) - process_t(phase[peakCh][peak]);
+                    process_t beta =
+                        process_t(g->phaseLockBands[phaseLockBand].beta);
                     ph = peakNew + beta * diff;
                 }
                 outPhase[c][i] = princarg(ph);
@@ -238,16 +238,16 @@ protected:
     Parameters m_parameters;
     Log m_log;
     int m_binCount;
-    Peak<double> m_peakPicker;
+    Peak<process_t> m_peakPicker;
     int **m_currentPeaks;
     int **m_prevPeaks;
     int *m_greatestChannel;
-    double **m_prevInPhase;
-    double **m_prevOutPhase;
-    double **m_unlocked;
+    process_t **m_prevInPhase;
+    process_t **m_prevOutPhase;
+    process_t **m_unlocked;
     bool m_reported;
 
-    bool inRange(double f, const Guide::Range &r) {
+    bool inRange(process_t f, const Guide::Range &r) {
         return r.present && f >= r.f0 && f < r.f1;
     }
 

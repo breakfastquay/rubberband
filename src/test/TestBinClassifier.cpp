@@ -30,6 +30,8 @@
 #include "../finer/BinClassifier.h"
 #include "../finer/BinSegmenter.h"
 
+#include "../common/sysutils.h"
+
 using namespace RubberBand;
 using namespace std;
 namespace tt = boost::test_tools;
@@ -59,7 +61,7 @@ BOOST_AUTO_TEST_SUITE(TestBinClassifier)
 
 BOOST_AUTO_TEST_CASE(classify_bins)
 {
-    vector<vector<double>> magColumns {
+    vector<vector<process_t>> magColumns {
         { 0, 8, 1, 1, 0, 1 },
         { 0, 8, 0, 0, 0, 0 },
         { 8, 8, 8, 8, 8, 0 },

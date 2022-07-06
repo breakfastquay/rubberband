@@ -103,9 +103,9 @@ public:
 
 protected:
     struct ClassificationReadaheadData {
-        FixedVector<double> timeDomain;
-        FixedVector<double> mag;
-        FixedVector<double> phase;
+        FixedVector<process_t> timeDomain;
+        FixedVector<process_t> mag;
+        FixedVector<process_t> phase;
         ClassificationReadaheadData(int _fftSize) :
             timeDomain(_fftSize, 0.f),
             mag(_fftSize/2 + 1, 0.f),
@@ -120,15 +120,15 @@ protected:
     struct ChannelScaleData {
         int fftSize;
         int bufSize; // size of every freq-domain array here: fftSize/2 + 1
-        FixedVector<double> timeDomain;
-        FixedVector<double> real;
-        FixedVector<double> imag;
-        FixedVector<double> mag;
-        FixedVector<double> phase;
-        FixedVector<double> advancedPhase;
-        FixedVector<double> prevMag;
-        FixedVector<double> pendingKick;
-        FixedVector<double> accumulator;
+        FixedVector<process_t> timeDomain;
+        FixedVector<process_t> real;
+        FixedVector<process_t> imag;
+        FixedVector<process_t> mag;
+        FixedVector<process_t> phase;
+        FixedVector<process_t> advancedPhase;
+        FixedVector<process_t> prevMag;
+        FixedVector<process_t> pendingKick;
+        FixedVector<process_t> accumulator;
 
         ChannelScaleData(int _fftSize, int _longestFftSize) :
             fftSize(_fftSize),
@@ -156,9 +156,9 @@ protected:
 
     struct FormantData {
         int fftSize;
-        FixedVector<double> cepstra;
-        FixedVector<double> envelope;
-        FixedVector<double> spare;
+        FixedVector<process_t> cepstra;
+        FixedVector<process_t> envelope;
+        FixedVector<process_t> spare;
 
         FormantData(int _fftSize) :
             fftSize(_fftSize),
@@ -166,14 +166,14 @@ protected:
             envelope(_fftSize/2 + 1, 0.0),
             spare(_fftSize/2 + 1, 0.0) { }
 
-        double envelopeAt(double bin) const {
+        process_t envelopeAt(process_t bin) const {
             int b0 = int(floor(bin)), b1 = int(ceil(bin));
             if (b0 < 0 || b0 > fftSize/2) {
                 return 0.0;
             } else if (b1 == b0 || b1 > fftSize/2) {
                 return envelope.at(b0);
             } else {
-                double diff = bin - double(b0);
+                process_t diff = bin - process_t(b0);
                 return envelope.at(b0) * (1.0 - diff) + envelope.at(b1) * diff;
             }
         }
@@ -233,11 +233,11 @@ protected:
     struct ChannelAssembly {
         // Vectors of bare pointers, used to package container data
         // from different channels into arguments for PhaseAdvance
-        FixedVector<double *> mag;
-        FixedVector<double *> phase;
-        FixedVector<double *> prevMag;
+        FixedVector<process_t *> mag;
+        FixedVector<process_t *> phase;
+        FixedVector<process_t *> prevMag;
         FixedVector<Guide::Guidance *> guidance;
-        FixedVector<double *> outPhase;
+        FixedVector<process_t *> outPhase;
         FixedVector<float *> mixdown;
         FixedVector<float *> resampled;
         ChannelAssembly(int channels) :
@@ -250,9 +250,9 @@ protected:
     struct ScaleData {
         int fftSize;
         FFT fft;
-        Window<double> analysisWindow;
-        Window<double> synthesisWindow;
-        double windowScaleFactor;
+        Window<process_t> analysisWindow;
+        Window<process_t> synthesisWindow;
+        process_t windowScaleFactor;
         GuidedPhaseAdvance guided;
         ScaleData(GuidedPhaseAdvance::Parameters guidedParameters,
                   Log log) :
@@ -331,8 +331,8 @@ protected:
         int polarBinCount;
     };
     
-    void convertToPolar(double *mag, double *phase,
-                        const double *real, const double *imag,
+    void convertToPolar(process_t *mag, process_t *phase,
+                        const process_t *real, const process_t *imag,
                         const ToPolarSpec &s) const {
         v_cartesian_to_polar(mag + s.polarFromBin,
                              phase + s.polarFromBin,

@@ -147,13 +147,13 @@ public:
     
     void updateGuidance(double ratio,
                         int outhop,
-                        const double *const magnitudes,
-                        const double *const prevMagnitudes,
-                        const double *const nextMagnitudes,
+                        const process_t *const magnitudes,
+                        const process_t *const prevMagnitudes,
+                        const process_t *const nextMagnitudes,
                         const BinSegmenter::Segmentation &segmentation,
                         const BinSegmenter::Segmentation &prevSegmentation,
                         const BinSegmenter::Segmentation &nextSegmentation,
-                        double meanMagnitude,
+                        process_t meanMagnitude,
                         int unityCount,
                         bool realtime,
                         bool tighterChannelLock,
@@ -388,7 +388,7 @@ protected:
     void updateForUnity(Guidance &guidance,
                         bool hadPhaseReset,
                         uint32_t /* unityCount */,
-                        const double *const /* magnitudes */,
+                        const process_t *const /* magnitudes */,
                         const BinSegmenter::Segmentation &segmentation,
                         bool realtime) const {
         
@@ -449,11 +449,11 @@ protected:
 //        }
     }
 
-    bool checkPotentialKick(const double *const magnitudes,
-                            const double *const prevMagnitudes) const {
+    bool checkPotentialKick(const process_t *const magnitudes,
+                            const process_t *const prevMagnitudes) const {
         int b = binForFrequency(200.0, m_configuration.classificationFftSize,
                                 m_parameters.sampleRate);
-        double here = 0.0, there = 0.0;
+        process_t here = 0.0, there = 0.0;
         for (int i = 1; i <= b; ++i) {
             here += magnitudes[i];
         }
@@ -463,7 +463,7 @@ protected:
         return (here > 10.e-3 && here > there * 1.4);
     }
 
-    double descendToValley(double f, const double *const magnitudes) const {
+    double descendToValley(double f, const process_t *const magnitudes) const {
         if (f == 0.0 || f == m_parameters.sampleRate/2.0) {
             // These are special cases
             return f;

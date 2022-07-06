@@ -796,7 +796,7 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     int classify = m_guideConfiguration.classificationFftSize;
 
     auto &cd = m_channelData.at(c);
-    double *buf = cd->scales.at(longest)->timeDomain.data();
+    process_t *buf = cd->scales.at(longest)->timeDomain.data();
 
     int readSpace = cd->inbuf->getReadSpace();
     if (readSpace < longest) {
@@ -1074,20 +1074,20 @@ R3Stretcher::adjustFormant(int c)
         auto &scale = it.second;
 
         int highBin = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
-        double targetFactor = double(cd->formant->fftSize) / double(fftSize);
-        double formantScale = m_formantScale;
+        process_t targetFactor = process_t(cd->formant->fftSize) / process_t(fftSize);
+        process_t formantScale = m_formantScale;
         if (formantScale == 0.0) formantScale = 1.0 / m_pitchScale;
-        double sourceFactor = targetFactor / formantScale;
-        double maxRatio = 60.0;
-        double minRatio = 1.0 / maxRatio;
+        process_t sourceFactor = targetFactor / formantScale;
+        process_t maxRatio = 60.0;
+        process_t minRatio = 1.0 / maxRatio;
 
         for (const auto &b : m_guideConfiguration.fftBandLimits) {
             if (b.fftSize != fftSize) continue;
             for (int i = b.b0min; i < b.b1max && i < highBin; ++i) {
-                double source = cd->formant->envelopeAt(i * sourceFactor);
-                double target = cd->formant->envelopeAt(i * targetFactor);
+                process_t source = cd->formant->envelopeAt(i * sourceFactor);
+                process_t target = cd->formant->envelopeAt(i * targetFactor);
                 if (target > 0.0) {
-                    double ratio = source / target;
+                    process_t ratio = source / target;
                     if (ratio < minRatio) ratio = minRatio;
                     if (ratio > maxRatio) ratio = maxRatio;
                     scale->mag[i] *= ratio;
@@ -1109,7 +1109,7 @@ R3Stretcher::adjustPreKick(int c)
         int to = binForFrequency(cd->guidance.preKick.f1,
                                  fftSize, m_parameters.sampleRate);
         for (int i = from; i <= to; ++i) {
-            double diff = scale->mag[i] - scale->prevMag[i];
+            process_t diff = scale->mag[i] - scale->prevMag[i];
             if (diff > 0.0) {
                 scale->pendingKick[i] = diff;
                 scale->mag[i] -= diff;
@@ -1145,7 +1145,7 @@ R3Stretcher::synthesiseChannel(int c, int outhop)
                scale->mag.data(),
                scale->bufSize);
 
-        double winscale = double(outhop) / scaleData->windowScaleFactor;
+        process_t winscale = process_t(outhop) / scaleData->windowScaleFactor;
 
         // The frequency filter is applied naively in the frequency
         // domain. Aliasing is reduced by the shorter resynthesis
@@ -1204,7 +1204,7 @@ R3Stretcher::synthesiseChannel(int c, int outhop)
     for (auto &it : cd->scales) {
         auto &scale = it.second;
 
-        double *accptr = scale->accumulator.data();
+        process_t *accptr = scale->accumulator.data();
         for (int i = 0; i < outhop; ++i) {
             mixptr[i] += float(accptr[i]);
         }
