@@ -129,6 +129,7 @@ protected:
         FixedVector<process_t> prevMag;
         FixedVector<process_t> pendingKick;
         FixedVector<process_t> accumulator;
+        int accumulatorFill;
 
         ChannelScaleData(int _fftSize, int _longestFftSize) :
             fftSize(_fftSize),
@@ -141,12 +142,14 @@ protected:
             advancedPhase(bufSize, 0.f),
             prevMag(bufSize, 0.f),
             pendingKick(bufSize, 0.f),
-            accumulator(_longestFftSize, 0.f)
+            accumulator(_longestFftSize, 0.f),
+            accumulatorFill(0)
         { }
 
         void reset() {
             v_zero(prevMag.data(), prevMag.size());
             v_zero(accumulator.data(), accumulator.size());
+            accumulatorFill = 0;
         }
 
     private:
@@ -322,7 +325,7 @@ protected:
     void analyseFormant(int channel);
     void adjustFormant(int channel);
     void adjustPreKick(int channel);
-    void synthesiseChannel(int channel, int outhop);
+    void synthesiseChannel(int channel, int outhop, bool draining);
 
     struct ToPolarSpec {
         int magFromBin;

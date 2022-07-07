@@ -988,7 +988,7 @@ int main(int argc, char **argv)
         cerr << "in: " << countIn << ", out: " << countOut
              << ", ratio: " << float(countOut)/float(countIn)
              << ", ideal output: " << lrint(countIn * ratio)
-             << ", error: " << abs(lrint(countIn * ratio) - int(countOut))
+             << ", error: " << int(countOut) - lrint(countIn * ratio)
              << endl;
 
 #ifdef _WIN32

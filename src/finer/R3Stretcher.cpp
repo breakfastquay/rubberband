@@ -635,6 +635,11 @@ R3Stretcher::consume()
                                                longest,
                                                longest,
                                                true);
+
+    if (outhop < 1) {
+        m_log.log(0, "R3Stretcher::consume: WARNING: outhop calculated as", outhop);
+        outhop = 1;
+    }
     
     // Now inhop is the distance by which the input stream will be
     // advanced after our current frame has been read, and outhop is
@@ -655,8 +660,10 @@ R3Stretcher::consume()
     if (outhop != m_prevOuthop) {
         m_log.log(2, "change in outhop", double(m_prevOuthop), double(outhop));
     }
+
+    auto &cd0 = m_channelData.at(0);
     
-    while (m_channelData.at(0)->outbuf->getWriteSpace() >= outhop) {
+    while (cd0->outbuf->getWriteSpace() >= outhop) {
 
         // NB our ChannelData, ScaleData, and ChannelScaleData maps
         // contain shared_ptrs; whenever we retain one of them in a
@@ -664,13 +671,19 @@ R3Stretcher::consume()
         // shared_ptr (as that is not realtime safe). Same goes for
         // the map iterators
 
-        int readSpace = m_channelData.at(0)->inbuf->getReadSpace();
+        int readSpace = cd0->inbuf->getReadSpace();
         if (readSpace < longest) {
             if (m_mode == ProcessMode::Finished) {
                 if (readSpace == 0) {
-                    break;
+                    int fill = cd0->scales.at(longest)->accumulatorFill;
+                    if (fill == 0) {
+                        break;
+                    } else {
+                        m_log.log(1, "finished reading input, but samples remaining in output accumulator", fill);
+                    }
                 }
             } else {
+                // await more input
                 break;
             }
         }
@@ -712,17 +725,7 @@ R3Stretcher::consume()
         // Resynthesis
         
         for (int c = 0; c < channels; ++c) {
-            synthesiseChannel(c, outhop);
-        }
-
-        // We now have outhop samples at the start of the mixdown
-        // buffer, but they aren't necessarily all valid, because we
-        // might have had fewer than outhop at the start of inbuf
-        // (when finished and draining)
-
-        int validCount = outhop;
-        if (readSpace < outhop) {
-            validCount = readSpace;
+            synthesiseChannel(c, outhop, readSpace == 0);
         }
         
         // Resample
@@ -747,14 +750,14 @@ R3Stretcher::consume()
                 (m_channelAssembly.resampled.data(),
                  m_channelData[0]->resampled.size(),
                  m_channelAssembly.mixdown.data(),
-                 validCount,
+                 outhop,
                  1.0 / m_pitchScale,
                  m_mode == ProcessMode::Finished && readSpace < inhop);
         }
 
         // Emit
 
-        int writeCount = validCount;
+        int writeCount = outhop;
         if (resampling) {
             writeCount = resampledCount;
         }
@@ -792,7 +795,7 @@ R3Stretcher::consume()
         m_totalOutputDuration += writeCount;
         
         if (m_startSkip > 0) {
-            int rs = m_channelData.at(0)->outbuf->getReadSpace();
+            int rs = cd0->outbuf->getReadSpace();
             int toSkip = std::min(m_startSkip, rs);
             for (int c = 0; c < channels; ++c) {
                 m_channelData.at(c)->outbuf->skip(toSkip);
@@ -1146,7 +1149,7 @@ R3Stretcher::adjustPreKick(int c)
 }
 
 void
-R3Stretcher::synthesiseChannel(int c, int outhop)
+R3Stretcher::synthesiseChannel(int c, int outhop, bool draining)
 {
     int longest = m_guideConfiguration.longestFftSize;
 
@@ -1229,6 +1232,18 @@ R3Stretcher::synthesiseChannel(int c, int outhop)
         int n = scale->accumulator.size() - outhop;
         v_move(accptr, accptr + outhop, n);
         v_zero(accptr + n, outhop);
+
+        if (draining) {
+            if (scale->accumulatorFill > outhop) {
+                auto newFill = scale->accumulatorFill - outhop;
+                m_log.log(2, "draining: reducing accumulatorFill from, to", scale->accumulatorFill, newFill);
+                scale->accumulatorFill = newFill;
+            } else {
+                scale->accumulatorFill = 0;
+            }
+        } else {
+            scale->accumulatorFill = scale->accumulator.size();
+        }
     }
 }
 
