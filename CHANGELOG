@@ -3,10 +3,10 @@ Changes in Rubber Band v3.0.0
 
  * Introduce a new processing engine, the R3 (Finer) engine, which
    typically produces higher-quality output than the existing R2
-   engine but at significantly higher CPU cost. The R2 engine is
+   engine, though at significantly higher CPU cost. The R2 engine is
    still the default, and R3 can be selected using the new
-   OptionEngineFiner option on construction. See the documentation
-   for more details.
+   OptionEngineFiner option on construction. See the documentation for
+   more details.
  * Add ability to provide a custom set of log callbacks, so that
    debug and warning logs can be routed to the application's log
    stream and/or handled in a realtime-safe way

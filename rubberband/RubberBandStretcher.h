@@ -265,8 +265,10 @@ public:
      * 7. Flags prefixed \c OptionWindow control the window size for
      * FFT processing in the R2 engine.  (The window size actually
      * used will depend on many factors, but it can be influenced.)
-     * These options have no effect when using the R3 engine.  These
-     * options may not be changed after construction.
+     * These options currently have no effect when using the R3
+     * engine, but they may do in the future - so code written to use
+     * R3 now is recommended to use the default.  These options may
+     * not be changed after construction.
      *
      *   \li \c OptionWindowStandard - Use the default window size.
      *   The actual size will vary depending on other parameters.
@@ -927,21 +929,23 @@ public:
     /**
      * Return the value of internal frequency cutoff value n.
      *
-     * This function is not for general use.
+     * This function is not for general use and is supported only with
+     * the R2 engine.
      */
     float getFrequencyCutoff(int n) const;
 
     /** 
      * Set the value of internal frequency cutoff n to f Hz.
      *
-     * This function is not for general use.
+     * This function is not for general use and is supported only with
+     * the R2 engine.
      */
     void setFrequencyCutoff(int n, float f);
     
     /**
      * Retrieve the value of the internal input block increment value.
      *
-     * This function is provided for diagnostic purposes only and
+     * This function is provided for diagnostic purposes only and is
      * supported only with the R2 engine.
      */
     size_t getInputIncrement() const;
@@ -953,7 +957,7 @@ public:
      * retrieve any output increments that have accumulated since the
      * last call to getOutputIncrements, to a limit of 16.
      *
-     * This function is provided for diagnostic purposes only and
+     * This function is provided for diagnostic purposes only and is
      * supported only with the R2 engine.
      */
     std::vector<int> getOutputIncrements() const;
@@ -965,7 +969,7 @@ public:
      * retrieve any phase reset points that have accumulated since the
      * last call to getPhaseResetCurve, to a limit of 16.
      *
-     * This function is provided for diagnostic purposes only and
+     * This function is provided for diagnostic purposes only and is
      * supported only with the R2 engine.
      */
     std::vector<float> getPhaseResetCurve() const;
@@ -976,7 +980,7 @@ public:
      * provided the stretch profile has been calculated.  In realtime
      * mode, return an empty sequence.
      *
-     * This function is provided for diagnostic purposes only and
+     * This function is provided for diagnostic purposes only and is
      * supported only with the R2 engine.
      */
     std::vector<int> getExactTimePoints() const;
@@ -986,7 +990,7 @@ public:
      * this happens automatically for the first process() call in
      * offline mode.
      *
-     * This function is provided for diagnostic purposes only and
+     * This function is provided for diagnostic purposes only and is
      * supported only with the R2 engine.
      */
     void calculateStretch();
