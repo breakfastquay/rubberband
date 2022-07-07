@@ -15,7 +15,7 @@ project(
   meson_version: '>= 0.53.0'
 )
 
-rubberband_dynamic_library_version = '2.1.7'
+rubberband_dynamic_library_version = '2.2.0'
 
 system = host_machine.system()
 architecture = host_machine.cpu_family()
