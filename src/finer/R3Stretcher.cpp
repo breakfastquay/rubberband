@@ -47,6 +47,7 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_unityCount(0),
     m_startSkip(0),
     m_studyInputDuration(0),
+    m_suppliedInputDuration(0),
     m_totalTargetDuration(0),
     m_consumedInputDuration(0),
     m_lastKeyFrameSurpassed(0),
@@ -449,6 +450,7 @@ R3Stretcher::reset()
     m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
 
     m_studyInputDuration = 0;
+    m_suppliedInputDuration = 0;
     m_totalTargetDuration = 0;
     m_consumedInputDuration = 0;
     m_lastKeyFrameSurpassed = 0;
@@ -477,6 +479,12 @@ R3Stretcher::study(const float *const *, size_t samples, bool)
 
     m_mode = ProcessMode::Studying;
     m_studyInputDuration += samples;
+}
+
+void
+R3Stretcher::setExpectedInputDuration(size_t samples)
+{
+    m_suppliedInputDuration = samples;
 }
 
 size_t
@@ -518,12 +526,19 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     }
 
     if (!isRealTime()) {
-        
+
         if (m_mode == ProcessMode::Studying) {
             m_totalTargetDuration =
                 size_t(round(m_studyInputDuration * m_timeRatio));
             m_log.log(1, "study duration and target duration",
                       m_studyInputDuration, m_totalTargetDuration);
+        } else if (m_mode == ProcessMode::JustCreated) {
+            if (m_suppliedInputDuration != 0) {
+                m_totalTargetDuration =
+                    size_t(round(m_suppliedInputDuration * m_timeRatio));
+                m_log.log(1, "supplied duration and target duration",
+                          m_suppliedInputDuration, m_totalTargetDuration);
+            }
         }
 
         // Update this on every process round, checking whether we've

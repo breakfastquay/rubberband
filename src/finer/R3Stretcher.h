@@ -90,6 +90,7 @@ public:
     
     size_t getChannelCount() const;
 
+    void setExpectedInputDuration(size_t samples);
     void setMaxProcessSize(size_t samples);
     
     void setDebugLevel(int level) {
@@ -303,6 +304,7 @@ protected:
     int m_startSkip;
 
     size_t m_studyInputDuration;
+    size_t m_suppliedInputDuration;
     size_t m_totalTargetDuration;
     size_t m_consumedInputDuration;
     size_t m_lastKeyFrameSurpassed;
