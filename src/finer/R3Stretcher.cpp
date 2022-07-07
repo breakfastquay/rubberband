@@ -48,7 +48,7 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_startSkip(0),
     m_studyInputDuration(0),
     m_totalTargetDuration(0),
-    m_processInputDuration(0),
+    m_consumedInputDuration(0),
     m_lastKeyFrameSurpassed(0),
     m_totalOutputDuration(0),
     m_mode(ProcessMode::JustCreated)
@@ -293,9 +293,9 @@ R3Stretcher::calculateHop()
         m_log.log(0, "WARNING: Extreme ratio yields ideal inhop < 1, results may be suspect", ratio, inhop);
         inhop = 1.0;
     }
-    if (inhop > 768.0) {
-        m_log.log(0, "WARNING: Extreme ratio yields ideal inhop > 768, results may be suspect", ratio, inhop);
-        inhop = 768.0;
+    if (inhop > 1024.0) {
+        m_log.log(0, "WARNING: Extreme ratio yields ideal inhop > 1024, results may be suspect", ratio, inhop);
+        inhop = 1024.0;
     }
 
     m_inhop = int(floor(inhop));
@@ -308,7 +308,7 @@ R3Stretcher::updateRatioFromMap()
 {
     if (m_keyFrameMap.empty()) return;
 
-    if (m_processInputDuration == 0) {
+    if (m_consumedInputDuration == 0) {
         m_timeRatio = double(m_keyFrameMap.begin()->second) /
             double(m_keyFrameMap.begin()->first);
 
@@ -328,12 +328,12 @@ R3Stretcher::updateRatioFromMap()
         return;
     }
 
-    if (m_processInputDuration >= i0->first) {
+    if (m_consumedInputDuration >= i0->first) {
 
         m_log.log(1, "input duration surpasses pending key frame",
-                   double(m_processInputDuration), double(i0->first));
+                   double(m_consumedInputDuration), double(i0->first));
         
-        auto i1 = m_keyFrameMap.upper_bound(m_processInputDuration);
+        auto i1 = m_keyFrameMap.upper_bound(m_consumedInputDuration);
 
         size_t keyFrameAtInput, keyFrameAtOutput;
     
@@ -344,18 +344,37 @@ R3Stretcher::updateRatioFromMap()
             keyFrameAtInput = m_studyInputDuration;
             keyFrameAtOutput = m_totalTargetDuration;
         }
-        
-        size_t toKeyFrameAtInput = keyFrameAtInput - i0->first;
-        size_t toKeyFrameAtOutput = keyFrameAtOutput - i0->second;
 
-        double ratio = double(toKeyFrameAtOutput) / double(toKeyFrameAtInput);
-
+        m_log.log(1, "current input and output",
+                   double(m_consumedInputDuration), double(m_totalOutputDuration));
         m_log.log(1, "next key frame input and output",
                    double(keyFrameAtInput), double(keyFrameAtOutput));
-        m_log.log(1, "diff to next key frame input and output",
-                   double(toKeyFrameAtInput), double(toKeyFrameAtOutput));
-        m_log.log(1, "current input and output",
-                   double(m_processInputDuration), double(m_totalOutputDuration));
+        
+        double ratio;
+
+        if (keyFrameAtInput > i0->first) {
+        
+            size_t toKeyFrameAtInput, toKeyFrameAtOutput;
+            
+            toKeyFrameAtInput = keyFrameAtInput - i0->first;
+            
+            if (keyFrameAtOutput > i0->second) {
+                toKeyFrameAtOutput = keyFrameAtOutput - i0->second;
+            } else {
+                m_log.log(1, "previous target key frame overruns next key frame (or total output duration)", i0->second, keyFrameAtOutput);
+                toKeyFrameAtOutput = 1;
+            }
+
+            m_log.log(1, "diff to next key frame input and output",
+                      double(toKeyFrameAtInput), double(toKeyFrameAtOutput));
+
+            ratio = double(toKeyFrameAtOutput) / double(toKeyFrameAtInput);
+
+        } else {
+            m_log.log(1, "source key frame overruns following key frame or total input duration", i0->first, keyFrameAtInput);
+            ratio = 1.0;
+        }
+        
         m_log.log(1, "new ratio", ratio);
     
         m_timeRatio = ratio;
@@ -431,7 +450,7 @@ R3Stretcher::reset()
 
     m_studyInputDuration = 0;
     m_totalTargetDuration = 0;
-    m_processInputDuration = 0;
+    m_consumedInputDuration = 0;
     m_lastKeyFrameSurpassed = 0;
     m_totalOutputDuration = 0;
     m_keyFrameMap.clear();
@@ -564,8 +583,6 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
         m_channelData[c]->inbuf->write(input[c], samples);
     }
 
-    m_processInputDuration += samples;
-    
     consume();
 }
 
@@ -741,7 +758,6 @@ R3Stretcher::consume()
         if (resampling) {
             writeCount = resampledCount;
         }
-
         if (!isRealTime()) {
             if (m_totalTargetDuration > 0 &&
                 m_totalOutputDuration + writeCount > m_totalTargetDuration) {
@@ -752,6 +768,15 @@ R3Stretcher::consume()
                 writeCount = reduced;
             }
         }
+
+        int advanceCount = inhop;
+        if (advanceCount > readSpace) {
+            // This should happen only when draining (Finished)
+            if (m_mode != ProcessMode::Finished) {
+                m_log.log(0, "WARNING: readSpace < inhop when processing is not yet finished", readSpace, inhop);
+            }
+            advanceCount = readSpace;
+        }
         
         for (int c = 0; c < channels; ++c) {
             auto &cd = m_channelData.at(c);
@@ -760,18 +785,10 @@ R3Stretcher::consume()
             } else {
                 cd->outbuf->write(cd->mixdown.data(), writeCount);
             }
-            
-            if (readSpace < inhop) {
-                // This should happen only when draining (Finished)
-                if (m_mode != ProcessMode::Finished) {
-                    m_log.log(0, "WARNING: readSpace < inhop when processing is not yet finished", readSpace, inhop);
-                }
-                cd->inbuf->skip(readSpace);
-            } else {
-                cd->inbuf->skip(inhop);
-            }
+            cd->inbuf->skip(advanceCount);
         }
 
+        m_consumedInputDuration += advanceCount;
         m_totalOutputDuration += writeCount;
         
         if (m_startSkip > 0) {
