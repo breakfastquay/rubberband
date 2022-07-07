@@ -26,25 +26,32 @@ ninja -C build_arm64
 ninja -C build_x86_64
 mkdir tmp_pack
 lipo build_arm64/rubberband build_x86_64/rubberband -create -output tmp_pack/rubberband
+lipo build_arm64/rubberband-r3 build_x86_64/rubberband-r3 -create -output tmp_pack/rubberband-r3
 
 echo
 echo "Check the following version number: it should read $version"
 tmp_pack/rubberband -V
+echo
+echo "So should this one:"
+tmp_pack/rubberband-r3 -V
 echo
 
 key="Developer ID Application: Particular Programs Ltd (73F996B92S)"
 mkdir -p packages
 ( cd tmp_pack
   codesign -s "$key" -fv --options runtime rubberband
+  codesign -s "$key" -fv --options runtime rubberband-r3
   zipfile="rubberband-$version-gpl-executable-macos.zip"
   rm -f "$zipfile"
-  ditto -c -k rubberband "$zipfile"
+  zip "$zipfile" rubberband rubberband-r3
+#  ditto -c -k rubberband rubberband-r3 "$zipfile" #!!! "can't archive multiple sources"
   ../../rba/deploy/macos/notarize.sh "$zipfile" com.breakfastquay.rubberband
 )
 package_dir="rubberband-$version-gpl-executable-macos"
 rm -rf "$package_dir"
 mkdir "$package_dir"
 cp tmp_pack/rubberband "$package_dir"
+cp tmp_pack/rubberband-r3 "$package_dir"
 cp CHANGELOG README.md COPYING "$package_dir"
 tar cvjf "$package_dir.tar.bz2" "$package_dir"
 mv "$package_dir.tar.bz2" packages/
