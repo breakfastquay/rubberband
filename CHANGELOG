@@ -16,13 +16,12 @@ Changes in Rubber Band v3.0.0
    replacing it with two new functions getPreferredStartPad() and
    getStartDelay(). See their documentation for more details
 
-The library is both binary and API compatible all the way back to
-version 1.2 for forward compatibility, but not backward compatibility,
-as several new functions and enum values have been added.  Code
-written to use 3.0 is not necessarily compatible with 2.x or 1.x, but
-code written to use any earlier version can update to 3.0 without
-modification (and it will continue to use the same processing engine
-if the calling code is unchanged).
+The library is both binary and API compatible all the way back to the
+1.x series for existing applications.  Code written to use 3.0 is not
+necessarily compatible with 2.x or 1.x, as several new functions and
+enum values have been added, but code written to use any earlier
+version can update to 3.0 without modification (and will continue to
+use the same processing engine if the calling code is unchanged).
 
 
 Changes in Rubber Band v2.0.2
