@@ -50,23 +50,23 @@ Profiler::m_worstCalls;
 static Mutex profileMutex;
 
 void
-Profiler::add(const char *id, double ms)
+Profiler::add(const char *id, double us)
 {
     profileMutex.lock();
     
     ProfileMap::iterator pmi = m_profiles.find(id);
     if (pmi != m_profiles.end()) {
         ++pmi->second.first;
-        pmi->second.second += ms;
+        pmi->second.second += us;
     } else {
-        m_profiles[id] = TimePair(1, ms);
+        m_profiles[id] = TimePair(1, us);
     }
 
     WorstCallMap::iterator wci = m_worstCalls.find(id);
     if (wci != m_worstCalls.end()) {
-        if (ms > wci->second) wci->second = ms;
+        if (us > wci->second) wci->second = us;
     } else {
-        m_worstCalls[id] = ms;
+        m_worstCalls[id] = us;
     }
 
     profileMutex.unlock();
@@ -100,6 +100,8 @@ Profiler::getReport()
     TimeRMap totmap, avgmap, worstmap;
     IntRMap ncallmap;
 
+    const unsigned char mu_s[] = { 0xce, 0xbc, 's', 0x0 };
+    
     for (ProfileMap::const_iterator i = m_profiles.begin();
          i != m_profiles.end(); ++i) {
         totmap.insert(TimeRMap::value_type(i->second.second, i->first));
@@ -111,38 +113,6 @@ Profiler::getReport()
     for (WorstCallMap::const_iterator i = m_worstCalls.begin();
          i != m_worstCalls.end(); ++i) {
         worstmap.insert(TimeRMap::value_type(i->second, i->first));
-    }
-
-    snprintf(buffer, buflen, "\nBy total:\n");
-    report += buffer;
-    for (TimeRMap::const_iterator i = totmap.end(); i != totmap.begin(); ) {
-        --i;
-        snprintf(buffer, buflen, "%-40s  %f ms\n", i->second, i->first);
-        report += buffer;
-    }
-
-    snprintf(buffer, buflen, "\nBy average:\n");
-    report += buffer;
-    for (TimeRMap::const_iterator i = avgmap.end(); i != avgmap.begin(); ) {
-        --i;
-        snprintf(buffer, buflen, "%-40s  %f ms\n", i->second, i->first);
-        report += buffer;
-    }
-
-    snprintf(buffer, buflen, "\nBy worst case:\n");
-    report += buffer;
-    for (TimeRMap::const_iterator i = worstmap.end(); i != worstmap.begin(); ) {
-        --i;
-        snprintf(buffer, buflen, "%-40s  %f ms\n", i->second, i->first);
-        report += buffer;
-    }
-
-    snprintf(buffer, buflen, "\nBy number of calls:\n");
-    report += buffer;
-    for (IntRMap::const_iterator i = ncallmap.end(); i != ncallmap.begin(); ) {
-        --i;
-        snprintf(buffer, buflen, "%-40s  %d\n", i->second, i->first);
-        report += buffer;
     }
 
     snprintf(buffer, buflen, "\nBy name:\n");
@@ -165,15 +135,47 @@ Profiler::getReport()
         const TimePair &pp(j->second);
         snprintf(buffer, buflen, "%s(%d):\n", *i, pp.first);
         report += buffer;
-        snprintf(buffer, buflen, "\tReal: \t%f ms      \t[%f ms total]\n",
-                (pp.second / pp.first),
-                (pp.second));
+        snprintf(buffer, buflen, "\tReal: \t%12f %s      \t[%f %s total]\n",
+                 (pp.second / pp.first), mu_s,
+                 (pp.second), mu_s);
         report += buffer;
 
         WorstCallMap::const_iterator k = m_worstCalls.find(*i);
         if (k == m_worstCalls.end()) continue;
         
-        snprintf(buffer, buflen, "\tWorst:\t%f ms/call\n", k->second);
+        snprintf(buffer, buflen, "\tWorst:\t%14f %s/call\n", k->second, mu_s);
+        report += buffer;
+    }
+
+    snprintf(buffer, buflen, "\nBy total:\n");
+    report += buffer;
+    for (TimeRMap::const_iterator i = totmap.end(); i != totmap.begin(); ) {
+        --i;
+        snprintf(buffer, buflen, "%-40s  %14f %s\n", i->second, i->first, mu_s);
+        report += buffer;
+    }
+
+    snprintf(buffer, buflen, "\nBy average:\n");
+    report += buffer;
+    for (TimeRMap::const_iterator i = avgmap.end(); i != avgmap.begin(); ) {
+        --i;
+        snprintf(buffer, buflen, "%-40s  %14f %s\n", i->second, i->first, mu_s);
+        report += buffer;
+    }
+
+    snprintf(buffer, buflen, "\nBy worst case:\n");
+    report += buffer;
+    for (TimeRMap::const_iterator i = worstmap.end(); i != worstmap.begin(); ) {
+        --i;
+        snprintf(buffer, buflen, "%-40s  %14f %s\n", i->second, i->first, mu_s);
+        report += buffer;
+    }
+
+    snprintf(buffer, buflen, "\nBy number of calls:\n");
+    report += buffer;
+    for (IntRMap::const_iterator i = ncallmap.end(); i != ncallmap.begin(); ) {
+        --i;
+        snprintf(buffer, buflen, "%-40s  %14d\n", i->second, i->first);
         report += buffer;
     }
 
@@ -198,8 +200,8 @@ void
 Profiler::end()
 {
     auto finish = std::chrono::steady_clock::now();
-    std::chrono::duration<double, std::milli> ms = finish - m_start;
-    add(m_c, ms.count());
+    std::chrono::duration<double, std::micro> us = finish - m_start;
+    add(m_c, us.count());
     m_ended = true;
 }
  

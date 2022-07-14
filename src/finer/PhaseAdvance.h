@@ -28,6 +28,7 @@
 
 #include "../common/Log.h"
 #include "../common/mathmisc.h"
+#include "../common/Profiler.h"
 
 #include <sstream>
 #include <functional>
@@ -93,6 +94,8 @@ public:
                  int inhop,
                  int outhop) {
 
+        Profiler profiler("GuidedPhaseAdvance::advance");
+        
         int myFftBand = 0;
         int i = 0;
         for (const auto &fband : guidance[0]->fftBands) {

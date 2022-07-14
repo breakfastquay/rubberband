@@ -101,6 +101,8 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
     m_freq2(12000),
     m_baseFftSize(m_defaultFftSize)
 {
+    Profiler profiler("R2Stretcher::R2Stretcher");
+    
     if (!_initialised) {
         system_specific_initialise();
         _initialised = true;

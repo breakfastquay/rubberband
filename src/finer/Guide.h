@@ -25,6 +25,7 @@
 #define RUBBERBAND_GUIDE_H
 
 #include "../common/Log.h"
+#include "../common/Profiler.h"
 
 #include <functional>
 #include <sstream>
@@ -159,6 +160,8 @@ public:
                         bool tighterChannelLock,
                         Guidance &guidance) const {
 
+        Profiler profiler("Guide::updateGuidance");
+        
         bool hadPhaseReset = guidance.phaseReset.present;
 
         guidance.phaseReset.present = false;

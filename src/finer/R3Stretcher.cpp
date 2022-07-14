@@ -24,6 +24,7 @@
 #include "R3Stretcher.h"
 
 #include "../common/VectorOpsComplex.h"
+#include "../common/Profiler.h"
 
 #include <array>
 
@@ -54,6 +55,8 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_totalOutputDuration(0),
     m_mode(ProcessMode::JustCreated)
 {
+    Profiler profiler("R3Stretcher::R3Stretcher");
+    
     m_log.log(1, "R3Stretcher::R3Stretcher: rate, options",
               m_parameters.sampleRate, m_parameters.options);
     m_log.log(1, "R3Stretcher::R3Stretcher: initial time ratio and pitch scale",
@@ -233,6 +236,8 @@ R3Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 void
 R3Stretcher::createResampler()
 {
+    Profiler profiler("R3Stretcher::createResampler");
+    
     Resampler::Parameters resamplerParameters;
 
     if (m_parameters.options & RubberBandStretcher::OptionPitchHighQuality) {
@@ -463,6 +468,8 @@ R3Stretcher::reset()
 void
 R3Stretcher::study(const float *const *, size_t samples, bool)
 {
+    Profiler profiler("R3Stretcher::study");
+    
     if (isRealTime()) {
         m_log.log(0, "R3Stretcher::study: Not meaningful in realtime mode");
         return;
@@ -520,6 +527,8 @@ R3Stretcher::setMaxProcessSize(size_t n)
 void
 R3Stretcher::process(const float *const *input, size_t samples, bool final)
 {
+    Profiler profiler("R3Stretcher::process");
+    
     if (m_mode == ProcessMode::Finished) {
         m_log.log(0, "R3Stretcher::process: Cannot process again after final chunk");
         return;
@@ -615,6 +624,8 @@ R3Stretcher::available() const
 size_t
 R3Stretcher::retrieve(float *const *output, size_t samples) const
 {
+    Profiler profiler("R3Stretcher::retrieve");
+    
     int got = samples;
     
     for (int c = 0; c < m_parameters.channels; ++c) {
@@ -633,6 +644,8 @@ R3Stretcher::retrieve(float *const *output, size_t samples) const
 void
 R3Stretcher::consume()
 {
+    Profiler profiler("R3Stretcher::consume");
+    
     int longest = m_guideConfiguration.longestFftSize;
     int channels = m_parameters.channels;
     int inhop = m_inhop;
@@ -680,6 +693,8 @@ R3Stretcher::consume()
     
     while (cd0->outbuf->getWriteSpace() >= outhop) {
 
+        Profiler profiler("R3Stretcher::consume/loop");
+        
         // NB our ChannelData, ScaleData, and ChannelScaleData maps
         // contain shared_ptrs; whenever we retain one of them in a
         // variable, we do so by reference to avoid copying the
@@ -827,6 +842,8 @@ R3Stretcher::consume()
 void
 R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 {
+    Profiler profiler("R3Stretcher::analyseChannel");
+    
     int longest = m_guideConfiguration.longestFftSize;
     int classify = m_guideConfiguration.classificationFftSize;
 
@@ -1067,6 +1084,8 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 void
 R3Stretcher::analyseFormant(int c)
 {
+    Profiler profiler("R3Stretcher::analyseFormant");
+
     auto &cd = m_channelData.at(c);
     auto &f = *cd->formant;
 
@@ -1101,6 +1120,8 @@ R3Stretcher::analyseFormant(int c)
 void
 R3Stretcher::adjustFormant(int c)
 {
+    Profiler profiler("R3Stretcher::adjustFormant");
+
     auto &cd = m_channelData.at(c);
         
     for (auto &it : cd->scales) {
@@ -1135,6 +1156,8 @@ R3Stretcher::adjustFormant(int c)
 void
 R3Stretcher::adjustPreKick(int c)
 {
+    Profiler profiler("R3Stretcher::adjustPreKick");
+
     auto &cd = m_channelData.at(c);
     auto fftSize = cd->guidance.fftBands[0].fftSize;
     if (cd->guidance.preKick.present) {
@@ -1166,6 +1189,8 @@ R3Stretcher::adjustPreKick(int c)
 void
 R3Stretcher::synthesiseChannel(int c, int outhop, bool draining)
 {
+    Profiler profiler("R3Stretcher::synthesiseChannel");
+    
     int longest = m_guideConfiguration.longestFftSize;
 
     auto &cd = m_channelData.at(c);

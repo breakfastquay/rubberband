@@ -27,6 +27,7 @@
 #include "../common/Allocators.h"
 #include "../common/MovingMedian.h"
 #include "../common/RingBuffer.h"
+#include "../common/Profiler.h"
 
 #include <vector>
 #include <memory>
@@ -97,6 +98,8 @@ public:
     void classify(const process_t *const mag, // input, of at least binCount bins
                   Classification *classification) // output, of binCount bins
     {
+        Profiler profiler("BinClassifier::classify");
+        
         const int n = m_parameters.binCount;
 
         for (int i = 0; i < n; ++i) {
