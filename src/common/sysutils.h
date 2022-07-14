@@ -99,6 +99,11 @@ extern bool system_is_multiprocessor();
 extern void system_specific_initialise();
 extern void system_specific_application_initialise();
 
+#ifdef _WIN32
+struct timeval { long tv_sec; long tv_usec; };
+void gettimeofday(struct timeval *p, void *tz);
+#endif // _WIN32
+
 } // end namespace
 
 // The following should be functions in the RubberBand namespace, really
