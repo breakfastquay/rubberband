@@ -253,19 +253,22 @@ protected:
 
     struct ScaleData {
         int fftSize;
+        bool shortWindowMode;
         FFT fft;
         Window<process_t> analysisWindow;
         Window<process_t> synthesisWindow;
         process_t windowScaleFactor;
         GuidedPhaseAdvance guided;
+
         ScaleData(GuidedPhaseAdvance::Parameters guidedParameters,
                   Log log) :
             fftSize(guidedParameters.fftSize),
+            shortWindowMode(guidedParameters.shortWindowMode),
             fft(fftSize),
-            analysisWindow(analysisWindowShape(fftSize),
-                           analysisWindowLength(fftSize)),
-            synthesisWindow(synthesisWindowShape(fftSize),
-                            synthesisWindowLength(fftSize)),
+            analysisWindow(analysisWindowShape(),
+                           analysisWindowLength()),
+            synthesisWindow(synthesisWindowShape(),
+                            synthesisWindowLength()),
             windowScaleFactor(0.0),
             guided(guidedParameters, log)
         {
@@ -277,10 +280,10 @@ protected:
             }
         }
 
-        WindowType analysisWindowShape(int fftSize);
-        int analysisWindowLength(int fftSize);
-        WindowType synthesisWindowShape(int fftSize);
-        int synthesisWindowLength(int fftSize);
+        WindowType analysisWindowShape();
+        int analysisWindowLength();
+        WindowType synthesisWindowShape();
+        int synthesisWindowLength();
     };
     
     Parameters m_parameters;
@@ -366,6 +369,11 @@ protected:
     bool isRealTime() const {
         return m_parameters.options &
             RubberBandStretcher::OptionProcessRealTime;
+    }
+
+    bool isShortWindowed() const {
+        return m_parameters.options &
+            RubberBandStretcher::OptionWindowShort;
     }
 };
 

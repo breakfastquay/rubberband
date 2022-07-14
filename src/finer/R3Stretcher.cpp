@@ -39,7 +39,10 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_timeRatio(initialTimeRatio),
     m_pitchScale(initialPitchScale),
     m_formantScale(0.0),
-    m_guide(Guide::Parameters(m_parameters.sampleRate), m_log),
+    m_guide(Guide::Parameters
+            (m_parameters.sampleRate,
+             m_parameters.options & RubberBandStretcher::OptionWindowShort),
+            m_log),
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
     m_inhop(1),
@@ -62,6 +65,16 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_log.log(1, "R3Stretcher::R3Stretcher: initial time ratio and pitch scale",
               m_timeRatio, m_pitchScale);
 
+    if (isRealTime()) {
+        m_log.log(1, "R3Stretcher::R3Stretcher: real-time mode");
+    } else {
+        m_log.log(1, "R3Stretcher::R3Stretcher: offline mode");
+    }
+
+    if (isShortWindowed()) {
+        m_log.log(1, "R3Stretcher::R3Stretcher: intermediate shorter-window mode requested");
+    }
+    
     double maxClassifierFrequency = 16000.0;
     if (maxClassifierFrequency > m_parameters.sampleRate/2) {
         maxClassifierFrequency = m_parameters.sampleRate/2;
@@ -98,7 +111,8 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     for (auto band: m_guideConfiguration.fftBandLimits) {
         int fftSize = band.fftSize;
         GuidedPhaseAdvance::Parameters guidedParameters
-            (fftSize, m_parameters.sampleRate, m_parameters.channels);
+            (fftSize, m_parameters.sampleRate, m_parameters.channels,
+             isShortWindowed());
         m_scaleData[fftSize] = std::make_shared<ScaleData>
             (guidedParameters, m_log);
     }
@@ -130,30 +144,44 @@ R3Stretcher::R3Stretcher(Parameters parameters,
 }
 
 WindowType
-R3Stretcher::ScaleData::analysisWindowShape(int fftSize)
+R3Stretcher::ScaleData::analysisWindowShape()
 {
-    if (fftSize > 2048) return HannWindow;
-    else return NiemitaloForwardWindow;
+    if (shortWindowMode) {
+        if (fftSize >= 2048) return HannWindow;
+        else return NiemitaloForwardWindow;
+    } else {
+        if (fftSize > 2048) return HannWindow;
+        else return NiemitaloForwardWindow;
+    }
 }
 
 int
-R3Stretcher::ScaleData::analysisWindowLength(int fftSize)
+R3Stretcher::ScaleData::analysisWindowLength()
 {
     return fftSize;
 }
 
 WindowType
-R3Stretcher::ScaleData::synthesisWindowShape(int fftSize)
+R3Stretcher::ScaleData::synthesisWindowShape()
 {
-    if (fftSize > 2048) return HannWindow;
-    else return NiemitaloReverseWindow;
+    if (shortWindowMode) {
+        if (fftSize >= 2048) return HannWindow;
+        else return NiemitaloReverseWindow;
+    } else {
+        if (fftSize > 2048) return HannWindow;
+        else return NiemitaloReverseWindow;
+    }
 }
 
 int
-R3Stretcher::ScaleData::synthesisWindowLength(int fftSize)
+R3Stretcher::ScaleData::synthesisWindowLength()
 {
-    if (fftSize > 2048) return fftSize/2;
-    else return fftSize;
+    if (shortWindowMode) {
+        return fftSize;
+    } else {
+        if (fftSize > 2048) return fftSize/2;
+        else return fftSize;
+    }
 }
 
 void
@@ -292,6 +320,14 @@ R3Stretcher::calculateHop()
     if (proposedOuthop > 512.0) proposedOuthop = 512.0;
     if (proposedOuthop < 128.0) proposedOuthop = 128.0;
 
+    if (isShortWindowed()) {
+        // perhaps ironically, the short window mode actually uses a
+        // longer synthesis window for the 2048-bin FFT and, since
+        // reduced CPU consumption is the motivation, it can generally
+        // survive longer hops
+        proposedOuthop *= 1.5;
+    }
+    
     m_log.log(1, "calculateHop: ratio and proposed outhop", ratio, proposedOuthop);
     
     double inhop = proposedOuthop / ratio;
@@ -728,6 +764,10 @@ R3Stretcher::consume()
         
         for (auto &it : m_channelData[0]->scales) {
             int fftSize = it.first;
+            if (isShortWindowed() &&
+                fftSize == m_guideConfiguration.longestFftSize) {
+                continue;
+            }
             for (int c = 0; c < channels; ++c) {
                 auto &cd = m_channelData.at(c);
                 auto &scale = cd->scales.at(fftSize);
@@ -898,7 +938,9 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     }
             
     // Finally window the longest scale
-    m_scaleData.at(longest)->analysisWindow.cut(buf);
+    if (!isShortWindowed()) {
+        m_scaleData.at(longest)->analysisWindow.cut(buf);
+    }
 
     // FFT shift, forward FFT, and carry out cartesian-polar
     // conversion for each FFT size.
@@ -956,9 +998,12 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         if (fftSize == classify && haveValidReadahead) {
             continue;
         }
+        if (isShortWindowed() && fftSize == longest) {
+            continue;
+        }
         
         auto &scale = it.second;
-
+        
         v_fftshift(scale->timeDomain.data(), fftSize);
 
         m_scaleData.at(fftSize)->fft.forward(scale->timeDomain.data(),
@@ -1127,6 +1172,11 @@ R3Stretcher::adjustFormant(int c)
     for (auto &it : cd->scales) {
         
         int fftSize = it.first;
+        if (isShortWindowed() &&
+            fftSize == m_guideConfiguration.longestFftSize) {
+            continue;
+        }
+        
         auto &scale = it.second;
 
         int highBin = int(floor(fftSize * 10000.0 / m_parameters.sampleRate));
@@ -1156,6 +1206,8 @@ R3Stretcher::adjustFormant(int c)
 void
 R3Stretcher::adjustPreKick(int c)
 {
+    if (isShortWindowed()) return;
+    
     Profiler profiler("R3Stretcher::adjustPreKick");
 
     auto &cd = m_channelData.at(c);
@@ -1197,6 +1249,11 @@ R3Stretcher::synthesiseChannel(int c, int outhop, bool draining)
         
     for (const auto &band : cd->guidance.fftBands) {
         int fftSize = band.fftSize;
+
+        if (isShortWindowed() && fftSize == longest) {
+            continue;
+        }
+        
         auto &scale = cd->scales.at(fftSize);
         auto &scaleData = m_scaleData.at(fftSize);
 

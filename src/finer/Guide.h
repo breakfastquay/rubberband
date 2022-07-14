@@ -105,7 +105,10 @@ public:
     
     struct Parameters {
         double sampleRate;
-        Parameters(double _sampleRate) : sampleRate(_sampleRate) { }
+        bool shortWindowMode;
+        Parameters(double _sampleRate, bool _shortWindow) :
+            sampleRate(_sampleRate),
+            shortWindowMode(_shortWindow) { }
     };
 
     Guide(Parameters parameters, Log log) :
@@ -120,7 +123,14 @@ public:
     {
         double rate = m_parameters.sampleRate;
 
-        m_log.log(1, "Guide: rate", rate);
+        m_log.log(1, "Guide: rate and short-window mode",
+                  rate, m_parameters.shortWindowMode);
+
+        if (m_parameters.shortWindowMode) {
+            m_minLower = 0.0;
+            m_defaultLower = 0.0;
+            m_maxLower = 0.0;
+        }
         
         int bandFftSize = roundUp(int(ceil(rate/16.0)));
         m_configuration.fftBandLimits[0] =
@@ -301,6 +311,11 @@ public:
         guidance.phaseLockBands[3].beta = betaFor(10000.0, ratio);
         guidance.phaseLockBands[3].f0 = higher;
         guidance.phaseLockBands[3].f1 = nyquist;
+
+        if (m_parameters.shortWindowMode) {
+            guidance.phaseLockBands[1].p = 1;
+            guidance.phaseLockBands[2].p = 2;
+        }
         
         if (outhop > 256) {
             guidance.phaseLockBands[3].p = 3;
