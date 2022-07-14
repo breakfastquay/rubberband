@@ -418,7 +418,11 @@ int main(int argc, char **argv)
 
     if (!quiet) {
         if (finer) {
-            cerr << "Using R3 (finer) engine" << endl;
+            if (shortwin) {
+                cerr << "Using intermediate R3 (finer) single-windowed engine" << endl;
+            } else {
+                cerr << "Using R3 (finer) engine" << endl;
+            }
         } else {
             cerr << "Using R2 (faster) engine" << endl;
             cerr << "Using crispness level: " << crispness << " (";

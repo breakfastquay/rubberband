@@ -253,7 +253,7 @@ protected:
 
     struct ScaleData {
         int fftSize;
-        bool shortWindowMode;
+        bool singleWindowMode;
         FFT fft;
         Window<process_t> analysisWindow;
         Window<process_t> synthesisWindow;
@@ -263,7 +263,7 @@ protected:
         ScaleData(GuidedPhaseAdvance::Parameters guidedParameters,
                   Log log) :
             fftSize(guidedParameters.fftSize),
-            shortWindowMode(guidedParameters.shortWindowMode),
+            singleWindowMode(guidedParameters.singleWindowMode),
             fft(fftSize),
             analysisWindow(analysisWindowShape(),
                            analysisWindowLength()),
@@ -371,7 +371,7 @@ protected:
             RubberBandStretcher::OptionProcessRealTime;
     }
 
-    bool isShortWindowed() const {
+    bool isSingleWindowed() const {
         return m_parameters.options &
             RubberBandStretcher::OptionWindowShort;
     }

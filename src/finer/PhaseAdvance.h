@@ -43,11 +43,11 @@ public:
         int fftSize;
         double sampleRate;
         int channels;
-        bool shortWindowMode;
+        bool singleWindowMode;
         Parameters(int _fftSize, double _sampleRate, int _channels,
-                   bool _shortWindow) :
+                   bool _singleWindow) :
             fftSize(_fftSize), sampleRate(_sampleRate), channels(_channels),
-            shortWindowMode(_shortWindow) { }
+            singleWindowMode(_singleWindow) { }
     };
     
     GuidedPhaseAdvance(Parameters parameters, Log log) :
