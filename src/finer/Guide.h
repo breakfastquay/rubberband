@@ -436,6 +436,14 @@ protected:
         guidance.fftBands[2].f0 = m_minHigher;
         guidance.fftBands[2].f1 = nyquist;
 
+        if (m_parameters.shortWindowMode) {
+            guidance.fftBands[0].f1 = 0.0;
+            guidance.fftBands[1].f0 = 0.0;
+            guidance.fftBands[1].f1 = nyquist;
+            guidance.fftBands[2].f0 = nyquist;
+            guidance.fftBands[2].f1 = nyquist;
+        }
+        
         guidance.phaseReset.present = true;
 
         if (!hadPhaseReset) {
