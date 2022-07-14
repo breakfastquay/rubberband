@@ -324,6 +324,7 @@ R3Stretcher::calculateHop()
         // 1024-bin one, so it can survive longer hops, which is good
         // because reduced CPU consumption is the whole motivation
         proposedOuthop *= 2.0;
+        if (proposedOuthop > 640.0) proposedOuthop = 640.0;
     }
     
     m_log.log(1, "calculateHop: ratio and proposed outhop", ratio, proposedOuthop);
