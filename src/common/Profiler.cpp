@@ -50,7 +50,7 @@ Profiler::m_worstCalls;
 static Mutex profileMutex;
 
 void
-Profiler::add(const char *id, float ms)
+Profiler::add(const char *id, double ms)
 {
     profileMutex.lock();
     
@@ -95,7 +95,7 @@ Profiler::getReport()
 #endif
     report += buffer;
 
-    typedef std::multimap<float, const char *> TimeRMap;
+    typedef std::multimap<double, const char *> TimeRMap;
     typedef std::multimap<int, const char *> IntRMap;
     TimeRMap totmap, avgmap, worstmap;
     IntRMap ncallmap;
@@ -186,11 +186,7 @@ Profiler::Profiler(const char* c) :
     m_c(c),
     m_ended(false)
 {
-#ifdef PROFILE_CLOCKS
-    m_start = clock();
-#else
-    (void)gettimeofday(&m_start, 0);
-#endif
+    m_start = std::chrono::steady_clock::now();
 }
 
 Profiler::~Profiler()
@@ -201,25 +197,9 @@ Profiler::~Profiler()
 void
 Profiler::end()
 {
-#ifdef PROFILE_CLOCKS
-    clock_t end = clock();
-    clock_t elapsed = end - m_start;
-    float ms = float((double(elapsed) / double(CLOCKS_PER_SEC)) * 1000.0);
-#else
-    struct timeval tv;
-    (void)gettimeofday(&tv, 0);
-
-    tv.tv_sec -= m_start.tv_sec;
-    if (tv.tv_usec < m_start.tv_usec) {
-        tv.tv_usec += 1000000;
-        tv.tv_sec -= 1;
-    }
-    tv.tv_usec -= m_start.tv_usec;
-    float ms = float((double(tv.tv_sec) + (double(tv.tv_usec) / 1000000.0)) * 1000.0);
-#endif
-
-    add(m_c, ms);
-
+    auto finish = std::chrono::steady_clock::now();
+    std::chrono::duration<double, std::milli> ms = finish - m_start;
+    add(m_c, ms.count());
     m_ended = true;
 }
  
