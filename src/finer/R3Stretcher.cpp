@@ -276,14 +276,12 @@ R3Stretcher::createResampler()
     resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize;
 
     if (isRealTime()) {
-        if (m_parameters.options &
-            RubberBandStretcher::OptionPitchHighConsistency) {
-            resamplerParameters.dynamism = Resampler::RatioOftenChanging;
-            resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
-        } else {
-            resamplerParameters.dynamism = Resampler::RatioMostlyFixed;
-            resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
-        }
+        // If we knew the caller would never change ratio, we could
+        // supply RatioMostlyFixed - but it can have such overhead
+        // when the ratio *does* change that a single call would kill
+        // RT use, so it's not a good idea
+        resamplerParameters.dynamism = Resampler::RatioOftenChanging;
+        resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
     } else {
         resamplerParameters.dynamism = Resampler::RatioMostlyFixed;
         resamplerParameters.ratioChange = Resampler::SuddenRatioChange;
