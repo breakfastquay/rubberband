@@ -132,7 +132,7 @@ protected:
         FixedVector<process_t> accumulator;
         int accumulatorFill;
 
-        ChannelScaleData(int _fftSize, int _longestFftSize) :
+        ChannelScaleData(int _fftSize, int _timeDomainLength) :
             fftSize(_fftSize),
             bufSize(fftSize/2 + 1),
             timeDomain(fftSize, 0.f),
@@ -143,7 +143,7 @@ protected:
             advancedPhase(bufSize, 0.f),
             prevMag(bufSize, 0.f),
             pendingKick(bufSize, 0.f),
-            accumulator(_longestFftSize, 0.f),
+            accumulator(_timeDomainLength, 0.f),
             accumulatorFill(0)
         { }
 
@@ -202,7 +202,7 @@ protected:
         std::unique_ptr<FormantData> formant;
         ChannelData(BinSegmenter::Parameters segmenterParameters,
                     BinClassifier::Parameters classifierParameters,
-                    int longestFftSize,
+                    int timeDomainLength,
                     int inRingBufferSize,
                     int outRingBufferSize) :
             scales(),
@@ -215,7 +215,7 @@ protected:
                                BinClassifier::Classification::Residual),
             segmenter(new BinSegmenter(segmenterParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
-            mixdown(longestFftSize, 0.f), // though it could be shorter
+            mixdown(timeDomainLength, 0.f),
             resampled(outRingBufferSize, 0.f),
             inbuf(new RingBuffer<float>(inRingBufferSize)),
             outbuf(new RingBuffer<float>(outRingBufferSize)),
@@ -297,6 +297,7 @@ protected:
     std::map<int, std::shared_ptr<ScaleData>> m_scaleData;
     Guide m_guide;
     Guide::Configuration m_guideConfiguration;
+    int m_timeDomainFrameLength;
     ChannelAssembly m_channelAssembly;
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
