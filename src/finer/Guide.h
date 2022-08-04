@@ -289,15 +289,29 @@ public:
             guidance.channelLock.f1 = 600.0;
         }
 
-        bool kick =
-            (segmentation.percussiveBelow > 40.0) &&
-            (prevSegmentation.percussiveBelow < 40.0) &&
-            checkPotentialKick(magnitudes, prevMagnitudes);
+        if (!m_parameters.singleWindowMode) {
+            
+            bool kick =
+                (segmentation.percussiveBelow > 40.0) &&
+                (prevSegmentation.percussiveBelow < 40.0) &&
+                checkPotentialKick(magnitudes, prevMagnitudes);
 
-        bool futureKick = !kick &&
-            (nextSegmentation.percussiveBelow > 40.0) &&
-            (segmentation.percussiveBelow < 40.0) &&
-            checkPotentialKick(nextMagnitudes, magnitudes);
+            bool futureKick = !kick &&
+                (nextSegmentation.percussiveBelow > 40.0) &&
+                (segmentation.percussiveBelow < 40.0) &&
+                checkPotentialKick(nextMagnitudes, magnitudes);
+
+            if (kick) {
+                guidance.kick.present = true;
+                guidance.kick.f0 = 0.0;
+                guidance.kick.f1 = segmentation.percussiveBelow;
+            } else if (futureKick) {
+                guidance.preKick.present = true;
+                guidance.preKick.f0 = 0.0;
+                guidance.preKick.f1 = nextSegmentation.percussiveBelow;
+            }
+        }
+        
 /*
         std::cout << "d:"
                   << prevSegmentation.percussiveBelow << ","
@@ -308,15 +322,6 @@ public:
                   << (kick ? "K" : "N") << ","
                   << (futureKick ? "F" : "N") << std::endl;
 */        
-        if (kick) {
-            guidance.kick.present = true;
-            guidance.kick.f0 = 0.0;
-            guidance.kick.f1 = segmentation.percussiveBelow;
-        } else if (futureKick) {
-            guidance.preKick.present = true;
-            guidance.preKick.f0 = 0.0;
-            guidance.preKick.f1 = nextSegmentation.percussiveBelow;
-        }
         
         if (segmentation.residualAbove > segmentation.percussiveAbove) {
             guidance.highUnlocked.present = true;

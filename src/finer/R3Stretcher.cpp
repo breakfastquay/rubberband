@@ -281,8 +281,8 @@ R3Stretcher::createResampler()
     if (isRealTime()) {
         // If we knew the caller would never change ratio, we could
         // supply RatioMostlyFixed - but it can have such overhead
-        // when the ratio *does* change that a single call would kill
-        // RT use, so it's not a good idea
+        // when the ratio *does* change (and it's not RT-safe overhead
+        // either) that a single call would kill RT use
         resamplerParameters.dynamism = Resampler::RatioOftenChanging;
         resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
     } else {
@@ -1193,8 +1193,6 @@ R3Stretcher::adjustFormant(int c)
 void
 R3Stretcher::adjustPreKick(int c)
 {
-    //!!! if we aren't going to do this, we should modify Guide so as
-    //!!! not to do the small additional work of checking for it
     if (isSingleWindowed()) return;
     
     Profiler profiler("R3Stretcher::adjustPreKick");
