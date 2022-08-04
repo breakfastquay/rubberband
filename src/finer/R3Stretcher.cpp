@@ -44,6 +44,7 @@ R3Stretcher::R3Stretcher(Parameters parameters,
              m_parameters.options & RubberBandStretcher::OptionWindowShort),
             m_log),
     m_guideConfiguration(m_guide.getConfiguration()),
+    m_windowSourceBuffer(getWindowSourceBufferLength()),
     m_channelAssembly(m_parameters.channels),
     m_inhop(1),
     m_prevInhop(1),
@@ -74,14 +75,6 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     if (isSingleWindowed()) {
         m_log.log(1, "R3Stretcher::R3Stretcher: intermediate shorter-window mode requested");
     }
-
-    if (m_guideConfiguration.longestFftSize >
-        m_guideConfiguration.classificationFftSize) {
-        m_timeDomainFrameLength = m_guideConfiguration.longestFftSize;
-    } else {
-        m_timeDomainFrameLength =
-            (m_guideConfiguration.classificationFftSize * 3) / 2;
-    }
     
     double maxClassifierFrequency = 16000.0;
     if (maxClassifierFrequency > m_parameters.sampleRate/2) {
@@ -98,14 +91,14 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     BinClassifier::Parameters classifierParameters
         (classificationBins, 9, 1, 10, 2.0, 2.0);
 
-    int inRingBufferSize = m_timeDomainFrameLength * 2;
-    int outRingBufferSize = m_timeDomainFrameLength * 16;
+    int inRingBufferSize = getWindowSourceBufferLength() * 2;
+    int outRingBufferSize = getWindowSourceBufferLength() * 16;
 
     for (int c = 0; c < m_parameters.channels; ++c) {
         m_channelData.push_back(std::make_shared<ChannelData>
                                 (segmenterParameters,
                                  classifierParameters,
-                                 m_timeDomainFrameLength,
+                                 m_guideConfiguration.longestFftSize,
                                  inRingBufferSize,
                                  outRingBufferSize));
         for (int b = 0; b < m_guideConfiguration.fftBandLimitCount; ++b) {
@@ -113,7 +106,7 @@ R3Stretcher::R3Stretcher(Parameters parameters,
             int fftSize = band.fftSize;
             m_channelData[c]->scales[fftSize] =
                 std::make_shared<ChannelScaleData>
-                (fftSize, m_timeDomainFrameLength);
+                (fftSize, m_guideConfiguration.longestFftSize);
         }
     }
     
@@ -283,7 +276,7 @@ R3Stretcher::createResampler()
     }
     
     resamplerParameters.initialSampleRate = m_parameters.sampleRate;
-    resamplerParameters.maxBufferSize = m_timeDomainFrameLength;
+    resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize;
 
     if (isRealTime()) {
         // If we knew the caller would never change ratio, we could
@@ -457,7 +450,7 @@ R3Stretcher::getPreferredStartPad() const
     if (!isRealTime()) {
         return 0;
     } else {
-        return m_timeDomainFrameLength / 2;
+        return m_windowSourceBuffer.size() / 2;
     }
 }
 
@@ -468,7 +461,7 @@ R3Stretcher::getStartDelay() const
         return 0;
     } else {
         double factor = 0.5 / m_pitchScale;
-        return size_t(ceil(m_timeDomainFrameLength * factor));
+        return size_t(ceil(m_windowSourceBuffer.size() * factor));
     }
 }
 
@@ -542,8 +535,8 @@ R3Stretcher::getSamplesRequired() const
 {
     if (available() != 0) return 0;
     int rs = m_channelData[0]->inbuf->getReadSpace();
-    if (rs < m_timeDomainFrameLength) {
-        return m_timeDomainFrameLength - rs;
+    if (rs < m_windowSourceBuffer.size()) {
+        return m_windowSourceBuffer.size() - rs;
     } else {
         return 0;
     }
@@ -553,7 +546,7 @@ void
 R3Stretcher::setMaxProcessSize(size_t n)
 {
     size_t oldSize = m_channelData[0]->inbuf->getSize();
-    size_t newSize = m_timeDomainFrameLength + n;
+    size_t newSize = m_windowSourceBuffer.size() + n;
 
     if (newSize > oldSize) {
         m_log.log(1, "setMaxProcessSize: resizing from and to", oldSize, newSize);
@@ -612,7 +605,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             // don't do this -- it's better to start with a swoosh
             // than introduce more latency, and we don't want gaps
             // when the ratio changes.
-            int pad = m_timeDomainFrameLength / 2;
+            int pad = m_windowSourceBuffer.size() / 2;
             m_log.log(1, "offline mode: prefilling with", pad);
             for (int c = 0; c < m_parameters.channels; ++c) {
                 m_channelData[c]->inbuf->zero(pad);
@@ -744,7 +737,7 @@ R3Stretcher::consume()
         // the map iterators
 
         int readSpace = cd0->inbuf->getReadSpace();
-        if (readSpace < m_timeDomainFrameLength) {
+        if (readSpace < m_windowSourceBuffer.size()) {
             if (m_mode == ProcessMode::Finished) {
                 if (readSpace == 0) {
                     int fill = cd0->scales.at(longest)->accumulatorFill;
