@@ -336,7 +336,7 @@ R3Stretcher::calculateHop()
         inhop = 1.0;
     }
     if (inhop > 1024.0) {
-        m_log.log(0, "WARNING: Extreme ratio yields ideal inhop > 1024, results may be suspect", ratio, inhop);
+        m_log.log(1, "WARNING: Ratio yields ideal inhop > 1024, results may be suspect", ratio, inhop);
         inhop = 1024.0;
     }
 
