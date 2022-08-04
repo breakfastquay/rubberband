@@ -71,6 +71,7 @@ private:
         double k_snr;
         double k_transition;
         double cut;
+        int rational_max;
         QualityParams(Quality);
     };
 
