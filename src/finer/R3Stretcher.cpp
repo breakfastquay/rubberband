@@ -44,7 +44,6 @@ R3Stretcher::R3Stretcher(Parameters parameters,
              m_parameters.options & RubberBandStretcher::OptionWindowShort),
             m_log),
     m_guideConfiguration(m_guide.getConfiguration()),
-    m_windowSourceBuffer(getWindowSourceBufferLength()),
     m_channelAssembly(m_parameters.channels),
     m_inhop(1),
     m_prevInhop(1),
@@ -91,14 +90,15 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     BinClassifier::Parameters classifierParameters
         (classificationBins, 9, 1, 10, 2.0, 2.0);
 
-    int inRingBufferSize = getWindowSourceBufferLength() * 2;
-    int outRingBufferSize = getWindowSourceBufferLength() * 16;
+    int inRingBufferSize = getWindowSourceSize() * 2;
+    int outRingBufferSize = getWindowSourceSize() * 16;
 
     for (int c = 0; c < m_parameters.channels; ++c) {
         m_channelData.push_back(std::make_shared<ChannelData>
                                 (segmenterParameters,
                                  classifierParameters,
                                  m_guideConfiguration.longestFftSize,
+                                 getWindowSourceSize(),
                                  inRingBufferSize,
                                  outRingBufferSize));
         for (int b = 0; b < m_guideConfiguration.fftBandLimitCount; ++b) {
@@ -450,7 +450,7 @@ R3Stretcher::getPreferredStartPad() const
     if (!isRealTime()) {
         return 0;
     } else {
-        return m_windowSourceBuffer.size() / 2;
+        return getWindowSourceSize() / 2;
     }
 }
 
@@ -461,7 +461,7 @@ R3Stretcher::getStartDelay() const
         return 0;
     } else {
         double factor = 0.5 / m_pitchScale;
-        return size_t(ceil(m_windowSourceBuffer.size() * factor));
+        return size_t(ceil(getWindowSourceSize() * factor));
     }
 }
 
@@ -535,8 +535,8 @@ R3Stretcher::getSamplesRequired() const
 {
     if (available() != 0) return 0;
     int rs = m_channelData[0]->inbuf->getReadSpace();
-    if (rs < m_windowSourceBuffer.size()) {
-        return m_windowSourceBuffer.size() - rs;
+    if (rs < getWindowSourceSize()) {
+        return getWindowSourceSize() - rs;
     } else {
         return 0;
     }
@@ -546,7 +546,7 @@ void
 R3Stretcher::setMaxProcessSize(size_t n)
 {
     size_t oldSize = m_channelData[0]->inbuf->getSize();
-    size_t newSize = m_windowSourceBuffer.size() + n;
+    size_t newSize = getWindowSourceSize() + n;
 
     if (newSize > oldSize) {
         m_log.log(1, "setMaxProcessSize: resizing from and to", oldSize, newSize);
@@ -605,7 +605,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             // don't do this -- it's better to start with a swoosh
             // than introduce more latency, and we don't want gaps
             // when the ratio changes.
-            int pad = m_windowSourceBuffer.size() / 2;
+            int pad = getWindowSourceSize() / 2;
             m_log.log(1, "offline mode: prefilling with", pad);
             for (int c = 0; c < m_parameters.channels; ++c) {
                 m_channelData[c]->inbuf->zero(pad);
@@ -737,7 +737,7 @@ R3Stretcher::consume()
         // the map iterators
 
         int readSpace = cd0->inbuf->getReadSpace();
-        if (readSpace < m_windowSourceBuffer.size()) {
+        if (readSpace < getWindowSourceSize()) {
             if (m_mode == ProcessMode::Finished) {
                 if (readSpace == 0) {
                     int fill = cd0->scales.at(longest)->accumulatorFill;
@@ -879,34 +879,33 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 {
     Profiler profiler("R3Stretcher::analyseChannel");
     
-    int longest = m_guideConfiguration.longestFftSize;
-    int classify = m_guideConfiguration.classificationFftSize;
-
     auto &cd = m_channelData.at(c);
-    process_t *buf = cd->scales.at(longest)->timeDomain.data();
 
-    //!!! review
-    
+    int bufSize = cd->windowSource.size();
+    process_t *buf = cd->windowSource.data();
+
     int readSpace = cd->inbuf->getReadSpace();
-    if (readSpace < longest) {
+    if (readSpace < bufSize) {
         cd->inbuf->peek(buf, readSpace);
-        v_zero(buf + readSpace, longest - readSpace);
+        v_zero(buf + readSpace, bufSize - readSpace);
     } else {
-        cd->inbuf->peek(buf, longest);
+        cd->inbuf->peek(buf, bufSize);
     }
     
-    // We have a single unwindowed frame at the longest FFT size
-    // ("scale"). Populate the shorter FFT sizes from the centre of
-    // it, windowing as we copy. The classification scale is handled
-    // separately because it has readahead, so skip it here as well as
-    // the longest. (In practice this means we are probably only
-    // populating one scale in multi-window mode, and none at all in
-    // single-window mode)
+    // We have an unwindowed time-domain frame in buf that is as long
+    // as required for the union of all FFT sizes and readahead
+    // hops. Populate the various sizes from it with aligned centres,
+    // windowing as we copy. The classification scale is handled
+    // separately because it has readahead, so skip it here. (In
+    // single-window mode that means we do nothing here, since the
+    // classification scale is the only one.)
+
+    int classify = m_guideConfiguration.classificationFftSize;
 
     for (auto &it: cd->scales) {
         int fftSize = it.first;
-        if (fftSize == classify || fftSize == longest) continue;
-        int offset = (longest - fftSize) / 2;
+        if (fftSize == classify) continue;
+        int offset = (bufSize - fftSize) / 2;
         m_scaleData.at(fftSize)->analysisWindow.cut
             (buf + offset, it.second->timeDomain.data());
     }
@@ -918,26 +917,21 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     ClassificationReadaheadData &readahead = cd->readahead;
 
     m_scaleData.at(classify)->analysisWindow.cut
-        (buf + (longest - classify) / 2 + inhop,
+        (buf + (bufSize - classify) / 2 + inhop,
          readahead.timeDomain.data());
 
-    // If inhop has changed since the previous frame, we'll have to
-    // populate the classification scale (but for analysis/resynthesis
-    // rather than classification) anew rather than reuse the previous
-    // readahead. Pity...
+    // If inhop has changed since the previous frame, we must populate
+    // the classification scale (but for analysis/resynthesis rather
+    // than classification) anew rather than reuse the previous
+    // frame's readahead.
 
     bool haveValidReadahead = cd->haveReadahead;
     if (inhop != prevInhop) haveValidReadahead = false;
 
     if (!haveValidReadahead) {
         m_scaleData.at(classify)->analysisWindow.cut
-            (buf + (longest - classify) / 2,
+            (buf + (bufSize - classify) / 2,
              classifyScale->timeDomain.data());
-    }
-            
-    // Finally window the longest scale
-    if (classify != longest) {
-        m_scaleData.at(longest)->analysisWindow.cut(buf);
     }
 
     // FFT shift, forward FFT, and carry out cartesian-polar

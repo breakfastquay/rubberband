@@ -185,6 +185,7 @@ protected:
 
     struct ChannelData {
         std::map<int, std::shared_ptr<ChannelScaleData>> scales;
+        FixedVector<process_t> windowSource;
         ClassificationReadaheadData readahead;
         bool haveReadahead;
         std::unique_ptr<BinClassifier> classifier;
@@ -203,9 +204,11 @@ protected:
         ChannelData(BinSegmenter::Parameters segmenterParameters,
                     BinClassifier::Parameters classifierParameters,
                     int longestFftSize,
+                    int windowSourceSize,
                     int inRingBufferSize,
                     int outRingBufferSize) :
             scales(),
+            windowSource(windowSourceSize, 0.0),
             readahead(segmenterParameters.fftSize),
             haveReadahead(false),
             classifier(new BinClassifier(classifierParameters)),
@@ -297,7 +300,6 @@ protected:
     std::map<int, std::shared_ptr<ScaleData>> m_scaleData;
     Guide m_guide;
     Guide::Configuration m_guideConfiguration;
-    FixedVector<process_t> m_windowSourceBuffer;
     ChannelAssembly m_channelAssembly;
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
@@ -377,7 +379,7 @@ protected:
             RubberBandStretcher::OptionWindowShort;
     }
 
-    int getWindowSourceBufferLength() const {
+    int getWindowSourceSize() const {
         if (m_guideConfiguration.longestFftSize >
             m_guideConfiguration.classificationFftSize) {
             return m_guideConfiguration.longestFftSize;
