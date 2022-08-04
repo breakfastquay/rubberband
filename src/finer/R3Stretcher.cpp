@@ -881,15 +881,15 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     
     auto &cd = m_channelData.at(c);
 
-    int bufSize = cd->windowSource.size();
+    int sourceSize = cd->windowSource.size();
     process_t *buf = cd->windowSource.data();
 
     int readSpace = cd->inbuf->getReadSpace();
-    if (readSpace < bufSize) {
+    if (readSpace < sourceSize) {
         cd->inbuf->peek(buf, readSpace);
-        v_zero(buf + readSpace, bufSize - readSpace);
+        v_zero(buf + readSpace, sourceSize - readSpace);
     } else {
-        cd->inbuf->peek(buf, bufSize);
+        cd->inbuf->peek(buf, sourceSize);
     }
     
     // We have an unwindowed time-domain frame in buf that is as long
@@ -900,12 +900,13 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     // single-window mode that means we do nothing here, since the
     // classification scale is the only one.)
 
+    int longest = m_guideConfiguration.longestFftSize;
     int classify = m_guideConfiguration.classificationFftSize;
 
     for (auto &it: cd->scales) {
         int fftSize = it.first;
         if (fftSize == classify) continue;
-        int offset = (bufSize - fftSize) / 2;
+        int offset = (longest - fftSize) / 2;
         m_scaleData.at(fftSize)->analysisWindow.cut
             (buf + offset, it.second->timeDomain.data());
     }
@@ -915,9 +916,9 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 
     auto &classifyScale = cd->scales.at(classify);
     ClassificationReadaheadData &readahead = cd->readahead;
-
+    
     m_scaleData.at(classify)->analysisWindow.cut
-        (buf + (bufSize - classify) / 2 + inhop,
+        (buf + (longest - classify) / 2 + inhop,
          readahead.timeDomain.data());
 
     // If inhop has changed since the previous frame, we must populate
@@ -930,7 +931,7 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 
     if (!haveValidReadahead) {
         m_scaleData.at(classify)->analysisWindow.cut
-            (buf + (bufSize - classify) / 2,
+            (buf + (longest - classify) / 2,
              classifyScale->timeDomain.data());
     }
 
