@@ -35,6 +35,7 @@ R3Stretcher::R3Stretcher(Parameters parameters,
                          double initialPitchScale,
                          Log log) :
     m_parameters(parameters),
+    m_limits(parameters.options),
     m_log(log),
     m_timeRatio(initialTimeRatio),
     m_pitchScale(initialPitchScale),
@@ -45,6 +46,7 @@ R3Stretcher::R3Stretcher(Parameters parameters,
             m_log),
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
+    m_useReadahead(true),
     m_inhop(1),
     m_prevInhop(1),
     m_prevOuthop(1),
@@ -315,9 +317,7 @@ R3Stretcher::calculateHop()
         proposedOuthop = pow(2.0, 8.0 + 2.0 * log10(ratio - 0.5));
     } else if (ratio < 1.0) {
         proposedOuthop = pow(2.0, 8.0 + 2.0 * log10(ratio));
-    }        
-    if (proposedOuthop > 512.0) proposedOuthop = 512.0;
-    if (proposedOuthop < 128.0) proposedOuthop = 128.0;
+    }
 
     if (isSingleWindowed()) {
         // the single (shorter) window mode actually uses a longer
@@ -325,24 +325,38 @@ R3Stretcher::calculateHop()
         // 1024-bin one, so it can survive longer hops, which is good
         // because reduced CPU consumption is the whole motivation
         proposedOuthop *= 2.0;
-        if (proposedOuthop > 640.0) proposedOuthop = 640.0;
+    }
+    
+    if (proposedOuthop > m_limits.maxPreferredOuthop) {
+        proposedOuthop = m_limits.maxPreferredOuthop;
+    }
+    if (proposedOuthop < m_limits.minPreferredOuthop) {
+        proposedOuthop = m_limits.minPreferredOuthop;
     }
     
     m_log.log(1, "calculateHop: ratio and proposed outhop", ratio, proposedOuthop);
     
     double inhop = proposedOuthop / ratio;
-    if (inhop < 1.0) {
-        m_log.log(0, "WARNING: Extreme ratio yields ideal inhop < 1, results may be suspect", ratio, inhop);
-        inhop = 1.0;
+    if (inhop < m_limits.minInhop) {
+        m_log.log(0, "WARNING: Ratio yields ideal inhop < minimum, results may be suspect", inhop, m_limits.minInhop);
+        inhop = m_limits.minInhop;
     }
-    if (inhop > 1024.0) {
-        m_log.log(1, "WARNING: Ratio yields ideal inhop > 1024, results may be suspect", ratio, inhop);
-        inhop = 1024.0;
+    if (inhop > m_limits.maxInhop) {
+        // Log level 1, this is not as big a deal as < minInhop above
+        m_log.log(1, "WARNING: Ratio yields ideal inhop > maximum, results may be suspect", inhop, m_limits.maxInhop);
+        inhop = m_limits.maxInhop;
     }
 
     m_inhop = int(floor(inhop));
-
     m_log.log(1, "calculateHop: inhop and mean outhop", m_inhop, m_inhop * ratio);
+
+    if (m_inhop < m_limits.maxInhopWithReadahead) {
+        m_log.log(1, "calculateHop: using readahead");
+        m_useReadahead = true;
+    } else {
+        m_log.log(1, "calculateHop: not using readahead, inhop too long for buffer in current configuration");
+        m_useReadahead = false;
+    }
 }
 
 void
@@ -911,25 +925,30 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
             (buf + offset, it.second->timeDomain.data());
     }
 
-    // The classification scale has a one-hop readahead, so populate
-    // the readahead from further down the long unwindowed frame.
-
     auto &classifyScale = cd->scales.at(classify);
     ClassificationReadaheadData &readahead = cd->readahead;
+    bool copyFromReadahead = false;
     
-    m_scaleData.at(classify)->analysisWindow.cut
-        (buf + (longest - classify) / 2 + inhop,
-         readahead.timeDomain.data());
+    if (m_useReadahead) {
+        
+        // The classification scale has a one-hop readahead, so
+        // populate the readahead from further down the long
+        // unwindowed frame.
 
-    // If inhop has changed since the previous frame, we must populate
-    // the classification scale (but for analysis/resynthesis rather
-    // than classification) anew rather than reuse the previous
-    // frame's readahead.
+        m_scaleData.at(classify)->analysisWindow.cut
+            (buf + (longest - classify) / 2 + inhop,
+             readahead.timeDomain.data());
 
-    bool haveValidReadahead = cd->haveReadahead;
-    if (inhop != prevInhop) haveValidReadahead = false;
+        // If inhop has changed since the previous frame, we must
+        // populate the classification scale (but for
+        // analysis/resynthesis rather than classification) anew
+        // rather than reuse the previous frame's readahead.
 
-    if (!haveValidReadahead) {
+        copyFromReadahead = cd->haveReadahead;
+        if (inhop != prevInhop) copyFromReadahead = false;
+    }
+    
+    if (!copyFromReadahead) {
         m_scaleData.at(classify)->analysisWindow.cut
             (buf + (longest - classify) / 2,
              classifyScale->timeDomain.data());
@@ -944,51 +963,54 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
     // where the inhop has changed as above, in which case we need to
     // do both readahead and current)
 
-    if (haveValidReadahead) {
-        v_copy(classifyScale->mag.data(),
-               readahead.mag.data(),
-               classifyScale->bufSize);
-        v_copy(classifyScale->phase.data(),
-               readahead.phase.data(),
-               classifyScale->bufSize);
-    }
+    if (m_useReadahead) {
 
-    v_fftshift(readahead.timeDomain.data(), classify);
-    m_scaleData.at(classify)->fft.forward(readahead.timeDomain.data(),
-                                          classifyScale->real.data(),
-                                          classifyScale->imag.data());
-
-    for (int b = 0; b < m_guideConfiguration.fftBandLimitCount; ++b) {
-        const auto &band = m_guideConfiguration.fftBandLimits[b];
-        if (band.fftSize == classify) {
-            ToPolarSpec spec;
-            spec.magFromBin = 0;
-            spec.magBinCount = classify/2 + 1;
-            spec.polarFromBin = band.b0min;
-            spec.polarBinCount = band.b1max - band.b0min + 1;
-            convertToPolar(readahead.mag.data(),
-                           readahead.phase.data(),
-                           classifyScale->real.data(),
-                           classifyScale->imag.data(),
-                           spec);
-                    
-            v_scale(classifyScale->mag.data(),
-                    1.0 / double(classify),
-                    classifyScale->mag.size());
-            break;
+        if (copyFromReadahead) {
+            v_copy(classifyScale->mag.data(),
+                   readahead.mag.data(),
+                   classifyScale->bufSize);
+            v_copy(classifyScale->phase.data(),
+                   readahead.phase.data(),
+                   classifyScale->bufSize);
         }
-    }
 
-    cd->haveReadahead = true;
+        v_fftshift(readahead.timeDomain.data(), classify);
+        m_scaleData.at(classify)->fft.forward(readahead.timeDomain.data(),
+                                              classifyScale->real.data(),
+                                              classifyScale->imag.data());
+
+        for (int b = 0; b < m_guideConfiguration.fftBandLimitCount; ++b) {
+            const auto &band = m_guideConfiguration.fftBandLimits[b];
+            if (band.fftSize == classify) {
+                ToPolarSpec spec;
+                spec.magFromBin = 0;
+                spec.magBinCount = classify/2 + 1;
+                spec.polarFromBin = band.b0min;
+                spec.polarBinCount = band.b1max - band.b0min + 1;
+                convertToPolar(readahead.mag.data(),
+                               readahead.phase.data(),
+                               classifyScale->real.data(),
+                               classifyScale->imag.data(),
+                               spec);
+                    
+                v_scale(classifyScale->mag.data(),
+                        1.0 / double(classify),
+                        classifyScale->mag.size());
+                break;
+            }
+        }
+
+        cd->haveReadahead = true;
+    }
 
     // For the others (and the classify as well, if the inhop has
-    // changed or we haven't filled the readahead yet) we operate
-    // directly in the scale data and restrict the range for
-    // cartesian-polar conversion
+    // changed or we aren't using readahead or haven't filled the
+    // readahead yet) we operate directly in the scale data and
+    // restrict the range for cartesian-polar conversion
             
     for (auto &it: cd->scales) {
         int fftSize = it.first;
-        if (fftSize == classify && haveValidReadahead) {
+        if (fftSize == classify && copyFromReadahead) {
             continue;
         }
         
@@ -1010,8 +1032,8 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                 // range, as all the magnitudes (though not
                 // necessarily all phases) are potentially relevant to
                 // classification and formant analysis. But this case
-                // here only happens if we don't haveValidReadahead -
-                // the normal case is above and just copies from the
+                // here only happens if we don't copyFromReadahead -
+                // the normal case is above and, er, copies from the
                 // previous readahead.
                 if (fftSize == classify) {
                     spec.magFromBin = 0;
@@ -1050,8 +1072,14 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 
     v_copy(cd->classification.data(), cd->nextClassification.data(),
            cd->classification.size());
-    cd->classifier->classify(readahead.mag.data(),
-                             cd->nextClassification.data());
+
+    if (m_useReadahead) {
+        cd->classifier->classify(readahead.mag.data(),
+                                 cd->nextClassification.data());
+    } else {
+        cd->classifier->classify(classifyScale->mag.data(),
+                                 cd->nextClassification.data());
+    }
 
     cd->prevSegmentation = cd->segmentation;
     cd->segmentation = cd->nextSegmentation;
@@ -1090,20 +1118,39 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
 
     bool tighterChannelLock =
         m_parameters.options & RubberBandStretcher::OptionChannelsTogether;
+
+    double magMean = v_mean(classifyScale->mag.data() + 1, classify/2);
     
-    m_guide.updateGuidance(ratio,
-                           prevOuthop,
-                           classifyScale->mag.data(),
-                           classifyScale->prevMag.data(),
-                           cd->readahead.mag.data(),
-                           cd->segmentation,
-                           cd->prevSegmentation,
-                           cd->nextSegmentation,
-                           v_mean(classifyScale->mag.data() + 1, classify/2),
-                           m_unityCount,
-                           isRealTime(),
-                           tighterChannelLock,
-                           cd->guidance);
+    if (m_useReadahead) {
+        m_guide.updateGuidance(ratio,
+                               prevOuthop,
+                               classifyScale->mag.data(),
+                               classifyScale->prevMag.data(),
+                               cd->readahead.mag.data(),
+                               cd->segmentation,
+                               cd->prevSegmentation,
+                               cd->nextSegmentation,
+                               magMean,
+                               m_unityCount,
+                               isRealTime(),
+                               tighterChannelLock,
+                               cd->guidance);
+    } else {
+        m_guide.updateGuidance(ratio,
+                               prevOuthop,
+                               classifyScale->prevMag.data(),
+                               classifyScale->prevMag.data(),
+                               classifyScale->mag.data(),
+                               cd->segmentation,
+                               cd->prevSegmentation,
+                               cd->nextSegmentation,
+                               magMean,
+                               m_unityCount,
+                               isRealTime(),
+                               tighterChannelLock,
+                               cd->guidance);
+    }
+    
 /*
     if (c == 0) {
         if (cd->guidance.kick.present) {

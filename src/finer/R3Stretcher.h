@@ -103,6 +103,27 @@ public:
     }
 
 protected:
+    struct Limits {
+        int minPreferredOuthop;
+        int maxPreferredOuthop;
+        int minInhop;
+        int maxInhopWithReadahead;
+        int maxInhop;
+        Limits(RubberBandStretcher::Options options) :
+            minPreferredOuthop(128),
+            maxPreferredOuthop(512),
+            minInhop(1),
+            maxInhopWithReadahead(1024),
+            maxInhop(1024) {
+            if (options & RubberBandStretcher::OptionWindowShort) {
+                // See note in calculateHop
+                maxPreferredOuthop = 640;
+                maxInhopWithReadahead = 512;
+                maxInhop = 1024;
+            }
+        }
+    };
+    
     struct ClassificationReadaheadData {
         FixedVector<process_t> timeDomain;
         FixedVector<process_t> mag;
@@ -290,6 +311,7 @@ protected:
     };
     
     Parameters m_parameters;
+    const Limits m_limits;
     Log m_log;
 
     std::atomic<double> m_timeRatio;
@@ -303,6 +325,7 @@ protected:
     ChannelAssembly m_channelAssembly;
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
+    bool m_useReadahead;
     std::atomic<int> m_inhop;
     int m_prevInhop;
     int m_prevOuthop;
@@ -380,11 +403,12 @@ protected:
     }
 
     int getWindowSourceSize() const {
-        if (m_guideConfiguration.longestFftSize >
-            m_guideConfiguration.classificationFftSize) {
+        int sz = m_guideConfiguration.classificationFftSize +
+            m_limits.maxInhopWithReadahead;
+        if (m_guideConfiguration.longestFftSize > sz) {
             return m_guideConfiguration.longestFftSize;
         } else {
-            return (m_guideConfiguration.classificationFftSize * 3) / 2;
+            return sz;
         }
     }
 };
