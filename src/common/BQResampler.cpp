@@ -122,7 +122,7 @@ BQResampler::QualityParams::QualityParams(Quality q)
         k_snr = 70.0;
         k_transition = 0.2;
         cut = 0.9;
-        length_max = 576000;
+        rational_max = 48000;
         break;
     case FastestTolerable:
         p_multiple = 62;
@@ -130,7 +130,7 @@ BQResampler::QualityParams::QualityParams(Quality q)
         k_snr = 90.0;
         k_transition = 0.05;
         cut = 0.975;
-        length_max = 1024000;
+        rational_max = 96000;
         break;
     case Best:
         p_multiple = 122;
@@ -138,7 +138,7 @@ BQResampler::QualityParams::QualityParams(Quality q)
         k_snr = 100.0;
         k_transition = 0.01;
         cut = 0.995;
-        length_max = 0;
+        rational_max = 192000;
         break;
     }
 }
@@ -378,7 +378,12 @@ BQResampler::pick_params(double ratio) const
 {
     // Farey algorithm, see
     // https://www.johndcook.com/blog/2010/10/20/best-rational-approximation/
-    int max_denom = 192000;
+    int max_denom;
+    if (m_dynamism == RatioMostlyFixed) {
+        max_denom = 192000;
+    } else {
+        max_denom = m_qparams.rational_max;
+    }
     double a = 0.0, b = 1.0, c = 1.0, d = 0.0;
     double pa = a, pb = b, pc = c, pd = d;
     double eps = 1e-9;
@@ -495,20 +500,6 @@ BQResampler::state_for_ratio(BQResampler::state &target_state,
     target_state.filter_length =
         int(parameters.peak_to_zero * m_qparams.p_multiple + 1);
 
-    if (m_qparams.length_max > 0 &&
-        target_state.filter_length > m_qparams.length_max) {
-        int reduced_multiple =
-            int(floor(double(m_qparams.length_max) / parameters.peak_to_zero));
-        int reduced_length =
-            int(parameters.peak_to_zero * reduced_multiple + 1);
-        if (m_debug_level > 0) {
-            cerr << "BQResampler: reducing filter length from "
-                 << target_state.filter_length << " to "
-                 << reduced_length << " based on quality settings" << endl;
-        }
-        target_state.filter_length = reduced_length;
-    }
-    
     if (target_state.filter_length % 2 == 0) {
         ++target_state.filter_length;
     }
