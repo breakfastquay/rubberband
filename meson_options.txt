@@ -1,7 +1,7 @@
 
 option('fft',
        type: 'combo',
-       choices: ['auto', 'builtin', 'kissfft', 'fftw', 'vdsp', 'ipp'],
+       choices: ['auto', 'builtin', 'kissfft', 'fftw', 'sleef', 'vdsp', 'ipp'],
        value: 'auto',
        description: 'FFT library to use. The default (auto) will use vDSP if available, the builtin implementation otherwise.')
 

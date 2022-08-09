@@ -112,6 +112,8 @@ foreach d: get_option('extra_include_dirs')
 endforeach
 
 fftw3_dep = dependency('fftw3', version: '>= 3.0.0', required: false)
+sleef_dep = dependency('sleef', version: '>= 3.3.0', required: false)
+sleefdft_dep = dependency('sleefdft', version: '>= 3.3.0', required: false)
 samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
 sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
@@ -164,6 +166,9 @@ if fft == 'builtin'
   if fftw3_dep.found()
     message('(to use FFTW instead, reconfigure with -Dfft=fftw)')
   endif
+  if sleef_dep.found()
+    message('(to use SLEEF instead, reconfigure with -Dfft=sleef)')
+  endif
   feature_defines += ['-DUSE_BUILTIN_FFT']
 
 elif fft == 'kissfft'
@@ -171,6 +176,9 @@ elif fft == 'kissfft'
   message('For FFT: using KissFFT')
   if fftw3_dep.found()
     message('(to use FFTW instead, reconfigure with -Dfft=fftw)')
+  endif
+  if sleef_dep.found()
+    message('(to use SLEEF instead, reconfigure with -Dfft=sleef)')
   endif
   feature_sources += ['src/ext/kissfft/kiss_fft.c', 'src/ext/kissfft/kiss_fftr.c']
   feature_defines += ['-DHAVE_KISSFFT']
@@ -180,6 +188,9 @@ elif fft == 'fftw'
   if fftw3_dep.found()
     config_summary += { 'FFT': 'FFTW' }
     message('For FFT: using FFTW')
+    if sleef_dep.found()
+      message('(to use SLEEF instead, reconfigure with -Dfft=sleef)')
+    endif
     pkgconfig_requirements += fftw3_dep
   else 
     fftw_dep = cpp.find_library('fftw3',
@@ -187,9 +198,33 @@ elif fft == 'fftw'
                                 has_headers: ['fftw3.h'],
                                 header_args: extra_include_args,
                                 required: true)
+    config_summary += { 'FFT': 'FFTW' }
   endif
   feature_dependencies += fftw3_dep
   feature_defines += ['-DHAVE_FFTW3', '-DFFTW_DOUBLE_ONLY']
+
+elif fft == 'sleef'
+  if sleefdft_dep.found() and sleef_dep.found()
+    config_summary += { 'FFT': 'SLEEF' }
+    message('For FFT: using SLEEF')
+    pkgconfig_requirements += sleefdft_dep
+    pkgconfig_requirements += sleef_dep
+  else 
+    sleefdft_dep = cpp.find_library('sleefdft',
+                                    dirs: get_option('extra_lib_dirs'),
+                                    has_headers: ['sleefdft.h'],
+                                    header_args: extra_include_args,
+                                    required: true)
+    sleef_dep = cpp.find_library('sleef',
+                                 dirs: get_option('extra_lib_dirs'),
+                                 has_headers: ['sleef.h'],
+                                 header_args: extra_include_args,
+                                 required: true)
+    config_summary += { 'FFT': 'SLEEF' }
+  endif
+  feature_dependencies += sleefdft_dep
+  feature_dependencies += sleef_dep
+  feature_defines += ['-DHAVE_SLEEF']
 
 elif fft == 'vdsp'
   config_summary += { 'FFT': 'vDSP' }
