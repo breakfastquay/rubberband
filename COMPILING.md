@@ -256,6 +256,13 @@ FFTW3       -Dfft=fftw      -DHAVE_FFTW3   GPL.
                                            A bit faster than built-in,
                                            a bit slower than Accelerate.
 
+SLEEF       -Dfft=sleef     -DHAVE_SLEEF   Usually very fast. Not as widely
+                                           distributed as FFTW3. Requires
+                                           both libsleef and libsleefdft.
+                                           Can be distributed with either
+                                           the Rubber Band GPL or
+                                           commercial licence.
+
 KissFFT     -Dfft=kissfft   -DHAVE_KISSFFT
                                            Single precision.
                                            Only indicated for use with
