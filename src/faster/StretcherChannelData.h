@@ -113,6 +113,7 @@ public:
     float *ms; // only used when mid-side processing
     float *interpolator; // only used when time-domain smoothing is on
     int interpolatorScale;
+    float unityResetLow; // for gradual phase-reset on unity ratio
 
     float *fltbuf;
     process_t *dblbuf; // owned by FFT object, only used for time domain FFT i/o

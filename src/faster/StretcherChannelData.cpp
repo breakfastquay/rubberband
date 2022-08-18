@@ -87,6 +87,8 @@ R2Stretcher::ChannelData::construct(const std::set<size_t> &sizes,
     interpolator = allocate_and_zero<float>(maxSize);
     interpolatorScale = 0;
 
+    unityResetLow = 16000.f;
+
     for (std::set<size_t>::const_iterator i = sizes.begin();
          i != sizes.end(); ++i) {
         ffts[*i] = new FFT(*i);

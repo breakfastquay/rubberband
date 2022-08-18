@@ -744,12 +744,29 @@ R2Stretcher::modifyChunk(size_t channel,
     int bandlow = lrint((150 * m_fftSize) / rate);
     int bandhigh = lrint((1000 * m_fftSize) / rate);
 
+    float r = getEffectiveRatio();
+
+    bool unity = (fabsf(r - 1.f) < 1.e-6f);
+    if (unity) {
+        if (!phaseReset) {
+            phaseReset = true;
+            bandlimited = true;
+            bandlow = lrint((cd.unityResetLow * m_fftSize) / rate);
+            bandhigh = count;
+            if (bandlow > 0) {
+                m_log.log(2, "unity: bandlow & high", bandlow, bandhigh);
+            }
+        }
+        cd.unityResetLow *= 0.9f;
+    } else {
+        cd.unityResetLow = 16000.f;
+    }
+
     float freq0 = m_freq0;
     float freq1 = m_freq1;
     float freq2 = m_freq2;
-
+    
     if (laminar) {
-        float r = getEffectiveRatio();
         if (r > 1) {
             float rf0 = 600 + (600 * ((r-1)*(r-1)*(r-1)*2));
             float f1ratio = freq1 / freq0;
