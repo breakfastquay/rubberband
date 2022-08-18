@@ -117,9 +117,10 @@ protected:
             maxInhop(1024) {
             if (options & RubberBandStretcher::OptionWindowShort) {
                 // See note in calculateHop
+                minPreferredOuthop = 256;
                 maxPreferredOuthop = 640;
                 maxInhopWithReadahead = 512;
-                maxInhop = 1024;
+                maxInhop = 1560;
             }
         }
     };
