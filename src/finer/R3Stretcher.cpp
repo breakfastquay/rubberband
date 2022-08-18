@@ -92,6 +92,10 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     BinClassifier::Parameters classifierParameters
         (classificationBins, 9, 1, 10, 2.0, 2.0);
 
+    if (isSingleWindowed()) {
+        classifierParameters.horizontalFilterLength = 7;
+    }
+
     int inRingBufferSize = getWindowSourceSize() * 2;
     int outRingBufferSize = getWindowSourceSize() * 16;
 
