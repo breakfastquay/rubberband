@@ -640,7 +640,7 @@ R2Stretcher::configure()
 
     if (!m_realtime && fftSizeChanged) {
         delete m_studyFFT;
-        m_studyFFT = new FFT(m_fftSize, m_log.getDebugLevel());
+        m_studyFFT = new FFT(m_fftSize);
         m_studyFFT->initFloat();
     }
 
