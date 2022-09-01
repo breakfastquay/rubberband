@@ -673,6 +673,7 @@ int main(int argc, char **argv)
         RubberBandStretcher ts(sfinfo.samplerate, channels, options,
                                ratio, frequencyshift);
         ts.setExpectedInputDuration(sfinfo.frames);
+        ts.setMaxProcessSize(bs);
 
         int frame = 0;
         int percent = 0;

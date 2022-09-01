@@ -648,6 +648,11 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     
     size_t ws = m_channelData[0]->inbuf->getWriteSpace();
     if (samples > ws) {
+        m_log.log(2, "R3Stretcher::process: insufficient space in input buffer, attempting consume before write");
+        consume();
+        ws = m_channelData[0]->inbuf->getWriteSpace();
+    }
+    if (samples > ws) {
         m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called or process is being called repeatedly without retrieve. Write space and samples", ws, samples);
         size_t newSize = m_channelData[0]->inbuf->getSize() - ws + samples;
         for (int c = 0; c < m_parameters.channels; ++c) {
