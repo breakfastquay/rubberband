@@ -309,7 +309,7 @@ R3Stretcher::createResampler()
         }
     } else {
         if (after) {
-            m_log.log(0, "createResampler: resampling after");
+            m_log.log(1, "createResampler: resampling after");
         }
     }
 }
@@ -660,33 +660,15 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
         m_mode = ProcessMode::Processing;
     }
 
-    int channels = m_parameters.channels;
-    int toWrite = int(samples);
-
     bool resamplingBefore = false;
     areWeResampling(&resamplingBefore, nullptr);
-        
-    if (resamplingBefore) {
 
-        for (int c = 0; c < channels; ++c) {
-            auto &cd = m_channelData.at(c);
-            m_channelAssembly.resampled[c] = cd->resampled.data();
-        }
+    int channels = m_parameters.channels;
+    int inputIx = 0;
 
-        toWrite = m_resampler->resample
-            (m_channelAssembly.resampled.data(),
-             m_channelData.at(0)->resampled.size(),
-             input,
-             int(samples),
-             1.0 / m_pitchScale,
-             final);
-    }
-    
-    int written = 0;
-        
-    while (written < toWrite) {
+    while (inputIx < int(samples)) {
 
-        int remaining = toWrite - written;
+        int remaining = int(samples) - inputIx;
         int ws = m_channelData[0]->inbuf->getWriteSpace();
 
         if (ws == 0) {
@@ -695,8 +677,8 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
         }
         
         if (ws == 0) {
-            m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called, process is being called repeatedly without retrieve, or an internal error has led to an incorrect resampler output calculation. Samples to write", toWrite);
-            size_t newSize = m_channelData[0]->inbuf->getSize() + toWrite;
+            m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called, process is being called repeatedly without retrieve, or an internal error has led to an incorrect resampler output calculation. Samples to write", remaining);
+            size_t newSize = m_channelData[0]->inbuf->getSize() + remaining;
             for (int c = 0; c < m_parameters.channels; ++c) {
                 auto newBuf = m_channelData[c]->inbuf->resized(newSize);
                 m_channelData[c]->inbuf =
@@ -704,27 +686,47 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             }
             continue;
         }
+        
+        if (resamplingBefore) {
 
-        int toWriteHere = remaining;
-        if (toWriteHere > ws) {
-            toWriteHere = ws;
-        }
-
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            if (resamplingBefore) {
-                m_channelData[c]->inbuf->write
-                    (m_channelData.at(c)->resampled.data() + written,
-                     toWriteHere);
-            } else {
-                m_channelData[c]->inbuf->write
-                    (input[c] + written, toWriteHere);
+            for (int c = 0; c < channels; ++c) {
+                auto &cd = m_channelData.at(c);
+                m_channelAssembly.resampled[c] = cd->resampled.data();
             }
+
+            int resampleBufSize = int(m_channelData.at(0)->resampled.size());
+            int maxResampleOutput = std::min(ws, resampleBufSize);
+            
+            int maxResampleInput = int(floor(maxResampleOutput * m_pitchScale));
+            int resampleInput = std::min(remaining, maxResampleInput);
+            if (resampleInput == 0) resampleInput = 1;
+            
+            int resampleOutput = m_resampler->resample
+                (m_channelAssembly.resampled.data(),
+                 maxResampleOutput,
+                 input,
+                 resampleInput,
+                 1.0 / m_pitchScale,
+                 final);
+
+            inputIx += resampleInput;
+
+            for (int c = 0; c < m_parameters.channels; ++c) {
+                m_channelData[c]->inbuf->write
+                    (m_channelData.at(c)->resampled.data(),
+                     resampleOutput);
+            }
+
+        } else {
+            int toWrite = std::min(ws, remaining);
+            for (int c = 0; c < m_parameters.channels; ++c) {
+                m_channelData[c]->inbuf->write (input[c] + inputIx, toWrite);
+            }
+            inputIx += toWrite;
         }
-
-        written += toWriteHere;
+        
+        consume();
     }
-
-    consume();
 }
 
 int
