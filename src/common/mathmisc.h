@@ -51,6 +51,8 @@ inline double frequencyForBin(int b, int fftSize, double sampleRate) {
     return (double(b) * sampleRate) / double(fftSize);
 }
 
+void pickNearestRational(double ratio, int maxDenom, int &num, int &denom);
+
 }
 
 #endif
