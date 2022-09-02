@@ -49,6 +49,7 @@ library_sources = [
   'src/common/Resampler.cpp',
   'src/common/StretchCalculator.cpp',
   'src/common/sysutils.cpp',
+  'src/common/mathmisc.cpp',
   'src/common/Thread.cpp',
   'src/finer/R3Stretcher.cpp', 
 ]

@@ -73,6 +73,7 @@
 #include "../src/common/Allocators.cpp"
 #include "../src/common/StretchCalculator.cpp"
 #include "../src/common/sysutils.cpp"
+#include "../src/common/mathmisc.cpp"
 #include "../src/common/Thread.cpp"
 #include "../src/faster/StretcherChannelData.cpp"
 #include "../src/faster/R2Stretcher.cpp"
