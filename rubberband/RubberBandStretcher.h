@@ -262,26 +262,32 @@ public:
      *   situation where \c OptionThreadingAuto would do so, except omit
      *   the check for multiple CPUs and instead assume it to be true.
      *
-     * 7. Flags prefixed \c OptionWindow control the window size for
-     * FFT processing in the R2 engine.  (The window size actually
-     * used will depend on many factors, but it can be influenced.)
-     * These options currently have no effect when using the R3
-     * engine, but they may do in the future - so code written to use
-     * R3 now is recommended to use the default.  These options may
+     * 7. Flags prefixed \c OptionWindow influence the window size for
+     * FFT processing. In the R2 engine these affect the resulting
+     * sound quality but have relatively little effect on processing
+     * speed. With the R3 engine they can dramatically affect
+     * processing speed as well as output quality. These options may
      * not be changed after construction.
      *
      *   \li \c OptionWindowStandard - Use the default window size.
      *   The actual size will vary depending on other parameters.
      *   This option is expected to produce better results than the
-     *   other window options in most situations.
+     *   other window options in most situations. In the R3 engine
+     *   this causes the engine's full multi-resolution processing
+     *   scheme to be used.
      *
-     *   \li \c OptionWindowShort - Use a shorter window.  This may
-     *   result in crisper sound for audio that depends strongly on
-     *   its timing qualities.
+     *   \li \c OptionWindowShort - Use a shorter window. With the R2
+     *   engine this may result in crisper sound for audio that
+     *   depends strongly on its timing qualities. With the R3 engine,
+     *   this causes the engine to be restricted to a single window
+     *   size, resulting in both dramatically faster processing and
+     *   lower latency than OptionWindowStandard, but at the expense
+     *   of some sound quality.
      *
-     *   \li \c OptionWindowLong - Use a longer window.  This is
-     *   likely to result in a smoother sound at the expense of
-     *   clarity and timing.
+     *   \li \c OptionWindowLong - Use a longer window. With the R2
+     *   engine this is likely to result in a smoother sound at the
+     *   expense of clarity and timing. The R3 engine currently
+     *   ignores this option, treating it like OptionWindowStandard.
      *
      * 8. Flags prefixed \c OptionSmoothing control the use of
      * window-presum FFT and time-domain smoothing in the R2
@@ -331,10 +337,10 @@ public:
      *   \li \c OptionPitchHighConsistency - Use a method that
      *   supports dynamic pitch changes without discontinuities,
      *   including when crossing the 1.0 pitch scale. This may cost
-     *   more in CPU than the other two options, especially when the
-     *   pitch scale is exactly 1.0. You should use this option
-     *   whenever you wish to support dynamically changing pitch
-     *   shifts during processing.
+     *   more in CPU than the default, especially when the pitch scale
+     *   is exactly 1.0. You should use this option whenever you wish
+     *   to support dynamically changing pitch shift during
+     *   processing.
      *
      * 11. Flags prefixed \c OptionChannels control the method used
      * for processing two-channel stereo audio. These have different,
