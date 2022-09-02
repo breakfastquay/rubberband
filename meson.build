@@ -286,7 +286,7 @@ elif resampler == 'libspeexdsp'
                                     header_args: extra_include_args,
                                     required: true)
   endif
-  config_summary += { 'Resampler': 'libspeexdsp' }
+  config_summary += { 'Resampler': 'Speex DSP' }
   message('For resampler: using Speex DSP library')
   message('(consider libsamplerate if time-varying pitch shift is required)')
   feature_dependencies += speexdsp_dep
