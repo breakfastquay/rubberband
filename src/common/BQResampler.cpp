@@ -31,6 +31,8 @@
 #include "Allocators.h"
 #include "VectorOps.h"
 
+#include "mathmisc.h"
+
 #define BQ_R__ R__
 
 using std::vector;
@@ -376,41 +378,18 @@ BQResampler::fill_params(double ratio, double numd, double denomd) const
 BQResampler::params
 BQResampler::pick_params(double ratio) const
 {
-    // Farey algorithm, see
-    // https://www.johndcook.com/blog/2010/10/20/best-rational-approximation/
     int max_denom;
     if (m_dynamism == RatioMostlyFixed) {
         max_denom = 192000;
     } else {
         max_denom = m_qparams.rational_max;
-    }
-    double a = 0.0, b = 1.0, c = 1.0, d = 0.0;
-    double pa = a, pb = b, pc = c, pd = d;
-    double eps = 1e-9;
-    while (b <= max_denom && d <= max_denom) {
-        double mediant = (a + c) / (b + d);
-        if (fabs(ratio - mediant) < eps) {
-            if (b + d <= max_denom) {
-                return fill_params(ratio, a + c, b + d);
-            } else if (d > b) {
-                return fill_params(ratio, c, d);
-            } else {
-                return fill_params(ratio, a, b);
-            }
-        }
-        if (ratio > mediant) {
-            pa = a; pb = b;
-            a += c; b += d;
-        } else {
-            pc = c; pd = d;
-            c += a; d += b;
+        if (ratio > 1.0) {
+            max_denom = int(ceil(max_denom / ratio));
         }
     }
-    if (fabs(ratio - (pc / pd)) < fabs(ratio - (pa / pb))) {
-        return fill_params(ratio, pc, pd);
-    } else {
-        return fill_params(ratio, pa, pb);
-    }
+    int num, denom;
+    pickNearestRational(ratio, max_denom, num, denom);
+    return fill_params(ratio, num, denom);
 }
 
 void
