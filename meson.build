@@ -113,6 +113,7 @@ endforeach
 
 fftw3_dep = dependency('fftw3', version: '>= 3.0.0', required: false)
 samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
+speexdsp_dep = dependency('speexdsp', version: '>= 1.0.0', required: false)
 sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
 boost_unit_test_dep = dependency('boost', modules: ['unit_test_framework'], version: '>= 1.73', required: false)
@@ -177,17 +178,16 @@ elif fft == 'kissfft'
   general_include_dirs += 'src/ext/kissfft'
 
 elif fft == 'fftw'
-  if fftw3_dep.found()
-    config_summary += { 'FFT': 'FFTW' }
-    message('For FFT: using FFTW')
-    pkgconfig_requirements += fftw3_dep
-  else 
-    fftw_dep = cpp.find_library('fftw3',
-                                dirs: get_option('extra_lib_dirs'),
-                                has_headers: ['fftw3.h'],
-                                header_args: extra_include_args,
-                                required: true)
+  if not fftw3_dep.found()
+    fftw3_dep = cpp.find_library('fftw3',
+                                 dirs: get_option('extra_lib_dirs'),
+                                 has_headers: ['fftw3.h'],
+                                 header_args: extra_include_args,
+                                 required: true)
   endif
+  config_summary += { 'FFT': 'FFTW' }
+  message('For FFT: using FFTW')
+  pkgconfig_requirements += fftw3_dep
   feature_dependencies += fftw3_dep
   feature_defines += ['-DHAVE_FFTW3', '-DFFTW_DOUBLE_ONLY']
 
@@ -223,26 +223,40 @@ if resampler == 'builtin'
   feature_defines += ['-DUSE_BQRESAMPLER']
 
 elif resampler == 'libsamplerate'
-  if samplerate_dep.found()
-    config_summary += { 'Resampler': 'libsamplerate' }
-    message('For resampler: using libsamplerate')
-    pkgconfig_requirements += samplerate_dep
-  else 
+  if not samplerate_dep.found()
     samplerate_dep = cpp.find_library('samplerate',
                                       dirs: get_option('extra_lib_dirs'),
                                       has_headers: ['samplerate.h'],
                                       header_args: extra_include_args,
                                       required: true)
   endif
+  config_summary += { 'Resampler': 'libsamplerate' }
+  message('For resampler: using libsamplerate')
   feature_dependencies += samplerate_dep
+  pkgconfig_requirements += samplerate_dep
   feature_defines += ['-DHAVE_LIBSAMPLERATE']
   
 elif resampler == 'speex'
   config_summary += { 'Resampler': 'Speex' }
-  message('For resampler: using Speex')
+  message('For resampler: using bundled Speex')
   message('(consider libsamplerate if time-varying pitch shift is required)')
   feature_sources += ['src/ext/speex/resample.c']
   feature_defines += ['-DUSE_SPEEX']
+  
+elif resampler == 'libspeexdsp'
+  if not speexdsp_dep.found()
+    speexdsp_dep = cpp.find_library('speexdsp',
+                                    dirs: get_option('extra_lib_dirs'),
+                                    has_headers: ['speex/speex_resampler.h'],
+                                    header_args: extra_include_args,
+                                    required: true)
+  endif
+  config_summary += { 'Resampler': 'libspeexdsp' }
+  message('For resampler: using Speex DSP library')
+  message('(consider libsamplerate if time-varying pitch shift is required)')
+  feature_dependencies += speexdsp_dep
+  pkgconfig_requirements += speexdsp_dep
+  feature_defines += ['-DHAVE_LIBSPEEXDSP']
   
 elif resampler == 'ipp'
   if ipp_path != ''
