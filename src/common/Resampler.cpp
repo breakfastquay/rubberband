@@ -55,6 +55,10 @@
 
 #ifdef USE_SPEEX
 #include "../ext/speex/speex_resampler.h"
+#else
+#ifdef HAVE_LIBSPEEXDSP
+#include <speex/speex_resampler.h>
+#endif
 #endif
 
 #ifdef USE_BQRESAMPLER
@@ -64,9 +68,11 @@
 #ifndef HAVE_IPP
 #ifndef HAVE_LIBSAMPLERATE
 #ifndef HAVE_LIBRESAMPLE
+#ifndef HAVE_LIBSPEEXDSP
 #ifndef USE_SPEEX
 #ifndef USE_BQRESAMPLER
 #error No resampler implementation selected!
+#endif
 #endif
 #endif
 #endif
@@ -1106,7 +1112,7 @@ D_BQResampler::reset()
 
 #endif /* USE_BQRESAMPLER */
 
-#ifdef USE_SPEEX
+#if defined(USE_SPEEX) || defined(HAVE_LIBSPEEXDSP)
     
 class D_Speex : public Resampler::Impl
 {
@@ -1404,6 +1410,9 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
 #ifdef USE_SPEEX
         m_method = 2;
 #endif
+#ifdef HAVE_LIBSPEEXDSP
+        m_method = 2;
+#endif
 #ifdef HAVE_LIBRESAMPLE
         m_method = 3;
 #endif
@@ -1425,6 +1434,9 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
 #ifdef USE_SPEEX
         m_method = 2;
 #endif
+#ifdef HAVE_LIBSPEEXDSP
+        m_method = 2;
+#endif
 #ifdef USE_BQRESAMPLER
         m_method = 4;
 #endif
@@ -1441,6 +1453,9 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
         m_method = 3;
 #endif
 #ifdef USE_SPEEX
+        m_method = 2;
+#endif
+#ifdef HAVE_LIBSPEEXDSP
         m_method = 2;
 #endif
 #ifdef USE_BQRESAMPLER
@@ -1483,7 +1498,7 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
         break;
 
     case 2:
-#ifdef USE_SPEEX
+#if defined(USE_SPEEX) || defined(HAVE_LIBSPEEXDSP)
         d = new Resamplers::D_Speex
             (params.quality, params.ratioChange,
              channels,
