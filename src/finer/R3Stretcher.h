@@ -103,6 +103,28 @@ public:
     }
 
 protected:
+    struct Limits {
+        int minPreferredOuthop;
+        int maxPreferredOuthop;
+        int minInhop;
+        int maxInhopWithReadahead;
+        int maxInhop;
+        Limits(RubberBandStretcher::Options options) :
+            minPreferredOuthop(128),
+            maxPreferredOuthop(512),
+            minInhop(1),
+            maxInhopWithReadahead(1024),
+            maxInhop(1024) {
+            if (options & RubberBandStretcher::OptionWindowShort) {
+                // See note in calculateHop
+                minPreferredOuthop = 256;
+                maxPreferredOuthop = 640;
+                maxInhopWithReadahead = 512;
+                maxInhop = 1560;
+            }
+        }
+    };
+    
     struct ClassificationReadaheadData {
         FixedVector<process_t> timeDomain;
         FixedVector<process_t> mag;
@@ -185,6 +207,7 @@ protected:
 
     struct ChannelData {
         std::map<int, std::shared_ptr<ChannelScaleData>> scales;
+        FixedVector<process_t> windowSource;
         ClassificationReadaheadData readahead;
         bool haveReadahead;
         std::unique_ptr<BinClassifier> classifier;
@@ -203,9 +226,11 @@ protected:
         ChannelData(BinSegmenter::Parameters segmenterParameters,
                     BinClassifier::Parameters classifierParameters,
                     int longestFftSize,
+                    int windowSourceSize,
                     int inRingBufferSize,
                     int outRingBufferSize) :
             scales(),
+            windowSource(windowSourceSize, 0.0),
             readahead(segmenterParameters.fftSize),
             haveReadahead(false),
             classifier(new BinClassifier(classifierParameters)),
@@ -215,7 +240,7 @@ protected:
                                BinClassifier::Classification::Residual),
             segmenter(new BinSegmenter(segmenterParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
-            mixdown(longestFftSize, 0.f), // though it could be shorter
+            mixdown(longestFftSize, 0.f),
             resampled(outRingBufferSize, 0.f),
             inbuf(new RingBuffer<float>(inRingBufferSize)),
             outbuf(new RingBuffer<float>(outRingBufferSize)),
@@ -253,19 +278,22 @@ protected:
 
     struct ScaleData {
         int fftSize;
+        bool singleWindowMode;
         FFT fft;
         Window<process_t> analysisWindow;
         Window<process_t> synthesisWindow;
         process_t windowScaleFactor;
         GuidedPhaseAdvance guided;
+
         ScaleData(GuidedPhaseAdvance::Parameters guidedParameters,
                   Log log) :
             fftSize(guidedParameters.fftSize),
+            singleWindowMode(guidedParameters.singleWindowMode),
             fft(fftSize),
-            analysisWindow(analysisWindowShape(fftSize),
-                           analysisWindowLength(fftSize)),
-            synthesisWindow(synthesisWindowShape(fftSize),
-                            synthesisWindowLength(fftSize)),
+            analysisWindow(analysisWindowShape(),
+                           analysisWindowLength()),
+            synthesisWindow(synthesisWindowShape(),
+                            synthesisWindowLength()),
             windowScaleFactor(0.0),
             guided(guidedParameters, log)
         {
@@ -277,13 +305,14 @@ protected:
             }
         }
 
-        WindowType analysisWindowShape(int fftSize);
-        int analysisWindowLength(int fftSize);
-        WindowType synthesisWindowShape(int fftSize);
-        int synthesisWindowLength(int fftSize);
+        WindowType analysisWindowShape();
+        int analysisWindowLength();
+        WindowType synthesisWindowShape();
+        int synthesisWindowLength();
     };
     
     Parameters m_parameters;
+    const Limits m_limits;
     Log m_log;
 
     std::atomic<double> m_timeRatio;
@@ -297,6 +326,7 @@ protected:
     ChannelAssembly m_channelAssembly;
     std::unique_ptr<StretchCalculator> m_calculator;
     std::unique_ptr<Resampler> m_resampler;
+    bool m_useReadahead;
     std::atomic<int> m_inhop;
     int m_prevInhop;
     int m_prevOuthop;
@@ -366,6 +396,44 @@ protected:
     bool isRealTime() const {
         return m_parameters.options &
             RubberBandStretcher::OptionProcessRealTime;
+    }
+
+    void areWeResampling(bool *before, bool *after) const {
+
+        if (before) *before = false;
+        if (after) *after = false;
+        if (!m_resampler) return;
+
+        if (m_parameters.options &
+            RubberBandStretcher::OptionPitchHighConsistency) {
+            if (after) *after = true;
+            
+        } else if (m_pitchScale != 1.0) {
+            if (m_pitchScale > 1.0 &&
+                (m_parameters.options &
+                 RubberBandStretcher::OptionPitchHighQuality)) {
+                if (after) *after = true;
+            } else if (m_pitchScale < 1.0) {
+                if (after) *after = true;
+            } else {
+                if (before) *before = true;
+            }
+        }
+    }        
+
+    bool isSingleWindowed() const {
+        return m_parameters.options &
+            RubberBandStretcher::OptionWindowShort;
+    }
+
+    int getWindowSourceSize() const {
+        int sz = m_guideConfiguration.classificationFftSize +
+            m_limits.maxInhopWithReadahead;
+        if (m_guideConfiguration.longestFftSize > sz) {
+            return m_guideConfiguration.longestFftSize;
+        } else {
+            return sz;
+        }
     }
 };
 

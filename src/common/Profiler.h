@@ -39,14 +39,7 @@
 #endif
 
 #ifndef NO_TIMING
-#ifdef PROFILE_CLOCKS
-#include <time.h>
-#else
-#include "sysutils.h"
-#ifndef _WIN32
-#include <sys/time.h>
-#endif
-#endif
+#include <chrono>
 #endif
 
 #ifndef NO_TIMING
@@ -75,21 +68,17 @@ public:
     static std::string getReport();
 
 protected:
-    const char* m_c;
-#ifdef PROFILE_CLOCKS
-    clock_t m_start;
-#else
-    struct timeval m_start;
-#endif
+    const char *const m_c;
+    std::chrono::time_point<std::chrono::steady_clock> m_start;
     bool m_showOnDestruct;
     bool m_ended;
 
-    typedef std::pair<int, float> TimePair;
+    typedef std::pair<int, double> TimePair;
     typedef std::map<const char *, TimePair> ProfileMap;
-    typedef std::map<const char *, float> WorstCallMap;
+    typedef std::map<const char *, double> WorstCallMap;
     static ProfileMap m_profiles;
     static WorstCallMap m_worstCalls;
-    static void add(const char *, float);
+    static void add(const char *, double);
 };
 
 #else

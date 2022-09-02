@@ -28,6 +28,7 @@
 
 #include "../common/Log.h"
 #include "../common/mathmisc.h"
+#include "../common/Profiler.h"
 
 #include <sstream>
 #include <functional>
@@ -42,8 +43,11 @@ public:
         int fftSize;
         double sampleRate;
         int channels;
-        Parameters(int _fftSize, double _sampleRate, int _channels) :
-            fftSize(_fftSize), sampleRate(_sampleRate), channels(_channels) { }
+        bool singleWindowMode;
+        Parameters(int _fftSize, double _sampleRate, int _channels,
+                   bool _singleWindow) :
+            fftSize(_fftSize), sampleRate(_sampleRate), channels(_channels),
+            singleWindowMode(_singleWindow) { }
     };
     
     GuidedPhaseAdvance(Parameters parameters, Log log) :
@@ -93,6 +97,8 @@ public:
                  int inhop,
                  int outhop) {
 
+        Profiler profiler("GuidedPhaseAdvance::advance");
+        
         int myFftBand = 0;
         int i = 0;
         for (const auto &fband : guidance[0]->fftBands) {

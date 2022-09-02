@@ -28,6 +28,7 @@
 
 #include "../common/HistogramFilter.h"
 #include "../common/mathmisc.h"
+#include "../common/Profiler.h"
 
 #include <vector>
 
@@ -65,6 +66,9 @@ public:
     }
 
     Segmentation segment(const BinClassifier::Classification *classification) {
+
+        Profiler profiler("BinSegmenter::segment");
+        
         int n = m_parameters.binCount;
         for (int i = 0; i < n; ++i) {
             switch (classification[i]) {

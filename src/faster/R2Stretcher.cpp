@@ -101,6 +101,8 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
     m_freq2(12000),
     m_baseFftSize(m_defaultFftSize)
 {
+    Profiler profiler("R2Stretcher::R2Stretcher");
+    
     if (!_initialised) {
         system_specific_initialise();
         _initialised = true;
@@ -316,8 +318,7 @@ R2Stretcher::setMaxProcessSize(size_t samples)
 }
 
 void
-R2Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &
-                                          mapping)
+R2Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 {
     if (m_realtime) {
         m_log.log(0, "R2Stretcher::setKeyFrameMap: Cannot specify key frame map in RT mode");

@@ -25,6 +25,7 @@
 #define RUBBERBAND_GUIDE_H
 
 #include "../common/Log.h"
+#include "../common/Profiler.h"
 
 #include <functional>
 #include <sstream>
@@ -68,7 +69,9 @@ public:
         
     struct Guidance {
         FftBand fftBands[3];
+        int fftBandCount;
         PhaseLockBand phaseLockBands[4];
+        int phaseLockBandCount;
         Range kick;
         Range preKick;
         Range highUnlocked;
@@ -95,50 +98,92 @@ public:
         int shortestFftSize;
         int classificationFftSize;
         BandLimits fftBandLimits[3];
-        Configuration(int _longestFftSize, int _shortestFftSize,
-                      int _classificationFftSize) :
-            longestFftSize(_longestFftSize),
-            shortestFftSize(_shortestFftSize),
-            classificationFftSize(_classificationFftSize) { }
+        int fftBandLimitCount;
+        Configuration() :
+            longestFftSize(0), shortestFftSize(0), classificationFftSize(0),
+            fftBandLimitCount(0) { }
     };
     
     struct Parameters {
         double sampleRate;
-        Parameters(double _sampleRate) : sampleRate(_sampleRate) { }
+        bool singleWindowMode;
+        Parameters(double _sampleRate, bool _singleWindow) :
+            sampleRate(_sampleRate),
+            singleWindowMode(_singleWindow) { }
     };
 
     Guide(Parameters parameters, Log log) :
         m_parameters(parameters),
-        m_log(log),
-        m_configuration(roundUp(int(ceil(parameters.sampleRate / 16.0))),
-                        roundUp(int(ceil(parameters.sampleRate / 64.0))),
-                        roundUp(int(ceil(parameters.sampleRate / 32.0)))),
-        m_minLower(500.0), m_minHigher(4000.0),
-        m_defaultLower(700.0), m_defaultHigher(4800.0),
-        m_maxLower(1100.0), m_maxHigher(7000.0)
+        m_log(log)
     {
         double rate = m_parameters.sampleRate;
+        double nyquist = rate / 2.0;
 
-        m_log.log(1, "Guide: rate", rate);
-        
-        int bandFftSize = roundUp(int(ceil(rate/16.0)));
-        m_configuration.fftBandLimits[0] =
-            BandLimits(bandFftSize, rate, 0.0, m_maxLower);
-        
-        // This is the classification and fallback FFT: we need it to
-        // go up to Nyquist so we can seamlessly switch to it for
-        // longer stretches, and down to 0.0 so we can use it for
-        // unity in offline mode
-        bandFftSize = roundUp(int(ceil(rate/32.0)));
-        m_configuration.fftBandLimits[1] =
-            BandLimits(bandFftSize, rate, 0.0, rate / 2.0);
-        
-        bandFftSize = roundUp(int(ceil(rate/64.0)));
-        m_configuration.fftBandLimits[2] =
-            BandLimits(bandFftSize, rate, m_minHigher, rate/2.0);
+        m_log.log(1, "Guide: rate and single-window mode",
+                  rate, m_parameters.singleWindowMode);
 
+        int classificationFftSize = 
+            roundUp(int(ceil(parameters.sampleRate / 32.0)));
+        
+        m_configuration.classificationFftSize = classificationFftSize;
+        
         m_log.log(1, "Guide: classification FFT size",
                   m_configuration.classificationFftSize);
+
+        if (m_parameters.singleWindowMode) {
+
+            // Single-window mode
+            
+            m_configuration.longestFftSize = classificationFftSize;
+            m_configuration.shortestFftSize = classificationFftSize;
+
+            m_defaultLower = nyquist;
+            m_minLower = m_defaultLower;
+            m_maxLower = m_defaultLower;
+
+            m_defaultHigher = nyquist;
+            m_minHigher = m_defaultHigher;
+            m_maxHigher = m_defaultHigher;
+
+            m_configuration.fftBandLimitCount = 1;
+
+            m_configuration.fftBandLimits[0] = 
+                BandLimits(classificationFftSize, rate, 0.0, nyquist);
+
+        } else {
+            
+            // The normal multi-window mode
+
+            m_configuration.longestFftSize = classificationFftSize * 2;
+            m_configuration.shortestFftSize = classificationFftSize / 2;
+            
+            m_defaultLower = 700.0;
+            m_minLower = 500.0;
+            m_maxLower = 1100.0;
+
+            m_defaultHigher = 4800.0;
+            m_minHigher = 4000.0;
+            m_maxHigher = 7000.0;
+            
+            m_configuration.fftBandLimitCount = 3;
+
+            m_configuration.fftBandLimits[0] =
+                BandLimits(m_configuration.longestFftSize,
+                           rate, 0.0, m_maxLower);
+        
+            // This is the classification and fallback FFT: we need it
+            // to go up to Nyquist so we can seamlessly switch to it
+            // for longer stretches, and down to 0.0 so we can use it
+            // for unity in offline mode
+
+            m_configuration.fftBandLimits[1] =
+                BandLimits(classificationFftSize,
+                           rate, 0.0, nyquist);
+        
+            m_configuration.fftBandLimits[2] =
+                BandLimits(m_configuration.shortestFftSize,
+                           rate, m_minHigher, nyquist);
+        }
     }
 
     const Configuration &getConfiguration() const {
@@ -159,6 +204,8 @@ public:
                         bool tighterChannelLock,
                         Guidance &guidance) const {
 
+        Profiler profiler("Guide::updateGuidance");
+        
         bool hadPhaseReset = guidance.phaseReset.present;
 
         guidance.phaseReset.present = false;
@@ -168,13 +215,58 @@ public:
         guidance.channelLock.present = false;
 
         double nyquist = m_parameters.sampleRate / 2.0;
-        guidance.fftBands[0].fftSize = roundUp(int(ceil(nyquist/8.0)));
-        guidance.fftBands[1].fftSize = roundUp(int(ceil(nyquist/16.0)));
-        guidance.fftBands[2].fftSize = roundUp(int(ceil(nyquist/32.0)));
 
-        // This is a vital stop case for PhaseAdvance
-        guidance.phaseLockBands[3].f1 = nyquist;
+        if (m_parameters.singleWindowMode) {
 
+            // All the fft and phase-lock bands are fixed in this
+            // mode. We'll still need to continue to set up phase
+            // reset ranges etc, including the unity case.
+
+            guidance.fftBandCount = 1;
+            guidance.fftBands[0].fftSize = m_configuration.classificationFftSize;
+            guidance.fftBands[0].f0 = 0.0;
+            guidance.fftBands[0].f1 = nyquist;
+
+            guidance.phaseLockBandCount = 3;
+
+            guidance.phaseLockBands[0].p = 1;
+            guidance.phaseLockBands[0].beta = betaFor(1200.0, ratio);
+            guidance.phaseLockBands[0].f0 = 0.0;
+            guidance.phaseLockBands[0].f1 = 1600.0;
+            
+            guidance.phaseLockBands[1].p = 2;
+            guidance.phaseLockBands[1].beta = betaFor(4800.0, ratio);
+            guidance.phaseLockBands[1].f0 = 1600.0;
+            guidance.phaseLockBands[1].f1 = 7000.0;
+            
+            guidance.phaseLockBands[2].p = 5;
+            guidance.phaseLockBands[2].beta = betaFor(10000.0, ratio);
+            guidance.phaseLockBands[2].f0 = 7000.0;
+            guidance.phaseLockBands[2].f1 = nyquist;
+
+            if (outhop > 256) {
+                guidance.phaseLockBands[2].p = 4;
+            }
+            
+        } else {
+
+            // The normal multi-window mode
+            
+            guidance.fftBandCount = 3;
+            guidance.fftBands[0].fftSize = m_configuration.longestFftSize;
+            guidance.fftBands[1].fftSize = m_configuration.classificationFftSize;
+            guidance.fftBands[2].fftSize = m_configuration.shortestFftSize;
+            
+            guidance.phaseLockBandCount = 4;
+        
+            // This is a vital stop case for PhaseAdvance
+            guidance.phaseLockBands[3].f1 = nyquist;
+        }
+
+        // We've set the counts, and for single-window mode we've set
+        // the band ranges as well - in normal multi-window mode we
+        // still have to do that, but we should do these first
+        
         if (meanMagnitude < 1.0e-6) {
             updateForSilence(guidance);
             return;
@@ -183,8 +275,6 @@ public:
         if (unityCount > 0) {
             updateForUnity(guidance,
                            hadPhaseReset,
-                           unityCount,
-                           magnitudes,
                            segmentation,
                            realtime);
             return;
@@ -199,15 +289,29 @@ public:
             guidance.channelLock.f1 = 600.0;
         }
 
-        bool kick =
-            (segmentation.percussiveBelow > 40.0) &&
-            (prevSegmentation.percussiveBelow < 40.0) &&
-            checkPotentialKick(magnitudes, prevMagnitudes);
+        if (!m_parameters.singleWindowMode) {
+            
+            bool kick =
+                (segmentation.percussiveBelow > 40.0) &&
+                (prevSegmentation.percussiveBelow < 40.0) &&
+                checkPotentialKick(magnitudes, prevMagnitudes);
 
-        bool futureKick = !kick &&
-            (nextSegmentation.percussiveBelow > 40.0) &&
-            (segmentation.percussiveBelow < 40.0) &&
-            checkPotentialKick(nextMagnitudes, magnitudes);
+            bool futureKick = !kick &&
+                (nextSegmentation.percussiveBelow > 40.0) &&
+                (segmentation.percussiveBelow < 40.0) &&
+                checkPotentialKick(nextMagnitudes, magnitudes);
+
+            if (kick) {
+                guidance.kick.present = true;
+                guidance.kick.f0 = 0.0;
+                guidance.kick.f1 = segmentation.percussiveBelow;
+            } else if (futureKick) {
+                guidance.preKick.present = true;
+                guidance.preKick.f0 = 0.0;
+                guidance.preKick.f1 = nextSegmentation.percussiveBelow;
+            }
+        }
+        
 /*
         std::cout << "d:"
                   << prevSegmentation.percussiveBelow << ","
@@ -218,15 +322,6 @@ public:
                   << (kick ? "K" : "N") << ","
                   << (futureKick ? "F" : "N") << std::endl;
 */        
-        if (kick) {
-            guidance.kick.present = true;
-            guidance.kick.f0 = 0.0;
-            guidance.kick.f1 = segmentation.percussiveBelow;
-        } else if (futureKick) {
-            guidance.preKick.present = true;
-            guidance.preKick.f0 = 0.0;
-            guidance.preKick.f1 = nextSegmentation.percussiveBelow;
-        }
         
         if (segmentation.residualAbove > segmentation.percussiveAbove) {
             guidance.highUnlocked.present = true;
@@ -249,60 +344,64 @@ public:
             }
         }
 
-        double prevLower = guidance.fftBands[0].f1;
-        double lower = descendToValley(prevLower, magnitudes);
-        if (lower > m_maxLower || lower < m_minLower) {
-            lower = m_defaultLower;
+        if (!m_parameters.singleWindowMode) {
+
+            // The normal multi-window mode. For single-window we did
+            // this already.
+            
+            double prevLower = guidance.fftBands[0].f1;
+            double lower = descendToValley(prevLower, magnitudes);
+            if (lower > m_maxLower || lower < m_minLower) {
+                lower = m_defaultLower;
+            }
+        
+            double prevHigher = guidance.fftBands[1].f1;
+            double higher = descendToValley(prevHigher, magnitudes);
+            if (higher > m_maxHigher || higher < m_minHigher) {
+                higher = m_defaultHigher;
+            }
+
+            guidance.fftBands[0].f0 = 0.0;
+            guidance.fftBands[0].f1 = lower;
+
+            guidance.fftBands[1].f0 = lower;
+            guidance.fftBands[1].f1 = higher;
+        
+            guidance.fftBands[2].f0 = higher;
+            guidance.fftBands[2].f1 = nyquist;
+
+            if (outhop > 256) {
+                guidance.fftBands[1].f1 = nyquist;
+                guidance.fftBands[2].f0 = nyquist;
+            }
+        
+            double mid = std::max(lower, 1600.0);
+
+            guidance.phaseLockBands[0].p = 1;
+            guidance.phaseLockBands[0].beta = betaFor(300.0, ratio);
+            guidance.phaseLockBands[0].f0 = 0.0;
+            guidance.phaseLockBands[0].f1 = lower;
+        
+            guidance.phaseLockBands[1].p = 2;
+            guidance.phaseLockBands[1].beta = betaFor(1600.0, ratio);
+            guidance.phaseLockBands[1].f0 = lower;
+            guidance.phaseLockBands[1].f1 = mid;
+        
+            guidance.phaseLockBands[2].p = 3;
+            guidance.phaseLockBands[2].beta = betaFor(4800.0, ratio);
+            guidance.phaseLockBands[2].f0 = mid;
+            guidance.phaseLockBands[2].f1 = higher;
+            
+            guidance.phaseLockBands[3].p = 4;
+            guidance.phaseLockBands[3].beta = betaFor(10000.0, ratio);
+            guidance.phaseLockBands[3].f0 = higher;
+            guidance.phaseLockBands[3].f1 = nyquist;
+        
+            if (outhop > 256) {
+                guidance.phaseLockBands[3].p = 3;
+            }
         }
         
-        double prevHigher = guidance.fftBands[1].f1;
-        double higher = descendToValley(prevHigher, magnitudes);
-        if (higher > m_maxHigher || higher < m_minHigher) {
-            higher = m_defaultHigher;
-        }
-
-        guidance.fftBands[0].f0 = 0.0;
-        guidance.fftBands[0].f1 = lower;
-
-//        std::cout << "x:" << lower << std::endl;
-        
-        guidance.fftBands[1].f0 = lower;
-        guidance.fftBands[1].f1 = higher;
-        
-        guidance.fftBands[2].f0 = higher;
-        guidance.fftBands[2].f1 = nyquist;
-
-        if (outhop > 256) {
-            guidance.fftBands[1].f1 = nyquist;
-            guidance.fftBands[2].f0 = nyquist;
-        }
-        
-        double mid = std::max(lower, 1600.0);
-
-        guidance.phaseLockBands[0].p = 1;
-        guidance.phaseLockBands[0].beta = betaFor(300.0, ratio);
-        guidance.phaseLockBands[0].f0 = 0.0;
-        guidance.phaseLockBands[0].f1 = lower;
-        
-        guidance.phaseLockBands[1].p = 2;
-        guidance.phaseLockBands[1].beta = betaFor(1600.0, ratio);
-        guidance.phaseLockBands[1].f0 = lower;
-        guidance.phaseLockBands[1].f1 = mid;
-        
-        guidance.phaseLockBands[2].p = 3;
-        guidance.phaseLockBands[2].beta = betaFor(5000.0, ratio);
-        guidance.phaseLockBands[2].f0 = mid;
-        guidance.phaseLockBands[2].f1 = higher;
-        
-        guidance.phaseLockBands[3].p = 4;
-        guidance.phaseLockBands[3].beta = betaFor(10000.0, ratio);
-        guidance.phaseLockBands[3].f0 = higher;
-        guidance.phaseLockBands[3].f1 = nyquist;
-        
-        if (outhop > 256) {
-            guidance.phaseLockBands[3].p = 3;
-        }
-
         if (ratio > 2.0) {
             
             // For very long stretches, diffuse is better than
@@ -326,7 +425,7 @@ public:
             guidance.highUnlocked.present = true;
         }
 
-        /*
+/*
         std::ostringstream str;
         str << "Guidance: FFT bands: ["
             << guidance.fftBands[0].fftSize << " from "
@@ -341,8 +440,9 @@ public:
             << guidance.phaseReset.present << " from "
             << guidance.phaseReset.f0 << " to " << guidance.phaseReset.f1
             << "]" << std::endl;
-        m_parameters.logger(str.str());
-        */
+
+        m_log.log(1, str.str().c_str());
+*/
     }
 
     void setDebugLevel(int level) {
@@ -374,12 +474,14 @@ protected:
     void updateForSilence(Guidance &guidance) const {
 //        std::cout << "phase reset on silence" << std::endl;
         double nyquist = m_parameters.sampleRate / 2.0;
-        guidance.fftBands[0].f0 = 0.0;
-        guidance.fftBands[0].f1 = 0.0;
-        guidance.fftBands[1].f0 = 0.0;
-        guidance.fftBands[1].f1 = nyquist;
-        guidance.fftBands[2].f0 = nyquist;
-        guidance.fftBands[2].f1 = nyquist;
+        if (!m_parameters.singleWindowMode) {
+            guidance.fftBands[0].f0 = 0.0;
+            guidance.fftBands[0].f1 = 0.0;
+            guidance.fftBands[1].f0 = 0.0;
+            guidance.fftBands[1].f1 = nyquist;
+            guidance.fftBands[2].f0 = nyquist;
+            guidance.fftBands[2].f1 = nyquist;
+        }
         guidance.phaseReset.present = true;
         guidance.phaseReset.f0 = 0.0;
         guidance.phaseReset.f1 = nyquist;
@@ -387,8 +489,6 @@ protected:
 
     void updateForUnity(Guidance &guidance,
                         bool hadPhaseReset,
-                        uint32_t /* unityCount */,
-                        const process_t *const /* magnitudes */,
                         const BinSegmenter::Segmentation &segmentation,
                         bool realtime) const {
         
@@ -399,25 +499,29 @@ protected:
         if (!realtime) {
             // ratio can't change, so we are just running 1.0 ratio
             // throughout
-            guidance.fftBands[0].f0 = 0.0;
-            guidance.fftBands[0].f1 = 0.0;
-            guidance.fftBands[1].f0 = 0.0;
-            guidance.fftBands[1].f1 = nyquist;
-            guidance.fftBands[2].f0 = nyquist;
-            guidance.fftBands[2].f1 = nyquist;
+            if (!m_parameters.singleWindowMode) {
+                guidance.fftBands[0].f0 = 0.0;
+                guidance.fftBands[0].f1 = 0.0;
+                guidance.fftBands[1].f0 = 0.0;
+                guidance.fftBands[1].f1 = nyquist;
+                guidance.fftBands[2].f0 = nyquist;
+                guidance.fftBands[2].f1 = nyquist;
+            }
             guidance.phaseReset.present = true;
             guidance.phaseReset.f0 = 0.0;
             guidance.phaseReset.f1 = nyquist;
             return;
         }
 
-        guidance.fftBands[0].f0 = 0.0;
-        guidance.fftBands[0].f1 = m_minLower;
-        guidance.fftBands[1].f0 = m_minLower;
-        guidance.fftBands[1].f1 = m_minHigher;
-        guidance.fftBands[2].f0 = m_minHigher;
-        guidance.fftBands[2].f1 = nyquist;
-
+        if (!m_parameters.singleWindowMode) {
+            guidance.fftBands[0].f0 = 0.0;
+            guidance.fftBands[0].f1 = m_minLower;
+            guidance.fftBands[1].f0 = m_minLower;
+            guidance.fftBands[1].f1 = m_minHigher;
+            guidance.fftBands[2].f0 = m_minHigher;
+            guidance.fftBands[2].f1 = nyquist;
+        }
+        
         guidance.phaseReset.present = true;
 
         if (!hadPhaseReset) {

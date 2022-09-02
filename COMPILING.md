@@ -239,59 +239,67 @@ resampler or libsamplerate.
 
 ### FFT libraries supported
 
+The choice of FFT library makes no difference to output quality, only
+to CPU usage.
+
 ```
-Library     Build option    CPP define     Notes
-----        ------------    ----------     -----
+Library     Build option    CPP define         Notes
+----        ------------    ----------         -----
 
-Built-in    -Dfft=builtin   -DUSE_BUILTIN_FFT
-                                           Default except on macOS/iOS.
-                                           Can be distributed with either
-                                           the Rubber Band GPL or
-                                           commercial licence.
+Built-in    -Dfft=builtin   -DUSE_BUILTIN_FFT  Default except on macOS/iOS.
 
-Accelerate  -Dfft=vdsp      -DHAVE_VDSP    Default on macOS/iOS.
-                                           Best option on these platforms.
+Accelerate  -Dfft=vdsp      -DHAVE_VDSP        Default on macOS/iOS.
+                                               Best option on these platforms.
 
-FFTW3       -Dfft=fftw      -DHAVE_FFTW3   GPL.
-                                           A bit faster than built-in,
-                                           a bit slower than Accelerate.
+FFTW3       -Dfft=fftw      -DHAVE_FFTW3       A bit faster than built-in,
+                                               a bit slower than Accelerate.
+                                               GPL licence.
 
-KissFFT     -Dfft=kissfft   -DHAVE_KISSFFT
-                                           Single precision.
-                                           Only indicated for use with
-                                           single-precision sample type
-                                           (see below).
-                                           Bundled, can be distributed with
-                                           either the Rubber Band GPL or
-                                           commercial licence.
+SLEEF       -Dfft=sleef     -DHAVE_SLEEF       Usually very fast. Not as widely
+                                               distributed as FFTW3. Requires
+                                               both libsleef and libsleefdft.
+                                               BSD-ish licence.
 
-Intel IPP   -Dfft=ipp       -DHAVE_IPP     Proprietary, can only be used with
-                                           Rubber Band commercial licence.
+KissFFT     -Dfft=kissfft   -DHAVE_KISSFFT     Single precision.
+                                               Only advisable when using
+                                               single-precision sample type
+                                               (see below).
+                                               BSD-ish licence.
+
+Intel IPP   -Dfft=ipp       -DHAVE_IPP         Very fast on Intel hardware.
+                                               Proprietary, can only be used with
+                                               Rubber Band commercial licence.
 ```
 
 ### Resampler libraries supported
 
+The choice of resampler affects both output quality, when
+pitch-shifting, and CPU usage.
+
 ```
-Library     Build option    CPP define     Notes
-----        ------------    ----------     -----
+Library        Build option               CPP define            Notes
+-------        ------------               ----------            -----
 
-Built-in    -Dfft=builtin   -DUSE_BQRESAMPLER
-                                           Default.
-                                           Can be distributed with either
-                                           the Rubber Band GPL or
-                                           commercial licence. Intended to
-                                           give best quality for time-varying
-                                           pitch shifts in real-time mode.
-                                           Newer than, and not as well-tested
-                                           as, libsamplerate.
+Built-in       -Dfft=builtin              -DUSE_BQRESAMPLER     Default.
+                                                                Intended to give high quality
+                                                                for time-varying pitch shifts
+                                                                in real-time mode.
+                                                                Not the fastest option.
 
-libsamplerate               -DHAVE_LIBSAMPLERATE
-            -Dresampler=libsamplerate      Good choice in most cases.
+libsamplerate  -Dresampler=libsamplerate  -DHAVE_LIBSAMPLERATE  Good choice in most cases.
+                                                                High quality and usually a bit
+                                                                faster than the built-in option.
+                                                                BSD-ish licence.
 
-Speex                       -DUSE_SPEEX
-            -Dresampler=speex              Can be distributed with
-	    				   either the Rubber Band GPL or
-					   commercial licence.
+libspeexdsp    -Dresampler=libspeexdsp    -DHAVE_LIBSPEEXDSP    Very fast.
+                                                                May not be artifact-free for
+                                                                time-varying pitch shifts.
+                                                                BSD-ish licence.
+
+Bundled Speex  -Dresampler=speex          -DUSE_SPEEX           Older Speex code, bundled for
+                                                                compatibility with some existing
+                                                                projects.
+                                                                Avoid for new projects.
 ```
 
 ## 8. Other supported #defines

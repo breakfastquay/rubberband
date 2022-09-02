@@ -128,10 +128,10 @@ R2Stretcher::resampleBeforeStretching() const
 
 void
 R2Stretcher::prepareChannelMS(size_t c,
-                                            const float *const *inputs,
-                                            size_t offset,
-                                            size_t samples, 
-                                            float *prepared)
+                              const float *const *inputs,
+                              size_t offset,
+                              size_t samples, 
+                              float *prepared)
 {
     for (size_t i = 0; i < samples; ++i) {
         float left = inputs[0][i + offset];
@@ -148,10 +148,10 @@ R2Stretcher::prepareChannelMS(size_t c,
     
 size_t
 R2Stretcher::consumeChannel(size_t c,
-                                          const float *const *inputs,
-                                          size_t offset,
-                                          size_t samples,
-                                          bool final)
+                            const float *const *inputs,
+                            size_t offset,
+                            size_t samples,
+                            bool final)
 {
     Profiler profiler("R2Stretcher::consumeChannel");
 
@@ -405,9 +405,9 @@ R2Stretcher::testInbufReadSpace(size_t c)
 
 bool 
 R2Stretcher::processChunkForChannel(size_t c,
-                                                  size_t phaseIncrement,
-                                                  size_t shiftIncrement,
-                                                  bool phaseReset)
+                                    size_t phaseIncrement,
+                                    size_t shiftIncrement,
+                                    bool phaseReset)
 {
     Profiler profiler("R2Stretcher::processChunkForChannel");
 
@@ -499,8 +499,8 @@ R2Stretcher::processChunkForChannel(size_t c,
 
 void
 R2Stretcher::calculateIncrements(size_t &phaseIncrementRtn,
-                                               size_t &shiftIncrementRtn,
-                                               bool &phaseReset)
+                                 size_t &shiftIncrementRtn,
+                                 bool &phaseReset)
 {
     Profiler profiler("R2Stretcher::calculateIncrements");
 
@@ -629,9 +629,9 @@ R2Stretcher::calculateIncrements(size_t &phaseIncrementRtn,
 
 bool
 R2Stretcher::getIncrements(size_t channel,
-                                         size_t &phaseIncrementRtn,
-                                         size_t &shiftIncrementRtn,
-                                         bool &phaseReset)
+                           size_t &phaseIncrementRtn,
+                           size_t &shiftIncrementRtn,
+                           bool &phaseReset)
 {
     Profiler profiler("R2Stretcher::getIncrements");
 
@@ -723,8 +723,8 @@ R2Stretcher::analyseChunk(size_t channel)
 
 void
 R2Stretcher::modifyChunk(size_t channel,
-                                       size_t outputIncrement,
-                                       bool phaseReset)
+                         size_t outputIncrement,
+                         bool phaseReset)
 {
     Profiler profiler("R2Stretcher::modifyChunk");
 
@@ -744,12 +744,29 @@ R2Stretcher::modifyChunk(size_t channel,
     int bandlow = lrint((150 * m_fftSize) / rate);
     int bandhigh = lrint((1000 * m_fftSize) / rate);
 
+    float r = getEffectiveRatio();
+
+    bool unity = (fabsf(r - 1.f) < 1.e-6f);
+    if (unity) {
+        if (!phaseReset) {
+            phaseReset = true;
+            bandlimited = true;
+            bandlow = lrint((cd.unityResetLow * m_fftSize) / rate);
+            bandhigh = count;
+            if (bandlow > 0) {
+                m_log.log(2, "unity: bandlow & high", bandlow, bandhigh);
+            }
+        }
+        cd.unityResetLow *= 0.9f;
+    } else {
+        cd.unityResetLow = 16000.f;
+    }
+
     float freq0 = m_freq0;
     float freq1 = m_freq1;
     float freq2 = m_freq2;
-
+    
     if (laminar) {
-        float r = getEffectiveRatio();
         if (r > 1) {
             float rf0 = 600 + (600 * ((r-1)*(r-1)*(r-1)*2));
             float f1ratio = freq1 / freq0;
@@ -923,7 +940,7 @@ R2Stretcher::formantShiftChunk(size_t channel)
 
 void
 R2Stretcher::synthesiseChunk(size_t channel,
-                                           size_t shiftIncrement)
+                             size_t shiftIncrement)
 {
     Profiler profiler("R2Stretcher::synthesiseChunk");
 
@@ -1085,7 +1102,9 @@ R2Stretcher::writeChunk(size_t channel, size_t shiftIncrement, bool last)
 }
 
 void
-R2Stretcher::writeOutput(RingBuffer<float> &to, float *from, size_t qty, size_t &outCount, size_t theoreticalOut)
+R2Stretcher::writeOutput(RingBuffer<float> &to,
+                         float *from, size_t qty,
+                         size_t &outCount, size_t theoreticalOut)
 {
     Profiler profiler("R2Stretcher::writeOutput");
 

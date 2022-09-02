@@ -85,9 +85,9 @@ T *allocate(size_t count)
 #else /* !MALLOC_IS_ALIGNED */
 
     // That's the "sufficiently aligned" functions dealt with, the
-    // rest need a specific alignment provided to the call. 32-byte
-    // alignment is required for at least OpenMAX
-    static const int alignment = 32;
+    // rest need a specific alignment provided to the call. 64-byte
+    // alignment is enough for 8x8 double operations
+    static const int alignment = 64;
 
 #ifdef HAVE__ALIGNED_MALLOC
     ptr = _aligned_malloc(count * sizeof(T), alignment);

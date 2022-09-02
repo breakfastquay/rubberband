@@ -53,6 +53,13 @@
 #include <fftw3.h>
 #endif
 
+#ifdef HAVE_SLEEF
+extern "C" {
+#include <sleef.h>
+#include <sleefdft.h>
+}
+#endif
+
 #ifdef HAVE_VDSP
 #include <Accelerate/Accelerate.h>
 #endif
@@ -63,10 +70,12 @@
 
 #ifndef HAVE_IPP
 #ifndef HAVE_FFTW3
+#ifndef HAVE_SLEEF
 #ifndef HAVE_KISSFFT
 #ifndef USE_BUILTIN_FFT
 #ifndef HAVE_VDSP
 #error No FFT implementation selected!
+#endif
 #endif
 #endif
 #endif
@@ -1425,6 +1434,302 @@ pthread_mutex_t D_FFTW::m_commonMutex = PTHREAD_MUTEX_INITIALIZER;
 
 #endif /* HAVE_FFTW3 */
 
+#ifdef HAVE_SLEEF
+
+class D_SLEEF : public FFTImpl
+{
+    bool isAligned(const void *ptr) {
+        return ! ((uintptr_t)ptr & 63);
+    }
+    
+public:
+    D_SLEEF(int size) :
+        m_fplanf(0), m_fplani(0), m_fbuf(0), m_fpacked(0),
+        m_dplanf(0), m_dplani(0), m_dbuf(0), m_dpacked(0),
+        m_size(size)
+    {
+    }
+
+    ~D_SLEEF() {
+        if (m_fplanf) {
+            SleefDFT_dispose(m_fplanf);
+            SleefDFT_dispose(m_fplani);
+            Sleef_free(m_fbuf);
+            Sleef_free(m_fpacked);
+        }
+        if (m_dplanf) {
+            SleefDFT_dispose(m_dplanf);
+            SleefDFT_dispose(m_dplani);
+            Sleef_free(m_dbuf);
+            Sleef_free(m_dpacked);
+        }
+    }
+
+    int getSize() const {
+        return m_size;
+    }
+
+    FFT::Precisions
+    getSupportedPrecisions() const {
+        return FFT::SinglePrecision | FFT::DoublePrecision;
+    }
+
+    void initFloat() {
+        if (m_fplanf) return;
+
+        m_fbuf = static_cast<float *>
+            (Sleef_malloc(m_size * sizeof(float)));
+        m_fpacked = static_cast<float *>
+            (Sleef_malloc((m_size + 2) * sizeof(float)));
+
+        m_fplanf = SleefDFT_float_init1d
+            (m_size, m_fbuf, m_fpacked,
+             SLEEF_MODE_FORWARD | SLEEF_MODE_REAL | SLEEF_MODE_ESTIMATE);
+
+        m_fplani = SleefDFT_float_init1d
+            (m_size, m_fpacked, m_fbuf,
+             SLEEF_MODE_BACKWARD | SLEEF_MODE_REAL | SLEEF_MODE_ESTIMATE);
+    }
+
+    void initDouble() {
+        if (m_dplanf) return;
+
+        m_dbuf = static_cast<double *>
+            (Sleef_malloc(m_size * sizeof(double)));
+        m_dpacked = static_cast<double *>
+            (Sleef_malloc((m_size + 2) * sizeof(double)));
+
+        m_dplanf = SleefDFT_double_init1d
+            (m_size, m_dbuf, m_dpacked,
+             SLEEF_MODE_FORWARD | SLEEF_MODE_REAL | SLEEF_MODE_ESTIMATE);
+
+        m_dplani = SleefDFT_double_init1d
+            (m_size, m_dpacked, m_dbuf,
+             SLEEF_MODE_BACKWARD | SLEEF_MODE_REAL | SLEEF_MODE_ESTIMATE);
+    }
+
+    void packFloat(const float *BQ_R__ re, const float *BQ_R__ im) {
+        const float *src[2] = { re, im };
+        v_interleave(m_fpacked, src, 2, m_size/2 + 1);
+    }
+
+    void packDouble(const double *BQ_R__ re, const double *BQ_R__ im) {
+        const double *src[2] = { re, im };
+        v_interleave(m_dpacked, src, 2, m_size/2 + 1);
+    }
+
+    void unpackFloat(float *BQ_R__ re, float *BQ_R__ im) {
+        float *dst[2] = { re, im };
+        v_deinterleave(dst, m_fpacked, 2, m_size/2 + 1);
+    }        
+
+    void unpackDouble(double *BQ_R__ re, double *BQ_R__ im) {
+        double *dst[2] = { re, im };
+        v_deinterleave(dst, m_dpacked, 2, m_size/2 + 1);
+    }        
+
+    void forward(const double *BQ_R__ realIn, double *BQ_R__ realOut, double *BQ_R__ imagOut) {
+        if (!m_dplanf) initDouble();
+        if (isAligned(realIn)) {
+            SleefDFT_double_execute(m_dplanf, realIn, 0);
+        } else {
+            v_copy(m_dbuf, realIn, m_size);
+            SleefDFT_double_execute(m_dplanf, 0, 0);
+        }
+        unpackDouble(realOut, imagOut);
+    }
+
+    void forwardInterleaved(const double *BQ_R__ realIn, double *BQ_R__ complexOut) {
+        if (!m_dplanf) initDouble();
+        if (isAligned(realIn) && isAligned(complexOut)) {
+            SleefDFT_double_execute(m_dplanf, realIn, complexOut);
+        } else {
+            v_copy(m_dbuf, realIn, m_size);
+            SleefDFT_double_execute(m_dplanf, 0, 0);
+            v_copy(complexOut, m_dpacked, m_size + 2);
+        }
+    }
+
+    void forwardPolar(const double *BQ_R__ realIn, double *BQ_R__ magOut, double *BQ_R__ phaseOut) {
+        if (!m_dplanf) initDouble();
+        if (isAligned(realIn)) {
+            SleefDFT_double_execute(m_dplanf, realIn, 0);
+        } else {
+            v_copy(m_dbuf, realIn, m_size);
+            SleefDFT_double_execute(m_dplanf, 0, 0);
+        }
+        v_cartesian_interleaved_to_polar(magOut, phaseOut, m_dpacked, m_size/2+1);
+    }
+
+    void forwardMagnitude(const double *BQ_R__ realIn, double *BQ_R__ magOut) {
+        if (!m_dplanf) initDouble();
+        if (isAligned(realIn)) {
+            SleefDFT_double_execute(m_dplanf, realIn, 0);
+        } else {
+            v_copy(m_dbuf, realIn, m_size);
+            SleefDFT_double_execute(m_dplanf, 0, 0);
+        }
+        v_cartesian_interleaved_to_magnitudes(magOut, m_dpacked, m_size/2+1);
+    }
+
+    void forward(const float *BQ_R__ realIn, float *BQ_R__ realOut, float *BQ_R__ imagOut) {
+        if (!m_fplanf) initFloat();
+        if (isAligned(realIn)) {
+            SleefDFT_float_execute(m_fplanf, realIn, 0);
+        } else {
+            v_copy(m_fbuf, realIn, m_size);
+            SleefDFT_float_execute(m_fplanf, 0, 0);
+        }
+        unpackFloat(realOut, imagOut);
+    }
+
+    void forwardInterleaved(const float *BQ_R__ realIn, float *BQ_R__ complexOut) {
+        if (!m_fplanf) initFloat();
+        if (isAligned(realIn) && isAligned(complexOut)) {
+            SleefDFT_float_execute(m_fplanf, realIn, complexOut);
+        } else {
+            v_copy(m_fbuf, realIn, m_size);
+            SleefDFT_float_execute(m_fplanf, 0, 0);
+            v_copy(complexOut, m_fpacked, m_size + 2);
+        }
+    }
+
+    void forwardPolar(const float *BQ_R__ realIn, float *BQ_R__ magOut, float *BQ_R__ phaseOut) {
+        if (!m_fplanf) initFloat();
+        if (isAligned(realIn)) {
+            SleefDFT_float_execute(m_fplanf, realIn, 0);
+        } else {
+            v_copy(m_fbuf, realIn, m_size);
+            SleefDFT_float_execute(m_fplanf, 0, 0);
+        }
+        v_cartesian_interleaved_to_polar(magOut, phaseOut, m_fpacked, m_size/2+1);
+    }
+
+    void forwardMagnitude(const float *BQ_R__ realIn, float *BQ_R__ magOut) {
+        if (!m_fplanf) initFloat();
+        if (isAligned(realIn)) {
+            SleefDFT_float_execute(m_fplanf, realIn, 0);
+        } else {
+            v_copy(m_fbuf, realIn, m_size);
+            SleefDFT_float_execute(m_fplanf, 0, 0);
+        }
+        v_cartesian_interleaved_to_magnitudes(magOut, m_fpacked, m_size/2+1);
+    }
+
+    void inverse(const double *BQ_R__ realIn, const double *BQ_R__ imagIn, double *BQ_R__ realOut) {
+        if (!m_dplanf) initDouble();
+        packDouble(realIn, imagIn);
+        if (isAligned(realOut)) {
+            SleefDFT_double_execute(m_dplani, 0, realOut);
+        } else {
+            SleefDFT_double_execute(m_dplani, 0, 0);
+            v_copy(realOut, m_dbuf, m_size);
+        }
+    }
+
+    void inverseInterleaved(const double *BQ_R__ complexIn, double *BQ_R__ realOut) {
+        if (!m_dplanf) initDouble();
+        if (isAligned(complexIn) && isAligned(realOut)) {
+            SleefDFT_double_execute(m_dplani, complexIn, realOut);
+        } else {            
+            v_copy(m_dpacked, complexIn, m_size + 2);
+            SleefDFT_double_execute(m_dplani, 0, 0);
+            v_copy(realOut, m_dbuf, m_size);
+        }
+    }
+
+    void inversePolar(const double *BQ_R__ magIn, const double *BQ_R__ phaseIn, double *BQ_R__ realOut) {
+        if (!m_dplanf) initDouble();
+        v_polar_to_cartesian_interleaved(m_dpacked, magIn, phaseIn, m_size/2+1);
+        if (isAligned(realOut)) {
+            SleefDFT_double_execute(m_dplani, 0, realOut);
+        } else {
+            SleefDFT_double_execute(m_dplani, 0, 0);
+            v_copy(realOut, m_dbuf, m_size);
+        }
+    }
+
+    void inverseCepstral(const double *BQ_R__ magIn, double *BQ_R__ cepOut) {
+        if (!m_dplanf) initDouble();
+        const int hs = m_size/2;
+        for (int i = 0; i <= hs; ++i) {
+            m_dpacked[i*2] = log(magIn[i] + 0.000001);
+            m_dpacked[i*2+1] = 0.0;
+        }
+        if (isAligned(cepOut)) {
+            SleefDFT_double_execute(m_dplani, 0, cepOut);
+        } else {
+            SleefDFT_double_execute(m_dplani, 0, 0);
+            v_copy(cepOut, m_dbuf, m_size);
+        }
+    }
+
+    void inverse(const float *BQ_R__ realIn, const float *BQ_R__ imagIn, float *BQ_R__ realOut) {
+        if (!m_fplanf) initFloat();
+        packFloat(realIn, imagIn);
+        if (isAligned(realOut)) {
+            SleefDFT_float_execute(m_dplani, 0, realOut);
+        } else {
+            SleefDFT_float_execute(m_fplani, 0, 0);
+            v_copy(realOut, m_fbuf, m_size);
+        }
+    }
+
+    void inverseInterleaved(const float *BQ_R__ complexIn, float *BQ_R__ realOut) {
+        if (!m_fplanf) initFloat();
+        if (isAligned(complexIn) && isAligned(realOut)) {
+            SleefDFT_float_execute(m_fplani, complexIn, realOut);
+        } else {
+            v_copy(m_fpacked, complexIn, m_size + 2);
+            SleefDFT_float_execute(m_fplani, 0, 0);
+            v_copy(realOut, m_fbuf, m_size);
+        }
+    }
+
+    void inversePolar(const float *BQ_R__ magIn, const float *BQ_R__ phaseIn, float *BQ_R__ realOut) {
+        if (!m_fplanf) initFloat();
+        v_polar_to_cartesian_interleaved(m_fpacked, magIn, phaseIn, m_size/2+1);
+        if (isAligned(realOut)) {
+            SleefDFT_float_execute(m_fplani, 0, realOut);
+        } else {
+            SleefDFT_float_execute(m_fplani, 0, 0);
+            v_copy(realOut, m_fbuf, m_size);
+        }
+    }
+
+    void inverseCepstral(const float *BQ_R__ magIn, float *BQ_R__ cepOut) {
+        if (!m_fplanf) initFloat();
+        const int hs = m_size/2;
+        for (int i = 0; i <= hs; ++i) {
+            m_fpacked[i*2] = logf(magIn[i] + 0.000001f);
+            m_fpacked[i*2+1] = 0.0;
+        }
+        if (isAligned(cepOut)) {
+            SleefDFT_float_execute(m_fplani, 0, cepOut);
+        } else {
+            SleefDFT_float_execute(m_fplani, 0, 0);
+            v_copy(cepOut, m_fbuf, m_size);
+        }
+    }
+
+private:
+    SleefDFT *m_fplanf;
+    SleefDFT *m_fplani;
+
+    float *m_fbuf;
+    float *m_fpacked;
+    
+    SleefDFT *m_dplanf;
+    SleefDFT *m_dplani;
+
+    double *m_dbuf;
+    double *m_dpacked;
+    
+    const int m_size;
+};
+
+#endif /* HAVE_SLEEF */
+
 #ifdef HAVE_KISSFFT
 
 class D_KISSFFT : public FFTImpl
@@ -2266,6 +2571,9 @@ getImplementationDetails()
 #ifdef HAVE_FFTW3
     impls["fftw"] = SizeConstraintNone;
 #endif
+#ifdef HAVE_SLEEF
+    impls["sleef"] = SizeConstraintEvenPowerOfTwo;
+#endif
 #ifdef HAVE_KISSFFT
     impls["kissfft"] = SizeConstraintEven;
 #endif
@@ -2310,7 +2618,7 @@ pickImplementation(int size)
     } 
     
     std::string preference[] = {
-        "ipp", "vdsp", "fftw", "builtin", "kissfft"
+        "ipp", "vdsp", "sleef", "fftw", "builtin", "kissfft"
     };
 
     for (int i = 0; i < int(sizeof(preference)/sizeof(preference[0])); ++i) {
@@ -2390,6 +2698,10 @@ FFT::FFT(int size, int debugLevel) :
     } else if (impl == "fftw") {
 #ifdef HAVE_FFTW3
         d = new FFTs::D_FFTW(size);
+#endif
+    } else if (impl == "sleef") {
+#ifdef HAVE_SLEEF
+        d = new FFTs::D_SLEEF(size);
 #endif
     } else if (impl == "kissfft") {        
 #ifdef HAVE_KISSFFT
@@ -2648,6 +2960,14 @@ FFT::tune()
         d->initFloat();
         d->initDouble();
         candidates["fftw"] = d;
+#endif
+
+#ifdef HAVE_SLEEF
+        os << "Constructing new SLEEF FFT object for size " << size << "..." << std::endl;
+        d = new FFTs::D_SLEEF(size);
+        d->initFloat();
+        d->initDouble();
+        candidates["sleef"] = d;
 #endif
 
 #ifdef HAVE_KISSFFT

@@ -24,6 +24,8 @@
 #ifndef RUBBERBAND_MATHMISC_H
 #define RUBBERBAND_MATHMISC_H
 
+#include "sysutils.h"
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif // M_PI
@@ -50,6 +52,8 @@ inline int binForFrequency(double f, int fftSize, double sampleRate) {
 inline double frequencyForBin(int b, int fftSize, double sampleRate) {
     return (double(b) * sampleRate) / double(fftSize);
 }
+
+void pickNearestRational(double ratio, int maxDenom, int &num, int &denom);
 
 }
 

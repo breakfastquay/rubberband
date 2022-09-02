@@ -58,6 +58,7 @@ details.
 
  * FFTW3 - GPL; proprietary licence needed for redistribution
  * Intel IPP - Proprietary; licence needed for redistribution
+ * SLEEF - BSD-like
  * KissFFT - BSD-like
  * libsamplerate - BSD-like from version 0.1.9 onwards
  * Speex - BSD-like

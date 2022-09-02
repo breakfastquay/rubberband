@@ -44,6 +44,8 @@
     standalone library.
 */
 
+#ifndef ALREADY_CONFIGURED
+
 #define USE_BQRESAMPLER 1
 
 #define NO_TIMING 1
@@ -54,6 +56,8 @@
 #define HAVE_VDSP 1
 #else
 #define USE_BUILTIN_FFT 1
+#endif
+
 #endif
 
 #include "../src/faster/AudioCurveCalculator.cpp"
@@ -69,6 +73,7 @@
 #include "../src/common/Allocators.cpp"
 #include "../src/common/StretchCalculator.cpp"
 #include "../src/common/sysutils.cpp"
+#include "../src/common/mathmisc.cpp"
 #include "../src/common/Thread.cpp"
 #include "../src/faster/StretcherChannelData.cpp"
 #include "../src/faster/R2Stretcher.cpp"
