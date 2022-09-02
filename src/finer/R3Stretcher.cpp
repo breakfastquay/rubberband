@@ -298,6 +298,20 @@ R3Stretcher::createResampler()
     
     m_resampler = std::unique_ptr<Resampler>
         (new Resampler(resamplerParameters, m_parameters.channels));
+
+    bool before, after;
+    areWeResampling(&before, &after);
+    if (before) {
+        if (after) {
+            m_log.log(0, "WARNING: createResampler: we think we are resampling both before and after!");
+        } else {
+            m_log.log(1, "createResampler: resampling before");
+        }
+    } else {
+        if (after) {
+            m_log.log(0, "createResampler: resampling after");
+        }
+    }
 }
 
 void
@@ -645,24 +659,69 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     } else {
         m_mode = ProcessMode::Processing;
     }
-    
-    size_t ws = m_channelData[0]->inbuf->getWriteSpace();
-    if (samples > ws) {
-        m_log.log(2, "R3Stretcher::process: insufficient space in input buffer, attempting consume before write");
-        consume();
-        ws = m_channelData[0]->inbuf->getWriteSpace();
-    }
-    if (samples > ws) {
-        m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called or process is being called repeatedly without retrieve. Write space and samples", ws, samples);
-        size_t newSize = m_channelData[0]->inbuf->getSize() - ws + samples;
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            auto newBuf = m_channelData[c]->inbuf->resized(newSize);
-            m_channelData[c]->inbuf = std::unique_ptr<RingBuffer<float>>(newBuf);
-        }
-    }
 
-    for (int c = 0; c < m_parameters.channels; ++c) {
-        m_channelData[c]->inbuf->write(input[c], samples);
+    int channels = m_parameters.channels;
+    int toWrite = int(samples);
+
+    bool resamplingBefore = false;
+    areWeResampling(&resamplingBefore, nullptr);
+        
+    if (resamplingBefore) {
+
+        for (int c = 0; c < channels; ++c) {
+            auto &cd = m_channelData.at(c);
+            m_channelAssembly.resampled[c] = cd->resampled.data();
+        }
+
+        toWrite = m_resampler->resample
+            (m_channelAssembly.resampled.data(),
+             m_channelData.at(0)->resampled.size(),
+             input,
+             int(samples),
+             1.0 / m_pitchScale,
+             final);
+    }
+    
+    int written = 0;
+        
+    while (written < toWrite) {
+
+        int remaining = toWrite - written;
+        int ws = m_channelData[0]->inbuf->getWriteSpace();
+
+        if (ws == 0) {
+            consume();
+            ws = m_channelData[0]->inbuf->getWriteSpace();
+        }
+        
+        if (ws == 0) {
+            m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called, process is being called repeatedly without retrieve, or an internal error has led to an incorrect resampler output calculation. Samples to write", toWrite);
+            size_t newSize = m_channelData[0]->inbuf->getSize() + toWrite;
+            for (int c = 0; c < m_parameters.channels; ++c) {
+                auto newBuf = m_channelData[c]->inbuf->resized(newSize);
+                m_channelData[c]->inbuf =
+                    std::unique_ptr<RingBuffer<float>>(newBuf);
+            }
+            continue;
+        }
+
+        int toWriteHere = remaining;
+        if (toWriteHere > ws) {
+            toWriteHere = ws;
+        }
+
+        for (int c = 0; c < m_parameters.channels; ++c) {
+            if (resamplingBefore) {
+                m_channelData[c]->inbuf->write
+                    (m_channelData.at(c)->resampled.data() + written,
+                     toWriteHere);
+            } else {
+                m_channelData[c]->inbuf->write
+                    (input[c] + written, toWriteHere);
+            }
+        }
+
+        written += toWriteHere;
     }
 
     consume();
@@ -707,6 +766,9 @@ R3Stretcher::consume()
     int longest = m_guideConfiguration.longestFftSize;
     int channels = m_parameters.channels;
     int inhop = m_inhop;
+
+    bool resamplingAfter = false;
+    areWeResampling(nullptr, &resamplingAfter);
 
     double effectivePitchRatio = 1.0 / m_pitchScale;
     if (m_resampler) {
@@ -818,17 +880,8 @@ R3Stretcher::consume()
         
         // Resample
 
-        bool resampling = false;
-        if (m_resampler) {
-            if (m_pitchScale != 1.0 ||
-                (m_parameters.options &
-                 RubberBandStretcher::OptionPitchHighConsistency)) {
-                resampling = true;
-            }
-        }
-        
         int resampledCount = 0;
-        if (resampling) {
+        if (resamplingAfter) {
             for (int c = 0; c < channels; ++c) {
                 auto &cd = m_channelData.at(c);
                 m_channelAssembly.mixdown[c] = cd->mixdown.data();
@@ -846,7 +899,7 @@ R3Stretcher::consume()
         // Emit
 
         int writeCount = outhop;
-        if (resampling) {
+        if (resamplingAfter) {
             writeCount = resampledCount;
         }
         if (!isRealTime()) {
@@ -871,7 +924,7 @@ R3Stretcher::consume()
         
         for (int c = 0; c < channels; ++c) {
             auto &cd = m_channelData.at(c);
-            if (resampling) {
+            if (resamplingAfter) {
                 cd->outbuf->write(cd->resampled.data(), writeCount);
             } else {
                 cd->outbuf->write(cd->mixdown.data(), writeCount);

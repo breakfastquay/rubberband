@@ -1222,9 +1222,9 @@ D_Speex::setRatio(double ratio)
     // Speex wants a ratio of two unsigned integers, not a single
     // float.  Let's do that.
 
-    int max_denom = 96000;
+    int max_denom = 48000;
     if (ratio > 1.0) {
-        max_denom = int(ceil(96000 / ratio));
+        max_denom = int(ceil(48000 / ratio));
     }
 
     int inum, idenom;

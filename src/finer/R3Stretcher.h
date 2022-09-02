@@ -398,6 +398,29 @@ protected:
             RubberBandStretcher::OptionProcessRealTime;
     }
 
+    void areWeResampling(bool *before, bool *after) const {
+
+        if (before) *before = false;
+        if (after) *after = false;
+        if (!m_resampler) return;
+
+        if (m_parameters.options &
+            RubberBandStretcher::OptionPitchHighConsistency) {
+            if (after) *after = true;
+            
+        } else if (m_pitchScale != 1.0) {
+            if (m_pitchScale > 1.0 &&
+                (m_parameters.options &
+                 RubberBandStretcher::OptionPitchHighQuality)) {
+                if (after) *after = true;
+            } else if (m_pitchScale < 1.0) {
+                if (after) *after = true;
+            } else {
+                if (before) *before = true;
+            }
+        }
+    }        
+
     bool isSingleWindowed() const {
         return m_parameters.options &
             RubberBandStretcher::OptionWindowShort;
