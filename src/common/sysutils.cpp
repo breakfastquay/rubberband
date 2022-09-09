@@ -166,43 +166,6 @@ void gettimeofday(struct timeval *tv, void *tz)
 
 #endif
 
-void system_specific_initialise()
-{
-#if defined HAVE_IPP
-#ifndef USE_IPP_DYNAMIC_LIBS
-#if (IPP_VERSION_MAJOR < 9)
-    // This was removed in v9
-    ippStaticInit();
-#endif
-#endif
-    ippSetDenormAreZeros(1);
-#elif defined HAVE_VDSP
-#if defined __i386__ || defined __x86_64__ 
-    fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
-#elif defined __arm64__
-    fesetenv(FE_DFL_DISABLE_DENORMS_ENV);
-#endif
-#endif
-#if defined __ARMEL__
-    // ARM32
-    static const unsigned int x = 0x04086060;
-    static const unsigned int y = 0x03000000;
-    int r;
-    asm volatile (
-        "fmrx	%0, fpscr   \n\t"
-        "and	%0, %0, %1  \n\t"
-        "orr	%0, %0, %2  \n\t"
-        "fmxr	fpscr, %0   \n\t"
-        : "=r"(r)
-        : "r"(x), "r"(y)
-	);
-#endif
-}
-
-void system_specific_application_initialise()
-{
-}
-
 #ifdef _WIN32
 void system_memorybarrier()
 {

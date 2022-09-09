@@ -96,8 +96,6 @@ typedef double process_t;
 
 extern const char *system_get_platform_tag();
 extern bool system_is_multiprocessor();
-extern void system_specific_initialise();
-extern void system_specific_application_initialise();
 
 #ifdef _WIN32
 struct timeval { long tv_sec; long tv_usec; };

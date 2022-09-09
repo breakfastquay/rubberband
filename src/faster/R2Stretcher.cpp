@@ -54,8 +54,6 @@ R2Stretcher::m_defaultIncrement = 256;
 const size_t
 R2Stretcher::m_defaultFftSize = 2048;
 
-static bool _initialised = false;
-
 R2Stretcher::R2Stretcher(size_t sampleRate,
                          size_t channels,
                          RubberBandStretcher::Options options,
@@ -102,11 +100,6 @@ R2Stretcher::R2Stretcher(size_t sampleRate,
     m_baseFftSize(m_defaultFftSize)
 {
     Profiler profiler("R2Stretcher::R2Stretcher");
-    
-    if (!_initialised) {
-        system_specific_initialise();
-        _initialised = true;
-    }
 
     m_log.log(1, "R2Stretcher::R2Stretcher: rate, options",
               m_sampleRate, options);
