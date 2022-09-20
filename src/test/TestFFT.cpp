@@ -699,9 +699,9 @@ ALL_IMPL_AUTO_TEST_CASE(random)
     double *re_compare = new double[n/2 + 1];
     double *im_compare = new double[n/2 + 1];
     double *back = new double[n];
-    srand48(0);
+    srand();
     for (int i = 0; i < n; ++i) {
-        in[i] = drand48() * 4.0 - 2.0;
+        in[i] = (double(rand()) / double(RAND_MAX)) * 4.0 - 2.0;
     }
     USING_FFT(n);
     if (eps < 1e-11) {
