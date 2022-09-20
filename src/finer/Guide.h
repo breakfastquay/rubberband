@@ -465,9 +465,9 @@ protected:
     int roundUp(int value) const {
         if (value < 1) return 1;
         if (!(value & (value - 1))) return value;
-        int bits = 0;
+        size_t bits = 0;
         while (value) { ++bits; value >>= 1; }
-        value = 1 << bits;
+        value = size_t(1) << bits;
         return value;
     }
 

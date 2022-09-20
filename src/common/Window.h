@@ -121,22 +121,25 @@ void Window<T>::encache()
 
     const int n = m_size;
     v_set(m_cache, T(1.0), n);
-    int i;
 
     switch (m_type) {
 		
     case RectangularWindow:
-	for (i = 0; i < n; ++i) {
+    {
+	for (int i = 0; i < n; ++i) {
 	    m_cache[i] *= 0.5;
 	}
 	break;
+    }
 	    
     case BartlettWindow:
-	for (i = 0; i < n/2; ++i) {
+    {
+	for (int i = 0; i < n/2; ++i) {
 	    m_cache[i] *= (i / T(n/2));
 	    m_cache[i + n/2] *= (1.0 - (i / T(n/2)));
 	}
 	break;
+    }
 	    
     case HammingWindow:
         cosinewin(m_cache, 0.54, 0.46, 0.0, 0.0);
@@ -151,20 +154,22 @@ void Window<T>::encache()
 	break;
 	    
     case GaussianWindow:
-	for (i = 0; i < n; ++i) {
+    {
+	for (int i = 0; i < n; ++i) {
             m_cache[i] *= pow(2, - pow((i - (n-1)/2.0) / ((n-1)/2.0 / 3), 2));
 	}
 	break;
+    }
 	    
     case ParzenWindow:
     {
         int N = n-1;
-        for (i = 0; i < N/4; ++i) {
+        for (int i = 0; i < N/4; ++i) {
             T m = 2 * pow(1.0 - (T(N)/2 - i) / (T(N)/2), 3);
             m_cache[i] *= m;
             m_cache[N-i] *= m;
         }
-        for (i = N/4; i <= N/2; ++i) {
+        for (int i = N/4; i <= N/2; ++i) {
             int wn = i - N/2;
             T m = 1.0 - 6 * pow(wn / (T(N)/2), 2) * (1.0 - abs(wn) / (T(N)/2));
             m_cache[i] *= m;
@@ -241,7 +246,7 @@ void Window<T>::encache()
     }
 	
     m_area = 0;
-    for (i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
         m_area += m_cache[i];
     }
     m_area /= n;

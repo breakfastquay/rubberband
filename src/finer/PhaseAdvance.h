@@ -100,13 +100,13 @@ public:
         Profiler profiler("GuidedPhaseAdvance::advance");
         
         int myFftBand = 0;
-        int i = 0;
+        int bandi = 0;
         for (const auto &fband : guidance[0]->fftBands) {
             if (fband.fftSize == m_parameters.fftSize) {
-                myFftBand = i;
+                myFftBand = bandi;
                 break;
             }
-            ++i;
+            ++bandi;
         }
 
         int bs = m_parameters.fftSize / 2 + 1;

@@ -108,9 +108,9 @@ void gettimeofday(struct timeval *p, void *tz);
 
 #ifdef _WIN32
 
-#define MLOCK(a,b)   1
-#define MUNLOCK(a,b) 1
-#define MUNLOCK_SAMPLEBLOCK(a) 1
+#define MLOCK(a,b)   (void)1
+#define MUNLOCK(a,b) (void)1
+#define MUNLOCK_SAMPLEBLOCK(a) (void)1
 
 namespace RubberBand {
 extern void system_memorybarrier();
