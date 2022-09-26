@@ -78,12 +78,6 @@ public:
     RingBuffer<T> *resized(int newSize) const;
 
     /**
-     * Lock the ring buffer into physical memory.  Returns true
-     * for success.
-     */
-    bool mlock();
-
-    /**
      * Reset read and write pointers, thus emptying the buffer.
      * Should be called from the write thread.
      */
@@ -184,7 +178,6 @@ protected:
     std::atomic<int>  m_writer;
     std::atomic<int>  m_reader;
     const int         m_size;
-    bool              m_mlocked;
 
     int readSpaceFor(int w, int r) const {
         int space;
@@ -209,8 +202,7 @@ template <typename T>
 RingBuffer<T>::RingBuffer(int n) :
     m_buffer(allocate<T>(n + 1)),
     m_writer(0),
-    m_size(n + 1),
-    m_mlocked(false)
+    m_size(n + 1)
 {
 #ifdef DEBUG_RINGBUFFER
     std::cerr << "RingBuffer<T>[" << this << "]::RingBuffer(" << n << ")" << std::endl;
@@ -225,10 +217,6 @@ RingBuffer<T>::~RingBuffer()
 #ifdef DEBUG_RINGBUFFER
     std::cerr << "RingBuffer<T>[" << this << "]::~RingBuffer" << std::endl;
 #endif
-
-    if (m_mlocked) {
-	MUNLOCK((void *)m_buffer, m_size * sizeof(T));
-    }
 
     deallocate(m_buffer);
 }
@@ -261,15 +249,6 @@ RingBuffer<T>::resized(int newSize) const
     }
 
     return newBuffer;
-}
-
-template <typename T>
-bool
-RingBuffer<T>::mlock()
-{
-    if (MLOCK((void *)m_buffer, m_size * sizeof(T))) return false;
-    m_mlocked = true;
-    return true;
 }
 
 template <typename T>
