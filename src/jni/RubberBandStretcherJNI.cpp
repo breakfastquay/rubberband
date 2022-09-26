@@ -23,7 +23,7 @@
 
 #include "rubberband/RubberBandStretcher.h"
 
-#include "system/Allocators.h"
+#include "common/Allocators.h"
 
 #include <jni.h>
 
