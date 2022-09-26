@@ -119,6 +119,7 @@ samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
 speexdsp_dep = dependency('speexdsp', version: '>= 1.0.0', required: false)
 sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
+
 boost_unit_test_dep = dependency('boost', modules: ['unit_test_framework'], version: '>= 1.73', required: false)
 thread_dep = dependency('threads')
 have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
@@ -126,7 +127,13 @@ have_lv2 = cpp.has_header('lv2.h', args: extra_include_args)
 have_sincos = cpp.has_function('sincos',
                                prefix: '#define _GNU_SOURCE\n#include <math.h>',
                                args: '-lm')
-have_jni = cpp.has_header('jni.h', args: extra_include_args)
+
+jni_dep = dependency('jni', version: '>= 7.0.0', required: false)
+if not jni_dep.found()
+  if cpp.has_header('jni.h', args: extra_include_args)
+    jni_dep = declare_dependency()
+  endif
+endif
 
 javac = find_program('javac', required: false)
 jar = find_program('jar', required: false)
@@ -584,7 +591,7 @@ if get_option('default_library') != 'shared' and rubberband_additional_static_li
   )
 endif
 
-if have_jni and javac.found() and jar.found()
+if jni_dep.found() and javac.found() and jar.found()
   target_summary += { 'JNI library': [ true, 'Name: ' + rubberband_jni_name ] }
   message('Will build Java Native Interface')
   rubberband_jni = shared_library(
@@ -599,6 +606,7 @@ if have_jni and javac.found() and jar.found()
     ],
     dependencies: [
       rubberband_objlib_dep,
+      jni_dep,
       general_dependencies,
     ],
     # NB the JNI library is not versioned
