@@ -533,6 +533,18 @@ int main(int argc, char **argv)
     char *fileName = strdup(argv[optind++]);
     char *fileNameOut = strdup(argv[optind++]);
 
+    std::string extIn, extOut;
+    for (int i = strlen(fileName); i > 0; ) {
+        if (fileName[--i] == '.') {
+            extIn = fileName + i + 1;
+        }
+    }
+    for (int i = strlen(fileNameOut); i > 0; ) {
+        if (fileNameOut[--i] == '.') {
+            extOut = fileNameOut + i + 1;
+        }
+    }
+    
     SNDFILE *sndfile;
     SNDFILE *sndfileOut;
     SF_INFO sfinfo;
@@ -562,11 +574,28 @@ int main(int argc, char **argv)
     }
     
     sfinfoOut.channels = sfinfo.channels;
-    sfinfoOut.format = sfinfo.format;
     sfinfoOut.frames = int(sfinfo.frames * ratio + 0.1);
     sfinfoOut.samplerate = sfinfo.samplerate;
     sfinfoOut.sections = sfinfo.sections;
     sfinfoOut.seekable = sfinfo.seekable;
+
+    if (extIn == extOut) {
+        sfinfoOut.format = sfinfo.format;
+    } else {
+        std::string ex = extOut;
+        for (size_t i = 0; i < ex.size(); ++i) {
+            ex[i] = tolower(ex[i]);
+        }
+        if (ex == "wav") {
+            sfinfoOut.format = SF_FORMAT_WAV | SF_FORMAT_PCM_24;
+        } else if (ex == "w64") {
+            sfinfoOut.format = SF_FORMAT_W64 | SF_FORMAT_PCM_24;
+        } else if (ex == "ogg") {
+            sfinfoOut.format = SF_FORMAT_OGG;
+        } else { // fall back to
+            sfinfoOut.format = sfinfo.format;
+        }
+    }
     
     sndfileOut = sf_open(fileNameOut, SFM_WRITE, &sfinfoOut) ;
     if (!sndfileOut) {
