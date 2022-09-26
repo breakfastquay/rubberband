@@ -131,8 +131,6 @@ protected:
 
     double getEffectiveRatio() const;
     
-    size_t roundUp(size_t value); // to next power of two
-
     template <typename T, typename S>
     void cutShiftAndFold(T *target, int targetSize,
                          S *src, // destructive to src

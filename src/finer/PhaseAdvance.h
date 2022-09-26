@@ -141,7 +141,9 @@ public:
                 int endBin = binForFrequency
                     (band.f1, m_parameters.fftSize, m_parameters.sampleRate);
                 if (startBin > highest || endBin < lowest) continue;
+                if (endBin > highest) endBin = highest;
                 int count = endBin - startBin + 1;
+                if (count < 1) continue;
                 m_peakPicker.findNearestAndNextPeaks(mag[c],
                                                      startBin, count,
                                                      band.p, m_currentPeaks[c],

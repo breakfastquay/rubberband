@@ -34,9 +34,9 @@ R3Stretcher::R3Stretcher(Parameters parameters,
                          double initialTimeRatio,
                          double initialPitchScale,
                          Log log) :
-    m_parameters(parameters),
-    m_limits(parameters.options),
     m_log(log),
+    m_parameters(validateSampleRate(parameters)),
+    m_limits(parameters.options, m_parameters.sampleRate),
     m_timeRatio(initialTimeRatio),
     m_pitchScale(initialPitchScale),
     m_formantScale(0.0),
@@ -145,10 +145,10 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
 
     if (!m_inhop.is_lock_free()) {
-        m_log.log(0, "WARNING: std::atomic<int> is not lock-free");
+        m_log.log(0, "R3Stretcher: WARNING: std::atomic<int> is not lock-free");
     }
     if (!m_timeRatio.is_lock_free()) {
-        m_log.log(0, "WARNING: std::atomic<double> is not lock-free");
+        m_log.log(0, "R3Stretcher: WARNING: std::atomic<double> is not lock-free");
     }
 }
 
@@ -158,7 +158,7 @@ R3Stretcher::ScaleData::analysisWindowShape()
     if (singleWindowMode) {
         return HannWindow;
     } else {
-        if (fftSize > 2048) return HannWindow;
+        if (fftSize < 1024 || fftSize > 2048) return HannWindow;
         else return NiemitaloForwardWindow;
     }
 }
@@ -175,7 +175,7 @@ R3Stretcher::ScaleData::synthesisWindowShape()
     if (singleWindowMode) {
         return HannWindow;
     } else {
-        if (fftSize > 2048) return HannWindow;
+        if (fftSize < 1024 || fftSize > 2048) return HannWindow;
         else return NiemitaloReverseWindow;
     }
 }
@@ -303,7 +303,7 @@ R3Stretcher::createResampler()
     areWeResampling(&before, &after);
     if (before) {
         if (after) {
-            m_log.log(0, "WARNING: createResampler: we think we are resampling both before and after!");
+            m_log.log(0, "R3Stretcher: WARNING: we think we are resampling both before and after!");
         } else {
             m_log.log(1, "createResampler: resampling before");
         }
@@ -356,12 +356,12 @@ R3Stretcher::calculateHop()
     
     double inhop = proposedOuthop / ratio;
     if (inhop < m_limits.minInhop) {
-        m_log.log(0, "WARNING: Ratio yields ideal inhop < minimum, results may be suspect", inhop, m_limits.minInhop);
+        m_log.log(0, "R3Stretcher: WARNING: Ratio yields ideal inhop < minimum, results may be suspect", inhop, m_limits.minInhop);
         inhop = m_limits.minInhop;
     }
     if (inhop > m_limits.maxInhop) {
         // Log level 1, this is not as big a deal as < minInhop above
-        m_log.log(1, "WARNING: Ratio yields ideal inhop > maximum, results may be suspect", inhop, m_limits.maxInhop);
+        m_log.log(1, "R3Stretcher: WARNING: Ratio yields ideal inhop > maximum, results may be suspect", inhop, m_limits.maxInhop);
         inhop = m_limits.maxInhop;
     }
 
@@ -919,7 +919,7 @@ R3Stretcher::consume()
         if (advanceCount > readSpace) {
             // This should happen only when draining (Finished)
             if (m_mode != ProcessMode::Finished) {
-                m_log.log(0, "WARNING: readSpace < inhop when processing is not yet finished", readSpace, inhop);
+                m_log.log(0, "R3Stretcher: WARNING: readSpace < inhop when processing is not yet finished", readSpace, inhop);
             }
             advanceCount = readSpace;
         }
@@ -1370,6 +1370,11 @@ R3Stretcher::synthesiseChannel(int c, int outhop, bool draining)
         int highBin = binForFrequency(band.f1, fftSize, m_parameters.sampleRate);
         if (highBin % 2 == 0 && highBin > 0) --highBin;
 
+        int n = scale->mag.size();
+        if (lowBin >= n) lowBin = n - 1;
+        if (highBin >= n) highBin = n - 1;
+        if (highBin < lowBin) highBin = lowBin;
+        
         if (lowBin > 0) {
             v_zero(scale->real.data(), lowBin);
             v_zero(scale->imag.data(), lowBin);

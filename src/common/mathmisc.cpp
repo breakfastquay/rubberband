@@ -66,4 +66,19 @@ void pickNearestRational(double ratio, int max_denom, int &num, int &denom)
     }
 }
 
+size_t roundUp(size_t value)
+{
+    if (!(value & (value - 1))) return value;
+    size_t bits = 0;
+    while (value) { ++bits; value >>= 1; }
+    value = size_t(1) << bits;
+    return value;
+}
+
+size_t roundUpDiv(double divisionOf, size_t divisor)
+{
+    if (divisionOf < 0.0) return 0;
+    return roundUp(size_t(ceil(divisionOf / double(divisor))));
+}
+
 }

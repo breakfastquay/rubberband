@@ -464,6 +464,13 @@ public:
      * Construct a time and pitch stretcher object to run at the given
      * sample rate, with the given number of channels.
      *
+     * Both of the stretcher engines provide their best balance of
+     * quality with efficiency at sample rates of 44100 or 48000 Hz.
+     * Other rates may be used, and the stretcher should produce
+     * sensible output with any rate from 8000 to 192000 Hz, but you
+     * are advised to use 44100 or 48000 where practical. Do not use
+     * rates below 8000 or above 192000 Hz.
+     *
      * Initial time and pitch scaling ratios and other processing
      * options may be provided. In particular, the behaviour of the
      * stretcher depends strongly on whether offline or real-time mode

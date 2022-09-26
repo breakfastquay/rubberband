@@ -55,6 +55,10 @@ inline double frequencyForBin(int b, int fftSize, double sampleRate) {
 
 void pickNearestRational(double ratio, int maxDenom, int &num, int &denom);
 
+size_t roundUp(size_t value); // to nearest power of two
+
+size_t roundUpDiv(double divisionOf, size_t divisor);
+
 }
 
 #endif

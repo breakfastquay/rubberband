@@ -33,6 +33,7 @@
 #include "../common/Resampler.h"
 #include "../common/Profiler.h"
 #include "../common/sysutils.h"
+#include "../common/mathmisc.h"
 
 #include <cassert>
 #include <cmath>
@@ -363,16 +364,6 @@ R2Stretcher::getEffectiveRatio() const
     // of the stretch or squash in low-interest regions of audio.
 
     return m_timeRatio * m_pitchScale;
-}
-
-size_t
-R2Stretcher::roundUp(size_t value)
-{
-    if (!(value & (value - 1))) return value;
-    size_t bits = 0;
-    while (value) { ++bits; value >>= 1; }
-    value = size_t(1) << bits;
-    return value;
 }
 
 void

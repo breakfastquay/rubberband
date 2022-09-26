@@ -109,18 +109,19 @@ protected:
         int minInhop;
         int maxInhopWithReadahead;
         int maxInhop;
-        Limits(RubberBandStretcher::Options options) :
-            minPreferredOuthop(128),
-            maxPreferredOuthop(512),
+        Limits(RubberBandStretcher::Options options, double rate) :
+            // commented values are results when rate = 44100 or 48000
+            minPreferredOuthop(roundUpDiv(rate, 512)), // 128
+            maxPreferredOuthop(roundUpDiv(rate, 128)), // 512
             minInhop(1),
-            maxInhopWithReadahead(1024),
-            maxInhop(1024) {
+            maxInhopWithReadahead(roundUpDiv(rate, 32)), // 1024
+            maxInhop(roundUpDiv(rate, 32)) {             // 1024
             if (options & RubberBandStretcher::OptionWindowShort) {
                 // See note in calculateHop
-                minPreferredOuthop = 256;
-                maxPreferredOuthop = 640;
-                maxInhopWithReadahead = 512;
-                maxInhop = 1560;
+                minPreferredOuthop = roundUpDiv(rate, 256); // 256
+                maxPreferredOuthop = (roundUpDiv(rate, 128) * 5) / 4; // 640
+                maxInhopWithReadahead = roundUpDiv(rate, 128); // 512
+                maxInhop = (roundUpDiv(rate, 64) * 3) / 2; // 1536
             }
         }
     };
@@ -311,9 +312,9 @@ protected:
         int synthesisWindowLength();
     };
     
+    Log m_log;
     Parameters m_parameters;
     const Limits m_limits;
-    Log m_log;
 
     std::atomic<double> m_timeRatio;
     std::atomic<double> m_pitchScale;
@@ -365,6 +366,21 @@ protected:
         int polarFromBin;
         int polarBinCount;
     };
+
+    Parameters validateSampleRate(const Parameters &params) {
+        Parameters validated { params };
+        double minRate = 8000.0, maxRate = 192000.0;
+        if (params.sampleRate < minRate) {
+            m_log.log(0, "R3Stretcher: WARNING: Unsupported sample rate", params.sampleRate);
+            m_log.log(0, "R3Stretcher: Minimum rate is", minRate);
+            validated.sampleRate = minRate;
+        } else if (params.sampleRate > maxRate) {
+            m_log.log(0, "R3Stretcher: WARNING: Unsupported sample rate", params.sampleRate);
+            m_log.log(0, "R3Stretcher: Maximum rate is", maxRate);
+            validated.sampleRate = maxRate;
+        }
+        return validated;
+    }
     
     void convertToPolar(process_t *mag, process_t *phase,
                         const process_t *real, const process_t *imag,
