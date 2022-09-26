@@ -128,15 +128,25 @@ have_sincos = cpp.has_function('sincos',
                                prefix: '#define _GNU_SOURCE\n#include <math.h>',
                                args: '-lm')
 
-jni_dep = dependency('jni', version: '>= 7.0.0', required: false)
-if not jni_dep.found()
-  if cpp.has_header('jni.h', args: extra_include_args)
-    jni_dep = declare_dependency()
-  endif
-endif
-
 javac = find_program('javac', required: false)
 jar = find_program('jar', required: false)
+
+# Look for JNI only if javac and jar are found. This is because the
+# auto-JNI-dependency module in Meson 0.62 and 0.63 appears to bail
+# out of the build completely if it can't find javac, even when
+# required is false
+if javac.found() and jar.found()
+  jni_dep = dependency('jni', version: '>= 7.0.0', required: false)
+  if not jni_dep.found()
+    if cpp.has_header('jni.h', args: extra_include_args)
+      jni_dep = declare_dependency()
+    endif
+  endif
+else
+  # Declare jni_dep so it isn't totally undefined - but it won't be
+  # used below because we are conditional on javac/jar as well
+  jni_dep = declare_dependency()
+endif
 
 
 # Check FFT and resampler options and set up dependencies and paths
@@ -627,10 +637,10 @@ if jni_dep.found() and javac.found() and jar.found()
   )
 else
   target_summary += { 'JNI library': false }
-  if not jni_dep.found()
-    message('Not building Java Native Interface: jni.h header not found')
-  else 
-    message('Not building Java Native Interface: Java compiler not found')
+  if not (javac.found() and jar.found())
+    message('Not building Java Native Interface: Java compiler or archiver missing')
+  else
+    message('Not building Java Native Interface: JNI header not found')
   endif
 endif
 
