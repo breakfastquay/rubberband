@@ -627,7 +627,7 @@ if jni_dep.found() and javac.found() and jar.found()
   )
 else
   target_summary += { 'JNI library': false }
-  if not have_jni
+  if not jni_dep.found()
     message('Not building Java Native Interface: jni.h header not found')
   else 
     message('Not building Java Native Interface: Java compiler not found')
