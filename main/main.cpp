@@ -579,21 +579,32 @@ int main(int argc, char **argv)
     sfinfoOut.sections = sfinfo.sections;
     sfinfoOut.seekable = sfinfo.seekable;
 
-    if (extIn == extOut) {
-        sfinfoOut.format = sfinfo.format;
-    } else {
+    sfinfoOut.format = sfinfo.format;
+
+    if (extIn != extOut) {
         std::string ex = extOut;
         for (size_t i = 0; i < ex.size(); ++i) {
             ex[i] = tolower(ex[i]);
         }
-        if (ex == "wav") {
-            sfinfoOut.format = SF_FORMAT_WAV | SF_FORMAT_PCM_24;
-        } else if (ex == "w64") {
-            sfinfoOut.format = SF_FORMAT_W64 | SF_FORMAT_PCM_24;
-        } else if (ex == "ogg") {
-            sfinfoOut.format = SF_FORMAT_OGG;
-        } else { // fall back to
-            sfinfoOut.format = sfinfo.format;
+        int types = 0;
+        (void)sf_command(0, SFC_GET_FORMAT_MAJOR_COUNT, &types, sizeof(int));
+        bool found = false;
+        for (int i = 0; i < types; ++i) {
+            SF_FORMAT_INFO info;
+            info.format = i;
+            if (sf_command(0, SFC_GET_FORMAT_MAJOR, &info, sizeof(info))) {
+                continue;
+            } else {
+                if (ex == std::string(info.extension)) {
+                    sfinfoOut.format = info.format | SF_FORMAT_PCM_24;
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            cerr << "NOTE: Unknown output file extension \"" << extOut
+                 << "\", will use same file format as input file" << endl;
         }
     }
     
