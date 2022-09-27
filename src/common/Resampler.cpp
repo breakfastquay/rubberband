@@ -51,10 +51,6 @@
 #include <samplerate.h>
 #endif
 
-#ifdef HAVE_LIBRESAMPLE
-#include <libresample.h>
-#endif
-
 #ifdef USE_SPEEX
 #include "../ext/speex/speex_resampler.h"
 #else
@@ -69,12 +65,10 @@
 
 #ifndef HAVE_IPP
 #ifndef HAVE_LIBSAMPLERATE
-#ifndef HAVE_LIBRESAMPLE
 #ifndef HAVE_LIBSPEEXDSP
 #ifndef USE_SPEEX
 #ifndef USE_BQRESAMPLER
 #error No resampler implementation selected!
-#endif
 #endif
 #endif
 #endif
@@ -771,195 +765,6 @@ D_SRC::reset()
 
 #endif /* HAVE_LIBSAMPLERATE */
 
-#ifdef HAVE_LIBRESAMPLE
-
-class D_Resample : public Resampler::Impl
-{
-public:
-    D_Resample(Resampler::Quality quality, Resampler::RatioChange,
-               int channels, double initialSampleRate,
-               int maxBufferSize, int m_debugLevel);
-    ~D_Resample();
-
-    int resample(float *const BQ_R__ *const BQ_R__ out,
-                 int outcount,
-                 const float *const BQ_R__ *const BQ_R__ in,
-                 int incount,
-                 double ratio,
-                 bool final);
-
-    int resampleInterleaved(float *const BQ_R__ out,
-                            int outcount,
-                            const float *const BQ_R__ in,
-                            int incount,
-                            double ratio,
-                            bool final);
-
-    int getChannelCount() const { return m_channels; }
-    double getEffectiveRatio(double ratio) const { return ratio; }
-
-    void reset();
-
-protected:
-    void *m_src;
-    float *m_iin;
-    float *m_iout;
-    double m_lastRatio;
-    int m_channels;
-    int m_iinsize;
-    int m_ioutsize;
-    int m_debugLevel;
-};
-
-D_Resample::D_Resample(Resampler::Quality quality,
-                       int channels, double, int maxBufferSize, int debugLevel) :
-    m_src(0),
-    m_iin(0),
-    m_iout(0),
-    m_channels(channels),
-    m_iinsize(0),
-    m_ioutsize(0),
-    m_debugLevel(debugLevel)
-{
-    if (m_debugLevel > 0) {
-        cerr << "Resampler::Resampler: using implementation: libresample"
-                  << endl;
-    }
-
-    float min_factor = 0.125f;
-    float max_factor = 8.0f;
-
-    m_src = resample_open(quality == Resampler::Best ? 1 : 0, min_factor, max_factor);
-
-    if (!m_src) {
-        cerr << "Resampler::Resampler: failed to create libresample resampler: " 
-                  << endl;
-        throw Resampler::ImplementationError; //!!! of course, need to catch this!
-    }
-
-    if (maxBufferSize > 0 && m_channels > 1) {
-        m_iinsize = maxBufferSize * m_channels;
-        m_ioutsize = maxBufferSize * m_channels * 2;
-        m_iin = allocate<float>(m_iinsize);
-        m_iout = allocate<float>(m_ioutsize);
-    }
-
-    reset();
-}
-
-D_Resample::~D_Resample()
-{
-    resample_close(m_src);
-    if (m_iinsize > 0) {
-        deallocate(m_iin);
-    }
-    if (m_ioutsize > 0) {
-        deallocate(m_iout);
-    }
-}
-
-int
-D_Resample::resample(float *const BQ_R__ *const BQ_R__ out,
-                     int outcount,
-                     const float *const BQ_R__ *const BQ_R__ in,
-                     int incount,
-                     double ratio,
-                     bool final)
-{
-    float *data_in;
-    float *data_out;
-    int input_frames, output_frames, end_of_input, source_used;
-    float src_ratio;
-
-    int outcount = (int)lrint(ceil(incount * ratio));
-
-    if (m_channels == 1) {
-        data_in = const_cast<float *>(*in); //!!!???
-        data_out = *out;
-    } else {
-        if (incount * m_channels > m_iinsize) {
-            m_iin = reallocate<float>(m_iin, m_iinsize, incount * m_channels);
-            m_iinsize = incount * m_channels;
-        }
-        if (outcount * m_channels > m_ioutsize) {
-            m_iout = reallocate<float>(m_iout, m_ioutsize, outcount * m_channels);
-            m_ioutsize = outcount * m_channels;
-        }
-        v_interleave(m_iin, in, m_channels, incount);
-        data_in = m_iin;
-        data_out = m_iout;
-    }
-
-    input_frames = incount;
-    output_frames = outcount;
-    src_ratio = ratio;
-    end_of_input = (final ? 1 : 0);
-
-    int output_frames_gen = resample_process(m_src,
-                                             src_ratio,
-                                             data_in,
-                                             input_frames,
-                                             end_of_input,
-                                             &source_used,
-                                             data_out,
-                                             output_frames);
-
-    if (output_frames_gen < 0) {
-        cerr << "Resampler::process: libresample error: "
-                  << endl;
-        throw Resampler::ImplementationError; //!!! of course, need to catch this!
-    }
-
-    if (m_channels > 1) {
-        v_deinterleave(out, m_iout, m_channels, output_frames_gen);
-    }
-
-    return output_frames_gen;
-}
-
-int
-D_Resample::resampleInterleaved(float *const BQ_R__ out,
-                                int outcount,
-                                const float *const BQ_R__ in,
-                                int incount,
-                                double ratio,
-                                bool final)
-{
-    int input_frames, output_frames, end_of_input, source_used;
-    float src_ratio;
-
-    int outcount = (int)lrint(ceil(incount * ratio));
-
-    input_frames = incount;
-    output_frames = outcount;
-    src_ratio = ratio;
-    end_of_input = (final ? 1 : 0);
-
-    int output_frames_gen = resample_process(m_src,
-                                             src_ratio,
-                                             const_cast<float *>(in),
-                                             input_frames,
-                                             end_of_input,
-                                             &source_used,
-                                             out,
-                                             output_frames);
-
-    if (output_frames_gen < 0) {
-        cerr << "Resampler::process: libresample error: "
-                  << endl;
-        throw Resampler::ImplementationError; //!!! of course, need to catch this!
-    }
-
-    return output_frames_gen;
-}
-
-void
-D_Resample::reset()
-{
-}
-
-#endif /* HAVE_LIBRESAMPLE */
-
 #ifdef USE_BQRESAMPLER
     
 class D_BQResampler : public Resampler::Impl
@@ -1423,11 +1228,8 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
 #ifdef HAVE_LIBSPEEXDSP
         m_method = 2;
 #endif
-#ifdef HAVE_LIBRESAMPLE
-        m_method = 3;
-#endif
 #ifdef USE_BQRESAMPLER
-        m_method = 4;
+        m_method = 3;
 #endif
 #ifdef HAVE_LIBSAMPLERATE
         m_method = 1;
@@ -1438,9 +1240,6 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
 #ifdef HAVE_IPP
         m_method = 0;
 #endif
-#ifdef HAVE_LIBRESAMPLE
-        m_method = 3;
-#endif
 #ifdef USE_SPEEX
         m_method = 2;
 #endif
@@ -1448,7 +1247,7 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
         m_method = 2;
 #endif
 #ifdef USE_BQRESAMPLER
-        m_method = 4;
+        m_method = 3;
 #endif
 #ifdef HAVE_LIBSAMPLERATE
         m_method = 1;
@@ -1459,9 +1258,6 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
 #ifdef HAVE_IPP
         m_method = 0;
 #endif
-#ifdef HAVE_LIBRESAMPLE
-        m_method = 3;
-#endif
 #ifdef USE_SPEEX
         m_method = 2;
 #endif
@@ -1469,7 +1265,7 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
         m_method = 2;
 #endif
 #ifdef USE_BQRESAMPLER
-        m_method = 4;
+        m_method = 3;
 #endif
 #ifdef HAVE_LIBSAMPLERATE
         m_method = 1;
@@ -1520,18 +1316,6 @@ Resampler::Resampler(Resampler::Parameters params, int channels)
         break;
 
     case 3:
-#ifdef HAVE_LIBRESAMPLE
-        d = new Resamplers::D_Resample
-            (params.quality, params.ratioChange,
-             channels,
-             params.initialSampleRate, params.maxBufferSize, params.debugLevel);
-#else
-        cerr << "Resampler::Resampler: No implementation available!" << endl;
-        abort();
-#endif
-        break;
-
-    case 4:
 #ifdef USE_BQRESAMPLER
         d = new Resamplers::D_BQResampler(params, channels);
 #else
