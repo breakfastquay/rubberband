@@ -28,6 +28,10 @@ performance, as well as a number of bug fixes.
    does) rather than waiting for silence or a transient.
  * Update R3 to properly support all sample rates between 8000 and
    192000 Hz.
+ * Update command-line utility so as to use the extension of the
+   output filename to determine the file type to write. Previously
+   the output was always the same format as the input file,
+   regardless of extension.
  * Remove support for libresample. This integration has not been
    exercised in many years and other resamplers are better options.
  * Fix several bugs, including a crash when run with very low sample
