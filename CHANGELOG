@@ -24,8 +24,8 @@ performance, as well as a number of bug fixes.
    Rubber Band. It may still introduce a little more audible noise on
    ratio changes than the built-in resampler.
  * Update the R2 engine so that it always restores vertical phase
-   coherence gradually when returning to a ratio of 1.0 rather than
-   waiting for silence or a transient (as R3 also does).
+   coherence gradually when returning to a ratio of 1.0 (as R3 also
+   does) rather than waiting for silence or a transient.
  * Update R3 to properly support all sample rates between 8000 and
    192000 Hz.
  * Remove support for libresample. This integration has not been
