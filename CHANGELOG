@@ -1,4 +1,42 @@
 
+Changes in Rubber Band v3.1
+
+This significant release contains many enhancements that can improve
+performance, as well as a number of bug fixes.
+
+ * Add support for "short window" mode, OptionWindowShort, to the new
+   R3 processing engine. This option previously only took effect with
+   the R2 engine. When used with R3 it disables the R3 multi-window
+   logic while retaining R3's signal analysis, yielding output with
+   some of the quality advantages of R3 (especially for non-percussive
+   content) but with far lower CPU usage and processing delay.
+ * Implement OptionPitchHighSpeed in the R3 engine. Previously it
+   always used OptionPitchHighConsistency internally. In this mode
+   pitch-shifting upwards becomes much faster, at the expense of some
+   output quality. (However OptionPitchHighConsistency is still always
+   necessary to avoid artifacts when performing dynamic pitch changes.)
+ * Add support for the SLEEF library (libsleefdft) for FFTs. In
+   our tests this library approaches the performance of vDSP and IPP
+   and improves on the other supported options.
+ * Add support for external Speex library (libspeexdsp) for
+   resampling. This is a very fast resampler, significantly improved
+   over the older Speex code that has historically been bundled with
+   Rubber Band. It may still introduce a little more audible noise on
+   ratio changes than the built-in resampler.
+ * Update the R2 engine so that it always restores vertical phase
+   coherence gradually when returning to a ratio of 1.0 rather than
+   waiting for silence or a transient (as R3 also does).
+ * Update R3 to properly support all sample rates between 8000 and
+   192000 Hz.
+ * Remove support for libresample. This integration has not been
+   exercised in many years and other resamplers are better options.
+ * Fix several bugs, including a crash when run with very low sample
+   rates.
+
+The API is unchanged from 3.0 and the library is binary compatible
+back to version 1.7.
+
+
 Changes in Rubber Band v3.0.0
 
  * Introduce a new processing engine, the R3 (Finer) engine, which
