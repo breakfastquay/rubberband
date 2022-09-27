@@ -9,10 +9,10 @@ if [ ! -d /Applications ]; then
     make -f otherbuilds/Makefile.linux
     
     echo " *** Linking against static library"
-    g++ -std=c++11 main/main.cpp lib/librubberband.a -I. -Isrc -o test -lsndfile -lpthread
+    g++ -std=c++11 main/main.cpp lib/librubberband.a -I. -Isrc -o test_static -lsndfile -lpthread
     
     echo " *** Running build from Linux-specific Makefile"
-    ./test -V
+    ./test_static -V
     
     echo " *** Building with single-file source"
     g++ -O3 -std=c++11 main/main.cpp single/RubberBandSingle.cpp -o test_single -lsndfile
@@ -29,10 +29,10 @@ else
     make -f otherbuilds/Makefile.macos
 
     echo " *** Linking against static library"
-    c++ -std=c++11 main/main.cpp lib/librubberband.a -I. -Isrc -o test -lsndfile -framework Accelerate
+    c++ -std=c++11 main/main.cpp lib/librubberband.a -I. -Isrc -o test_static -lsndfile -framework Accelerate
     
     echo " *** Running build from macOS-specific Makefile"
-    ./test -V
+    ./test_static -V
 
     echo " *** Building with single-file source"
     c++ -O3 -std=c++11 main/main.cpp single/RubberBandSingle.cpp -o test_single -lsndfile -framework Accelerate
