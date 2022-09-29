@@ -240,7 +240,7 @@ resampler or libsamplerate.
 ### FFT libraries supported
 
 The choice of FFT library makes no difference to output quality, only
-to CPU usage.
+to processing speed.
 
 ```
 Library     Build option    CPP define         Notes
@@ -248,11 +248,12 @@ Library     Build option    CPP define         Notes
 
 Built-in    -Dfft=builtin   -DUSE_BUILTIN_FFT  Default except on macOS/iOS.
 
-Accelerate  -Dfft=vdsp      -DHAVE_VDSP        Default on macOS/iOS.
+vDSP        -Dfft=vdsp      -DHAVE_VDSP        Default on macOS/iOS (in
+                                               the Accelerate framework).
                                                Best option on these platforms.
 
 FFTW3       -Dfft=fftw      -DHAVE_FFTW3       A bit faster than built-in,
-                                               a bit slower than Accelerate.
+                                               a bit slower than vDSP.
                                                GPL licence.
 
 SLEEF       -Dfft=sleef     -DHAVE_SLEEF       Usually very fast. Not as widely
