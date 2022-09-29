@@ -135,7 +135,8 @@ public:
             for (int i = lowest; i <= highest; ++i) {
                 m_currentPeaks[c][i] = i;
             }
-            for (const auto &band : guidance[c]->phaseLockBands) {
+            for (int i = 0; i < guidance[c]->phaseLockBandCount; ++i) {
+                const auto &band = guidance[c]->phaseLockBands[i];
                 int startBin = binForFrequency
                     (band.f0, m_parameters.fftSize, m_parameters.sampleRate);
                 int endBin = binForFrequency
@@ -189,7 +190,8 @@ public:
             for (int i = lowest; i <= highest; ++i) {
                 process_t f = frequencyForBin
                     (i, m_parameters.fftSize, m_parameters.sampleRate);
-                while (f > g->phaseLockBands[phaseLockBand].f1) {
+                while (f > g->phaseLockBands[phaseLockBand].f1 &&
+                       phaseLockBand + 1 < g->phaseLockBandCount) {
                     ++phaseLockBand;
                 }
                 process_t ph = 0.0;

@@ -241,7 +241,7 @@ public:
             guidance.phaseLockBands[0].f1 = 1600.0;
             
             guidance.phaseLockBands[1].p = 2;
-            guidance.phaseLockBands[1].beta = betaFor(4800.0, ratio);
+            guidance.phaseLockBands[1].beta = betaFor(5000.0, ratio);
             guidance.phaseLockBands[1].f0 = 1600.0;
             guidance.phaseLockBands[1].f1 = 7000.0;
             
@@ -403,7 +403,7 @@ public:
             guidance.phaseLockBands[1].f1 = mid;
         
             guidance.phaseLockBands[2].p = 3;
-            guidance.phaseLockBands[2].beta = betaFor(4800.0, ratio);
+            guidance.phaseLockBands[2].beta = betaFor(5000.0, ratio);
             guidance.phaseLockBands[2].f0 = mid;
             guidance.phaseLockBands[2].f1 = higher;
             

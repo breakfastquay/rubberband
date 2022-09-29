@@ -158,6 +158,7 @@
     <ClCompile Include="..\src\common\StretchCalculator.cpp" />
     <ClCompile Include="..\src\common\mathmisc.cpp" />
     <ClCompile Include="..\src\common\sysutils.cpp" />
+    <ClCompile Include="..\src\common\mathmisc.cpp" />
     <ClCompile Include="..\src\common\Thread.cpp" />
     <ClCompile Include="..\src\finer\R3Stretcher.cpp" />
   </ItemGroup>
