@@ -274,13 +274,7 @@ R3Stretcher::createResampler()
     Profiler profiler("R3Stretcher::createResampler");
     
     Resampler::Parameters resamplerParameters;
-
-    if (m_parameters.options & RubberBandStretcher::OptionPitchHighQuality) {
-        resamplerParameters.quality = Resampler::Best;
-    } else {
-        resamplerParameters.quality = Resampler::FastestTolerable;
-    }
-    
+    resamplerParameters.quality = Resampler::FastestTolerable;
     resamplerParameters.initialSampleRate = m_parameters.sampleRate;
     resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize;
 

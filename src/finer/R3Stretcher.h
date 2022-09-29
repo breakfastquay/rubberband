@@ -418,21 +418,53 @@ protected:
 
         if (before) *before = false;
         if (after) *after = false;
+
+        // Some of the logic about when/whether to resample may have
+        // already been decided, because we might not have a
+        // resampler. This call is for the processing path, we don't
+        // make big decisions here and can't be saying we should
+        // resample if there is no resampler
         if (!m_resampler) return;
 
-        if (m_parameters.options &
-            RubberBandStretcher::OptionPitchHighConsistency) {
+        // In offline mode we always ignore the OptionPitch setting
+        // and resample afterwards, like OptionPitchHighConsistency
+        // (except that we don't resample for ratio of 1.0). This is
+        // because (a) the initial algorithm was developed and tested
+        // that way, (b) R2 works that way and nobody has ever
+        // complained, and (c) otherwise for the command-line tool
+        // (which is probably the most common way to use RB offline)
+        // we would have to choose between defaulting to lower-quality
+        // OptionPitchHighSpeed or offering yet another setting, both
+        // of which are undesirable.
+        
+        if (!isRealTime()) {
+            if (m_pitchScale != 1.0) {
+                // Offline, any pitch scale
+                if (after) *after = true;
+            }
+        } else if (m_parameters.options &
+                   RubberBandStretcher::OptionPitchHighConsistency) {
+            // RT, any pitch scale, HC
             if (after) *after = true;
             
         } else if (m_pitchScale != 1.0) {
-            if (m_pitchScale > 1.0 &&
-                (m_parameters.options &
-                 RubberBandStretcher::OptionPitchHighQuality)) {
-                if (after) *after = true;
+
+            bool hq = (m_parameters.options &
+                       RubberBandStretcher::OptionPitchHighQuality);
+            // We already handled OptionPitchHighConsistency, so if
+            // !hq then we must be HighSpeed
+            if (m_pitchScale > 1.0) {
+                if (hq) {
+                    if (after) *after = true;
+                } else {
+                    if (before) *before = true;
+                }
             } else if (m_pitchScale < 1.0) {
-                if (after) *after = true;
-            } else {
-                if (before) *before = true;
+                if (hq) {
+                    if (before) *before = true;
+                } else {
+                    if (after) *after = true;
+                }
             }
         }
     }        

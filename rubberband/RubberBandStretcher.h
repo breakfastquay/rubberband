@@ -328,10 +328,10 @@ public:
      *   perceived pitch profile of the voice or instrument.
      *
      * 10. Flags prefixed \c OptionPitch control the method used for
-     * pitch shifting. In the R2 engine they may be changed at any
-     * time but affect only realtime mode (in offline mode the method
-     * cannot be changed). In the R3 engine they affect both realtime
-     * and offline modes but are fixed on construction.
+     * pitch shifting. These options affect only realtime mode. In
+     * offline mode the method is not adjustable. In the R2 engine
+     * these options may be changed at any time; in the R3 engine they
+     * may be set only on construction.
      *
      *   \li \c OptionPitchHighSpeed - Favour CPU cost over sound
      *   quality. This is the default. Use this when time-stretching
