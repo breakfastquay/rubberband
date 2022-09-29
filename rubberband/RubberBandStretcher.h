@@ -276,13 +276,23 @@ public:
      *   this causes the engine's full multi-resolution processing
      *   scheme to be used.
      *
-     *   \li \c OptionWindowShort - Use a shorter window. With the R2
-     *   engine this may result in crisper sound for audio that
-     *   depends strongly on its timing qualities. With the R3 engine,
-     *   this causes the engine to be restricted to a single window
-     *   size, resulting in both dramatically faster processing and
-     *   lower latency than OptionWindowStandard, but at the expense
-     *   of some sound quality.
+     *   \li \c OptionWindowShort - Use a shorter window. This has
+     *   different effects with R2 and R3 engines.
+     *
+     *   With the R2 engine it may result in crisper sound for audio
+     *   that depends strongly on its timing qualities, but is likely
+     *   to sound worse in other ways and will have similar
+     *   efficiency.
+     *
+     *   With the R3 engine, it causes the engine to be restricted to
+     *   a single window size, resulting in both dramatically faster
+     *   processing and lower delay than OptionWindowStandard, but at
+     *   the expense of some sound quality. It may still sound better
+     *   for non-percussive material than the R2 engine.
+     *
+     *   With both engines it reduces the start delay somewhat (see
+     *   RubberBandStretcher::getStartDelay) which may be useful for
+     *   real-time handling.
      *
      *   \li \c OptionWindowLong - Use a longer window. With the R2
      *   engine this is likely to result in a smoother sound at the

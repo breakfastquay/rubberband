@@ -325,11 +325,12 @@ int main(int argc, char **argv)
             cerr << "(2)      --no-transients  Disable phase resynchronisation at transients" << endl;
             cerr << "(2)      --bl-transients  Band-limit phase resync to extreme frequencies" << endl;
             cerr << "(2)      --no-lamination  Disable phase lamination" << endl;
-            cerr << "(2)      --window-long    Use longer processing window (actual size may vary)" << endl;
-            cerr << "(2)      --window-short   Use shorter processing window" << endl;
             cerr << "(2)      --smoothing      Apply window presum and time-domain smoothing" << endl;
             cerr << "(2)      --detector-perc  Use percussive transient detector (as in pre-1.5)" << endl;
             cerr << "(2)      --detector-soft  Use soft transient detector" << endl;
+            cerr << "(2)      --window-long    Use longer processing window (actual size may vary)" << endl;
+            cerr << "         --window-short   Use shorter processing window (with the R3 engine" << endl;
+            cerr << "                          this is effectively a quick \"draft mode\")" << endl;
             cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
             cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
             cerr << "                          (at a cost in width and individual channel quality)" << endl;
