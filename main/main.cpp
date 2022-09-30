@@ -538,11 +538,13 @@ int main(int argc, char **argv)
     for (int i = strlen(fileName); i > 0; ) {
         if (fileName[--i] == '.') {
             extIn = fileName + i + 1;
+            break;
         }
     }
     for (int i = strlen(fileNameOut); i > 0; ) {
         if (fileNameOut[--i] == '.') {
             extOut = fileNameOut + i + 1;
+            break;
         }
     }
     
