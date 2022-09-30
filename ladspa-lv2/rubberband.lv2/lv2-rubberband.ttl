@@ -133,9 +133,8 @@ rubberband:mono
         foaf:maker :maker ;
         doap:developer :maker ;
         doap:maintainer :maker ;
-        # Minor version will be 2x the Rubber Band API minor version,
-        # but this is an initial test release, so 0
-        lv2:minorVersion 0 ;
+        # Minor version will be 2x the Rubber Band API minor version
+        lv2:minorVersion 4 ;
         lv2:microVersion 0 ;
         lv2:optionalFeature lv2:hardRTCapable ;
 	pg:mainInput rubberband:mono_in_group ;
@@ -172,9 +171,8 @@ rubberband:r3mono
         foaf:maker :maker ;
         doap:developer :maker ;
         doap:maintainer :maker ;
-        # Minor version will be 2x the Rubber Band API minor version,
-        # but this is an initial test release, so 0
-        lv2:minorVersion 0 ;
+        # Minor version will be 2x the Rubber Band API minor version
+        lv2:minorVersion 4 ;
         lv2:microVersion 0 ;
         lv2:optionalFeature lv2:hardRTCapable ;
 	pg:mainInput rubberband:mono_in_group ;
@@ -210,9 +208,8 @@ rubberband:stereo
         foaf:maker :maker ;
         doap:developer :maker ;
         doap:maintainer :maker ;
-        # Minor version will be 2x the Rubber Band API minor version,
-        # but this is an initial test release, so 0
-        lv2:minorVersion 0 ;
+        # Minor version will be 2x the Rubber Band API minor version
+        lv2:minorVersion 4 ;
         lv2:microVersion 0 ;
         lv2:optionalFeature lv2:hardRTCapable ;
 	pg:mainInput rubberband:stereo_in_group ;
@@ -264,9 +261,8 @@ rubberband:r3stereo
         foaf:maker :maker ;
         doap:developer :maker ;
         doap:maintainer :maker ;
-        # Minor version will be 2x the Rubber Band API minor version,
-        # but this is an initial test release, so 0
-        lv2:minorVersion 0 ;
+        # Minor version will be 2x the Rubber Band API minor version
+        lv2:minorVersion 4 ;
         lv2:microVersion 0 ;
         lv2:optionalFeature lv2:hardRTCapable ;
 	pg:mainInput rubberband:stereo_in_group ;
