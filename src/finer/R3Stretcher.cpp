@@ -96,7 +96,7 @@ R3Stretcher::R3Stretcher(Parameters parameters,
         classifierParameters.horizontalFilterLength = 7;
     }
 
-    int inRingBufferSize = getWindowSourceSize() * 2;
+    int inRingBufferSize = getWindowSourceSize() * 16;
     int outRingBufferSize = getWindowSourceSize() * 16;
 
     for (int c = 0; c < m_parameters.channels; ++c) {
@@ -311,6 +311,25 @@ R3Stretcher::createResampler()
 void
 R3Stretcher::calculateHop()
 {
+    if (m_pitchScale <= 0.0) {
+        // This special case is likelier than one might hope, because
+        // of naive initialisations in programs that set it from a
+        // variable
+        m_log.log(0, "WARNING: Pitch scale must be greater than zero! Resetting it to default, no pitch shift will happen", m_pitchScale);
+        m_pitchScale = 1.0;
+    }
+    if (m_timeRatio <= 0.0) {
+        // Likewise
+        m_log.log(0, "WARNING: Time ratio must be greater than zero! Resetting it to default, no time stretch will happen", m_timeRatio);
+        m_timeRatio = 1.0;
+    }
+    if (m_pitchScale != m_pitchScale || m_timeRatio != m_timeRatio ||
+        m_pitchScale == m_pitchScale/2.0 || m_timeRatio == m_timeRatio/2.0) {
+        m_log.log(0, "WARNING: NaN or Inf presented for time ratio or pitch scale! Resetting it to default, no time stretch will happen", m_timeRatio, m_pitchScale);
+        m_timeRatio = 1.0;
+        m_pitchScale = 1.0;
+    }
+
     double ratio = getEffectiveRatio();
 
     // In R2 we generally targeted a certain inhop, and calculated
@@ -672,7 +691,10 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
         
         if (ws == 0) {
             m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called, process is being called repeatedly without retrieve, or an internal error has led to an incorrect resampler output calculation. Samples to write", remaining);
-            size_t newSize = m_channelData[0]->inbuf->getSize() + remaining;
+            size_t oldSize = m_channelData[0]->inbuf->getSize();
+            size_t newSize = oldSize + remaining;
+            if (newSize < oldSize * 2) newSize = oldSize * 2;
+            m_log.log(0, "R3Stretcher::process: old and new sizes", oldSize, newSize);
             for (int c = 0; c < m_parameters.channels; ++c) {
                 auto newBuf = m_channelData[c]->inbuf->resized(newSize);
                 m_channelData[c]->inbuf =

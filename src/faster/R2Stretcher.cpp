@@ -385,7 +385,13 @@ R2Stretcher::calculateSizes()
         m_log.log(0, "WARNING: Time ratio must be greater than zero! Resetting it to default, no time stretch will happen", m_timeRatio);
         m_timeRatio = 1.0;
     }
-
+    if (m_pitchScale != m_pitchScale || m_timeRatio != m_timeRatio ||
+        m_pitchScale == m_pitchScale/2.0 || m_timeRatio == m_timeRatio/2.0) {
+        m_log.log(0, "WARNING: NaN or Inf presented for time ratio or pitch scale! Resetting it to default, no time stretch will happen", m_timeRatio, m_pitchScale);
+        m_timeRatio = 1.0;
+        m_pitchScale = 1.0;
+    }
+    
     double r = getEffectiveRatio();
 
     if (m_realtime) {
