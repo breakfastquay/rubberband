@@ -11,10 +11,11 @@ performance, as well as a number of bug fixes.
    some of the quality advantages of R3 (especially for non-percussive
    content) but with far lower CPU usage and processing delay.
  * Implement OptionPitchHighSpeed in the R3 engine. Previously it
-   always used OptionPitchHighConsistency internally. In this mode
-   pitch-shifting upwards becomes much faster, at the expense of some
-   output quality. (However OptionPitchHighConsistency is still always
-   necessary to avoid artifacts when performing dynamic pitch changes.)
+   always used OptionPitchHighConsistency internally. With this option
+   real-time pitch-shifting upwards becomes much faster, at the
+   expense of some output quality. (However OptionPitchHighConsistency
+   is still always necessary to avoid artifacts when performing
+   dynamic pitch changes.)
  * Add support for the SLEEF library (libsleefdft) for FFTs. In
    our tests this library approaches the performance of vDSP and IPP
    and improves on the other supported options.
