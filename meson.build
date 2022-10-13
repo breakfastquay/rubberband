@@ -128,14 +128,22 @@ have_sincos = cpp.has_function('sincos',
                                prefix: '#define _GNU_SOURCE\n#include <math.h>',
                                args: '-lm')
 
-javac = find_program('javac', required: false)
-jar = find_program('jar', required: false)
 
-# Look for JNI only if javac and jar are found. This is because the
-# auto-JNI-dependency module in Meson 0.62 and 0.63 appears to bail
-# out of the build completely if it can't find javac, even when
-# required is false
-if javac.found() and jar.found()
+# Find out whether we can build the optional JNI target. Thanks to Eli
+# Schwartz for the fix here; this has been through a few previous
+# iterations. Initially we just looked for jni.h, but it's often in an
+# obscure place so that didn't work very well. Then tried Meson's
+# automatic dependency('jni') handling, but that fails in Meson
+# 0.62/0.63 if javac is not present (even if required is false). Then
+# tried guarding that check behind a successful find_program('javac'),
+# but that fails on systems in which a stub javac is installed that is
+# not a compiler (because the subsequent Meson jni magic still
+# requires javac as a compiler). Now try adding Java as a complete
+# language pack, optionally, and only go on to JNI if that succeeds,
+# making sure that nothing "clever" happens if Java is not found.
+#
+have_java = add_languages('java', required: false)
+if have_java
   jni_dep = dependency('jni', version: '>= 7.0.0', required: false)
   if not jni_dep.found()
     if cpp.has_header('jni.h', args: extra_include_args)
@@ -144,7 +152,7 @@ if javac.found() and jar.found()
   endif
 else
   # Declare jni_dep so it isn't totally undefined - but it won't be
-  # used below because we are conditional on javac/jar as well
+  # used below because we are conditional on have_java as well
   jni_dep = declare_dependency()
 endif
 
@@ -507,7 +515,7 @@ if cpp.get_id() == 'msvc'
   #
   if get_option('default_library') != 'shared'
     rubberband_additional_static_lib = 'rubberband-static'
-  endif    
+  endif
   rubberband_library_name = 'rubberband'
   rubberband_program_name = 'rubberband-program'
   rubberband_program_name_r3 = 'rubberband-program-r3'
@@ -601,7 +609,7 @@ if get_option('default_library') != 'shared' and rubberband_additional_static_li
   )
 endif
 
-if jni_dep.found() and javac.found() and jar.found()
+if have_java and jni_dep.found()
   target_summary += { 'JNI library': [ true, 'Name: ' + rubberband_jni_name ] }
   message('Will build Java Native Interface')
   rubberband_jni = shared_library(
@@ -622,6 +630,8 @@ if jni_dep.found() and javac.found() and jar.found()
     # NB the JNI library is not versioned
     install: true,
   )
+  javac = find_program('javac')
+  jar = find_program('jar')
   rubberband_class = custom_target(
     'rubberband_class',
     input: 'com/breakfastquay/rubberband/RubberBandStretcher.java',
@@ -637,7 +647,7 @@ if jni_dep.found() and javac.found() and jar.found()
   )
 else
   target_summary += { 'JNI library': false }
-  if not (javac.found() and jar.found())
+  if not have_java
     message('Not building Java Native Interface: Java compiler or archiver missing')
   else
     message('Not building Java Native Interface: JNI header not found')
