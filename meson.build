@@ -133,11 +133,11 @@ have_sincos = cpp.has_function('sincos',
 # Schwartz for the fix here; this has been through a few previous
 # iterations. Initially we just looked for jni.h, but it's often in an
 # obscure place so that didn't work very well. Then tried Meson's
-# automatic dependency('jni') handling, but that fails in Meson
+# automatic dependency('jni') handling, but that bails out in Meson
 # 0.62/0.63 if javac is not present (even if required is false). Then
 # tried guarding that check behind a successful find_program('javac'),
-# but that fails on systems in which a stub javac is installed that is
-# not a compiler (because the subsequent Meson jni magic still
+# but that bails out on systems in which a stub javac is installed
+# that is not a compiler (because the subsequent Meson jni magic still
 # requires javac as a compiler). Now try adding Java as a complete
 # language pack, optionally, and only go on to JNI if that succeeds,
 # making sure that nothing "clever" happens if Java is not found.
@@ -630,21 +630,7 @@ if have_java and jni_dep.found()
     # NB the JNI library is not versioned
     install: true,
   )
-  javac = find_program('javac')
-  jar = find_program('jar')
-  rubberband_class = custom_target(
-    'rubberband_class',
-    input: 'com/breakfastquay/rubberband/RubberBandStretcher.java',
-    output: 'RubberBandStretcher.class',
-    command: [ javac, '@INPUT@', '-d', '@OUTDIR@' ],
-  )
-  rubberband_jar = custom_target(
-    'rubberband_jar',
-    input: rubberband_class,
-    output: 'rubberband.jar',
-    command: [ jar, 'cvf', '@OUTPUT@', 'com/breakfastquay/rubberband/@INPUT@' ],
-    build_by_default: true,
-  )
+  jar('rubberband', 'com/breakfastquay/rubberband/RubberBandStretcher.java')
 else
   target_summary += { 'JNI library': false }
   if not have_java
