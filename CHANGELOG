@@ -1,4 +1,18 @@
 
+Changes in Rubber Band v3.1.1
+
+This minor release contains no code changes, only a fix to the build
+system.
+
+ * Fix failure to configure and build on some systems without a Java
+   compiler. Java/JNI support is entirely optional in Rubber Band, but
+   auto-detection of whether to build it or not was failing in certain
+   environments: this broke the normal build process for some users.
+
+The API is unchanged from 3.0 and the library is binary compatible
+back to version 1.7.
+
+
 Changes in Rubber Band v3.1
 
 This significant release contains many enhancements that can improve
