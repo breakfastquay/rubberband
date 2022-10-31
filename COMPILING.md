@@ -58,6 +58,43 @@ $ meson build -Dipp_path=/opt/intel/ipp
 The options are documented in the library- and platform-specific
 sections below.
 
+You can also enable or disable these optional build components:
+
+ * `jni` - Java/JVM (JNI) interface to Rubber Band Library
+ * `ladspa` - LADSPA version of example pitch-shifter plugin
+ * `lv2` - LV2 version of example pitch-shifter plugin
+ * `vamp` - Vamp analysis plugin, mostly used for development debugging
+ * `cmdline` - The `rubberband` and `rubberband-r3` command-line utilities
+ * `tests` - Unit tests
+
+The default behaviour is to check whether the requirements for these
+are found on the system and build them only if they are.
+
+To force a component *not* to be built even when its requirements are
+available, set the corresponding flag to `disabled`, e.g.
+
+```
+$ meson build -Djni=disabled
+```
+
+To require a component to be built (and therefore fail if its
+requirements are not met), set it to `enabled`. You can also use the
+special Meson `auto_features` flag to set all features to disabled
+unless explicitly enabled, e.g.
+
+```
+$ meson build -Dauto_features=disabled -Dcmdline=enabled
+```
+
+By default the build also produces both static and dynamic library
+targets. To force only static or dynamic (shared) output, use one of
+
+```
+$ meson build -Ddefault_library=static
+$ meson build -Ddefault_library=shared
+```
+
+
 Rubber Band Library is written entirely in C++ and requires a C++11
 compiler. It is unlikely to make any difference (performance or
 otherwise) which C++ standard you compile with, as long as it's no

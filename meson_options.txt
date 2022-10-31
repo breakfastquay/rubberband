@@ -26,3 +26,9 @@ option('extra_lib_dirs',
        value: [],
        description: 'Additional local library directories to search for dependencies.')
 
+option('jni', type: 'feature', value: 'auto')
+option('ladspa', type: 'feature', value: 'auto')
+option('lv2', type: 'feature', value: 'auto')
+option('vamp', type: 'feature', value: 'auto')
+option('cmdline', type: 'feature', value: 'auto')
+option('tests', type: 'feature', value: 'auto')

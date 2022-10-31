@@ -117,13 +117,15 @@ sleef_dep = dependency('sleef', version: '>= 3.3.0', required: false)
 sleefdft_dep = dependency('sleefdft', version: '>= 3.3.0', required: false)
 samplerate_dep = dependency('samplerate', version: '>= 0.1.8', required: false)
 speexdsp_dep = dependency('speexdsp', version: '>= 1.0.0', required: false)
-sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: false)
-vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: false)
 
-boost_unit_test_dep = dependency('boost', modules: ['unit_test_framework'], version: '>= 1.73', required: false)
+sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: get_option('cmdline'))
+vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: get_option('vamp'))
+boost_unit_test_dep = dependency('boost', modules: ['unit_test_framework'], version: '>= 1.73', required: get_option('tests'))
 thread_dep = dependency('threads')
-have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args)
-have_lv2 = cpp.has_header('lv2.h', args: extra_include_args)
+
+have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args, required: get_option('ladspa'))
+have_lv2 = cpp.has_header('lv2.h', args: extra_include_args, required: get_option('lv2'))
+
 have_sincos = cpp.has_function('sincos',
                                prefix: '#define _GNU_SOURCE\n#include <math.h>',
                                args: '-lm')
@@ -142,7 +144,7 @@ have_sincos = cpp.has_function('sincos',
 # language pack, optionally, and only go on to JNI if that succeeds,
 # making sure that nothing "clever" happens if Java is not found.
 #
-have_java = add_languages('java', required: false)
+have_java = add_languages('java', required: get_option('jni'))
 if have_java
   jni_dep = dependency('jni', version: '>= 7.0.0', required: false)
   if not jni_dep.found()
@@ -375,13 +377,13 @@ if not vamp_dep.found()
                               dirs: get_option('extra_lib_dirs'),
                               has_headers: ['vamp-sdk.h'],
                               header_args: extra_include_args,
-                              required: false)
+                              required: get_option('vamp'))
   if not vamp_dep.found()
     vamp_dep = cpp.find_library('vamp-sdk',
                                 dirs: get_option('extra_lib_dirs'),
                                 has_headers: ['vamp-sdk.h'],
                                 header_args: extra_include_args,
-                                required: false)
+                                required: get_option('vamp'))
   endif
 endif
 have_vamp = vamp_dep.found()
@@ -391,13 +393,13 @@ if not sndfile_dep.found()
                                  dirs: get_option('extra_lib_dirs'),
                                  has_headers: ['sndfile.h'],
                                  header_args: extra_include_args,
-                                 required: false)
+                                 required: get_option('cmdline'))
   if not sndfile_dep.found()
     sndfile_dep = cpp.find_library('sndfile-1',
                                    dirs: get_option('extra_lib_dirs'),
                                    has_headers: ['sndfile.h'],
                                    header_args: extra_include_args,
-                                   required: false)
+                                   required: get_option('cmdline'))
   endif
 endif
 have_sndfile = sndfile_dep.found()
