@@ -86,14 +86,13 @@ unless explicitly enabled, e.g.
 $ meson build -Dauto_features=disabled -Dcmdline=enabled
 ```
 
-By default the build also produces both static and dynamic library
-targets. To force only static or dynamic (shared) output, use one of
+By default the build produces both static and dynamic library
+targets. To produce only one of these, use either
 
 ```
 $ meson build -Ddefault_library=static
 $ meson build -Ddefault_library=shared
 ```
-
 
 Rubber Band Library is written entirely in C++ and requires a C++11
 compiler. It is unlikely to make any difference (performance or
