@@ -143,19 +143,15 @@ have_sincos = cpp.has_function('sincos',
 # requires javac as a compiler). Now try adding Java as a complete
 # language pack, optionally, and only go on to JNI if that succeeds,
 # making sure that nothing "clever" happens if Java is not found.
+# Note even if jni_dep is found, we still need to check that the
+# compiler can find jni.h because the jni autodetection can't really
+# be trusted, especially in a macOS frameworks environment.
 #
+have_jni = false
 have_java = add_languages('java', required: get_option('jni'))
 if have_java
   jni_dep = dependency('jni', version: '>= 7.0.0', required: false)
-  if not jni_dep.found()
-    if cpp.has_header('jni.h', args: extra_include_args)
-      jni_dep = declare_dependency()
-    endif
-  endif
-else
-  # Declare jni_dep so it isn't totally undefined - but it won't be
-  # used below because we are conditional on have_java as well
-  jni_dep = declare_dependency()
+  have_jni = cpp.has_header('jni.h', dependencies: jni_dep, args: extra_include_args)
 endif
 
 
@@ -611,7 +607,7 @@ if get_option('default_library') != 'shared' and rubberband_additional_static_li
   )
 endif
 
-if have_java and jni_dep.found()
+if have_jni
   target_summary += { 'JNI library': [ true, 'Name: ' + rubberband_jni_name ] }
   message('Will build Java Native Interface')
   rubberband_jni = shared_library(
