@@ -208,11 +208,10 @@ project, and you prefer a Visual Studio project file, you can find a
 simple one in `otherbuilds\rubberband-library.vcxproj`.
 
 The rest of this section describes the "full" build system, which uses
-Meson just as on the other platforms. So to build this way, start by
-ensuring Meson and Ninja are installed and available. Then, in a
-terminal window with the compiler tools available in the path (e.g. a
-Visual Studio command-line prompt for the relevant build architecture)
-run
+Meson, just as on the other platforms. To build this way, first ensure
+Meson and Ninja are installed and available. Then, in a terminal
+window with the compiler tools available in the path (e.g. a Visual
+Studio command-line prompt for the relevant build architecture) run
 
 ```
 > meson build
@@ -231,6 +230,10 @@ option `b_vscrt`:
 ```
 > meson build -Db_vscrt=mt
 ```
+
+Accepted arguments include `mt` for the static runtime (`libcmt`),
+`md` for the dynamic one (`msvcrt`), `mtd` for the static debug
+runtime, and `mdd` for the dynamic debug one.
 
 See "FFT and resampler selection" below for further build options.
 

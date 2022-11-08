@@ -27,6 +27,7 @@
 #include "Allocators.h"
 #include "VectorOps.h"
 #include "VectorOpsComplex.h"
+#include "mathmisc.h"
 
 // Define USE_FFTW_WISDOM if you are defining HAVE_FFTW3 and you want
 // to use FFTW_MEASURE mode with persistent wisdom files. This will

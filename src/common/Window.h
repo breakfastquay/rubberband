@@ -29,6 +29,7 @@
 #include <map>
 
 #include "sysutils.h"
+#include "mathmisc.h"
 #include "VectorOps.h"
 #include "Allocators.h"
 

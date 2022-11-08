@@ -30,6 +30,7 @@
 #include <map>
 
 #include "../common/sysutils.h"
+#include "../common/mathmisc.h"
 #include "../common/VectorOps.h"
 #include "../common/Allocators.h"
 
