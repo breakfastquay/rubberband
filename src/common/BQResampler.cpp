@@ -420,7 +420,13 @@ BQResampler::phase_data_for(vector<BQResampler::phase_rec> &target_phase_data,
     }
 
     if (m_dynamism == RatioMostlyFixed) {
-        if (!filter) throw std::logic_error("filter required at phase_data_for in RatioMostlyFixed mode");
+        if (!filter) {
+#ifndef NO_EXCEPTIONS
+            throw std::logic_error("filter required at phase_data_for in RatioMostlyFixed mode");
+#else        
+            abort();
+#endif
+        }
         target_phase_sorted_filter.clear();
         target_phase_sorted_filter.reserve(filter_length);
         for (int p = initial_phase; ; ) {
