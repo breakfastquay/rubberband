@@ -18,19 +18,20 @@ RUBBERBAND_SRC_FILES := \
 	$(RUBBERBAND_SRC_PATH)/faster/HighFrequencyAudioCurve.cpp \
 	$(RUBBERBAND_SRC_PATH)/faster/SilentAudioCurve.cpp \
 	$(RUBBERBAND_SRC_PATH)/faster/PercussiveAudioCurve.cpp \
+	$(RUBBERBAND_SRC_PATH)/faster/R2Stretcher.cpp \
 	$(RUBBERBAND_SRC_PATH)/faster/StretcherChannelData.cpp \
-	$(RUBBERBAND_SRC_PATH)/faster/StretcherImpl.cpp \
 	$(RUBBERBAND_SRC_PATH)/faster/StretcherProcess.cpp \
+	$(RUBBERBAND_SRC_PATH)/common/Allocators.cpp \
 	$(RUBBERBAND_SRC_PATH)/common/BQResampler.cpp \
+	$(RUBBERBAND_SRC_PATH)/common/FFT.cpp \
+	$(RUBBERBAND_SRC_PATH)/common/Log.cpp \
 	$(RUBBERBAND_SRC_PATH)/common/Profiler.cpp \
 	$(RUBBERBAND_SRC_PATH)/common/Resampler.cpp \
-	$(RUBBERBAND_SRC_PATH)/common/FFT.cpp \
-	$(RUBBERBAND_SRC_PATH)/common/Allocators.cpp \
 	$(RUBBERBAND_SRC_PATH)/common/StretchCalculator.cpp \
 	$(RUBBERBAND_SRC_PATH)/common/sysutils.cpp \
 	$(RUBBERBAND_SRC_PATH)/common/mathmisc.cpp \
 	$(RUBBERBAND_SRC_PATH)/common/Thread.cpp \
-	$(RUBBERBAND_SRC_PATH)/finer/R3StretcherImpl.cpp 
+	$(RUBBERBAND_SRC_PATH)/finer/R3Stretcher.cpp
 
 LOCAL_SRC_FILES += \
 	$(RUBBERBAND_JNI_FILES) \
