@@ -1,4 +1,20 @@
 
+Changes in Rubber Band v3.1.2
+
+This minor release contains a small number of build fixes.
+
+ * Make all optional targets manually toggleable, using Meson
+   "features" options (see COMPILING.md for documentation)
+ * Further fix to JNI autodetection, following that of 3.1.1 -
+   hopefully solving the problem completely this time!
+ * Correct the source file listing in the Android makefile
+ * Fix build with NO_EXCEPTIONS, e.g. for Android
+ * Fix required #includes for mingw32 builds
+
+The API is unchanged from 3.0 and the library is binary compatible
+back to version 1.7.
+
+
 Changes in Rubber Band v3.1.1
 
 This minor release contains no code changes, only a fix to the build
