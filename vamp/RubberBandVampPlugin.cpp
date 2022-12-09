@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2021 Particular Programs Ltd.
+    Copyright 2007-2022 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -23,8 +23,8 @@
 
 #include "RubberBandVampPlugin.h"
 
-#include "StretchCalculator.h"
-#include "system/sysutils.h"
+#include "common/StretchCalculator.h"
+#include "common/sysutils.h"
 
 #include <cmath>
 #include <cstdio>
@@ -441,7 +441,7 @@ RubberBandVampPlugin::getRemainingFeatures()
 
 RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::processOffline(const float *const *inputBuffers,
-                                           Vamp::RealTime timestamp)
+                                           Vamp::RealTime /* timestamp */)
 {
     if (!m_stretcher) {
 	cerr << "ERROR: RubberBandVampPlugin::processOffline: "
@@ -454,6 +454,28 @@ RubberBandVampPlugin::Impl::processOffline(const float *const *inputBuffers,
     return FeatureSet();
 }
 
+static RubberBand::Log makeCerrLog()
+{
+    auto log0 = [](const char *message) {
+        std::cerr << "RubberBand: " << message << "\n";
+    };
+    auto log1 = [](const char *message, double arg0) {
+        auto prec = std::cerr.precision();
+        std::cerr.precision(10);
+        std::cerr << "RubberBand: " << message << ": " << arg0 << "\n";
+        std::cerr.precision(prec);
+    };
+    auto log2 = [](const char *message, double arg0, double arg1) {
+        auto prec = std::cerr.precision();
+        std::cerr.precision(10);
+        std::cerr << "RubberBand: " << message
+                  << ": (" << arg0 << ", " << arg1 << ")" << "\n";
+        std::cerr.precision(prec);
+    };
+
+    return RubberBand::Log(log0, log1, log2);
+}
+
 RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
 {
@@ -463,7 +485,8 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
 
     int rate = m_sampleRate;
 
-    RubberBand::StretchCalculator sc(rate, m_stretcher->getInputIncrement(), true);
+    RubberBand::StretchCalculator sc
+        (rate, m_stretcher->getInputIncrement(), true, makeCerrLog());
 
     size_t inputIncrement = m_stretcher->getInputIncrement();
     std::vector<int> outputIncrements = m_stretcher->getOutputIncrements();
@@ -480,7 +503,7 @@ RubberBandVampPlugin::Impl::getRemainingFeaturesOffline()
 
 RubberBandVampPlugin::FeatureSet
 RubberBandVampPlugin::Impl::processRealTime(const float *const *inputBuffers,
-                                            Vamp::RealTime timestamp)
+                                            Vamp::RealTime /* timestamp */)
 {
     // This function is not in any way a real-time function (i.e. it
     // has no requirement to be RT safe); it simply operates the

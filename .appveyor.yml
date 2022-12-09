@@ -1,18 +1,26 @@
 
+image:
+  - Visual Studio 2019
+
 configuration:
   - Release
 
 platform:
-  - x86
   - x64
 
 install:
   - cinst wget
-  - c:\ProgramData\chocolatey\bin\wget.exe http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.28-w32-setup.exe
-  - c:\ProgramData\chocolatey\bin\wget.exe http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.28-w64-setup.exe
-  - ps: .\libsndfile-1.0.28-w32-setup.exe /silent /sp- /norestart
-  - ps: .\libsndfile-1.0.28-w64-setup.exe /silent /sp- /norestart
+  - cinst libsndfile
 
 build_script:
-  - msbuild rubberband.sln
-  
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+  - meson build "-Dextra_include_dirs=C:\Program Files\libsndfile\include" "-Dextra_lib_dirs=C:\Program Files\libsndfile\lib"
+  - ninja -C build
+  - meson test -C build
+  # Test the VC++ static library build, which is separate
+  - msbuild otherbuilds\rubberband-library.vcxproj /t:Build /p:Configuration=Release
+  # Test the .NET FFI interface build, which is again separate
+  - msbuild dotnet\rubberband.sln /t:Restore;Build
+  # And test the single-file build
+  - cl main\main.cpp single\RubberBandSingle.cpp .\src\ext\getopt\getopt.c src\ext\getopt\getopt_long.c "C:\Program Files\libsndfile\lib\sndfile.lib" /O2 /std:c++14 /D_USE_MATH_DEFINES /DNOMINMAX /EHs /I"C:\Program Files\libsndfile\include" /link /out:test_single.exe
+

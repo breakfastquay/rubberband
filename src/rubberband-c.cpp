@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2021 Particular Programs Ltd.
+    Copyright 2007-2022 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -21,8 +21,8 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#include "rubberband/rubberband-c.h"
-#include "rubberband/RubberBandStretcher.h"
+#include "../rubberband/rubberband-c.h"
+#include "../rubberband/RubberBandStretcher.h"
 
 struct RubberBandState_
 {
@@ -53,6 +53,11 @@ void rubberband_reset(RubberBandState state)
     state->m_s->reset();
 }
 
+int rubberband_get_engine_version(RubberBandState state)
+{
+    return state->m_s->getEngineVersion(); 
+}
+
 void rubberband_set_time_ratio(RubberBandState state, double ratio)
 {
     state->m_s->setTimeRatio(ratio);
@@ -71,6 +76,26 @@ double rubberband_get_time_ratio(const RubberBandState state)
 double rubberband_get_pitch_scale(const RubberBandState state)
 {
     return state->m_s->getPitchScale();
+}
+
+void rubberband_set_formant_scale(RubberBandState state, double scale)
+{
+    state->m_s->setFormantScale(scale);
+}
+
+double rubberband_get_formant_scale(const RubberBandState state)
+{
+    return state->m_s->getFormantScale();
+}
+
+unsigned int rubberband_get_preferred_start_pad(const RubberBandState state) 
+{
+    return state->m_s->getPreferredStartPad();
+}
+
+unsigned int rubberband_get_start_delay(const RubberBandState state) 
+{
+    return state->m_s->getStartDelay();
 }
 
 unsigned int rubberband_get_latency(const RubberBandState state) 
