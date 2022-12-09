@@ -7,28 +7,17 @@ option(OPTIMIZE "Build Rubberband optimized for the build machine's CPU" OFF)
 option(USE_FFTW "Use FFTW instead of KISS FFT" OFF)
 option(USE_LIBSAMPLERATE "Use libsamplerate instead of Speex" ON)
 
-add_library(rubberband
-  src/RubberBandStretcher.cpp
-  src/StretchCalculator.cpp
-  src/StretcherChannelData.cpp
-  src/StretcherImpl.cpp
-  src/StretcherProcess.cpp
-  src/audiocurves/CompoundAudioCurve.cpp
-  src/audiocurves/ConstantAudioCurve.cpp
-  src/audiocurves/HighFrequencyAudioCurve.cpp
-  src/audiocurves/PercussiveAudioCurve.cpp
-  src/audiocurves/SilentAudioCurve.cpp
-  src/audiocurves/SpectralDifferenceAudioCurve.cpp
-  src/base/Profiler.cpp
-  src/dsp/AudioCurveCalculator.cpp
-  src/dsp/FFT.cpp
-  src/dsp/Resampler.cpp
-  src/rubberband-c.cpp
-  src/system/Allocators.cpp
-  src/system/Thread.cpp
-  src/system/VectorOpsComplex.cpp
-  src/system/sysutils.cpp
+file(
+        GLOB
+        CORE_SOURCE_FILES
+        CONFIGURE_DEPENDS
+        src/*.cpp
+        src/finer/**.cpp
+        src/faster/**.cpp
+        src/common/**.cpp
 )
+
+add_library(rubberband ${CORE_SOURCE_FILES})
 
 if(BUILD_JNI)
   add_library(rubberband-jni src/jni/RubberBandStretcherJNI.cpp)
