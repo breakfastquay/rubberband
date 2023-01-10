@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2022 Particular Programs Ltd.
+    Copyright 2007-2023 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
         cerr << endl;
 	cerr << "Rubber Band" << endl;
         cerr << "An audio time-stretching and pitch-shifting library and utility program." << endl;
-	cerr << "Copyright 2007-2022 Particular Programs Ltd." << endl;
+	cerr << "Copyright 2007-2023 Particular Programs Ltd." << endl;
         cerr << endl;
 	cerr << "   Usage: " << myName << " [options] <infile.wav> <outfile.wav>" << endl;
         cerr << endl;
