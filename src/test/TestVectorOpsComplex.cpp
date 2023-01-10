@@ -35,8 +35,6 @@
 
 using namespace RubberBand;
 
-using namespace std;
-
 BOOST_AUTO_TEST_SUITE(TestVectorOpsComplex)
 
 #ifdef USE_APPROXIMATE_ATAN2

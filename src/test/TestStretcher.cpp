@@ -33,7 +33,9 @@
 #include <cmath>
 
 using namespace RubberBand;
-using namespace std;
+
+using std::vector;
+
 namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_SUITE(TestStretcher)

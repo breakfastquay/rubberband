@@ -33,7 +33,10 @@
 #include "../common/sysutils.h"
 
 using namespace RubberBand;
-using namespace std;
+
+using std::vector;
+using std::string;
+
 namespace tt = boost::test_tools;
 
 // We use the symbols H, X, and _ for harmonic, percussive, and

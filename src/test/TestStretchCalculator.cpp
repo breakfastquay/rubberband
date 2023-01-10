@@ -31,7 +31,12 @@
 #include <iostream>
 
 using namespace RubberBand;
-using namespace std;
+
+using std::cerr;
+using std::endl;
+
+using std::vector;
+
 namespace tt = boost::test_tools;
 
 static Log cerrLog(

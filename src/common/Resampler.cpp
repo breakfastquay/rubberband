@@ -77,7 +77,8 @@
 
 #define BQ_R__ R__
 
-using namespace std;
+using std::cerr;
+using std::endl;
 
 namespace RubberBand {
 

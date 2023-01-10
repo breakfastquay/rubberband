@@ -33,8 +33,12 @@
 #include <cmath>
 #include <iostream>
 
-using namespace std;
 using namespace RubberBand;
+
+using std::cerr;
+using std::endl;
+
+using std::vector;
 
 BOOST_AUTO_TEST_SUITE(TestResampler)
 

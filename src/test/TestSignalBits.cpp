@@ -31,7 +31,9 @@
 #include "../finer/Peak.h"
 
 using namespace RubberBand;
-using namespace std;
+
+using std::vector;
+
 namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_SUITE(TestSignalBits)
