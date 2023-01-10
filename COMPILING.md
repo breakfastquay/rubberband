@@ -38,7 +38,7 @@ platform-specific build sections below for more details.
 To build with Meson, ensure Meson and Ninja are installed and run:
 
 ```
-$ meson build && ninja -C build
+$ meson setup build && ninja -C build
 ```
 
 This checks for necessary dependencies, reports what it finds, and if
@@ -52,7 +52,7 @@ Some configuration options are provided, described in the
 Meson:
 
 ```
-$ meson build -Dipp_path=/opt/intel/ipp
+$ meson setup build -Dipp_path=/opt/intel/ipp
 ```
 
 The options are documented in the library- and platform-specific
@@ -74,7 +74,7 @@ To force a component *not* to be built even when its requirements are
 available, set the corresponding flag to `disabled`, e.g.
 
 ```
-$ meson build -Djni=disabled
+$ meson setup build -Djni=disabled
 ```
 
 To require a component to be built (and therefore fail if its
@@ -83,15 +83,15 @@ special Meson `auto_features` flag to set all features to disabled
 unless explicitly enabled, e.g.
 
 ```
-$ meson build -Dauto_features=disabled -Dcmdline=enabled
+$ meson setup build -Dauto_features=disabled -Dcmdline=enabled
 ```
 
 By default the build produces both static and dynamic library
 targets. To produce only one of these, use either
 
 ```
-$ meson build -Ddefault_library=static
-$ meson build -Ddefault_library=shared
+$ meson setup build -Ddefault_library=static
+$ meson setup build -Ddefault_library=shared
 ```
 
 Rubber Band Library is written entirely in C++ and requires a C++11
@@ -101,7 +101,7 @@ older than C++11.
 
 If you are building this software using either of the Speex or KissFFT
 library options, please be sure to review the terms for those
-libraries in `src/speex/COPYING` and `src/kissfft/COPYING` as
+libraries in `src/ext/speex/COPYING` and `src/ext/kissfft/COPYING` as
 applicable.
 
 
@@ -112,7 +112,7 @@ first install libsndfile and the LADSPA, LV2, and Vamp plugin headers
 so they can be found using `pkg-config`. Then
 
 ```
-$ meson build && ninja -C build
+$ meson setup build && ninja -C build
 ```
 
 See "FFT and resampler selection" below for further build options.
@@ -133,7 +133,7 @@ command-line tool to be built, also install libsndfile.
 To build for the default architecture:
 
 ```
-$ meson build && ninja -C build
+$ meson setup build && ninja -C build
 ```
 
 Which architecture is the default may depend on the version of Meson
@@ -143,20 +143,20 @@ use a Meson cross-file, as follows.
 To build for Apple Silicon (arm64):
 
 ```
-$ meson build --cross-file cross/macos-arm64.txt && ninja -C build
+$ meson setup build --cross-file cross/macos-arm64.txt && ninja -C build
 ```
 
 To build for Intel (x86_64):
 
 ```
-$ meson build --cross-file cross/macos-x86_64.txt && ninja -C build
+$ meson setup build --cross-file cross/macos-x86_64.txt && ninja -C build
 ```
 
 You can build a universal binary library for both architectures like
 this:
 
 ```
-$ meson build --cross-file cross/macos-universal.txt && ninja -C build
+$ meson setup build --cross-file cross/macos-universal.txt && ninja -C build
 ```
 
 Note that the universal cross file also sets the minimum OS version to
@@ -179,7 +179,7 @@ commercial terms.
 Ensure the Xcode command-line tools are installed, and
 
 ```
-$ meson build_ios --cross-file cross/ios.txt && ninja -C build_ios
+$ meson setup build_ios --cross-file cross/ios.txt && ninja -C build_ios
 ```
 
 The output files will be found in the `build_ios` directory.
@@ -187,7 +187,7 @@ The output files will be found in the `build_ios` directory.
 To build for the simulator,
 
 ```
-$ meson build_sim --cross-file cross/ios-simulator.txt && ninja -C build_sim
+$ meson setup build_sim --cross-file cross/ios-simulator.txt && ninja -C build_sim
 ```
 
 The output files will be found in the `build_sim` directory.
@@ -214,7 +214,7 @@ window with the compiler tools available in the path (e.g. a Visual
 Studio command-line prompt for the relevant build architecture) run
 
 ```
-> meson build
+> meson setup build
 > ninja -C build
 ```
 
@@ -228,7 +228,7 @@ To build against a specific Visual C++ runtime, use the built-in Meson
 option `b_vscrt`:
 
 ```
-> meson build -Db_vscrt=mt
+> meson setup build -Db_vscrt=mt
 ```
 
 Accepted arguments include `mt` for the static runtime (`libcmt`),
@@ -270,7 +270,7 @@ it's confusing and not often useful.
 
 If you are building this software using the bundled Speex or KissFFT
 library code, please be sure to review the terms for those libraries
-in `src/speex/COPYING` and `src/kissfft/COPYING` as applicable.
+in `src/ext/speex/COPYING` and `src/ext/kissfft/COPYING` as applicable.
 
 If you are proposing to package Rubber Band for a Linux distribution,
 please select either the built-in FFT or FFTW, and either the built-in
@@ -386,7 +386,7 @@ build files will handle these for you.)
 ### 5a. Speex
 
 ```
-[files in src/speex]
+[files in src/ext/speex]
 
 Copyright 2002-2007     Xiph.org Foundation
 Copyright 2002-2007     Jean-Marc Valin
@@ -428,7 +428,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ### 5b. KissFFT
 
 ```
-[files in src/kissfft]
+[files in src/ext/kissfft]
 
 Copyright (c) 2003-2004 Mark Borgerding
 
@@ -464,7 +464,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ### 5c. Pommier math functions
 
 ```
-[files in src/pommier]
+[files in src/ext/pommier]
 
 Copyright (C) 2011  Julien Pommier
 
@@ -488,7 +488,7 @@ Copyright (C) 2011  Julien Pommier
 ### 5d. float_cast
 
 ```
-[files in src/float_cast]
+[files in src/ext/float_cast]
 
 Copyright (C) 2001 Erik de Castro Lopo <erikd AT mega-nerd DOT com>
 
@@ -502,7 +502,7 @@ provided "as is" without express or implied warranty.
 ### 5e. getopt
 
 ```
-[files in src/getopt, used by command-line tool on some platforms]
+[files in src/ext/getopt, used by command-line tool on some platforms]
 
 Copyright (c) 2000 The NetBSD Foundation, Inc.
 All rights reserved.
