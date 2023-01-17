@@ -1174,25 +1174,36 @@ D_Speex::doResample(const float *data_in, unsigned int &uincount,
     if (final) {
         int actual = int(uoutcount);
         int expected = std::min(initial_outcount, int(round(uincount * ratio)));
-        if (actual < expected) {
+        float *pad = nullptr;
+        while (actual < expected) {
             unsigned int final_out = expected - actual;
             unsigned int final_in = (unsigned int)(round(final_out / ratio));
-            if (final_in > 0) {
-                float *pad = allocate_and_zero<float>(final_in * m_channels);
+            if (final_in == 0) {
+                break;
+            } else {
+                if (!pad) {
+                    pad = allocate_and_zero<float>(final_in * m_channels);
+                }
                 err = speex_resampler_process_interleaved_float
                     (m_resampler,
                      pad, &final_in,
                      data_out + actual * m_channels, &final_out);
-                deallocate(pad);
+                actual += final_out;
                 uoutcount += final_out;
                 if (err) {
                     cerr << "Resampler::Resampler: Speex resampler returned error "
                          << err << endl;
+                    if (pad) {
+                        deallocate(pad);
+                    }
 #ifndef NO_EXCEPTIONS
                     throw Resampler::ImplementationError;
 #endif
                 }
             }
+        }
+        if (pad) {
+            deallocate(pad);
         }
     }
 }
