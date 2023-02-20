@@ -679,7 +679,13 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     int channels = m_parameters.channels;
     int inputIx = 0;
 
-    while (inputIx < int(samples)) {
+    if (samples == 0 && final) {
+
+        m_log.log(2, "process: no samples but final specified, consuming");
+        
+        consume();
+
+    } else while (inputIx < int(samples)) {
 
         int remaining = int(samples) - inputIx;
         int ws = m_channelData[0]->inbuf->getWriteSpace();
