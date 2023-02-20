@@ -679,4 +679,52 @@ BOOST_AUTO_TEST_CASE(impulses_2x_5up_offline_finer)
 */
 }
 
+BOOST_AUTO_TEST_CASE(final_realtime_faster)
+{
+    int n = 10000;
+    float freq = 440.f;
+    int rate = 44100;
+    int blocksize = 700;
+    RubberBandStretcher stretcher
+        (rate, 1,
+         RubberBandStretcher::OptionEngineFaster |
+         RubberBandStretcher::OptionProcessRealTime);
+
+    stretcher.setTimeRatio(2.0);
+
+    int excess = 10000;
+    vector<float> in(n, 0.f), out(n * 2 + excess, 0.f);
+
+    for (int i = n - 100; i < n; ++i) {
+        in[i] = sinf(float(i) * freq * M_PI * 2.f / float(rate));
+    }
+    float *inp = in.data(), *outp = out.data();
+
+    stretcher.setMaxProcessSize(blocksize);
+    BOOST_TEST(stretcher.available() == 0);
+
+    int incount = 0, outcount = 0;
+    while (incount < n) {
+
+        int inbs = std::min(blocksize, n - incount);
+        BOOST_TEST(inbs > 0);
+
+        bool final = (incount + inbs >= n);
+        float *in = inp + incount;
+        stretcher.process(&in, inbs, final);
+
+        int avail = stretcher.available();
+        BOOST_TEST(avail >= 0);
+        BOOST_TEST(outcount + avail < n + excess);
+
+        float *out = outp + outcount;
+        size_t got = stretcher.retrieve(&out, avail);
+        BOOST_TEST(got == size_t(avail));
+        BOOST_TEST(stretcher.available() == 0);
+
+        incount += inbs;
+        outcount += got;
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
