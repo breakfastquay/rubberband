@@ -667,6 +667,7 @@ R2Stretcher::configure()
             size_t rbs = 
                 lrintf(ceil((m_increment * m_timeRatio * 2) / m_pitchScale));
             if (rbs < m_increment * 16) rbs = m_increment * 16;
+            if (rbs < m_aWindowSize * 2) rbs = m_aWindowSize * 2;
             m_channelData[c]->setResampleBufSize(rbs);
         }
     }
@@ -823,14 +824,28 @@ size_t
 R2Stretcher::getPreferredStartPad() const
 {
     if (!m_realtime) return 0;
-    return m_aWindowSize/2;
+
+    size_t pad = m_aWindowSize / 2;
+    
+    if (resampleBeforeStretching()) {
+        return size_t(ceil(pad * m_pitchScale));
+    } else {
+        return pad;
+    }
 }
 
 size_t
 R2Stretcher::getStartDelay() const
 {
     if (!m_realtime) return 0;
-    return lrint((m_aWindowSize/2) / m_pitchScale);
+
+    size_t pad = m_aWindowSize / 2;
+
+    if (resampleBeforeStretching()) {
+        return pad;
+    } else {
+        return size_t(ceil(pad / m_pitchScale));
+    }
 }
 
 void
@@ -1201,6 +1216,10 @@ R2Stretcher::getSamplesRequired() const
                 continue;
             }
         }
+    }
+
+    if (resampleBeforeStretching() && m_pitchScale > 1.0) {
+        reqd = size_t(ceil(double(reqd) * m_pitchScale));
     }
     
     return reqd;

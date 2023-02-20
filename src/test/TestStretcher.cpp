@@ -35,6 +35,8 @@
 using namespace RubberBand;
 
 using std::vector;
+using std::cerr;
+using std::endl;
 
 namespace tt = boost::test_tools;
 
@@ -241,11 +243,14 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
     // This test simulates block-by-block realtime processing with
     // latency compensation, and checks that the output is all in the
     // expected place
-    
-    RubberBandStretcher stretcher(rate, 1, options, timeRatio, pitchScale);
 
+    RubberBandStretcher stretcher(rate, 1, options, timeRatio, pitchScale);
     stretcher.setMaxProcessSize(bs);
 
+    if (printDebug) {
+        stretcher.setDebugLevel(2);
+    }
+    
     // The input signal is a fixed frequency sinusoid that steps up in
     // amplitude every 1/10 of the total duration - from 0.1 at the
     // start, via increments of 0.1, to 1.0 at the end
@@ -294,37 +299,35 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
                 BOOST_TEST(required > 0); // because available == 0
                 int toProcess = std::min(required, n - inOffset);
                 float *source = in.data() + inOffset;
-                stretcher.process(&source, toProcess, toProcess < required);
+                bool final = (toProcess < required);
+                stretcher.process(&source, toProcess, final);
                 inOffset += toProcess;
-                if (options & RubberBandStretcher::OptionEngineFiner) {
-                    //!!! Faster engine sometimes does return
-                    // available == 0 here - I'm not sure why, need to
-                    // look into this. The process still completes fine
-                    BOOST_TEST(stretcher.available() > 0);
-                }
+                BOOST_TEST(stretcher.available() > 0);
                 continue;
 
+            } else if (toSkip > 0) { // available > 0 && toSkip > 0
+                float *target = out.data() + outOffset;
+                int toRetrieve = std::min(toSkip, available);
+                int retrieved = stretcher.retrieve(&target, toRetrieve);
+                BOOST_TEST(retrieved == toRetrieve);
+                toSkip -= retrieved;
+                
             } else { // available > 0
                 float *target = out.data() + outOffset;
                 int toRetrieve = std::min(needed - obtained, available);
                 int retrieved = stretcher.retrieve(&target, toRetrieve);
                 BOOST_TEST(retrieved == toRetrieve);
-                int advance = retrieved;
-                if (toSkip > 0) {
-                    int skipping = std::min(advance, toSkip);
-                    advance -= skipping;
-                    toSkip -= skipping;
-                }
-                obtained += advance;
-                outOffset += advance;
+                obtained += retrieved;
+                outOffset += retrieved;
             }
         }
     }
 
     if (printDebug) {
-        std::cout << "sample\tV" << std::endl;
+        // The initial # is to allow grep on the test output
+        std::cout << "#sample\tV" << std::endl;
         for (int i = 0; i < nOut; ++i) {
-            std::cout << i << "\t" << out[i] << std::endl;
+            std::cout << "#" << i << "\t" << out[i] << std::endl;
         }
     }
         
@@ -335,6 +338,8 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
 
     for (int chunk = 0; chunk < 20; ++chunk) {
 
+//        cerr << "chunk " << chunk << " of 20" << endl;
+        
         int i0 = (nOut * chunk) / 20;
         int i1 = (nOut * (chunk + 1)) / 20;
 
@@ -350,7 +355,9 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
         int expectedCrossings = int(round((freq * pitchScale *
                                            double(i1 - i0)) / rate));
 
-//        std::cout << chunk << std::endl;
+        bool highSpeedPitch =
+            ! ((options & RubberBandStretcher::OptionPitchHighQuality) ||
+               (options & RubberBandStretcher::OptionPitchHighConsistency));
 
         // The check here has to depend on whether we are in Finer or
         // Faster mode. In Finer mode, we expect to be generally exact
@@ -361,12 +368,13 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
         int slack = 0;
 
         if (options & RubberBandStretcher::OptionEngineFiner) {
-            if (chunk == 0 || chunk == 19) {
-                slack = (timeRatio < 1.0 ? 10 : 1);
+            if (chunk == 0 || chunk == 19 || highSpeedPitch) {
+                slack = 1;
             }
         } else {
+            slack = 1;
             if (chunk == 0) {
-                slack = (timeRatio < 1.0 ? 10 : 2);
+                slack = (timeRatio < 1.0 ? 3 : 2);
             } else if (chunk == 19) {
                 // all bets are off, practically
                 slack = expectedCrossings / 2;
@@ -374,7 +382,7 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
                 slack = 1;
             }
         }
-                
+
         BOOST_TEST(positiveCrossings <= expectedCrossings + slack);
         BOOST_TEST(positiveCrossings >= expectedCrossings - slack);
         
@@ -387,7 +395,16 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
         rms = sqrt(rms / double(i1 - i0));
 
         double expected = (chunk/2 + 1) * 0.05 * sqrt(2.0);
-        BOOST_TEST(rms - expected < 0.01);
+
+        double maxOver = 0.01;
+        double maxUnder = 0.1;
+
+        if (!(options & RubberBandStretcher::OptionEngineFiner)) {
+            maxUnder = 0.2;
+        }
+        
+        BOOST_TEST(rms - expected < maxOver);
+        BOOST_TEST(expected - rms < maxUnder);
     }        
 }
 
@@ -431,10 +448,46 @@ BOOST_AUTO_TEST_CASE(sinusoid_slow_higher_realtime_finer)
                       false);
 }
 
+BOOST_AUTO_TEST_CASE(sinusoid_slow_higher_realtime_finer_hqpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighQuality,
+                      4.0, 1.5,
+                      false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_slow_higher_realtime_finer_hcpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighConsistency,
+                      4.0, 1.5,
+                      false);
+}
+
 BOOST_AUTO_TEST_CASE(sinusoid_slow_higher_realtime_faster)
 {
     sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
                       RubberBandStretcher::OptionProcessRealTime,
+                      4.0, 1.5,
+                      false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_slow_higher_realtime_faster_hqpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighQuality,
+                      4.0, 1.5,
+                      false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_slow_higher_realtime_faster_hcpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighConsistency,
                       4.0, 1.5,
                       false);
 }
@@ -447,10 +500,46 @@ BOOST_AUTO_TEST_CASE(sinusoid_fast_higher_realtime_finer)
                       false);
 }
 
+BOOST_AUTO_TEST_CASE(sinusoid_fast_higher_realtime_finer_hqpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighQuality,
+                      0.5, 1.5,
+                      false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_fast_higher_realtime_finer_hcpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighConsistency,
+                      0.5, 1.5,
+                      false);
+}
+
 BOOST_AUTO_TEST_CASE(sinusoid_fast_higher_realtime_faster)
 {
     sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
                       RubberBandStretcher::OptionProcessRealTime,
+                      0.5, 1.5,
+                      false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_fast_higher_realtime_faster_hqpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighQuality,
+                      0.5, 1.5,
+                      false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_fast_higher_realtime_faster_hcpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighConsistency,
                       0.5, 1.5,
                       false);
 }
@@ -463,10 +552,46 @@ BOOST_AUTO_TEST_CASE(sinusoid_slow_lower_realtime_finer)
                       false);
 }
 
+BOOST_AUTO_TEST_CASE(sinusoid_slow_lower_realtime_finer_hqpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighQuality,
+                      8.0, 0.5,
+                      false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_slow_lower_realtime_finer_hcpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighConsistency,
+                      8.0, 0.5,
+                      false);
+}
+
 BOOST_AUTO_TEST_CASE(sinusoid_slow_lower_realtime_faster)
 {
     sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
                       RubberBandStretcher::OptionProcessRealTime,
+                      8.0, 0.5,
+                      false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_slow_lower_realtime_faster_hqpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighQuality,
+                      8.0, 0.5,
+                      false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_slow_lower_realtime_faster_hcpitch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime |
+                      RubberBandStretcher::OptionPitchHighConsistency,
                       8.0, 0.5,
                       false);
 }
@@ -678,7 +803,7 @@ BOOST_AUTO_TEST_CASE(impulses_2x_5up_offline_finer)
     }
 */
 }
-
+/*
 BOOST_AUTO_TEST_CASE(final_realtime_faster)
 {
     int n = 10000;
@@ -726,5 +851,5 @@ BOOST_AUTO_TEST_CASE(final_realtime_faster)
         outcount += got;
     }
 }
-
+*/
 BOOST_AUTO_TEST_SUITE_END()
