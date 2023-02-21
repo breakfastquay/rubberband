@@ -495,7 +495,14 @@ R3Stretcher::getPreferredStartPad() const
     if (!isRealTime()) {
         return 0;
     } else {
-        return getWindowSourceSize() / 2;
+        bool resamplingBefore = false;
+        areWeResampling(&resamplingBefore, nullptr);
+        size_t pad = getWindowSourceSize() / 2;
+        if (resamplingBefore) {
+            return size_t(ceil(pad * m_pitchScale));
+        } else {
+            return pad;
+        }
     }
 }
 
@@ -505,8 +512,14 @@ R3Stretcher::getStartDelay() const
     if (!isRealTime()) {
         return 0;
     } else {
-        double factor = 0.5 / m_pitchScale;
-        return size_t(ceil(getWindowSourceSize() * factor));
+        bool resamplingBefore = false;
+        areWeResampling(&resamplingBefore, nullptr);
+        size_t delay = getWindowSourceSize() / 2;
+        if (resamplingBefore) {
+            return delay;
+        } else {
+            return size_t(ceil(delay / m_pitchScale));
+        }
     }
 }
 
@@ -580,8 +593,24 @@ R3Stretcher::getSamplesRequired() const
 {
     if (available() != 0) return 0;
     int rs = m_channelData[0]->inbuf->getReadSpace();
+
+    m_log.log(2, "getSamplesRequired: read space and window source size", rs, getWindowSourceSize());
+
     if (rs < getWindowSourceSize()) {
-        return getWindowSourceSize() - rs;
+
+        int req = getWindowSourceSize() - rs;
+        
+        bool resamplingBefore = false;
+        areWeResampling(&resamplingBefore, nullptr);
+
+        if (!resamplingBefore) {
+            return req;
+        } else {
+            int adjusted = int(ceil(double(req) * m_pitchScale));
+            m_log.log(2, "getSamplesRequired: resamplingBefore is true, req and adjusted", req, adjusted);
+            return adjusted;
+        }
+            
     } else {
         return 0;
     }
@@ -668,6 +697,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
         // haven't yet delivered all the samples" because the
         // distinction is meaningless internally - it only affects
         // whether available() finds any samples in the buffer
+        m_log.log(1, "final is set, entering Finished mode");
         m_mode = ProcessMode::Finished;
     } else {
         m_mode = ProcessMode::Processing;
@@ -679,7 +709,13 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     int channels = m_parameters.channels;
     int inputIx = 0;
 
-    while (inputIx < int(samples)) {
+    if (samples == 0 && final) {
+
+        m_log.log(2, "process: no samples but final specified, consuming");
+        
+        consume();
+
+    } else while (inputIx < int(samples)) {
 
         int remaining = int(samples) - inputIx;
         int ws = m_channelData[0]->inbuf->getWriteSpace();
@@ -727,6 +763,8 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
 
             inputIx += resampleInput;
 
+            m_log.log(2, "process: resamplingBefore is true, writing to inbuf from resampled data, former read space and samples being added", m_channelData[0]->inbuf->getReadSpace(), resampleOutput);
+
             for (int c = 0; c < m_parameters.channels; ++c) {
                 m_channelData[c]->inbuf->write
                     (m_channelData.at(c)->resampled.data(),
@@ -735,8 +773,11 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
 
         } else {
             int toWrite = std::min(ws, remaining);
+
+            m_log.log(2, "process: resamplingBefore is false, writing to inbuf from supplied data, former read space and samples being added", m_channelData[0]->inbuf->getReadSpace(), toWrite);
+
             for (int c = 0; c < m_parameters.channels; ++c) {
-                m_channelData[c]->inbuf->write (input[c] + inputIx, toWrite);
+                m_channelData[c]->inbuf->write(input[c] + inputIx, toWrite);
             }
             inputIx += toWrite;
         }
@@ -828,6 +869,8 @@ R3Stretcher::consume()
     }
 
     auto &cd0 = m_channelData.at(0);
+
+    m_log.log(2, "consume: write space and outhop", cd0->outbuf->getWriteSpace(), outhop);
     
     while (cd0->outbuf->getWriteSpace() >= outhop) {
 
@@ -840,6 +883,9 @@ R3Stretcher::consume()
         // the map iterators
 
         int readSpace = cd0->inbuf->getReadSpace();
+
+        m_log.log(2, "consume: read space and window source size", readSpace, getWindowSourceSize());
+
         if (readSpace < getWindowSourceSize()) {
             if (m_mode == ProcessMode::Finished) {
                 if (readSpace == 0) {
