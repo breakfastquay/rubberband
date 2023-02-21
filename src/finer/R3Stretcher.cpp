@@ -697,6 +697,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
         // haven't yet delivered all the samples" because the
         // distinction is meaningless internally - it only affects
         // whether available() finds any samples in the buffer
+        m_log.log(1, "final is set, entering Finished mode");
         m_mode = ProcessMode::Finished;
     } else {
         m_mode = ProcessMode::Processing;

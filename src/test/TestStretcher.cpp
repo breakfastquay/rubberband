@@ -1029,59 +1029,137 @@ BOOST_AUTO_TEST_CASE(impulses_slow_lower_realtime_finer_hcpitch)
                       false);
 }
 
-BOOST_AUTO_TEST_CASE(final_realtime_faster)
+static void final_realtime(RubberBandStretcher::Options options,
+                           double timeRatio,
+                           double pitchScale,
+                           bool finalAfterFinishing,
+                           bool printDebug)
 {
     int n = 10000;
     float freq = 440.f;
     int rate = 44100;
     int blocksize = 700;
-    RubberBandStretcher stretcher
-        (rate, 1,
-         RubberBandStretcher::OptionEngineFaster |
-         RubberBandStretcher::OptionProcessRealTime);
+    RubberBandStretcher stretcher(rate, 1, options);
 
-    stretcher.setTimeRatio(2.0);
-
-    int excess = 10000;
-    vector<float> in(n, 0.f), out(n * 2 + excess, 0.f);
-
-    for (int i = n - 100; i < n; ++i) {
-        in[i] = sinf(float(i) * freq * M_PI * 2.f / float(rate));
+    if (printDebug) {
+        stretcher.setDebugLevel(2);
     }
+
+    stretcher.setTimeRatio(timeRatio);
+    stretcher.setPitchScale(pitchScale);
+
+    int nOut = int(ceil(n * timeRatio));
+    int excess = std::max(nOut, n);
+    vector<float> in(n, 0.f), out(nOut + excess, 0.f);
+
+    for (int i = 0; i < 100; ++i) {
+        in[n - 101 + i] = sinf(float(i) * freq * M_PI * 2.f / float(rate));
+    }
+    
+    // Prime the start
+    {
+        float *source = out.data(); // just reuse out because it's silent
+        stretcher.process(&source, stretcher.getPreferredStartPad(), false);
+    }
+
     float *inp = in.data(), *outp = out.data();
 
     stretcher.setMaxProcessSize(blocksize);
     BOOST_TEST(stretcher.available() == 0);
 
+    int toSkip = stretcher.getStartDelay();
+
     int incount = 0, outcount = 0;
-    while (incount < n) {
+    while (true) {
 
         int inbs = std::min(blocksize, n - incount);
-        BOOST_TEST(inbs > 0);
 
-        bool final = (incount + inbs >= n);
+        bool final;
+        if (finalAfterFinishing) {
+            BOOST_TEST(inbs >= 0);
+            final = (inbs == 0);
+        } else {
+            BOOST_TEST(inbs > 0);
+            final = (incount + inbs >= n);
+        }
+        
         float *in = inp + incount;
         stretcher.process(&in, inbs, final);
+        incount += inbs;
 
         int avail = stretcher.available();
         BOOST_TEST(avail >= 0);
-        BOOST_TEST(outcount + avail < n + excess);
+        BOOST_TEST(outcount + avail < nOut + excess);
 
         float *out = outp + outcount;
-        size_t got = stretcher.retrieve(&out, avail);
-        BOOST_TEST(got == size_t(avail));
 
-        incount += inbs;
-        outcount += got;
-
-        cerr << "outcount = " << outcount << ", n = " << n << endl;
-        
-        if (outcount >= n * 2) {
-            BOOST_TEST(stretcher.available() == -1);
+        if (toSkip > 0) {
+            int skipHere = std::min(toSkip, avail);
+            size_t got = stretcher.retrieve(&out, skipHere);
+            BOOST_TEST(got == size_t(skipHere));
+            toSkip -= got;
+//            cerr << "got = " << got << ", toSkip now = " << toSkip << ", n = " << n << endl;
         } else {
-            BOOST_TEST(stretcher.available() == 0);
+            size_t got = stretcher.retrieve(&out, avail);
+            BOOST_TEST(got == size_t(avail));
+            outcount += got;
+//            cerr << "got = " << got << ", outcount = " << outcount << ", n = " << n << endl;
+            if (final) {
+                BOOST_TEST(stretcher.available() == -1);
+            } else {
+                BOOST_TEST(stretcher.available() == 0);
+            }
+        }
+
+        if (final) break;
+    }
+
+    if (printDebug) {
+        // The initial # is to allow grep on the test output
+        std::cout << "#sample\tV" << std::endl;
+        for (int i = 0; i < outcount; ++i) {
+            std::cout << "#" << i << "\t" << out[i] << std::endl;
         }
     }
+
 }
+
+BOOST_AUTO_TEST_CASE(final_slow_samepitch_realtime_finer)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime,
+                   8.0, 1.0,
+                   false,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_slow_samepitch_realtime_finer_after)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime,
+                   8.0, 1.0,
+                   true,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_fast_samepitch_realtime_finer)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime,
+                   0.2, 1.0,
+                   false,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_fast_samepitch_realtime_finer_after)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime,
+                   0.2, 1.0,
+                   true,
+                   false);
+}
+
+
 
 BOOST_AUTO_TEST_SUITE_END()

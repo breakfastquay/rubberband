@@ -821,6 +821,8 @@ if have_boost_unit_test
        unit_tests, args: [ '--run_test=TestVectorOpsComplex', general_test_args ])
   test('SignalBits',
        unit_tests, args: [ '--run_test=TestSignalBits', general_test_args ])
+  test('Stretcher',
+       unit_tests, args: [ '--run_test=TestStretcher', general_test_args ])
 else
   target_summary += { 'Unit tests': false }
   message('Not building unit tests: boost_unit_test_framework dependency not found')
