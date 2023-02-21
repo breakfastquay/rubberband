@@ -1091,6 +1091,8 @@ static void final_realtime(RubberBandStretcher::Options options,
         BOOST_TEST(avail >= 0);
         BOOST_TEST(outcount + avail < nOut + excess);
 
+//        cerr << "in = " << inbs << ", incount now = " << incount << ", avail = " << avail << endl;
+
         float *out = outp + outcount;
 
         if (toSkip > 0) {
@@ -1099,7 +1101,10 @@ static void final_realtime(RubberBandStretcher::Options options,
             BOOST_TEST(got == size_t(skipHere));
             toSkip -= got;
 //            cerr << "got = " << got << ", toSkip now = " << toSkip << ", n = " << n << endl;
-        } else {
+        }
+
+        avail = stretcher.available();
+        if (toSkip == 0 && avail > 0) {
             size_t got = stretcher.retrieve(&out, avail);
             BOOST_TEST(got == size_t(avail));
             outcount += got;
@@ -1114,6 +1119,8 @@ static void final_realtime(RubberBandStretcher::Options options,
         if (final) break;
     }
 
+    BOOST_TEST(outcount >= nOut);
+    
     if (printDebug) {
         // The initial # is to allow grep on the test output
         std::cout << "#sample\tV" << std::endl;
@@ -1127,7 +1134,8 @@ static void final_realtime(RubberBandStretcher::Options options,
 BOOST_AUTO_TEST_CASE(final_slow_samepitch_realtime_finer)
 {
     final_realtime(RubberBandStretcher::OptionEngineFiner |
-                   RubberBandStretcher::OptionProcessRealTime,
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
                    8.0, 1.0,
                    false,
                    false);
@@ -1136,7 +1144,8 @@ BOOST_AUTO_TEST_CASE(final_slow_samepitch_realtime_finer)
 BOOST_AUTO_TEST_CASE(final_slow_samepitch_realtime_finer_after)
 {
     final_realtime(RubberBandStretcher::OptionEngineFiner |
-                   RubberBandStretcher::OptionProcessRealTime,
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
                    8.0, 1.0,
                    true,
                    false);
@@ -1145,7 +1154,8 @@ BOOST_AUTO_TEST_CASE(final_slow_samepitch_realtime_finer_after)
 BOOST_AUTO_TEST_CASE(final_fast_samepitch_realtime_finer)
 {
     final_realtime(RubberBandStretcher::OptionEngineFiner |
-                   RubberBandStretcher::OptionProcessRealTime,
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
                    0.2, 1.0,
                    false,
                    false);
@@ -1154,12 +1164,92 @@ BOOST_AUTO_TEST_CASE(final_fast_samepitch_realtime_finer)
 BOOST_AUTO_TEST_CASE(final_fast_samepitch_realtime_finer_after)
 {
     final_realtime(RubberBandStretcher::OptionEngineFiner |
-                   RubberBandStretcher::OptionProcessRealTime,
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
                    0.2, 1.0,
                    true,
                    false);
 }
 
+BOOST_AUTO_TEST_CASE(final_slow_higher_realtime_finer)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
+                   8.0, 1.5,
+                   false,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_slow_higher_realtime_finer_after)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
+                   8.0, 1.5,
+                   true,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_fast_higher_realtime_finer)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
+                   0.2, 1.5,
+                   false,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_fast_higher_realtime_finer_after)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
+                   0.2, 1.5,
+                   true,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_slow_lower_realtime_finer)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
+                   8.0, 0.5,
+                   false,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_slow_lower_realtime_finer_after)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
+                   8.0, 0.5,
+                   true,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_fast_lower_realtime_finer)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
+                   0.2, 0.5,
+                   false,
+                   false);
+}
+
+BOOST_AUTO_TEST_CASE(final_fast_lower_realtime_finer_after)
+{
+    final_realtime(RubberBandStretcher::OptionEngineFiner |
+                   RubberBandStretcher::OptionProcessRealTime |
+                   RubberBandStretcher::OptionPitchHighConsistency,
+                   0.2, 0.5,
+                   true,
+                   false);
+}
 
 
 BOOST_AUTO_TEST_SUITE_END()
