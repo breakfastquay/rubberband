@@ -727,10 +727,12 @@ int main(int argc, char **argv)
                 cerr << "Pass 1: Studying..." << endl;
             }
 
-            while (frame < sfinfo.frames) {
+            bool final = false;
+            
+            while (!final) {
 
                 int count = -1;
-                if ((count = sf_readf_float(sndfile, ibuf, bs)) <= 0) break;
+                if ((count = sf_readf_float(sndfile, ibuf, bs)) < 0) break;
         
                 for (size_t c = 0; c < channels; ++c) {
                     for (int i = 0; i < count; ++i) {
@@ -738,7 +740,10 @@ int main(int argc, char **argv)
                     }
                 }
 
-                bool final = (frame + bs >= sfinfo.frames);
+                final = (frame + bs >= sfinfo.frames);
+                if (count == 0) {
+                    final = true;
+                }
 
                 ts.study(cbuf, count, final);
 
@@ -798,8 +803,10 @@ int main(int argc, char **argv)
                 }
             }
         }                
+
+        bool final = false;
         
-        while (frame < sfinfo.frames) {
+        while (!final) {
 
             thisBlockSize = bs;
 
@@ -836,8 +843,15 @@ int main(int argc, char **argv)
                 }
             }
 
-            bool final = (frame + thisBlockSize >= sfinfo.frames);
+            final = (frame + thisBlockSize >= sfinfo.frames);
 
+            if (count == 0) {
+                if (debug > 1) {
+                    cerr << "at frame " << frame << " of " << sfinfo.frames << ", read count = " << count << ": marking final as true" << endl;
+                }
+                final = true;
+            }
+            
             if (debug > 2) {
                 cerr << "count = " << count << ", bs = " << thisBlockSize << ", frame = " << frame << ", frames = " << sfinfo.frames << ", final = " << final << endl;
             }
