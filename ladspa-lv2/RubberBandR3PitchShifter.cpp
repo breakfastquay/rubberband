@@ -271,7 +271,8 @@ RubberBandR3PitchShifter::RubberBandR3PitchShifter(int sampleRate, size_t channe
     m_stretcher(new RubberBandStretcher
                 (sampleRate, channels,
                  RubberBandStretcher::OptionProcessRealTime |
-                 RubberBandStretcher::OptionEngineFiner)),
+                 RubberBandStretcher::OptionEngineFiner |
+                 RubberBandStretcher::OptionPitchHighConsistency)),
     m_sampleRate(sampleRate),
     m_channels(channels)
 {
