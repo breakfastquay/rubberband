@@ -213,7 +213,7 @@ R3Stretcher::setPitchScale(double scale)
     if (!isRealTime()) {
         if (m_mode == ProcessMode::Studying ||
             m_mode == ProcessMode::Processing) {
-            m_log.log(0, "R3Stretcher::setTimeRatio: Cannot set pitch scale while studying or processing in non-RT mode");
+            m_log.log(0, "R3Stretcher::setPitchScale: Cannot set pitch scale while studying or processing in non-RT mode");
             return;
         }
     }
@@ -229,7 +229,7 @@ R3Stretcher::setFormantScale(double scale)
     if (!isRealTime()) {
         if (m_mode == ProcessMode::Studying ||
             m_mode == ProcessMode::Processing) {
-            m_log.log(0, "R3Stretcher::setTimeRatio: Cannot set formant scale while studying or processing in non-RT mode");
+            m_log.log(0, "R3Stretcher::setFormantScale: Cannot set formant scale while studying or processing in non-RT mode");
             return;
         }
     }
