@@ -639,9 +639,7 @@ else
 endif
 
 install_headers(
-  [ 'rubberband/RubberBandStretcher.h',
-    'rubberband/rubberband-c.h'
-  ],
+  public_headers,
   subdir: 'rubberband'
 )
 
@@ -821,6 +819,8 @@ if have_boost_unit_test
        unit_tests, args: [ '--run_test=TestVectorOpsComplex', general_test_args ])
   test('SignalBits',
        unit_tests, args: [ '--run_test=TestSignalBits', general_test_args ])
+  test('StretchCalculator',
+       unit_tests, args: [ '--run_test=TestStretchCalculator', general_test_args ])
   test('Stretcher',
        unit_tests, args: [ '--run_test=TestStretcher', general_test_args ])
 else
