@@ -1,4 +1,28 @@
 
+Changes in Rubber Band v3.2
+
+This release contains a number of fixes, including some which affect
+the output quality in certain processing modes.
+
+ * Correct the start delay calculation in "resample-before" modes of
+   the R3 stretcher. This affects latency in realtime mode when using
+   the non-recommended realtime pitch options (i.e. those other than
+   OptionPitchHighConsistency, which is the recommended option for
+   variable-rate use in realtime mode)
+ * Relatedly, fix failure to use OptionPitchHighConsistency in R3
+   LADSPA/LV2 plugins!
+ * Fix failure to generate output when called with final=true and no
+   samples at input (a regression in v3.1, this worked correctly in
+   v3.0 and in the R2 engine)
+ * Fix occasional truncation of final block when using Speex resampler
+ * Fix hang in the command-line utility code at end of processing with
+   certain file formats
+ * Expand automated tests
+
+The API is unchanged from 3.0 and the library is binary compatible
+back to version 1.7.
+
+
 Changes in Rubber Band v3.1.2
 
 This minor release contains a small number of build fixes.
