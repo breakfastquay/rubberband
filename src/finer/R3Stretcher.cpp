@@ -752,11 +752,13 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             int maxResampleInput = int(floor(maxResampleOutput * m_pitchScale));
             int resampleInput = std::min(remaining, maxResampleInput);
             if (resampleInput == 0) resampleInput = 1;
+
+            prepareInput(input, inputIx, resampleInput);
             
             int resampleOutput = m_resampler->resample
                 (m_channelAssembly.resampled.data(),
                  maxResampleOutput,
-                 input,
+                 m_channelAssembly.input.data(),
                  resampleInput,
                  1.0 / m_pitchScale,
                  final);
@@ -776,8 +778,11 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
 
             m_log.log(2, "process: resamplingBefore is false, writing to inbuf from supplied data, former read space and samples being added", m_channelData[0]->inbuf->getReadSpace(), toWrite);
 
+            prepareInput(input, inputIx, toWrite);
+            
             for (int c = 0; c < m_parameters.channels; ++c) {
-                m_channelData[c]->inbuf->write(input[c] + inputIx, toWrite);
+                m_channelData[c]->inbuf->write
+                    (m_channelAssembly.input[c], toWrite);
             }
             inputIx += toWrite;
         }
@@ -814,7 +819,45 @@ R3Stretcher::retrieve(float *const *output, size_t samples) const
         }
     }
 
+    bool useMidSide = (m_parameters.channels == 2); //!!!
+
+    if (useMidSide) {
+        for (int i = 0; i < got; ++i) {
+            float m = output[0][i];
+            float s = output[1][i];
+            float l = m + s;
+            float r = m - s;
+            output[0][i] = l;
+            output[1][i] = r;
+        }
+    }
+    
     return got;
+}
+
+void
+R3Stretcher::prepareInput(const float *const *input, int ix, int n)
+{
+    bool useMidSide = (m_parameters.channels == 2); //!!!
+
+    if (useMidSide) {
+        auto &c0 = m_channelData.at(0)->mixdown;
+        auto &c1 = m_channelData.at(1)->mixdown;
+        for (int i = 0; i < n; ++i) {
+            float l = input[0][i + ix];
+            float r = input[1][i + ix];
+            float m = (l + r) / 2.f;
+            float s = (l - r) / 2.f;
+            c0[i] = m;
+            c1[i] = s;
+        }
+        m_channelAssembly.input[0] = m_channelData.at(0)->mixdown.data();
+        m_channelAssembly.input[1] = m_channelData.at(1)->mixdown.data();
+    } else {
+        for (int c = 0; c < m_parameters.channels; ++c) {
+            m_channelAssembly.input[c] = input[c] + ix;
+        }
+    }
 }
 
 void

@@ -241,7 +241,7 @@ protected:
                                BinClassifier::Classification::Residual),
             segmenter(new BinSegmenter(segmenterParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
-            mixdown(longestFftSize, 0.f),
+            mixdown(inRingBufferSize, 0.f),
             resampled(outRingBufferSize, 0.f),
             inbuf(new RingBuffer<float>(inRingBufferSize)),
             outbuf(new RingBuffer<float>(outRingBufferSize)),
@@ -263,6 +263,7 @@ protected:
     struct ChannelAssembly {
         // Vectors of bare pointers, used to package container data
         // from different channels into arguments for PhaseAdvance
+        FixedVector<const float *> input;
         FixedVector<process_t *> mag;
         FixedVector<process_t *> phase;
         FixedVector<process_t *> prevMag;
@@ -271,6 +272,7 @@ protected:
         FixedVector<float *> mixdown;
         FixedVector<float *> resampled;
         ChannelAssembly(int channels) :
+            input(channels, nullptr),
             mag(channels, nullptr), phase(channels, nullptr),
             prevMag(channels, nullptr), guidance(channels, nullptr),
             outPhase(channels, nullptr), mixdown(channels, nullptr),
@@ -350,6 +352,7 @@ protected:
     };
     ProcessMode m_mode;
 
+    void prepareInput(const float *const *input, int ix, int n);
     void consume();
     void createResampler();
     void calculateHop();
