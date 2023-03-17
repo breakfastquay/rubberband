@@ -472,6 +472,12 @@ protected:
         }
     }        
 
+    bool useMidSide() const {
+        return m_parameters.channels == 2 &&
+            (m_parameters.options &
+             RubberBandStretcher::OptionChannelsTogether);
+    }
+    
     bool isSingleWindowed() const {
         return m_parameters.options &
             RubberBandStretcher::OptionWindowShort;

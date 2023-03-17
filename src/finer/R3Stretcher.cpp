@@ -819,9 +819,7 @@ R3Stretcher::retrieve(float *const *output, size_t samples) const
         }
     }
 
-    bool useMidSide = (m_parameters.channels == 2); //!!!
-
-    if (useMidSide) {
+    if (useMidSide()) {
         for (int i = 0; i < got; ++i) {
             float m = output[0][i];
             float s = output[1][i];
@@ -838,9 +836,7 @@ R3Stretcher::retrieve(float *const *output, size_t samples) const
 void
 R3Stretcher::prepareInput(const float *const *input, int ix, int n)
 {
-    bool useMidSide = (m_parameters.channels == 2); //!!!
-
-    if (useMidSide) {
+    if (useMidSide()) {
         auto &c0 = m_channelData.at(0)->mixdown;
         auto &c1 = m_channelData.at(1)->mixdown;
         for (int i = 0; i < n; ++i) {
@@ -971,6 +967,7 @@ R3Stretcher::consume()
                  m_channelAssembly.prevMag.data(),
                  m_guideConfiguration,
                  m_channelAssembly.guidance.data(),
+                 useMidSide(),
                  m_prevInhop,
                  m_prevOuthop);
         }
