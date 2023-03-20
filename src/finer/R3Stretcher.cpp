@@ -545,9 +545,6 @@ R3Stretcher::reset()
         cd->reset();
     }
 
-    m_prevInhop = m_inhop;
-    m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
-
     m_studyInputDuration = 0;
     m_suppliedInputDuration = 0;
     m_totalTargetDuration = 0;
@@ -557,6 +554,14 @@ R3Stretcher::reset()
     m_keyFrameMap.clear();
 
     m_mode = ProcessMode::JustCreated;
+
+    m_prevInhop = 1;
+    m_prevOuthop = 1;
+
+    calculateHop();
+
+    m_prevInhop = m_inhop;
+    m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
 }
 
 void

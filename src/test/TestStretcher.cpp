@@ -1251,5 +1251,77 @@ BOOST_AUTO_TEST_CASE(final_fast_lower_realtime_finer_after)
                    false);
 }
 
+BOOST_AUTO_TEST_CASE(impulses_2x_5up_offline_reset_finer)
+{
+    int n = 10000;
+    int rate = 44100;
+    RubberBandStretcher stretcher
+        (rate, 1, RubberBandStretcher::OptionEngineFiner);
+
+    stretcher.setTimeRatio(2.0);
+    stretcher.setPitchScale(1.5);
+
+    vector<float> in(n, 0.f), out1(n * 2, 0.f), out2(n * 2, 0.f);
+
+    in[100] = 1.f;
+    in[101] = -1.f;
+
+    in[5000] = 1.f;
+    in[5001] = -1.f;
+
+    in[9900] = 1.f;
+    in[9901] = -1.f;
+    
+    float *inp = in.data(), *outp1 = out1.data(), *outp2 = out2.data();
+
+    stretcher.setMaxProcessSize(n);
+    stretcher.setExpectedInputDuration(n);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.study(&inp, n, true);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.process(&inp, n, true);
+    BOOST_TEST(stretcher.available() == n * 2);
+
+    BOOST_TEST(stretcher.getStartDelay() == 0); // offline mode
+    
+    size_t got = stretcher.retrieve(&outp1, n * 2);
+    BOOST_TEST(got == n * 2);
+    BOOST_TEST(stretcher.available() == -1);
+
+    stretcher.reset();
+
+    stretcher.setMaxProcessSize(n);
+    stretcher.setExpectedInputDuration(n);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.study(&inp, n, true);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.process(&inp, n, true);
+    BOOST_TEST(stretcher.available() == n * 2);
+
+    BOOST_TEST(stretcher.getStartDelay() == 0); // offline mode
+    
+    got = stretcher.retrieve(&outp2, n * 2);
+    BOOST_TEST(got == n * 2);
+    BOOST_TEST(stretcher.available() == -1);
+    
+    for (int i = 0; i < n * 2; ++i) {
+        BOOST_TEST(outp1[i] == outp2[i]);
+        if (outp1[i] != outp2[i]) {
+            std::cerr << "Failure at index " << i << std::endl;
+            break;
+        }
+    }
+
+/*
+    std::cout << "ms\tV" << std::endl;
+    for (int i = 0; i < n*2; ++i) {
+        std::cout << i << "\t" << out[i] << std::endl;
+    }
+*/
+}
 
 BOOST_AUTO_TEST_SUITE_END()
