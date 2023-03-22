@@ -172,6 +172,7 @@ protected:
 
         void reset() {
             v_zero(prevMag.data(), prevMag.size());
+            v_zero(pendingKick.data(), pendingKick.size());
             v_zero(accumulator.data(), accumulator.size());
             accumulatorFill = 0;
         }
@@ -226,7 +227,7 @@ protected:
         std::unique_ptr<FormantData> formant;
         ChannelData(BinSegmenter::Parameters segmenterParameters,
                     BinClassifier::Parameters classifierParameters,
-                    int longestFftSize,
+                    int /*!!! longestFftSize */,
                     int windowSourceSize,
                     int inRingBufferSize,
                     int outRingBufferSize) :
@@ -252,6 +253,9 @@ protected:
             segmentation = BinSegmenter::Segmentation();
             prevSegmentation = BinSegmenter::Segmentation();
             nextSegmentation = BinSegmenter::Segmentation();
+            for (size_t i = 0; i < nextClassification.size(); ++i) {
+                nextClassification[i] = BinClassifier::Classification::Residual;
+            }
             inbuf->reset();
             outbuf->reset();
             for (auto &s : scales) {

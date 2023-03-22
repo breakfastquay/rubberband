@@ -92,6 +92,17 @@ public:
 
     void reset()
     {
+        while (m_vfQueue.getReadSpace() > 0) {
+            process_t *entry = m_vfQueue.readOne();
+            deallocate(entry);
+        }
+        
+        for (int i = 0; i < m_parameters.horizontalFilterLag; ++i) {
+            process_t *entry =
+                allocate_and_zero<process_t>(m_parameters.binCount);
+            m_vfQueue.write(&entry, 1);
+        }
+
         m_hFilters->reset();
     }
     

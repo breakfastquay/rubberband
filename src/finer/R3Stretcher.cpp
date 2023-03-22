@@ -533,6 +533,7 @@ void
 R3Stretcher::reset()
 {
     m_calculator->reset();
+    
     if (m_resampler) {
         m_resampler->reset();
     }
@@ -545,6 +546,7 @@ R3Stretcher::reset()
         cd->reset();
     }
 
+    m_unityCount = 0;
     m_studyInputDuration = 0;
     m_suppliedInputDuration = 0;
     m_totalTargetDuration = 0;
