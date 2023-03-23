@@ -114,8 +114,8 @@ protected:
             minPreferredOuthop(roundUpDiv(rate, 512)), // 128
             maxPreferredOuthop(roundUpDiv(rate, 128)), // 512
             minInhop(1),
-            maxInhopWithReadahead(roundUpDiv(rate, 32)), // 1024
-            maxInhop(roundUpDiv(rate, 32)) {             // 1024
+            maxInhopWithReadahead(roundUpDiv(rate, 64)), // 1024
+            maxInhop(roundUpDiv(rate, 32)) {             // 2048
             if (options & RubberBandStretcher::OptionWindowShort) {
                 // See note in calculateHop
                 minPreferredOuthop = roundUpDiv(rate, 256); // 256

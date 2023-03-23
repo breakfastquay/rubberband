@@ -382,10 +382,10 @@ R3Stretcher::calculateHop()
     m_log.log(1, "calculateHop: inhop and mean outhop", m_inhop, m_inhop * ratio);
 
     if (m_inhop < m_limits.maxInhopWithReadahead) {
-        m_log.log(1, "calculateHop: using readahead");
+        m_log.log(1, "calculateHop: using readahead; maxInhopWithReadahead", m_limits.maxInhopWithReadahead);
         m_useReadahead = true;
     } else {
-        m_log.log(1, "calculateHop: not using readahead, inhop too long for buffer in current configuration");
+        m_log.log(1, "calculateHop: not using readahead; maxInhopWithReadahead", m_limits.maxInhopWithReadahead);
         m_useReadahead = false;
     }
 }
