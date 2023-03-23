@@ -223,6 +223,8 @@ R2Stretcher::reset()
     m_mode = JustCreated;
     if (m_phaseResetAudioCurve) m_phaseResetAudioCurve->reset();
     if (m_silentAudioCurve) m_silentAudioCurve->reset();
+    m_expectedInputDuration = 0;
+    m_maxProcessSize = 0;
     m_inputDuration = 0;
     m_silentHistory = 0;
 
