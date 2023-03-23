@@ -61,7 +61,13 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     m_mode(ProcessMode::JustCreated)
 {
     Profiler profiler("R3Stretcher::R3Stretcher");
-    
+
+    initialise();
+}
+
+void
+R3Stretcher::initialise()
+{
     m_log.log(1, "R3Stretcher::R3Stretcher: rate, options",
               m_parameters.sampleRate, m_parameters.options);
     m_log.log(1, "R3Stretcher::R3Stretcher: initial time ratio and pitch scale",
@@ -99,6 +105,8 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     int inRingBufferSize = getWindowSourceSize() * 16;
     int outRingBufferSize = getWindowSourceSize() * 16;
 
+    m_channelData.clear();
+    
     for (int c = 0; c < m_parameters.channels; ++c) {
         m_channelData.push_back(std::make_shared<ChannelData>
                                 (segmenterParameters,
@@ -115,6 +123,8 @@ R3Stretcher::R3Stretcher(Parameters parameters,
                 (fftSize, m_guideConfiguration.longestFftSize);
         }
     }
+
+    m_scaleData.clear();
     
     for (int b = 0; b < m_guideConfiguration.fftBandLimitCount; ++b) {
         const auto &band = m_guideConfiguration.fftBandLimits[b];
@@ -140,9 +150,6 @@ R3Stretcher::R3Stretcher(Parameters parameters,
     }
 
     calculateHop();
-
-    m_prevInhop = m_inhop;
-    m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
 
     if (!m_inhop.is_lock_free()) {
         m_log.log(0, "R3Stretcher: WARNING: std::atomic<int> is not lock-free");
@@ -388,6 +395,11 @@ R3Stretcher::calculateHop()
         m_log.log(1, "calculateHop: not using readahead, inhop too long for buffer in current configuration");
         m_useReadahead = false;
     }
+
+    if (m_mode == ProcessMode::JustCreated) {
+        m_prevInhop = m_inhop;
+        m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
+    }
 }
 
 void
@@ -532,6 +544,21 @@ R3Stretcher::getChannelCount() const
 void
 R3Stretcher::reset()
 {
+    m_inhop = 1;
+    m_prevInhop = 1;
+    m_prevOuthop = 1;
+    m_unityCount = 0;
+    m_startSkip = 0;
+    m_studyInputDuration = 0;
+    m_suppliedInputDuration = 0;
+    m_totalTargetDuration = 0;
+    m_consumedInputDuration = 0;
+    m_lastKeyFrameSurpassed = 0;
+    m_totalOutputDuration = 0;
+    m_keyFrameMap.clear();
+
+    m_mode = ProcessMode::JustCreated;
+
     m_calculator->reset();
     
     if (m_resampler) {
@@ -546,24 +573,7 @@ R3Stretcher::reset()
         cd->reset();
     }
 
-    m_unityCount = 0;
-    m_studyInputDuration = 0;
-    m_suppliedInputDuration = 0;
-    m_totalTargetDuration = 0;
-    m_consumedInputDuration = 0;
-    m_lastKeyFrameSurpassed = 0;
-    m_totalOutputDuration = 0;
-    m_keyFrameMap.clear();
-
-    m_mode = ProcessMode::JustCreated;
-
-    m_prevInhop = 1;
-    m_prevOuthop = 1;
-
     calculateHop();
-
-    m_prevInhop = m_inhop;
-    m_prevOuthop = int(round(m_inhop * getEffectiveRatio()));
 }
 
 void

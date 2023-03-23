@@ -1251,12 +1251,275 @@ BOOST_AUTO_TEST_CASE(final_fast_lower_realtime_finer_after)
                    false);
 }
 
-BOOST_AUTO_TEST_CASE(impulses_2x_0up_offline_reset_finer)
+static void with_resets(RubberBandStretcher::Options options,
+                        double timeRatio,
+                        double pitchScale)
+{
+    const int n = 10000;
+    const int nOut = int(round(n * timeRatio));
+    const int rate = 44100;
+    const bool realtime =
+        (options & RubberBandStretcher::OptionProcessRealTime);
+
+    vector<float> in(n, 0.f), outRef(nOut, 0.f), out(nOut, 0.f);
+
+    in[100] = 1.f;
+    in[101] = -1.f;
+
+    in[5000] = 1.f;
+    in[5001] = -1.f;
+
+    in[9900] = 1.f;
+    in[9901] = -1.f;
+    
+    int nExpected = 0;
+    
+    RubberBandStretcher *stretcher = nullptr;
+
+    // Combinations we need to ensure produce identical outputs:
+    // 1. With timeRatio and pitchScale passed to constructor
+    // 2. Then reset called and run again
+    // 3. New instance, no ratios passed to ctor, timeRatio and
+    //    pitchScale set after construction
+    // 4. Then reset called and run again
+
+    for (int run = 1; run <= 4; ++run) { // run being index into list above
+
+        float *inp = in.data(), *outRefp = outRef.data(), *outp = out.data();
+
+        if (run == 1 || run == 3) {
+            delete stretcher;
+            if (run == 1) {
+                stretcher = new RubberBandStretcher(rate, 1, options,
+                                                    timeRatio, pitchScale);
+            } else {
+                stretcher = new RubberBandStretcher(rate, 1, options);
+                stretcher->setTimeRatio(timeRatio);
+                stretcher->setPitchScale(pitchScale);
+            }
+        }
+
+        if (run == 2 || run == 4) {
+            stretcher->reset();
+        }
+
+        // In every case we request nOut samples into out, and nActual
+        // records how many we actually get
+        int nActual = 0;
+        
+        if (realtime) {
+
+            int blocksize = 1024;
+            int nIn = 0;
+
+            while (nActual < nOut) {
+                int bsHere = blocksize;
+                bool final = false;
+                if (nIn + blocksize > n) {
+                    bsHere = n - nIn;
+                    final = true;
+                }
+                stretcher->process(&inp, bsHere, final);
+                nIn += bsHere;
+                inp += bsHere;
+                int avail = stretcher->available();
+                if (avail < 0) break;
+                int toGet = avail;
+                if (nActual + toGet > nOut) {
+                    toGet = nOut - nActual;
+                }
+                int got = (int)stretcher->retrieve(&outp, toGet);
+                nActual += got;
+                outp += got;
+                if (final) break;
+            }
+                
+            BOOST_TEST(nActual <= nOut);
+            
+        } else {
+            
+            stretcher->setMaxProcessSize(n);
+            stretcher->setExpectedInputDuration(n);
+            BOOST_TEST(stretcher->available() == 0);
+
+            stretcher->study(&inp, n, true);
+            BOOST_TEST(stretcher->available() == 0);
+
+            stretcher->process(&inp, n, true);
+            BOOST_TEST(stretcher->available() == nOut);
+
+            BOOST_TEST(stretcher->getStartDelay() == 0); // offline mode
+    
+            nActual = (int)stretcher->retrieve(&outp, nOut);
+            BOOST_TEST(nActual == nOut);
+            BOOST_TEST(stretcher->available() == -1);
+        }
+
+        if (run == 1) { // set up expectations for subsequent runs
+
+            for (int i = 0; i < nActual; ++i) {
+                outRef[i] = out[i];
+            }
+            nExpected = nActual;
+
+        } else { // check expectations
+            
+            BOOST_TEST(nActual == nExpected);
+            
+            for (int i = 0; i < nActual; ++i) {
+                BOOST_TEST(out[i] == outRef[i]);
+                if (out[i] != outRef[i]) {
+                    std::cerr << "Failure at index " << i << " in run "
+                              << run << std::endl;
+                    break;
+                }
+            }
+        }
+    }
+
+    delete stretcher;
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_1x_0up_offline_finer)
+{
+    with_resets(RubberBandStretcher::OptionEngineFiner, 1.0, 1.0);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_2x_0up_offline_finer)
+{
+    with_resets(RubberBandStretcher::OptionEngineFiner, 2.0, 1.0);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_2x_5up_offline_finer)
+{
+    with_resets(RubberBandStretcher::OptionEngineFiner, 2.0, 1.5);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_1x_0up_offline_faster)
+{
+    with_resets(RubberBandStretcher::OptionEngineFaster, 1.0, 1.0);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_2x_0up_offline_faster)
+{
+    with_resets(RubberBandStretcher::OptionEngineFaster, 2.0, 1.0);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_2x_5up_offline_faster)
+{
+    with_resets(RubberBandStretcher::OptionEngineFaster, 2.0, 1.5);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_1x_0up_realtime_finer)
+{
+    with_resets(RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionEngineFiner, 1.0, 1.0);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_2x_0up_realtime_finer)
+{
+    with_resets(RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionEngineFiner, 2.0, 1.0);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_2x_5up_realtime_finer)
+{
+    with_resets(RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionEngineFiner, 2.0, 1.5);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_1x_0up_realtime_faster)
+{
+    with_resets(RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionEngineFaster, 1.0, 1.0);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_2x_0up_realtime_faster)
+{
+    with_resets(RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionEngineFaster, 2.0, 1.0);
+}
+
+BOOST_AUTO_TEST_CASE(with_resets_2x_5up_realtime_faster)
+{
+    with_resets(RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionEngineFaster, 2.0, 1.5);
+}
+
+
+
+BOOST_AUTO_TEST_CASE(impulses_2x_0up_offline_reset_finer_initialparams)
 {
     int n = 10000;
     int rate = 44100;
     RubberBandStretcher stretcher
-        (rate, 1, RubberBandStretcher::OptionEngineFiner);
+        (rate, 1, RubberBandStretcher::OptionEngineFiner,
+         2.0, 1.0);
+
+    vector<float> in(n, 0.f), out1(n * 2, 0.f), out2(n * 2, 0.f);
+
+    in[100] = 1.f;
+    in[101] = -1.f;
+
+    in[5000] = 1.f;
+    in[5001] = -1.f;
+
+    in[9900] = 1.f;
+    in[9901] = -1.f;
+    
+    float *inp = in.data(), *outp1 = out1.data(), *outp2 = out2.data();
+
+    stretcher.setMaxProcessSize(n);
+    stretcher.setExpectedInputDuration(n);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.study(&inp, n, true);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.process(&inp, n, true);
+    BOOST_TEST(stretcher.available() == n * 2);
+
+    BOOST_TEST(stretcher.getStartDelay() == 0); // offline mode
+    
+    size_t got = stretcher.retrieve(&outp1, n * 2);
+    BOOST_TEST(got == n * 2);
+    BOOST_TEST(stretcher.available() == -1);
+
+    stretcher.reset();
+
+    stretcher.setMaxProcessSize(n);
+    stretcher.setExpectedInputDuration(n);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.study(&inp, n, true);
+    BOOST_TEST(stretcher.available() == 0);
+
+    stretcher.process(&inp, n, true);
+    BOOST_TEST(stretcher.available() == n * 2);
+
+    BOOST_TEST(stretcher.getStartDelay() == 0); // offline mode
+    
+    got = stretcher.retrieve(&outp2, n * 2);
+    BOOST_TEST(got == n * 2);
+    BOOST_TEST(stretcher.available() == -1);
+    
+    for (int i = 0; i < n * 2; ++i) {
+        BOOST_TEST(outp1[i] == outp2[i]);
+        if (outp1[i] != outp2[i]) {
+            std::cerr << "Failure at index " << i << std::endl;
+            break;
+        }
+    }
+
+/*
+    std::cout << "ms\tV" << std::endl;
+    for (int i = 0; i < n*2; ++i) {
+        std::cout << i << "\t" << out[i] << std::endl;
+    }
+*/
+}
+
+BOOST_AUTO_TEST_CASE(impulses_2x_0up_offline_reset_finer_postparams)
+{
+    int n = 10000;
+    int rate = 44100;
+    RubberBandStretcher stretcher
+        (rate, 1, RubberBandStretcher::OptionEngineFiner,
+         2.0, 1.0);
 
     stretcher.setTimeRatio(2.0);
     stretcher.setPitchScale(1.0);

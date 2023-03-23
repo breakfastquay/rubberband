@@ -356,6 +356,7 @@ protected:
     };
     ProcessMode m_mode;
 
+    void initialise();
     void prepareInput(const float *const *input, int ix, int n);
     void consume();
     void createResampler();
