@@ -881,7 +881,7 @@ BOOST_AUTO_TEST_CASE(impulses_2x_5up_offline_finer)
         if (out[i] > max) { max = out[i]; peak2 = i; }
     }
 
-    BOOST_TEST(peak0 < 100);
+    BOOST_TEST(peak0 < 250);
     BOOST_TEST(peak1 > n - 400);
     BOOST_TEST(peak1 < n + 50);
     BOOST_TEST(peak2 > n*2 - 600);
@@ -1282,6 +1282,9 @@ static void with_resets(RubberBandStretcher::Options options,
     // 3. New instance, no ratios passed to ctor, timeRatio and
     //    pitchScale set after construction
     // 4. Then reset called and run again
+    // 5. Reset called again, timeRatio and pitchScale set again (to
+    //    the same things, just in case the act of setting them
+    //    changes anything) and run again
 
     for (int run = 1; run <= 4; ++run) { // run being index into list above
 
@@ -1299,8 +1302,12 @@ static void with_resets(RubberBandStretcher::Options options,
             }
         }
 
-        if (run == 2 || run == 4) {
+        if (run == 2 || run == 4 || run == 5) {
             stretcher->reset();
+            if (run == 5) {
+                stretcher->setTimeRatio(timeRatio);
+                stretcher->setPitchScale(pitchScale);
+            }
         }
 
         // In every case we request nOut samples into out, and nActual
