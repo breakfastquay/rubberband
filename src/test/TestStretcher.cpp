@@ -1068,7 +1068,7 @@ static void final_realtime(RubberBandStretcher::Options options,
     BOOST_TEST(stretcher.available() == 0);
 
     int toSkip = stretcher.getStartDelay();
-
+    
     int incount = 0, outcount = 0;
     while (true) {
 
@@ -1285,10 +1285,12 @@ static void with_resets(RubberBandStretcher::Options options,
     // 5. Reset called again, timeRatio and pitchScale set again (to
     //    the same things, just in case the act of setting them
     //    changes anything) and run again
+    // 6. More input supplied and left in stretcher (output not
+    //    retrieved) - then reset called and run again
 
-    for (int run = 1; run <= 4; ++run) { // run being index into list above
+    for (int run = 1; run <= 6; ++run) { // run being index into list above
 
-        float *inp = in.data(), *outRefp = outRef.data(), *outp = out.data();
+        float *inp = in.data(), *outp = out.data();
 
         if (run == 1 || run == 3) {
             delete stretcher;
@@ -1302,7 +1304,7 @@ static void with_resets(RubberBandStretcher::Options options,
             }
         }
 
-        if (run == 2 || run == 4 || run == 5) {
+        if (run == 2 || run > 3) {
             stretcher->reset();
             if (run == 5) {
                 stretcher->setTimeRatio(timeRatio);
@@ -1310,6 +1312,16 @@ static void with_resets(RubberBandStretcher::Options options,
             }
         }
 
+        if (run == 6) {
+            if (realtime) {
+                stretcher->process(&inp, n / 2, false);
+            } else {
+                stretcher->study(&inp, n / 2, true);
+                stretcher->process(&inp, n / 2, false);
+            }
+            stretcher->reset();
+        }
+        
         // In every case we request nOut samples into out, and nActual
         // records how many we actually get
         int nActual = 0;
