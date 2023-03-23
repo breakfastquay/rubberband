@@ -1,9 +1,16 @@
 
 Changes in Rubber Band v3.2
 
-This release contains a number of fixes, including some which affect
-the output quality in certain processing modes.
+This significant release contains a number of fixes, including some
+which affect the output quality in certain processing modes.
 
+ * Fix inability of the R3 engine to produce mono-compatible output
+   when processing stereo. In R2 the OptionChannelsTogether option has
+   always done this (with some quality caveats). In R3 this option was
+   more nearly mono-compatible than the default, but not
+   entirely. With this release, OptionChannelsTogether uses a new
+   method that is both high quality and mono-compatible and is
+   recommended for situations benefiting from this.
  * Correct the start delay calculation in "resample-before" modes of
    the R3 stretcher. This affects latency in realtime mode when using
    the non-recommended realtime pitch options (i.e. those other than
@@ -14,6 +21,9 @@ the output quality in certain processing modes.
  * Fix failure to generate output when called with final=true and no
    samples at input (a regression in v3.1, this worked correctly in
    v3.0 and in the R2 engine)
+ * Fix small difference in output from R3 engine depending on whether
+   time and pitch ratios were provided on construction or immediately
+   after it
  * Fix occasional truncation of final block when using Speex resampler
  * Fix hang in the command-line utility code at end of processing with
    certain file formats
