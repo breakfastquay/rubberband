@@ -114,8 +114,8 @@ protected:
             minPreferredOuthop(roundUpDiv(rate, 512)), // 128
             maxPreferredOuthop(roundUpDiv(rate, 128)), // 512
             minInhop(1),
-            maxInhopWithReadahead(roundUpDiv(rate, 32)), // 1024
-            maxInhop(roundUpDiv(rate, 32)) {             // 1024
+            maxInhopWithReadahead(roundUpDiv(rate, 64)), // 1024
+            maxInhop(roundUpDiv(rate, 32)) {             // 2048
             if (options & RubberBandStretcher::OptionWindowShort) {
                 // See note in calculateHop
                 minPreferredOuthop = roundUpDiv(rate, 256); // 256
@@ -172,6 +172,7 @@ protected:
 
         void reset() {
             v_zero(prevMag.data(), prevMag.size());
+            v_zero(pendingKick.data(), pendingKick.size());
             v_zero(accumulator.data(), accumulator.size());
             accumulatorFill = 0;
         }
@@ -226,7 +227,7 @@ protected:
         std::unique_ptr<FormantData> formant;
         ChannelData(BinSegmenter::Parameters segmenterParameters,
                     BinClassifier::Parameters classifierParameters,
-                    int longestFftSize,
+                    int /*!!! longestFftSize */,
                     int windowSourceSize,
                     int inRingBufferSize,
                     int outRingBufferSize) :
@@ -252,6 +253,9 @@ protected:
             segmentation = BinSegmenter::Segmentation();
             prevSegmentation = BinSegmenter::Segmentation();
             nextSegmentation = BinSegmenter::Segmentation();
+            for (size_t i = 0; i < nextClassification.size(); ++i) {
+                nextClassification[i] = BinClassifier::Classification::Residual;
+            }
             inbuf->reset();
             outbuf->reset();
             for (auto &s : scales) {
@@ -352,6 +356,7 @@ protected:
     };
     ProcessMode m_mode;
 
+    void initialise();
     void prepareInput(const float *const *input, int ix, int n);
     void consume();
     void createResampler();
