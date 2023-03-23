@@ -353,9 +353,8 @@ public:
      *   processing.
      *
      * 11. Flags prefixed \c OptionChannels control the method used
-     * for processing two-channel stereo audio. These have different,
-     * but related, effects in the R2 and R3 engines.  These options
-     * may not be changed after construction.
+     * for processing two-channel stereo audio. These options may not
+     * be changed after construction.
      *
      *   \li \c OptionChannelsApart - Channels are handled for maximum
      *   individual fidelity, at the expense of synchronisation. In
@@ -364,19 +363,20 @@ public:
      *   higher.  In R2, it means the stereo channels are processed
      *   individually and only synchronised at transients.  In both
      *   engines this gives the highest quality for the individual
-     *   channels but a more diffuse stereo image and an unnatural
-     *   increase in "width".  This option is the default.
+     *   channels but a more diffuse stereo image, an unnatural
+     *   increase in "width", and generally a loss of mono
+     *   compatibility (i.e. mono mixes from stereo can sound phasy).
+     *   This option is the default.
      *
      *   \li \c OptionChannelsTogether - Channels are handled for
-     *   higher synchronisation at the expense of individual
-     *   fidelity. In the R3 engine, this means stereo synchronisation
-     *   is maintained more closely for the full frequency range. In
-     *   R2, it means the first two channels are considered to be a
-     *   stereo pair and are processed in mid-side format, with mid
-     *   and side processed as if they were separate channels before
-     *   being recombined.  This usually leads to better focus in the
-     *   centre but relatively less stereo space and width and lower
-     *   fidelity for individual channel content.
+     *   higher synchronisation at some expense of individual
+     *   fidelity. In particular, a stretcher processing two channels
+     *   will treat its input as a stereo pair and aim to maximise
+     *   clarity at the centre and preserve mono compatibility.  This
+     *   gives relatively less stereo space and width than the
+     *   default, as well as slightly lower fidelity for individual
+     *   channel content, but the results may be more appropriate for
+     *   many situations making use of stereo mixes.
      *
      * Finally, flags prefixed \c OptionStretch are obsolete flags
      * provided for backward compatibility only. They are ignored by
