@@ -303,11 +303,23 @@ int main(int argc, char **argv)
         cerr << "  the pitch, retaining the original timbre of vocals and instruments in a" << endl;
         cerr << "  recognisable way." << endl;
         cerr << endl;
+        cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
+        cerr << endl;
+        cerr << "  This option assumes that any 2-channel audio files are stereo and treats" << endl;
+        cerr << "  them in a way that improves focus of the centre material at a small expense" << endl;
+        cerr << "  in quality of the individual channels. In v3.2+ (and R2) this also" << endl;
+        cerr << "  preserves mono compatibility, which the default options do not always." << endl;
+        cerr << endl;
         if (fullHelp || !isR3) {
             cerr << "  -c<N>, --crisp <N>      Crispness (N = 0,1,2,3,4,5,6); default 5" << endl;
             cerr << endl;
-            cerr << "  This option only has an effect when using the R2 (faster) engine. See below" << endl;
-            cerr << "  for details of the different levels." << endl;
+            cerr << "  This option only has an effect when using the R2 (faster) engine. See" << endl;
+            if (fullHelp) {
+                cerr << "  below ";
+            } else {
+                cerr << "  the full help ";
+            }
+            cerr << "for details of the different levels." << endl;
             cerr << endl;
         }
         if (fullHelp) {
@@ -332,8 +344,6 @@ int main(int argc, char **argv)
             cerr << "         --window-short   Use shorter processing window (with the R3 engine" << endl;
             cerr << "                          this is effectively a quick \"draft mode\")" << endl;
             cerr << "         --pitch-hq       In RT mode, use a slower, higher quality pitch shift" << endl;
-            cerr << "         --centre-focus   Preserve focus of centre material in stereo" << endl;
-            cerr << "                          (at a cost in width and individual channel quality)" << endl;
             cerr << "         --ignore-clipping Ignore clipping at output; the default is to restart" << endl;
             cerr << "                          with reduced gain if clipping occurs" << endl;
             cerr << "  -L,    --loose          [Accepted for compatibility but ignored; always off]" << endl;

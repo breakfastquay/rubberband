@@ -94,6 +94,7 @@ public:
                  const process_t *const *prevMag,
                  const Guide::Configuration &configuration,
                  const Guide::Guidance *const *guidance,
+                 bool usingMidSide,
                  int inhop,
                  int outhop) {
 
@@ -196,6 +197,9 @@ public:
                 }
                 process_t ph = 0.0;
                 if (inRange(f, g->phaseReset) || inRange(f, g->kick)) {
+                    ph = phase[c][i];
+                } else if (usingMidSide && channels == 2 &&
+                           c == 0 && inRange(f, guidance[1]->phaseReset)) {
                     ph = phase[c][i];
                 } else if (inhop == outhop) {
                     ph = m_unlocked[c][i];
