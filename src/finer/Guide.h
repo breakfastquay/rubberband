@@ -208,6 +208,7 @@ public:
                         int unityCount,
                         bool realtime,
                         bool tighterChannelLock,
+                        bool resetOnSilence,
                         Guidance &guidance) const {
 
         Profiler profiler("Guide::updateGuidance");
@@ -282,7 +283,7 @@ public:
         // the band ranges as well - in normal multi-window mode we
         // still have to do that, but we should do these first
         
-        if (meanMagnitude < 1.0e-6) {
+        if (resetOnSilence && meanMagnitude < 1.0e-6) {
             updateForSilence(guidance);
             return;
         }

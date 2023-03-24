@@ -1303,6 +1303,15 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
         m_parameters.options & RubberBandStretcher::OptionChannelsTogether;
 
     double magMean = v_mean(classifyScale->mag.data() + 1, classify/2);
+
+    bool resetOnSilence = true;
+    if (useMidSide() && c == 1) {
+        // Do not phase reset on silence in the side channel - the
+        // reset is propagated across to the mid channel, giving
+        // constant resets for e.g. mono material in a stereo
+        // configuration
+        resetOnSilence = false;
+    }
     
     if (m_useReadahead) {
         m_guide.updateGuidance(ratio,
@@ -1317,6 +1326,7 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                                m_unityCount,
                                isRealTime(),
                                tighterChannelLock,
+                               resetOnSilence,
                                cd->guidance);
     } else {
         m_guide.updateGuidance(ratio,
@@ -1331,6 +1341,7 @@ R3Stretcher::analyseChannel(int c, int inhop, int prevInhop, int prevOuthop)
                                m_unityCount,
                                isRealTime(),
                                tighterChannelLock,
+                               resetOnSilence,
                                cd->guidance);
     }
     
