@@ -1,3 +1,4 @@
+
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /*
@@ -28,7 +29,7 @@
 extern "C" {
 #endif
 
-#define RUBBERBAND_VERSION "3.1.2"
+#define RUBBERBAND_VERSION "3.1.3"
 #define RUBBERBAND_API_MAJOR_VERSION 2
 #define RUBBERBAND_API_MINOR_VERSION 7
 
