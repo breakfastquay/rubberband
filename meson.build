@@ -2,7 +2,7 @@
 project(
   'Rubber Band Library',
   'c', 'cpp',
-  version: '3.1.2',
+  version: '3.1.3',
   license: 'GPL-2.0-or-later',
   default_options: [
     'cpp_std=c++11',
@@ -15,7 +15,7 @@ project(
   meson_version: '>= 0.53.0'
 )
 
-rubberband_dynamic_library_version = '2.2.1'
+rubberband_dynamic_library_version = '2.2.2'
 
 system = host_machine.system()
 architecture = host_machine.cpu_family()
