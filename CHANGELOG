@@ -1,4 +1,19 @@
 
+Changes in Rubber Band v3.1.3
+
+This is a pure bug-fix release.
+
+ * Fix failure to generate output when called with final=true and no
+   samples at input (a regression in v3.1, this worked correctly in
+   v3.0 and in the R2 engine)
+ * Fix occasional truncation of final block when using Speex resampler
+ * Fix hang in the command-line utility code at end of processing with
+   certain file formats
+
+The API is unchanged from 3.0 and the library is binary compatible
+back to version 1.7.
+
+
 Changes in Rubber Band v3.1.2
 
 This minor release contains a small number of build fixes.
