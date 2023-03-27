@@ -135,7 +135,7 @@ rubberband:mono
         doap:maintainer :maker ;
         # Minor version will be 2x the Rubber Band API minor version
         lv2:minorVersion 4 ;
-        lv2:microVersion 0 ;
+        lv2:microVersion 1 ;
         lv2:optionalFeature lv2:hardRTCapable ;
 	pg:mainInput rubberband:mono_in_group ;
 	pg:mainOutput rubberband:mono_out_group ;
@@ -173,7 +173,7 @@ rubberband:r3mono
         doap:maintainer :maker ;
         # Minor version will be 2x the Rubber Band API minor version
         lv2:minorVersion 4 ;
-        lv2:microVersion 0 ;
+        lv2:microVersion 1 ;
         lv2:optionalFeature lv2:hardRTCapable ;
 	pg:mainInput rubberband:mono_in_group ;
 	pg:mainOutput rubberband:mono_out_group ;
@@ -210,7 +210,7 @@ rubberband:stereo
         doap:maintainer :maker ;
         # Minor version will be 2x the Rubber Band API minor version
         lv2:minorVersion 4 ;
-        lv2:microVersion 0 ;
+        lv2:microVersion 1 ;
         lv2:optionalFeature lv2:hardRTCapable ;
 	pg:mainInput rubberband:stereo_in_group ;
 	pg:mainOutput rubberband:stereo_out_group ;
@@ -263,7 +263,7 @@ rubberband:r3stereo
         doap:maintainer :maker ;
         # Minor version will be 2x the Rubber Band API minor version
         lv2:minorVersion 4 ;
-        lv2:microVersion 0 ;
+        lv2:microVersion 1 ;
         lv2:optionalFeature lv2:hardRTCapable ;
 	pg:mainInput rubberband:stereo_in_group ;
 	pg:mainOutput rubberband:stereo_out_group ;
