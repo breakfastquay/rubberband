@@ -12,12 +12,12 @@ some output quality enhancements for certain processing modes.
    method that is both high quality and mono-compatible and is
    recommended for situations benefiting from this.
  * Correct the start delay calculation in "resample-before" modes of
-   the R3 stretcher. This affects latency reporting in realtime mode
-   when using the non-recommended realtime pitch options (i.e. those
-   other than OptionPitchHighConsistency, which is the recommended
-   option for variable-rate use in realtime mode)
+   both stretcher engines. This affects latency reporting in realtime
+   mode when using the non-recommended realtime pitch options
+   (i.e. those other than OptionPitchHighConsistency, which is the
+   recommended option for variable-rate use in realtime mode)
  * Relatedly, fix failure to use OptionPitchHighConsistency in R3
-   LADSPA/LV2 plugins!
+   LADSPA/LV2 plugins
  * Fix small difference in output from R3 engine depending on whether
    time and pitch ratios were provided on construction or immediately
    after it
