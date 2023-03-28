@@ -150,7 +150,7 @@ have_sincos = cpp.has_function('sincos',
 have_jni = false
 have_java = add_languages('java', required: get_option('jni'))
 if have_java
-  jni_dep = dependency('jni', version: '>= 7.0.0', required: false)
+  jni_dep = dependency('jni', required: false)
   have_jni = cpp.has_header('jni.h', dependencies: jni_dep, args: extra_include_args)
 endif
 
