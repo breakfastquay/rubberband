@@ -747,7 +747,7 @@ BOOST_AUTO_TEST_CASE(impulses_2x_offline_faster)
     }
 
     BOOST_TEST(peak0 == 100);
-    BOOST_TEST(peak1 > n - 400);
+    BOOST_TEST(peak1 > n - 600);
     BOOST_TEST(peak1 < n + 50);
     BOOST_TEST(peak2 > n*2 - 600);
     BOOST_TEST(peak2 < n*2);

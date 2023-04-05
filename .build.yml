@@ -15,11 +15,11 @@ sources:
 tasks:
   - setup: |
       cd rubberband
-      meson build
-      meson build_speex -Dresampler=speex
-      meson build_libsamplerate -Dresampler=libsamplerate
-      meson build_fftw -Dfft=fftw
-      meson build_kissfft -Dfft=kissfft
+      meson setup build
+      meson setup build_speex -Dresampler=speex
+      meson setup build_libsamplerate -Dresampler=libsamplerate
+      meson setup build_fftw -Dfft=fftw
+      meson setup build_kissfft -Dfft=kissfft
   - build: |
       cd rubberband
       ninja -C build
