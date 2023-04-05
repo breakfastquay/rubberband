@@ -771,7 +771,7 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             if (resampleInput == 0) resampleInput = 1;
 
             prepareInput(input, inputIx, resampleInput);
-            
+
             int resampleOutput = m_resampler->resample
                 (m_channelAssembly.resampled.data(),
                  maxResampleOutput,
@@ -1008,13 +1008,18 @@ R3Stretcher::consume()
                 m_channelAssembly.mixdown[c] = cd->mixdown.data();
                 m_channelAssembly.resampled[c] = cd->resampled.data();
             }
+
+            bool final = (m_mode == ProcessMode::Finished &&
+                          readSpace < inhop &&
+                          cd0->scales.at(longest)->accumulatorFill <= outhop);
+            
             resampledCount = m_resampler->resample
                 (m_channelAssembly.resampled.data(),
                  m_channelData[0]->resampled.size(),
                  m_channelAssembly.mixdown.data(),
                  outhop,
                  1.0 / m_pitchScale,
-                 m_mode == ProcessMode::Finished && readSpace < inhop);
+                 final);
         }
 
         // Emit

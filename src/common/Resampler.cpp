@@ -695,7 +695,7 @@ D_SRC::resampleInterleaved(float *const BQ_R__ out,
     // expected output, and (b) when the ratio has just changed, we
     // should aim to supply a shortish block next
     
-    if (outcount > int(ceil(incount * ratio) + 5)) {
+    if (!final && (outcount > int(ceil(incount * ratio) + 5))) {
         outcount = int(ceil(incount * ratio) + 5);
     }
 
@@ -754,6 +754,10 @@ D_SRC::resampleInterleaved(float *const BQ_R__ out,
 #endif
     }
 
+//    cerr << "Resampler::process: final = " << final << ", incount = "
+//         << incount << ", outcount = " << outcount << ", ratio = "
+//         << ratio << ", gen = " << data.output_frames_gen << endl;
+    
     return (int)data.output_frames_gen;
 }
 
