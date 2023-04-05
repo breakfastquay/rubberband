@@ -1,4 +1,15 @@
 
+Changes in Rubber Band v3.2.1
+
+This is a build-fix release with no new features.
+
+ * Fix formal test failure in build configurations using other
+   resamplers than the built-in one
+
+The API is unchanged from 3.0 and the library is binary compatible
+back to version 1.7.
+
+
 Changes in Rubber Band v3.2
 
 This significant release contains a number of improvements, including
