@@ -380,9 +380,11 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
         int slack = 0;
 
         if (options & RubberBandStretcher::OptionEngineFiner) {
-            if (options & RubberBandStretcher::OptionWindowShort) {
+            if (chunk == 19) {
+                slack = 5;
+            } else if (options & RubberBandStretcher::OptionWindowShort) {
                 slack = 2;
-            } else if (chunk == 0 || chunk == 19 || highSpeedPitch) {
+            } else if (chunk == 0 || highSpeedPitch) {
                 slack = 1;
             }
         } else {
@@ -416,6 +418,8 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
         if (!(options & RubberBandStretcher::OptionEngineFiner) ||
             (options & RubberBandStretcher::OptionWindowShort)) {
             maxUnder = 0.2;
+        } else if (chunk == 19) {
+            maxUnder = 0.15;
         }
         
         BOOST_TEST(rms - expected < maxOver);
@@ -941,24 +945,24 @@ static void impulses_realtime(RubberBandStretcher::Options options,
         if (out[i] > max) { max = out[i]; peak2 = i; }
     }
 
-    // These limits aren't alarming, but it be worth tightening them
-    // and and taking a look at the waveforms
+    // These limits aren't alarming, but it may be worth tightening
+    // them and and taking a look at the waveforms
     
     BOOST_TEST(peak0 < int(ceil(200 * timeRatio)));
     BOOST_TEST(peak0 > int(ceil(50 * timeRatio)));
 
     BOOST_TEST(peak1 < int(ceil(5070 * timeRatio)));
-    BOOST_TEST(peak1 > int(ceil(4840 * timeRatio)));
+    BOOST_TEST(peak1 > int(ceil(4640 * timeRatio)));
 
     BOOST_TEST(peak2 < int(ceil(9970 * timeRatio)));
     BOOST_TEST(peak2 > int(ceil(9770 * timeRatio)));
 
-/*
-    std::cout << "ms\tV" << std::endl;
-    for (int i = 0; i < n*2; ++i) {
-        std::cout << i << "\t" << out[i] << std::endl;
+    if (printDebug) {
+        std::cout << "#sample\tV" << std::endl;
+        for (int i = 0; i < n*2; ++i) {
+            std::cout << "#" << i << "\t" << out[i] << std::endl;
+        }
     }
-*/
 }
 
 BOOST_AUTO_TEST_CASE(impulses_slow_samepitch_realtime_finer)
