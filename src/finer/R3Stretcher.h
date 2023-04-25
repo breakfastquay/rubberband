@@ -42,6 +42,7 @@
 
 #include <map>
 #include <memory>
+#include <atomic>
 
 namespace RubberBand
 {

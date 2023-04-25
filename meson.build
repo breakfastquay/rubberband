@@ -131,6 +131,24 @@ have_sincos = cpp.has_function('sincos',
                                args: '-lm')
 
 
+# Do we need libatomic?
+#
+libatomic_dep = dependency('', required : false)
+libatomic_test_program = '''
+#include <atomic>
+int main() {
+    std::atomic<int> i;
+    std::atomic<double> d;
+    return int(i.is_lock_free() && d.is_lock_free());
+}
+'''
+if cpp.compiles(libatomic_test_program, name : 'test program using std::atomic')
+  if (not cpp.links(libatomic_test_program, name : 'test program using std::atomic requires -latomic'))
+    libatomic_dep = cpp.find_library('atomic', required : true)
+  endif
+endif
+
+
 # Find out whether we can build the optional JNI target. Thanks to Eli
 # Schwartz for the fix here; this has been through a few previous
 # iterations. Initially we just looked for jni.h, but it's often in an
@@ -150,6 +168,11 @@ have_sincos = cpp.has_function('sincos',
 have_jni = false
 have_java = add_languages('java', required: get_option('jni'))
 if have_java
+  # At the time of writing this causes a spurious Meson warning:
+  # "Project targets '>= 0.53.0' but uses feature introduced in
+  # '0.62.0': dep 'jni' custom lookup." It's spurious because this
+  # syntax worked before 0.62 as well, it just didn't invoke the
+  # custom lookup
   jni_dep = dependency('jni', required: false)
   have_jni = cpp.has_header('jni.h', dependencies: jni_dep, args: extra_include_args)
 endif
@@ -489,7 +512,7 @@ endif # system
 
 general_include_dirs += get_option('extra_include_dirs')
 general_compile_args = [ arch_flags, feature_defines ]
-general_dependencies = [ feature_dependencies, thread_dep ]
+general_dependencies = [ feature_dependencies, thread_dep, libatomic_dep ]
 
 rubberband_additional_static_lib = ''
 
@@ -776,7 +799,7 @@ if have_sndfile
     dependencies: [
       rubberband_objlib_dep,
       general_dependencies,
-      sndfile_dep,
+      sndfile_dep
     ],
     install: true,
   )
