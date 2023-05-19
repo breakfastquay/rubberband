@@ -320,7 +320,7 @@ pitch-shifting, and CPU usage.
 Library        Build option               CPP define            Notes
 -------        ------------               ----------            -----
 
-Built-in       -Dfft=builtin              -DUSE_BQRESAMPLER     Default.
+Built-in       -Dresampler=builtin        -DUSE_BQRESAMPLER     Default.
                                                                 Intended to give high quality
                                                                 for time-varying pitch shifts
                                                                 in real-time mode.
