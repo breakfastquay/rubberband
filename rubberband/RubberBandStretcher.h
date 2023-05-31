@@ -820,10 +820,10 @@ public:
      * block size and you are able to provide any block size as input
      * for each cycle, then your normal mode of operation would be to
      * loop querying this function; providing that number of samples
-     * to process(); and reading the output using available() and
-     * retrieve().  See setMaxProcessSize() for a more suitable
-     * operating mode for applications that do have external block
-     * size constraints.
+     * to process(); and reading the output (repeatedly if necessary)
+     * using available() and retrieve().  See setMaxProcessSize() for
+     * a more suitable operating mode for applications that do have
+     * external block size constraints.
      *
      * Note that this value is only relevant to process(), not to
      * study() (to which you may pass any number of samples at a time,
