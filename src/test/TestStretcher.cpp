@@ -665,7 +665,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_faster)
 {
     sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
                       RubberBandStretcher::OptionProcessRealTime,
-                      0.5, 1.5,
+                      8.0, 1.5,
                       80000);
 }
 
@@ -673,7 +673,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_finer)
 {
     sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
                       RubberBandStretcher::OptionProcessRealTime,
-                      0.5, 1.5,
+                      8.0, 1.5,
                       80000);
 }
 
