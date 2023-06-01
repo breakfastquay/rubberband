@@ -270,6 +270,11 @@ static vector<float> process_realtime(RubberBandStretcher &stretcher,
             } else if (available == 0) { // need to provide more input
                 int required = stretcher.getSamplesRequired();
                 BOOST_TEST(required > 0); // because available == 0
+                if (required < bs) {
+                    // Because we sometimes want to explicitly test
+                    // passing large blocks to process
+                    required = bs;
+                }
                 int toProcess = std::min(required, n - inOffset);
                 const float *const source = in.data() + inOffset;
                 bool final = (toProcess < required);
@@ -324,11 +329,12 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
     // expected place
 
     RubberBandStretcher stretcher(rate, 1, options, timeRatio, pitchScale);
-    stretcher.setMaxProcessSize(bs);
 
     if (printDebug) {
         stretcher.setDebugLevel(2);
     }
+
+    stretcher.setMaxProcessSize(bs);
     
     // The input signal is a fixed frequency sinusoid that steps up in
     // amplitude every 1/10 of the total duration - from 0.1 at the
@@ -665,15 +671,24 @@ BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_faster)
 {
     sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
                       RubberBandStretcher::OptionProcessRealTime,
-                      8.0, 1.5,
+                      8.0, 0.5,
                       80000);
 }
 
-BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_finer)
+BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_finer_stretch)
 {
     sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
                       RubberBandStretcher::OptionProcessRealTime,
-                      8.0, 1.5,
+                      2.0, 1.0,
+                      80000,
+                      true);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_finer_shift)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
+                      RubberBandStretcher::OptionProcessRealTime,
+                      1.0, 0.5,
                       80000);
 }
 
