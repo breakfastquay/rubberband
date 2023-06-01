@@ -680,8 +680,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_finer_stretch)
     sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
                       RubberBandStretcher::OptionProcessRealTime,
                       2.0, 1.0,
-                      80000,
-                      true);
+                      80000);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_finer_shift)
@@ -1394,8 +1393,8 @@ static void with_resets(RubberBandStretcher::Options options,
             for (int i = 0; i < nActual; ++i) {
                 BOOST_TEST(out[i] == outRef[i]);
                 if (out[i] != outRef[i]) {
-                    std::cerr << "Failure at index " << i << " in run "
-                              << run << std::endl;
+                    std::cerr << "Failure at index " << i << " of "
+                              << nActual << " in run " << run << std::endl;
                     break;
                 }
             }

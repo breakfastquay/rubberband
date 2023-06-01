@@ -637,32 +637,58 @@ R3Stretcher::getSamplesRequired() const
 }
 
 void
-R3Stretcher::setMaxProcessSize(size_t n)
+R3Stretcher::setMaxProcessSize(size_t requested)
 {
-    size_t oldInSize = m_channelData[0]->inbuf->getSize();
-    size_t newInSize = getWindowSourceSize() + n;
-
-    size_t oldOutSize = m_channelData[0]->outbuf->getSize();
-    size_t newOutSize = newInSize;
-
-    if (newInSize > oldInSize) {
-        m_log.log(1, "setMaxProcessSize: resizing inbuf from and to", oldInSize, newInSize);
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            m_channelData[c]->inbuf = std::unique_ptr<RingBuffer<float>>
-                (m_channelData[c]->inbuf->resized(newInSize));
-        }
+    m_log.log(2, "R3Stretcher::setMaxProcessSize", requested);
+    
+    int n = m_limits.overallMaxProcessSize;
+    if (requested > size_t(n)) {
+        m_log.log(0, "R3Stretcher::setMaxProcessSize: request exceeds overall limit", requested, n);
     } else {
-        m_log.log(1, "setMaxProcessSize: nothing to be done at inbuf, newInSize <= oldInSize", newInSize, oldInSize);
+        n = int(requested);
     }
 
-    if (newOutSize > oldOutSize) {
-        m_log.log(1, "setMaxProcessSize: resizing outbuf from and to", oldOutSize, newOutSize);
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            m_channelData[c]->outbuf = std::unique_ptr<RingBuffer<float>>
-                (m_channelData[c]->outbuf->resized(newOutSize));
-        }
-    } else {
-        m_log.log(1, "setMaxProcessSize: nothing to be done at outbuf, newOutSize <= oldOutSize", newOutSize, oldOutSize);
+    ensureInbuf(n * 2, false);
+    ensureOutbuf(n * 8, false);
+}
+
+void
+R3Stretcher::ensureInbuf(int required, bool warn)
+{
+    int ws = m_channelData[0]->inbuf->getWriteSpace();
+    if (required < ws) {
+        return;
+    }
+    if (warn) {
+        m_log.log(0, "R3Stretcher::ensureInbuf: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called, process is being called repeatedly without retrieve, or an internal error has led to an incorrect resampler output calculation. Samples to write and space available", required, ws);
+    }
+    size_t oldSize = m_channelData[0]->inbuf->getSize();
+    size_t newSize = oldSize - ws + required;
+    if (newSize < oldSize * 2) newSize = oldSize * 2;
+    m_log.log(warn ? 0 : 2, "R3Stretcher::ensureInbuf: old and new sizes", oldSize, newSize);
+    for (int c = 0; c < m_parameters.channels; ++c) {
+        auto newBuf = m_channelData[c]->inbuf->resized(newSize);
+        m_channelData[c]->inbuf = std::unique_ptr<RingBuffer<float>>(newBuf);
+    }
+}
+
+void
+R3Stretcher::ensureOutbuf(int required, bool warn)
+{
+    int ws = m_channelData[0]->outbuf->getWriteSpace();
+    if (required < ws) {
+        return;
+    }
+    if (warn) {
+        m_log.log(0, "R3Stretcher::ensureOutbuf: WARNING: Forced to increase output buffer size. Using smaller process blocks or an artificially larger value for setMaxProcessSize may avoid this. Samples to write and space available", required, ws);
+    }
+    size_t oldSize = m_channelData[0]->outbuf->getSize();
+    size_t newSize = oldSize - ws + required;
+    if (newSize < oldSize * 2) newSize = oldSize * 2;
+    m_log.log(warn ? 0 : 2, "R3Stretcher::ensureOutbuf: old and new sizes", oldSize, newSize);
+    for (int c = 0; c < m_parameters.channels; ++c) {
+        auto newBuf = m_channelData[c]->outbuf->resized(newSize);
+        m_channelData[c]->outbuf = std::unique_ptr<RingBuffer<float>>(newBuf);
     }
 }
 
@@ -674,6 +700,13 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     if (m_mode == ProcessMode::Finished) {
         m_log.log(0, "R3Stretcher::process: Cannot process again after final chunk");
         return;
+    }
+
+    int n = m_limits.overallMaxProcessSize;
+    if (samples > size_t(n)) {
+        m_log.log(0, "R3Stretcher::process: request exceeds overall limit", samples, n);
+    } else {
+        n = int(samples);
     }
 
     if (!isRealTime()) {
@@ -714,8 +747,12 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             // when the ratio changes.
             int pad = getWindowSourceSize() / 2;
             m_log.log(1, "offline mode: prefilling with", pad);
+            ensureInbuf(pad);
             for (int c = 0; c < m_parameters.channels; ++c) {
-                m_channelData[c]->inbuf->zero(pad);
+                int zeroed = m_channelData[c]->inbuf->zero(pad);
+                if (zeroed != pad) {
+                    m_log.log(0, "R3Stretcher: WARNING: too few padding samples written", zeroed, pad);
+                }
             }
 
             // NB by the time we skip this later we may have resampled
@@ -731,35 +768,22 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     int channels = m_parameters.channels;
     int inputIx = 0;
 
-    if (samples == 0 && final) {
+    if (n == 0 && final) {
 
         m_log.log(2, "process: no samples but final specified, consuming");
         
         consume(true);
 
-    } else while (inputIx < int(samples)) {
+    } else while (inputIx < n) {
 
-        int remaining = int(samples) - inputIx;
+        int remaining = n - inputIx;
+
         int ws = m_channelData[0]->inbuf->getWriteSpace();
-
         if (ws == 0) {
             consume(false);
-            ws = m_channelData[0]->inbuf->getWriteSpace();
         }
-        
-        if (ws == 0) {
-            m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called, process is being called repeatedly without retrieve, or an internal error has led to an incorrect resampler output calculation. Samples to write", remaining);
-            size_t oldSize = m_channelData[0]->inbuf->getSize();
-            size_t newSize = oldSize + remaining;
-            if (newSize < oldSize * 2) newSize = oldSize * 2;
-            m_log.log(0, "R3Stretcher::process: old and new sizes", oldSize, newSize);
-            for (int c = 0; c < m_parameters.channels; ++c) {
-                auto newBuf = m_channelData[c]->inbuf->resized(newSize);
-                m_channelData[c]->inbuf =
-                    std::unique_ptr<RingBuffer<float>>(newBuf);
-            }
-            continue;
-        }
+        ensureInbuf(remaining);
+        ws = m_channelData[0]->inbuf->getWriteSpace();
         
         if (resamplingBefore) {
 
@@ -775,10 +799,11 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             int resampleInput = std::min(remaining, maxResampleInput);
             if (resampleInput == 0) resampleInput = 1;
 
+            m_log.log(2, "R3Stretcher::process: resamplingBefore is true, resampleInput and maxResampleOutput", resampleInput, maxResampleOutput);
+            
             prepareInput(input, inputIx, resampleInput);
 
-            bool finalHop = (final &&
-                             inputIx + resampleInput >= int(samples));
+            bool finalHop = (final && inputIx + resampleInput >= n);
             
             int resampleOutput = m_resampler->resample
                 (m_channelAssembly.resampled.data(),
@@ -789,13 +814,16 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
                  finalHop);
 
             inputIx += resampleInput;
-
-            m_log.log(2, "process: resamplingBefore is true, writing to inbuf from resampled data, former read space and samples being added", m_channelData[0]->inbuf->getReadSpace(), resampleOutput);
-
+            
             for (int c = 0; c < m_parameters.channels; ++c) {
-                m_channelData[c]->inbuf->write
+
+                int written = m_channelData[c]->inbuf->write
                     (m_channelData.at(c)->resampled.data(),
                      resampleOutput);
+
+                if (written != resampleOutput) {
+                    m_log.log(0, "R3Stretcher: WARNING: too few samples written to input buffer from resampler", written, resampleOutput);
+                }
             }
 
         } else {
@@ -806,13 +834,19 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             prepareInput(input, inputIx, toWrite);
             
             for (int c = 0; c < m_parameters.channels; ++c) {
-                m_channelData[c]->inbuf->write
+
+                int written = m_channelData[c]->inbuf->write
                     (m_channelAssembly.input[c], toWrite);
+
+                if (written != toWrite) {
+                    m_log.log(0, "R3Stretcher: WARNING: too few samples written to input buffer", written, toWrite);
+                }
             }
+            
             inputIx += toWrite;
         }
         
-        consume(final && inputIx >= int(samples));
+        consume(final && inputIx >= n);
     }
 
     if (final) {
@@ -961,9 +995,7 @@ R3Stretcher::consume(bool final)
         Profiler profiler("R3Stretcher::consume/loop");
 
         int readSpace = cd0->inbuf->getReadSpace();
-        int writeSpace = cd0->outbuf->getWriteSpace();
-
-        m_log.log(2, "consume: read space and write space", readSpace, writeSpace);
+        m_log.log(2, "consume: read space", readSpace);
 
         if (readSpace < getWindowSourceSize()) {
             if (final) {
@@ -980,19 +1012,8 @@ R3Stretcher::consume(bool final)
                 break;
             }
         }
-            
-        while (writeSpace < outhop) {
-            m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase output buffer size. Using smaller process blocks or an artificially larger value for setMaxProcessSize may avoid this");
-            size_t oldSize = m_channelData[0]->outbuf->getSize();
-            size_t newSize = oldSize * 2;
-            m_log.log(0, "R3Stretcher::process: old and new sizes", oldSize, newSize);
-            for (int c = 0; c < m_parameters.channels; ++c) {
-                auto newBuf = m_channelData[c]->outbuf->resized(newSize);
-                m_channelData[c]->outbuf =
-                    std::unique_ptr<RingBuffer<float>>(newBuf);
-            }
-            writeSpace = m_channelData[0]->outbuf->getWriteSpace();
-        }
+
+        ensureOutbuf(outhop);
         
         // Analysis
         
@@ -1086,12 +1107,19 @@ R3Stretcher::consume(bool final)
         
         for (int c = 0; c < channels; ++c) {
             auto &cd = m_channelData.at(c);
+            int written = 0;
             if (resamplingAfter) {
-                cd->outbuf->write(cd->resampled.data(), writeCount);
+                written = cd->outbuf->write(cd->resampled.data(), writeCount);
             } else {
-                cd->outbuf->write(cd->mixdown.data(), writeCount);
+                written = cd->outbuf->write(cd->mixdown.data(), writeCount);
             }
-            cd->inbuf->skip(advanceCount);
+            if (written != writeCount) {
+                m_log.log(0, "R3Stretcher: WARNING: too few samples written to output buffer", written, writeCount);
+            }
+            int skipped = cd->inbuf->skip(advanceCount);
+            if (skipped != advanceCount) {
+                m_log.log(0, "R3Stretcher: WARNING: too few samples advanced", skipped, advanceCount);
+            }
         }
 
         m_consumedInputDuration += advanceCount;
@@ -1101,7 +1129,10 @@ R3Stretcher::consume(bool final)
             int rs = cd0->outbuf->getReadSpace();
             int toSkip = std::min(m_startSkip, rs);
             for (int c = 0; c < channels; ++c) {
-                m_channelData.at(c)->outbuf->skip(toSkip);
+                int skipped = m_channelData.at(c)->outbuf->skip(toSkip);
+                if (skipped != toSkip) {
+                    m_log.log(0, "R3Stretcher: WARNING: too few samples skipped at output", skipped, toSkip);
+                }
             }
             m_startSkip -= toSkip;
             m_totalOutputDuration = rs - toSkip;

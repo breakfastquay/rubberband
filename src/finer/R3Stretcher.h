@@ -110,13 +110,15 @@ protected:
         int minInhop;
         int maxInhopWithReadahead;
         int maxInhop;
+        int overallMaxProcessSize;
         Limits(RubberBandStretcher::Options options, double rate) :
             // commented values are results when rate = 44100 or 48000
             minPreferredOuthop(roundUpDiv(rate, 512)), // 128
             maxPreferredOuthop(roundUpDiv(rate, 128)), // 512
             minInhop(1),
             maxInhopWithReadahead(roundUpDiv(rate, 64)), // 1024
-            maxInhop(roundUpDiv(rate, 32)) {             // 2048
+            maxInhop(roundUpDiv(rate, 32)),              // 2048
+            overallMaxProcessSize(524288) {
             if (options & RubberBandStretcher::OptionWindowShort) {
                 // See note in calculateHop
                 minPreferredOuthop = roundUpDiv(rate, 256); // 256
@@ -361,6 +363,8 @@ protected:
     void prepareInput(const float *const *input, int ix, int n);
     void consume(bool final);
     void createResampler();
+    void ensureInbuf(int, bool warn = true);
+    void ensureOutbuf(int, bool warn = true);
     void calculateHop();
     void updateRatioFromMap();
     void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
