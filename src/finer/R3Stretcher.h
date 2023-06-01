@@ -228,10 +228,10 @@ protected:
         std::unique_ptr<FormantData> formant;
         ChannelData(BinSegmenter::Parameters segmenterParameters,
                     BinClassifier::Parameters classifierParameters,
-                    int /*!!! longestFftSize */,
                     int windowSourceSize,
                     int inRingBufferSize,
-                    int outRingBufferSize) :
+                    int outRingBufferSize,
+                    int hopBufferSize) :
             scales(),
             windowSource(windowSourceSize, 0.0),
             readahead(segmenterParameters.fftSize),
@@ -243,8 +243,8 @@ protected:
                                BinClassifier::Classification::Residual),
             segmenter(new BinSegmenter(segmenterParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
-            mixdown(inRingBufferSize, 0.f),
-            resampled(outRingBufferSize, 0.f),
+            mixdown(hopBufferSize, 0.f),
+            resampled(hopBufferSize, 0.f),
             inbuf(new RingBuffer<float>(inRingBufferSize)),
             outbuf(new RingBuffer<float>(outRingBufferSize)),
             formant(new FormantData(segmenterParameters.fftSize)) { }
@@ -359,7 +359,7 @@ protected:
 
     void initialise();
     void prepareInput(const float *const *input, int ix, int n);
-    void consume();
+    void consume(bool final);
     void createResampler();
     void calculateHop();
     void updateRatioFromMap();
