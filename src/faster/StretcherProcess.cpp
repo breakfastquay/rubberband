@@ -175,8 +175,10 @@ R2Stretcher::consumeChannel(size_t c,
         Profiler profiler2("R2Stretcher::resample");
         
         toWrite = int(ceil(samples / m_pitchScale));
+        bool shortened = false;
         if (writable < toWrite) {
             samples = int(floor(writable * m_pitchScale));
+            shortened = true;
             if (samples == 0) return 0;
         }
 
@@ -213,7 +215,7 @@ R2Stretcher::consumeChannel(size_t c,
                                          &input,
                                          samples,
                                          1.0 / m_pitchScale,
-                                         final);
+                                         final && !shortened);
 
 #if defined(STRETCHER_IMPL_RESAMPLER_MUTEX_REQUIRED)
         if (m_threaded) {
