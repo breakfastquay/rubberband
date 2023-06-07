@@ -245,7 +245,7 @@ protected:
                                BinClassifier::Classification::Residual),
             segmenter(new BinSegmenter(segmenterParameters)),
             segmentation(), prevSegmentation(), nextSegmentation(),
-            mixdown(hopBufferSize, 0.f),
+            mixdown(inRingBufferSize, 0.f),
             resampled(hopBufferSize, 0.f),
             inbuf(new RingBuffer<float>(inRingBufferSize)),
             outbuf(new RingBuffer<float>(outRingBufferSize)),

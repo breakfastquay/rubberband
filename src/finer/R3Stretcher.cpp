@@ -669,6 +669,9 @@ R3Stretcher::ensureInbuf(int required, bool warn)
     for (int c = 0; c < m_parameters.channels; ++c) {
         auto newBuf = m_channelData[c]->inbuf->resized(newSize);
         m_channelData[c]->inbuf = std::unique_ptr<RingBuffer<float>>(newBuf);
+        // mixdown is used for mid-side mixing as well as the single
+        // hop output mix, so it needs to be enough to match the inbuf
+        m_channelData[c]->mixdown.resize(newSize, 0.f);
     }
 }
 
@@ -913,6 +916,11 @@ R3Stretcher::prepareInput(const float *const *input, int ix, int n)
     if (useMidSide()) {
         auto &c0 = m_channelData.at(0)->mixdown;
         auto &c1 = m_channelData.at(1)->mixdown;
+        int bufsize = c0.size();
+        if (n > bufsize) {
+            m_log.log(0, "R3Stretcher::prepareInput: WARNING: called with size greater than mixdown buffer length", n, bufsize);
+            n = bufsize;
+        }
         for (int i = 0; i < n; ++i) {
             float l = input[0][i + ix];
             float r = input[1][i + ix];
