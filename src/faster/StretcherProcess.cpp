@@ -224,6 +224,7 @@ R2Stretcher::consumeChannel(size_t c,
 
     if (writable < toWrite) {
         if (resampling) {
+            m_log.log(1, "consumeChannel: resampler produced too much output, cannot use", toWrite, writable);
             return 0;
         }
         toWrite = writable;
@@ -323,6 +324,8 @@ R2Stretcher::processOneChunk()
 {
     Profiler profiler("R2Stretcher::processOneChunk");
 
+    m_log.log(2, "R2Stretcher::processOneChunk");
+
     // Process a single chunk for all channels, provided there is
     // enough data on each channel for at least one chunk.  This is
     // able to calculate increments as it goes along.
@@ -335,6 +338,7 @@ R2Stretcher::processOneChunk()
             return false;
         }
         ChannelData &cd = *m_channelData[c];
+        m_log.log(2, "read space and draining", cd.inbuf->getReadSpace(), cd.draining);
         if (!cd.draining) {
             size_t ready = cd.inbuf->getReadSpace();
             assert(ready >= m_aWindowSize || cd.inputSize >= 0);
@@ -356,6 +360,7 @@ R2Stretcher::processOneChunk()
         m_channelData[c]->chunkCount++;
     }
 
+    m_log.log(2, "R2Stretcher::processOneChunk returning", last);
     return last;
 }
 
@@ -395,7 +400,9 @@ R2Stretcher::testInbufReadSpace(size_t c)
             m_log.log(2, "read space = 0, giving up");
             return false;
         } else if (rs < m_aWindowSize/2) {
-            m_log.log(2, "setting draining true with read space", rs);
+            m_log.log(2, "setting draining true with read space and window size", rs, m_aWindowSize);
+            m_log.log(2, "outbuf read space is", cd.outbuf->getReadSpace());
+            m_log.log(2, "accumulator fill is", cd.accumulatorFill);
             cd.draining = true;
         }
     }
@@ -454,6 +461,11 @@ R2Stretcher::processChunkForChannel(size_t c,
 
     if (cd.draining) {
         m_log.log(2, "draining: accumulator fill and shift increment", cd.accumulatorFill, shiftIncrement);
+        m_log.log(2, "outbuf read space is", cd.outbuf->getReadSpace());
+        if (cd.accumulatorFill == 0) {
+            m_log.log(2, "draining: accumulator empty");
+            return true;
+        }
         if (shiftIncrement == 0) {
             m_log.log(0, "WARNING: draining: shiftIncrement == 0, can't handle that in this context: setting to", m_increment);
             shiftIncrement = m_increment;
@@ -494,6 +506,7 @@ R2Stretcher::processChunkForChannel(size_t c,
     }
 
     writeChunk(c, shiftIncrement, last);
+    m_log.log(2, "processChunkForChannel: accumulatorFill now; returning", cd.accumulatorFill, last);
     return last;
 }
 
@@ -1069,7 +1082,7 @@ R2Stretcher::writeChunk(size_t channel, size_t shiftIncrement, bool last)
                                                   si,
                                                   1.0 / m_pitchScale,
                                                   last);
-
+        
 #if defined(STRETCHER_IMPL_RESAMPLER_MUTEX_REQUIRED)
         if (m_threaded) {
             m_resamplerMutex.unlock();
@@ -1095,10 +1108,12 @@ R2Stretcher::writeChunk(size_t channel, size_t shiftIncrement, bool last)
     } else {
         cd.accumulatorFill = 0;
         if (cd.draining) {
-            m_log.log(2, "processChunks: setting outputComplete to true");
+            m_log.log(2, "writeChunk: setting outputComplete to true");
             cd.outputComplete = true;
         }
     }
+
+    m_log.log(2, "writeChunk: accumulatorFill now", cd.accumulatorFill);
 }
 
 void
@@ -1134,7 +1149,7 @@ R2Stretcher::writeOutput(RingBuffer<float> &to,
             }
         }
 
-        m_log.log(3, "writing", qty);
+        m_log.log(2, "writing", qty);
 
         size_t written = to.write(from, qty);
 
@@ -1143,6 +1158,8 @@ R2Stretcher::writeOutput(RingBuffer<float> &to,
         }
 
         outCount += written;
+
+        m_log.log(2, "written and new outCount", written, outCount);
         return;
     }
 
@@ -1168,6 +1185,8 @@ R2Stretcher::available() const
 {
     Profiler profiler("R2Stretcher::available");
 
+    m_log.log(2, "R2Stretcher::available");
+    
 #ifndef NO_THREADING
     if (m_threaded) {
         MutexLocker locker(&m_threadSetMutex);
@@ -1180,14 +1199,24 @@ R2Stretcher::available() const
 #ifndef NO_THREADING
     if (!m_threaded) {
 #endif
-        for (size_t c = 0; c < m_channels; ++c) {
-            if (m_channelData[c]->inputSize >= 0) {
-                if (m_channelData[c]->inbuf->getReadSpace() > 0) {
-                    m_log.log(2, "calling processChunks from available, channel" , c);
-                    //!!! do we ever actually do this? if so, this method should not be const
-                    // ^^^ yes, we do sometimes -- e.g. when fed a very short file
-                    bool any = false, last = false;
-                    ((R2Stretcher *)this)->processChunks(c, any, last);
+        if (m_channelData[0]->inputSize >= 0) {
+            //!!! do we ever actually do this? if so, this method should not be const
+            // ^^^ yes, we do sometimes -- e.g. when fed a very short file
+            if (m_realtime) {
+                while (m_channelData[0]->inbuf->getReadSpace() > 0 ||
+                       (m_channelData[0]->accumulatorFill > 0 && m_channelData[0]->draining)) {
+                    m_log.log(2, "calling processOneChunk from available");
+                    if (((R2Stretcher *)this)->processOneChunk()) {
+                        break;
+                    }
+                }
+            } else {
+                for (size_t c = 0; c < m_channels; ++c) {
+                    if (m_channelData[c]->inbuf->getReadSpace() > 0) {
+                        m_log.log(2, "calling processChunks from available, channel" , c);
+                        bool any = false, last = false;
+                        ((R2Stretcher *)this)->processChunks(c, any, last);
+                    }
                 }
             }
         }
@@ -1202,17 +1231,29 @@ R2Stretcher::available() const
     for (size_t i = 0; i < m_channels; ++i) {
         size_t availIn = m_channelData[i]->inbuf->getReadSpace();
         size_t availOut = m_channelData[i]->outbuf->getReadSpace();
-        m_log.log(3, "available in and out", availIn, availOut);
+        m_log.log(2, "available in and out", availIn, availOut);
         if (i == 0 || availOut < min) min = availOut;
         if (!m_channelData[i]->outputComplete) consumed = false;
         if (m_channelData[i]->resampler) haveResamplers = true;
     }
 
-    if (min == 0 && consumed) return -1;
-    if (m_pitchScale == 1.0) return min;
+    if (min == 0 && consumed) {
+        m_log.log(2, "R2Stretcher::available: end of stream");
+        return -1;
+    }
+    if (m_pitchScale == 1.0) {
+        m_log.log(2, "R2Stretcher::available (not shifting): returning", min);
+        return min;
+    }
 
-    if (haveResamplers) return min; // resampling has already happened
-    return int(floor(min / m_pitchScale));
+    int rv;
+    if (haveResamplers) {
+        rv = min; // resampling has already happened
+    } else {
+        rv = int(floor(min / m_pitchScale));
+    }
+    m_log.log(2, "R2Stretcher::available (shifting): returning", rv);
+    return rv;
 }
 
 size_t
@@ -1220,6 +1261,8 @@ R2Stretcher::retrieve(float *const *output, size_t samples) const
 {
     Profiler profiler("R2Stretcher::retrieve");
 
+    m_log.log(2, "R2Stretcher::retrieve", samples);
+    
     size_t got = samples;
 
     for (size_t c = 0; c < m_channels; ++c) {
@@ -1244,6 +1287,8 @@ R2Stretcher::retrieve(float *const *output, size_t samples) const
         }
     }            
 
+    m_log.log(2, "R2Stretcher::retrieve returning", got);
+    
     return got;
 }
 
