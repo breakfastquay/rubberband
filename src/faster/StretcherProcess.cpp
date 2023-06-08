@@ -326,7 +326,7 @@ R2Stretcher::processOneChunk()
 {
     Profiler profiler("R2Stretcher::processOneChunk");
 
-    m_log.log(2, "R2Stretcher::processOneChunk");
+    m_log.log(3, "R2Stretcher::processOneChunk");
 
     // Process a single chunk for all channels, provided there is
     // enough data on each channel for at least one chunk.  This is
@@ -340,7 +340,7 @@ R2Stretcher::processOneChunk()
             return false;
         }
         ChannelData &cd = *m_channelData[c];
-        m_log.log(2, "read space and draining", cd.inbuf->getReadSpace(), cd.draining);
+        m_log.log(3, "read space and draining", cd.inbuf->getReadSpace(), cd.draining);
         if (!cd.draining) {
             size_t ready = cd.inbuf->getReadSpace();
             assert(ready >= m_aWindowSize || cd.inputSize >= 0);
@@ -362,7 +362,7 @@ R2Stretcher::processOneChunk()
         m_channelData[c]->chunkCount++;
     }
 
-    m_log.log(2, "R2Stretcher::processOneChunk returning", last);
+    m_log.log(3, "R2Stretcher::processOneChunk returning", last);
     return last;
 }
 
@@ -508,7 +508,7 @@ R2Stretcher::processChunkForChannel(size_t c,
     }
 
     writeChunk(c, shiftIncrement, last);
-    m_log.log(2, "processChunkForChannel: accumulatorFill now; returning", cd.accumulatorFill, last);
+    m_log.log(3, "processChunkForChannel: accumulatorFill now; returning", cd.accumulatorFill, last);
     return last;
 }
 
@@ -1115,7 +1115,7 @@ R2Stretcher::writeChunk(size_t channel, size_t shiftIncrement, bool last)
         }
     }
 
-    m_log.log(2, "writeChunk: accumulatorFill now", cd.accumulatorFill);
+    m_log.log(3, "writeChunk: accumulatorFill now", cd.accumulatorFill);
 }
 
 void
@@ -1151,7 +1151,7 @@ R2Stretcher::writeOutput(RingBuffer<float> &to,
             }
         }
 
-        m_log.log(2, "writing", qty);
+        m_log.log(3, "writing", qty);
 
         size_t written = to.write(from, qty);
 
@@ -1161,7 +1161,7 @@ R2Stretcher::writeOutput(RingBuffer<float> &to,
 
         outCount += written;
 
-        m_log.log(2, "written and new outCount", written, outCount);
+        m_log.log(3, "written and new outCount", written, outCount);
         return;
     }
 
@@ -1187,7 +1187,7 @@ R2Stretcher::available() const
 {
     Profiler profiler("R2Stretcher::available");
 
-    m_log.log(2, "R2Stretcher::available");
+    m_log.log(3, "R2Stretcher::available");
     
 #ifndef NO_THREADING
     if (m_threaded) {
@@ -1233,7 +1233,7 @@ R2Stretcher::available() const
     for (size_t i = 0; i < m_channels; ++i) {
         size_t availIn = m_channelData[i]->inbuf->getReadSpace();
         size_t availOut = m_channelData[i]->outbuf->getReadSpace();
-        m_log.log(2, "available in and out", availIn, availOut);
+        m_log.log(3, "available in and out", availIn, availOut);
         if (i == 0 || availOut < min) min = availOut;
         if (!m_channelData[i]->outputComplete) consumed = false;
         if (m_channelData[i]->resampler) haveResamplers = true;
@@ -1244,7 +1244,7 @@ R2Stretcher::available() const
         return -1;
     }
     if (m_pitchScale == 1.0) {
-        m_log.log(2, "R2Stretcher::available (not shifting): returning", min);
+        m_log.log(3, "R2Stretcher::available (not shifting): returning", min);
         return min;
     }
 
@@ -1254,7 +1254,7 @@ R2Stretcher::available() const
     } else {
         rv = int(floor(min / m_pitchScale));
     }
-    m_log.log(2, "R2Stretcher::available (shifting): returning", rv);
+    m_log.log(3, "R2Stretcher::available (shifting): returning", rv);
     return rv;
 }
 
@@ -1263,7 +1263,7 @@ R2Stretcher::retrieve(float *const *output, size_t samples) const
 {
     Profiler profiler("R2Stretcher::retrieve");
 
-    m_log.log(2, "R2Stretcher::retrieve", samples);
+    m_log.log(3, "R2Stretcher::retrieve", samples);
     
     size_t got = samples;
 
@@ -1289,7 +1289,7 @@ R2Stretcher::retrieve(float *const *output, size_t samples) const
         }
     }            
 
-    m_log.log(2, "R2Stretcher::retrieve returning", got);
+    m_log.log(3, "R2Stretcher::retrieve returning", got);
     
     return got;
 }

@@ -1235,7 +1235,7 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
 {
     Profiler profiler("R2Stretcher::process");
 
-    m_log.log(2, "process entering, samples and final", samples, final);
+    m_log.log(3, "process entering, samples and final", samples, final);
 
     if (m_mode == Finished) {
         m_log.log(0, "R2Stretcher::process: Cannot process again after final chunk");
@@ -1300,7 +1300,7 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
                                           samples - consumed[c],
                                           final);
             if (c == 0) {
-                m_log.log(2, "consumed channel 0, consumed and samples now", consumed[c], samples);
+                m_log.log(3, "consumed channel 0, consumed and samples now", consumed[c], samples);
             }
             if (consumed[c] < samples) {
                 allConsumed = false;
@@ -1343,10 +1343,10 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
         }
 #endif
 
-        m_log.log(2, "process looping");
+        m_log.log(3, "process looping");
     }
 
-    m_log.log(2, "process returning");
+    m_log.log(3, "process returning");
 
     if (final) m_mode = Finished;
 }
