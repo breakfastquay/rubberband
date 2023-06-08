@@ -1206,7 +1206,7 @@ R2Stretcher::available() const
             // ^^^ yes, we do sometimes -- e.g. when fed a very short file
             if (m_realtime) {
                 while (m_channelData[0]->inbuf->getReadSpace() > 0 ||
-                       (m_channelData[0]->accumulatorFill > 0 && m_channelData[0]->draining)) {
+                       m_channelData[0]->draining) {
                     m_log.log(2, "calling processOneChunk from available");
                     if (((R2Stretcher *)this)->processOneChunk()) {
                         break;
