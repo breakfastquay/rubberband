@@ -105,16 +105,19 @@ R3Stretcher::initialise()
     int inRingBufferSize = getWindowSourceSize() * 16;
     int outRingBufferSize = getWindowSourceSize() * 16;
 
+    int hopBufferSize =
+        2 * std::max(m_limits.maxInhop, m_limits.maxPreferredOuthop);
+    
     m_channelData.clear();
     
     for (int c = 0; c < m_parameters.channels; ++c) {
         m_channelData.push_back(std::make_shared<ChannelData>
                                 (segmenterParameters,
                                  classifierParameters,
-                                 m_guideConfiguration.longestFftSize,
                                  getWindowSourceSize(),
                                  inRingBufferSize,
-                                 outRingBufferSize));
+                                 outRingBufferSize,
+                                 hopBufferSize));
         for (int b = 0; b < m_guideConfiguration.fftBandLimitCount; ++b) {
             const auto &band = m_guideConfiguration.fftBandLimits[b];
             int fftSize = band.fftSize;
@@ -634,19 +637,61 @@ R3Stretcher::getSamplesRequired() const
 }
 
 void
-R3Stretcher::setMaxProcessSize(size_t n)
+R3Stretcher::setMaxProcessSize(size_t requested)
 {
-    size_t oldSize = m_channelData[0]->inbuf->getSize();
-    size_t newSize = getWindowSourceSize() + n;
-
-    if (newSize > oldSize) {
-        m_log.log(1, "setMaxProcessSize: resizing from and to", oldSize, newSize);
-        for (int c = 0; c < m_parameters.channels; ++c) {
-            m_channelData[c]->inbuf = std::unique_ptr<RingBuffer<float>>
-                (m_channelData[c]->inbuf->resized(newSize));
-        }
+    m_log.log(2, "R3Stretcher::setMaxProcessSize", requested);
+    
+    int n = m_limits.overallMaxProcessSize;
+    if (requested > size_t(n)) {
+        m_log.log(0, "R3Stretcher::setMaxProcessSize: request exceeds overall limit", requested, n);
     } else {
-        m_log.log(1, "setMaxProcessSize: nothing to be done, newSize <= oldSize", newSize, oldSize);
+        n = int(requested);
+    }
+
+    ensureInbuf(n * 2, false);
+    ensureOutbuf(n * 8, false);
+}
+
+void
+R3Stretcher::ensureInbuf(int required, bool warn)
+{
+    int ws = m_channelData[0]->inbuf->getWriteSpace();
+    if (required < ws) {
+        return;
+    }
+    if (warn) {
+        m_log.log(0, "R3Stretcher::ensureInbuf: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called, process is being called repeatedly without retrieve, or an internal error has led to an incorrect resampler output calculation. Samples to write and space available", required, ws);
+    }
+    size_t oldSize = m_channelData[0]->inbuf->getSize();
+    size_t newSize = oldSize - ws + required;
+    if (newSize < oldSize * 2) newSize = oldSize * 2;
+    m_log.log(warn ? 0 : 2, "R3Stretcher::ensureInbuf: old and new sizes", oldSize, newSize);
+    for (int c = 0; c < m_parameters.channels; ++c) {
+        auto newBuf = m_channelData[c]->inbuf->resized(newSize);
+        m_channelData[c]->inbuf = std::unique_ptr<RingBuffer<float>>(newBuf);
+        // mixdown is used for mid-side mixing as well as the single
+        // hop output mix, so it needs to be enough to match the inbuf
+        m_channelData[c]->mixdown.resize(newSize, 0.f);
+    }
+}
+
+void
+R3Stretcher::ensureOutbuf(int required, bool warn)
+{
+    int ws = m_channelData[0]->outbuf->getWriteSpace();
+    if (required < ws) {
+        return;
+    }
+    if (warn) {
+        m_log.log(0, "R3Stretcher::ensureOutbuf: WARNING: Forced to increase output buffer size. Using smaller process blocks or an artificially larger value for setMaxProcessSize may avoid this. Samples to write and space available", required, ws);
+    }
+    size_t oldSize = m_channelData[0]->outbuf->getSize();
+    size_t newSize = oldSize - ws + required;
+    if (newSize < oldSize * 2) newSize = oldSize * 2;
+    m_log.log(warn ? 0 : 2, "R3Stretcher::ensureOutbuf: old and new sizes", oldSize, newSize);
+    for (int c = 0; c < m_parameters.channels; ++c) {
+        auto newBuf = m_channelData[c]->outbuf->resized(newSize);
+        m_channelData[c]->outbuf = std::unique_ptr<RingBuffer<float>>(newBuf);
     }
 }
 
@@ -658,6 +703,13 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
     if (m_mode == ProcessMode::Finished) {
         m_log.log(0, "R3Stretcher::process: Cannot process again after final chunk");
         return;
+    }
+
+    int n = m_limits.overallMaxProcessSize;
+    if (samples > size_t(n)) {
+        m_log.log(0, "R3Stretcher::process: request exceeds overall limit", samples, n);
+    } else {
+        n = int(samples);
     }
 
     if (!isRealTime()) {
@@ -698,8 +750,12 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             // when the ratio changes.
             int pad = getWindowSourceSize() / 2;
             m_log.log(1, "offline mode: prefilling with", pad);
+            ensureInbuf(pad);
             for (int c = 0; c < m_parameters.channels; ++c) {
-                m_channelData[c]->inbuf->zero(pad);
+                int zeroed = m_channelData[c]->inbuf->zero(pad);
+                if (zeroed != pad) {
+                    m_log.log(0, "R3Stretcher: WARNING: too few padding samples written", zeroed, pad);
+                }
             }
 
             // NB by the time we skip this later we may have resampled
@@ -709,52 +765,28 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
         }
     }
 
-    if (final) {
-        // We don't distinguish between Finished and "draining, but
-        // haven't yet delivered all the samples" because the
-        // distinction is meaningless internally - it only affects
-        // whether available() finds any samples in the buffer
-        m_log.log(1, "final is set, entering Finished mode");
-        m_mode = ProcessMode::Finished;
-    } else {
-        m_mode = ProcessMode::Processing;
-    }
-
     bool resamplingBefore = false;
     areWeResampling(&resamplingBefore, nullptr);
 
     int channels = m_parameters.channels;
     int inputIx = 0;
 
-    if (samples == 0 && final) {
+    if (n == 0 && final) {
 
         m_log.log(2, "process: no samples but final specified, consuming");
         
-        consume();
+        consume(true);
 
-    } else while (inputIx < int(samples)) {
+    } else while (inputIx < n) {
 
-        int remaining = int(samples) - inputIx;
+        int remaining = n - inputIx;
+
         int ws = m_channelData[0]->inbuf->getWriteSpace();
-
         if (ws == 0) {
-            consume();
-            ws = m_channelData[0]->inbuf->getWriteSpace();
+            consume(false);
         }
-        
-        if (ws == 0) {
-            m_log.log(0, "R3Stretcher::process: WARNING: Forced to increase input buffer size. Either setMaxProcessSize was not properly called, process is being called repeatedly without retrieve, or an internal error has led to an incorrect resampler output calculation. Samples to write", remaining);
-            size_t oldSize = m_channelData[0]->inbuf->getSize();
-            size_t newSize = oldSize + remaining;
-            if (newSize < oldSize * 2) newSize = oldSize * 2;
-            m_log.log(0, "R3Stretcher::process: old and new sizes", oldSize, newSize);
-            for (int c = 0; c < m_parameters.channels; ++c) {
-                auto newBuf = m_channelData[c]->inbuf->resized(newSize);
-                m_channelData[c]->inbuf =
-                    std::unique_ptr<RingBuffer<float>>(newBuf);
-            }
-            continue;
-        }
+        ensureInbuf(remaining);
+        ws = m_channelData[0]->inbuf->getWriteSpace();
         
         if (resamplingBefore) {
 
@@ -770,24 +802,31 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             int resampleInput = std::min(remaining, maxResampleInput);
             if (resampleInput == 0) resampleInput = 1;
 
+            m_log.log(2, "R3Stretcher::process: resamplingBefore is true, resampleInput and maxResampleOutput", resampleInput, maxResampleOutput);
+            
             prepareInput(input, inputIx, resampleInput);
 
+            bool finalHop = (final && inputIx + resampleInput >= n);
+            
             int resampleOutput = m_resampler->resample
                 (m_channelAssembly.resampled.data(),
                  maxResampleOutput,
                  m_channelAssembly.input.data(),
                  resampleInput,
                  1.0 / m_pitchScale,
-                 final);
+                 finalHop);
 
             inputIx += resampleInput;
-
-            m_log.log(2, "process: resamplingBefore is true, writing to inbuf from resampled data, former read space and samples being added", m_channelData[0]->inbuf->getReadSpace(), resampleOutput);
-
+            
             for (int c = 0; c < m_parameters.channels; ++c) {
-                m_channelData[c]->inbuf->write
+
+                int written = m_channelData[c]->inbuf->write
                     (m_channelData.at(c)->resampled.data(),
                      resampleOutput);
+
+                if (written != resampleOutput) {
+                    m_log.log(0, "R3Stretcher: WARNING: too few samples written to input buffer from resampler", written, resampleOutput);
+                }
             }
 
         } else {
@@ -798,13 +837,30 @@ R3Stretcher::process(const float *const *input, size_t samples, bool final)
             prepareInput(input, inputIx, toWrite);
             
             for (int c = 0; c < m_parameters.channels; ++c) {
-                m_channelData[c]->inbuf->write
+
+                int written = m_channelData[c]->inbuf->write
                     (m_channelAssembly.input[c], toWrite);
+
+                if (written != toWrite) {
+                    m_log.log(0, "R3Stretcher: WARNING: too few samples written to input buffer", written, toWrite);
+                }
             }
+            
             inputIx += toWrite;
         }
         
-        consume();
+        consume(final && inputIx >= n);
+    }
+
+    if (final) {
+        // We don't distinguish between Finished and "draining, but
+        // haven't yet delivered all the samples" because the
+        // distinction is meaningless internally - it only affects
+        // whether available() finds any samples in the buffer
+        m_log.log(1, "final is set, entering Finished mode");
+        m_mode = ProcessMode::Finished;
+    } else {
+        m_mode = ProcessMode::Processing;
     }
 }
 
@@ -825,6 +881,8 @@ R3Stretcher::retrieve(float *const *output, size_t samples) const
     Profiler profiler("R3Stretcher::retrieve");
     
     int got = samples;
+    
+    m_log.log(2, "retrieve: requested, outbuf has", samples, m_channelData[0]->outbuf->getReadSpace());
     
     for (int c = 0; c < m_parameters.channels; ++c) {
         int gotHere = m_channelData[c]->outbuf->read(output[c], got);
@@ -847,6 +905,8 @@ R3Stretcher::retrieve(float *const *output, size_t samples) const
         }
     }
     
+    m_log.log(2, "retrieve: returning, outbuf now has", got, m_channelData[0]->outbuf->getReadSpace());
+
     return got;
 }
 
@@ -856,6 +916,11 @@ R3Stretcher::prepareInput(const float *const *input, int ix, int n)
     if (useMidSide()) {
         auto &c0 = m_channelData.at(0)->mixdown;
         auto &c1 = m_channelData.at(1)->mixdown;
+        int bufsize = c0.size();
+        if (n > bufsize) {
+            m_log.log(0, "R3Stretcher::prepareInput: WARNING: called with size greater than mixdown buffer length", n, bufsize);
+            n = bufsize;
+        }
         for (int i = 0; i < n; ++i) {
             float l = input[0][i + ix];
             float r = input[1][i + ix];
@@ -874,7 +939,7 @@ R3Stretcher::prepareInput(const float *const *input, int ix, int n)
 }
 
 void
-R3Stretcher::consume()
+R3Stretcher::consume(bool final)
 {
     Profiler profiler("R3Stretcher::consume");
     
@@ -927,23 +992,21 @@ R3Stretcher::consume()
     auto &cd0 = m_channelData.at(0);
 
     m_log.log(2, "consume: write space and outhop", cd0->outbuf->getWriteSpace(), outhop);
-    
-    while (cd0->outbuf->getWriteSpace() >= outhop) {
+        
+    // NB our ChannelData, ScaleData, and ChannelScaleData maps
+    // contain shared_ptrs; whenever we retain one of them in a
+    // variable, we do so by reference to avoid copying the shared_ptr
+    // (as that is not realtime safe). Same goes for the map iterators
+
+    while (true) {
 
         Profiler profiler("R3Stretcher::consume/loop");
-        
-        // NB our ChannelData, ScaleData, and ChannelScaleData maps
-        // contain shared_ptrs; whenever we retain one of them in a
-        // variable, we do so by reference to avoid copying the
-        // shared_ptr (as that is not realtime safe). Same goes for
-        // the map iterators
 
         int readSpace = cd0->inbuf->getReadSpace();
-
-        m_log.log(2, "consume: read space and window source size", readSpace, getWindowSourceSize());
+        m_log.log(2, "consume: read space", readSpace);
 
         if (readSpace < getWindowSourceSize()) {
-            if (m_mode == ProcessMode::Finished) {
+            if (final) {
                 if (readSpace == 0) {
                     int fill = cd0->scales.at(longest)->accumulatorFill;
                     if (fill == 0) {
@@ -958,6 +1021,8 @@ R3Stretcher::consume()
             }
         }
 
+        ensureOutbuf(outhop);
+        
         // Analysis
         
         for (int c = 0; c < channels; ++c) {
@@ -1009,9 +1074,9 @@ R3Stretcher::consume()
                 m_channelAssembly.resampled[c] = cd->resampled.data();
             }
 
-            bool final = (m_mode == ProcessMode::Finished &&
-                          readSpace < inhop &&
-                          cd0->scales.at(longest)->accumulatorFill <= outhop);
+            bool finalHop = (final &&
+                             readSpace < inhop &&
+                             cd0->scales.at(longest)->accumulatorFill <= outhop);
             
             resampledCount = m_resampler->resample
                 (m_channelAssembly.resampled.data(),
@@ -1019,7 +1084,7 @@ R3Stretcher::consume()
                  m_channelAssembly.mixdown.data(),
                  outhop,
                  1.0 / m_pitchScale,
-                 final);
+                 finalHop);
         }
 
         // Emit
@@ -1041,8 +1106,8 @@ R3Stretcher::consume()
 
         int advanceCount = inhop;
         if (advanceCount > readSpace) {
-            // This should happen only when draining (Finished)
-            if (m_mode != ProcessMode::Finished) {
+            // This should happen only when draining
+            if (!final) {
                 m_log.log(0, "R3Stretcher: WARNING: readSpace < inhop when processing is not yet finished", readSpace, inhop);
             }
             advanceCount = readSpace;
@@ -1050,12 +1115,19 @@ R3Stretcher::consume()
         
         for (int c = 0; c < channels; ++c) {
             auto &cd = m_channelData.at(c);
+            int written = 0;
             if (resamplingAfter) {
-                cd->outbuf->write(cd->resampled.data(), writeCount);
+                written = cd->outbuf->write(cd->resampled.data(), writeCount);
             } else {
-                cd->outbuf->write(cd->mixdown.data(), writeCount);
+                written = cd->outbuf->write(cd->mixdown.data(), writeCount);
             }
-            cd->inbuf->skip(advanceCount);
+            if (written != writeCount) {
+                m_log.log(0, "R3Stretcher: WARNING: too few samples written to output buffer", written, writeCount);
+            }
+            int skipped = cd->inbuf->skip(advanceCount);
+            if (skipped != advanceCount) {
+                m_log.log(0, "R3Stretcher: WARNING: too few samples advanced", skipped, advanceCount);
+            }
         }
 
         m_consumedInputDuration += advanceCount;
@@ -1065,7 +1137,10 @@ R3Stretcher::consume()
             int rs = cd0->outbuf->getReadSpace();
             int toSkip = std::min(m_startSkip, rs);
             for (int c = 0; c < channels; ++c) {
-                m_channelData.at(c)->outbuf->skip(toSkip);
+                int skipped = m_channelData.at(c)->outbuf->skip(toSkip);
+                if (skipped != toSkip) {
+                    m_log.log(0, "R3Stretcher: WARNING: too few samples skipped at output", skipped, toSkip);
+                }
             }
             m_startSkip -= toSkip;
             m_totalOutputDuration = rs - toSkip;
@@ -1074,6 +1149,8 @@ R3Stretcher::consume()
         m_prevInhop = inhop;
         m_prevOuthop = outhop;
     }
+
+    m_log.log(2, "consume: write space reduced to", cd0->outbuf->getWriteSpace());
 }
 
 void

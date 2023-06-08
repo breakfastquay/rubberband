@@ -233,6 +233,7 @@ static vector<float> process_realtime(RubberBandStretcher &stretcher,
                                       const vector<float> &in,
                                       int nOut,
                                       int bs,
+                                      bool roundUpProcessSize,
                                       bool printDebug)
 {
     int n = in.size();
@@ -270,9 +271,20 @@ static vector<float> process_realtime(RubberBandStretcher &stretcher,
             } else if (available == 0) { // need to provide more input
                 int required = stretcher.getSamplesRequired();
                 BOOST_TEST(required > 0); // because available == 0
-                int toProcess = std::min(required, n - inOffset);
+                int toProcess = required;
+                if (roundUpProcessSize) {
+                    // We sometimes want to explicitly test passing
+                    // large blocks to process, longer than
+                    // getSamplesRequired indicates
+                    toProcess = std::max(required, bs);
+                }
+                bool final = false;
+                if (toProcess >= n - inOffset) {
+                    toProcess = n - inOffset;
+                    final = true;
+                }
                 const float *const source = in.data() + inOffset;
-                bool final = (toProcess < required);
+//                cerr << "toProcess = " << toProcess << ", inOffset = " << inOffset << ", n = " << n << ", required = " << required << ", outOffset = " << outOffset << ", obtained = " << obtained << ", bs = " << bs << ", final = " << final << endl;
                 stretcher.process(&source, toProcess, final);
                 inOffset += toProcess;
                 BOOST_TEST(stretcher.available() > 0);
@@ -311,6 +323,7 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
                               double timeRatio,
                               double pitchScale,
                               int bs = 512,
+                              bool roundUpProcessSize = false,
                               bool printDebug = false)
 {
     int n = (timeRatio < 1.0 ? 80000 : 40000);
@@ -324,11 +337,12 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
     // expected place
 
     RubberBandStretcher stretcher(rate, 1, options, timeRatio, pitchScale);
-    stretcher.setMaxProcessSize(bs);
 
     if (printDebug) {
         stretcher.setDebugLevel(2);
     }
+
+    stretcher.setMaxProcessSize(bs);
     
     // The input signal is a fixed frequency sinusoid that steps up in
     // amplitude every 1/10 of the total duration - from 0.1 at the
@@ -342,7 +356,8 @@ static void sinusoid_realtime(RubberBandStretcher::Options options,
         in[i] = sample;
     }
 
-    vector<float> out = process_realtime(stretcher, in, nOut, bs, printDebug);
+    vector<float> out = process_realtime(stretcher, in, nOut, bs,
+                                         roundUpProcessSize, printDebug);
         
     // Step through the output signal in chunk of 1/20 of its duration
     // (i.e. a rather arbitrary two per expected 0.1 increment in
@@ -665,16 +680,64 @@ BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_faster)
 {
     sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
                       RubberBandStretcher::OptionProcessRealTime,
-                      8.0, 1.5,
-                      80000);
+                      4.0, 0.5,
+                      80000, true);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_faster_stretch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime,
+                      2.0, 1.0,
+                      80000, true);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_faster_shrink)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime,
+                      0.8, 1.0,
+                      80000, true);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_faster_higher)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime,
+                      1.0, 2.0,
+                      80000, true);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_faster_lower)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFaster |
+                      RubberBandStretcher::OptionProcessRealTime,
+                      1.0, 0.5,
+                      80000, true);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_finer)
 {
     sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
                       RubberBandStretcher::OptionProcessRealTime,
-                      8.0, 1.5,
-                      80000);
+                      4.0, 0.5,
+                      80000, true);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_finer_stretch)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
+                      RubberBandStretcher::OptionProcessRealTime,
+                      2.0, 1.0,
+                      80000, true);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_realtime_long_blocksize_finer_shift)
+{
+    sinusoid_realtime(RubberBandStretcher::OptionEngineFiner |
+                      RubberBandStretcher::OptionProcessRealTime,
+                      1.0, 0.5,
+                      80000, true);
 }
 
 BOOST_AUTO_TEST_CASE(impulses_2x_offline_faster)
@@ -912,7 +975,8 @@ static void impulses_realtime(RubberBandStretcher::Options options,
     in[9900] = 1.f;
     in[9901] = -1.f;
 
-    vector<float> out = process_realtime(stretcher, in, nOut, bs, printDebug);
+    vector<float> out = process_realtime(stretcher, in, nOut, bs,
+                                         false, printDebug);
 
     int peak0 = -1, peak1 = -1, peak2 = -1;
     float max;
@@ -1379,8 +1443,8 @@ static void with_resets(RubberBandStretcher::Options options,
             for (int i = 0; i < nActual; ++i) {
                 BOOST_TEST(out[i] == outRef[i]);
                 if (out[i] != outRef[i]) {
-                    std::cerr << "Failure at index " << i << " in run "
-                              << run << std::endl;
+                    std::cerr << "Failure at index " << i << " of "
+                              << nActual << " in run " << run << std::endl;
                     break;
                 }
             }

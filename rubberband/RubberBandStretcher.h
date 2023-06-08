@@ -803,6 +803,13 @@ public:
      * study() (to which you may pass any number of samples at a time,
      * and from which there is no output).
      *
+     * Despite the existence of this call and its use of a size_t
+     * argument, there is an internal limit to the maximum process
+     * buffer size that can be requested. This is currently 524288 (or
+     * 2^19). The Rubber Band API is essentially block-based and is
+     * not designed to process an entire signal within a single
+     * process cycle.
+     *
      * Note that the value of "samples" refers to the number of audio
      * sample frames, which may be multi-channel, not the number of
      * individual samples. (For example, one second of stereo audio

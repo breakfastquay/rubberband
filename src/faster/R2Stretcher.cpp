@@ -307,7 +307,10 @@ R2Stretcher::setExpectedInputDuration(size_t samples)
 void
 R2Stretcher::setMaxProcessSize(size_t samples)
 {
+    m_log.log(2, "R2Stretcher::setMaxProcessSize", samples);
     if (samples <= m_maxProcessSize) return;
+
+    m_log.log(2, "R2Stretcher::setMaxProcessSize: increasing from, to", m_maxProcessSize, samples);
     m_maxProcessSize = samples;
 
     reconfigure();
@@ -1232,6 +1235,8 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
 {
     Profiler profiler("R2Stretcher::process");
 
+    m_log.log(3, "process entering, samples and final", samples, final);
+
     if (m_mode == Finished) {
         m_log.log(0, "R2Stretcher::process: Cannot process again after final chunk");
         return;
@@ -1294,10 +1299,16 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
                                           consumed[c],
                                           samples - consumed[c],
                                           final);
+            if (c == 0) {
+                m_log.log(3, "consumed channel 0, consumed and samples now", consumed[c], samples);
+            }
             if (consumed[c] < samples) {
                 allConsumed = false;
             } else {
                 if (final) {
+                    if (c == 0) {
+                        m_log.log(2, "final is true, setting input size", m_channelData[c]->inCount);
+                    }
                     m_channelData[c]->inputSize = m_channelData[c]->inCount;
                 }
             }
@@ -1332,10 +1343,10 @@ R2Stretcher::process(const float *const *input, size_t samples, bool final)
         }
 #endif
 
-        m_log.log(2, "process looping");
+        m_log.log(3, "process looping");
     }
 
-    m_log.log(2, "process returning");
+    m_log.log(3, "process returning");
 
     if (final) m_mode = Finished;
 }
