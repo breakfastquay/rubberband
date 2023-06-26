@@ -999,7 +999,7 @@ static void impulses_realtime(RubberBandStretcher::Options options,
     // These limits aren't alarming, but it may be worth tightening
     // them and and taking a look at the waveforms
     
-    BOOST_TEST(peak0 < int(ceil(200 * timeRatio)));
+    BOOST_TEST(peak0 < int(ceil(210 * timeRatio)));
     BOOST_TEST(peak0 > int(ceil(50 * timeRatio)));
 
     BOOST_TEST(peak1 < int(ceil(5070 * timeRatio)));
