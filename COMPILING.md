@@ -273,8 +273,14 @@ library code, please be sure to review the terms for those libraries
 in `src/ext/speex/COPYING` and `src/ext/kissfft/COPYING` as applicable.
 
 If you are proposing to package Rubber Band for a Linux distribution,
-please select either the built-in FFT or FFTW, and either the built-in
-resampler or libsamplerate.
+please select either the built-in FFT (the default) or FFTW
+(`-Dfft=fftw`), and either the built-in resampler (the default) or
+libsamplerate (`-Dresampler=libsamplerate`).
+
+On some configurations (e.g. 32-bit platforms) libsamplerate is much
+faster than the built-in resampler, and it makes a reasonable choice
+for platform builds for which you don't know the requirements of any
+specific application.
 
 ### FFT libraries supported
 
@@ -324,11 +330,14 @@ Built-in       -Dresampler=builtin        -DUSE_BQRESAMPLER     Default.
                                                                 Intended to give high quality
                                                                 for time-varying pitch shifts
                                                                 in real-time mode.
-                                                                Not the fastest option.
+                                                                Not the fastest option;
+                                                                especially slow in 32-bit
+                                                                builds.
 
 libsamplerate  -Dresampler=libsamplerate  -DHAVE_LIBSAMPLERATE  Good choice in most cases.
-                                                                High quality and usually a bit
-                                                                faster than the built-in option.
+                                                                High quality; usually a bit
+                                                                faster than the built-in option;
+                                                                much faster in 32-bit builds.
                                                                 BSD-ish licence.
 
 libspeexdsp    -Dresampler=libspeexdsp    -DHAVE_LIBSPEEXDSP    Very fast.
