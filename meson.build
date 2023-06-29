@@ -29,11 +29,13 @@ pkg = import('pkgconfig')
 public_headers = [
   'rubberband/rubberband-c.h',
   'rubberband/RubberBandStretcher.h',
+  'rubberband/RubberBandLiveShifter.h',
 ]
 
 library_sources = [
   'src/rubberband-c.cpp',
   'src/RubberBandStretcher.cpp',
+  'src/RubberBandLiveShifter.cpp',
   'src/faster/AudioCurveCalculator.cpp',
   'src/faster/CompoundAudioCurve.cpp',
   'src/faster/HighFrequencyAudioCurve.cpp',
@@ -52,6 +54,7 @@ library_sources = [
   'src/common/mathmisc.cpp',
   'src/common/Thread.cpp',
   'src/finer/R3Stretcher.cpp', 
+  'src/finer/R3LiveShifter.cpp', 
 ]
 
 jni_sources = [
@@ -89,6 +92,7 @@ lv2_sources = [
 unit_test_sources = [
   'src/test/TestAllocators.cpp',
   'src/test/TestFFT.cpp',
+  'src/test/TestLiveShifter.cpp',
   'src/test/TestResampler.cpp',
   'src/test/TestVectorOpsComplex.cpp',
   'src/test/TestVectorOps.cpp',
