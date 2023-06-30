@@ -103,6 +103,7 @@ public:
         OptionFormantShifted       = 0x00000000,
         OptionFormantPreserved     = 0x01000000,
 
+        //!!! Rename and document
         OptionPitchModeA           = 0x00000000,
         OptionPitchModeB           = 0x02000000,
 
