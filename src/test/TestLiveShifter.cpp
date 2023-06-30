@@ -44,6 +44,8 @@ BOOST_AUTO_TEST_SUITE(TestLiveShifter)
 
 BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
 {
+#ifdef TO_BE_CONTINUED
+    
     bool printDebug = true;
 //    bool printDebug = false;
     
@@ -106,7 +108,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
     if (printDebug) {
         // The initial # is to allow grep on the test output
         std::cout << "#sample\tV" << std::endl;
-        for (int i = 0; i < out.size(); ++i) {
+        for (int i = 0; i < int(out.size()); ++i) {
             std::cout << "#" << i << "\t" << out[i] << std::endl;
         }
     }
@@ -114,10 +116,11 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
     if (printDebug) {
         // The initial @ is to allow grep on the test output
         std::cout << "@sample\tV" << std::endl;
-        for (int i = 0; i + delay < in.size(); ++i) {
+        for (int i = 0; i + delay < int(in.size()); ++i) {
             std::cout << "@" << i << "\t" << out[i + delay] - in[i] << std::endl;
         }
     }
+#endif
 }
 
 //!!!

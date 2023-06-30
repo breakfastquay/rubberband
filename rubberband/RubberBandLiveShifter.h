@@ -41,11 +41,55 @@
 #include <memory>
 #include <cstddef>
 
+#pragma message("The RubberBandLiveShifter interface is in alpha test. It may fail to work correctly, or change at any time in the future. Use it at your own risk.")
+
 namespace RubberBand
 {
 
 /**
- * @mainpage RubberBandLiveShifter
+ * ### Summary
+ * 
+ * RubberBand::RubberBandLiveShifter is an interface to the Rubber
+ * Band Library designed for applications that need to perform
+ * pitch-shifting only, without time-stretching, and to do so with the
+ * shortest available processing delay.
+ *
+ * RubberBandLiveShifter has a much simpler API than the general
+ * RubberBandStretcher. Its process function, called
+ * RubberBandLiveShifter::shift(), accepts a fixed number of sample
+ * frames on each call and always returns exactly the same number of
+ * sample frames. This is in contrast to the
+ * process/available/retrieve call sequence that RubberBandStretcher
+ * requires as a result of its variable output rate.
+ *
+ * The number of frames RubberBandLiveShifter::shift() accepts and
+ * returns is not under the caller's control: it always requires
+ * exactly the number given by RubberBandLiveShifter::getBlockSize().
+ * However, that number is fixed for the lifetime of the shifter, so
+ * it only needs to be queried once and then fixed-size buffers may be
+ * passed.
+ *
+ * Using RubberBandLiveShifter also gives a substantially shorter
+ * processing delay than a typical buffering setup using
+ * RubberBandStretcher, making it a useful choice for some live
+ * situations, although it is still not a low-latency effect (and
+ * never will be) with a delay of 50ms or more between input and
+ * output signals depending on configuration. The actual value may be
+ * queried via RubberBandLiveShifter::getStartDelay(). The shifter is
+ * real-time safe in the sense of avoiding allocation, locking, or
+ * blocking operations in the processing path.
+ *
+ * ### Thread safety
+ * 
+ * Multiple instances of RubberBandLiveShifter may be created and used
+ * in separate threads concurrently.  However, for any single instance
+ * of RubberBandLiveShifter, you may not call
+ * RubberBandLiveShifter::shift() more than once concurrently, and you
+ * may not change the pitch scaling ratio using
+ * RubberBandLiveShifter::setPitchScale() while a
+ * RubberBandLiveShifter::shift() call is being executed. Changing the
+ * ratio is real-time safe, so when the pitch ratio is time-varying,
+ * it is normal to update the ratio before each shift call.
  */
 class RUBBERBAND_LIVE_DLLEXPORT
 RubberBandLiveShifter
@@ -157,11 +201,11 @@ public:
      * pow(2.0, S / 12.0).
      *
      * This function may be called at any time, so long as it is not
-     * called concurrently with process().  You should either call
-     * this function from the same thread as process(), or provide
-     * your own mutex or similar mechanism to ensure that
-     * setPitchScale and process() cannot be run at once (there is no
-     * internal mutex for this purpose).
+     * called concurrently with shift().  You should either call this
+     * function from the same thread as shift(), or provide your own
+     * mutex or similar mechanism to ensure that setPitchScale and
+     * shift() cannot be run at once (there is no internal mutex for
+     * this purpose).
      */
     void setPitchScale(double scale);
 
@@ -232,8 +276,8 @@ public:
 
     /**
      * Query the number of sample frames that must be passed to, and
-     * will be returned by, each process() call. This value is fixed
-     * for the lifetime of the shifter.
+     * will be returned by, each shift() call. This value is fixed for
+     * the lifetime of the shifter.
      *
      * Note that the blocksize refers to the number of audio sample
      * frames, which may be multi-channel, not the number of

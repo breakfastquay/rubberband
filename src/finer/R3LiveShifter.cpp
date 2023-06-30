@@ -43,14 +43,16 @@ R3LiveShifter::R3LiveShifter(Parameters parameters, Log log) :
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
     m_useReadahead(false),
-    m_contractThenExpand(false),
     m_prevInhop(m_limits.maxInhopWithReadahead / 2),
     m_prevOuthop(m_prevInhop),
+    m_contractThenExpand(false),
     m_firstProcess(true),
     m_unityCount(0)
 {
     Profiler profiler("R3LiveShifter::R3LiveShifter");
 
+    m_log.log(0, "WARNING: The RubberBandLiveShifter interface is in alpha test. It may fail to work correctly, or change at any time in the future. Use it at your own risk.");
+    
     initialise();
 }
 
