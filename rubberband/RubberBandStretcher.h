@@ -24,9 +24,9 @@
 #ifndef RUBBERBAND_STRETCHER_H
 #define RUBBERBAND_STRETCHER_H
     
-#define RUBBERBAND_VERSION "3.2.1"
+#define RUBBERBAND_VERSION "3.3.0"
 #define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 7
+#define RUBBERBAND_API_MINOR_VERSION 8
 
 #undef RUBBERBAND_DLLEXPORT
 #ifdef _MSC_VER
@@ -825,6 +825,8 @@ public:
      * instances and configurations. As of Rubber Band v3.3 it is
      * always 524288 (or 2^19), but in principle it may change in
      * future releases.
+     *
+     * This function was added in Rubber Band Library v3.3.
      */
     size_t getProcessSizeLimit() const;
     

@@ -1,4 +1,17 @@
 
+Changes in Rubber Band v3.3
+
+This is a bug-fix release with no changes to audio quality.
+
+ * Fix incorrect output with unexpectedly large buffers in process
+ * Add getProcessSizeLimit to query the maximum buffer length for
+   process and highest supported value for setMaxProcessSize
+ * Fix formal test failure in some contexts
+
+One new function has been added to the API. The library is otherwise
+binary compatible with existing code back to version 1.7.
+
+
 Changes in Rubber Band v3.2.1
 
 This is a build-fix release with no new features.
