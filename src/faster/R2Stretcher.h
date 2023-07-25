@@ -73,6 +73,7 @@ public:
 
     void setExpectedInputDuration(size_t samples);
     void setMaxProcessSize(size_t samples);
+    size_t getProcessSizeLimit() const;
     void setKeyFrameMap(const std::map<size_t, size_t> &);
 
     size_t getSamplesRequired() const;

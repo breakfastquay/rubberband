@@ -316,6 +316,12 @@ R2Stretcher::setMaxProcessSize(size_t samples)
     reconfigure();
 }
 
+size_t
+R2Stretcher::getProcessSizeLimit() const
+{
+    return 524288;
+}
+
 void
 R2Stretcher::setKeyFrameMap(const std::map<size_t, size_t> &mapping)
 {
