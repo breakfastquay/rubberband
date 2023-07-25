@@ -143,6 +143,11 @@ void rubberband_set_max_process_size(RubberBandState state, unsigned int samples
     state->m_s->setMaxProcessSize(samples);
 }
 
+unsigned int rubberband_get_process_size_limit(RubberBandState state)
+{
+    return state->m_s->getProcessSizeLimit();
+}
+
 void rubberband_set_key_frame_map(RubberBandState state, unsigned int keyframecount, unsigned int *from, unsigned int *to)
 {
     std::map<size_t, size_t> kfm;

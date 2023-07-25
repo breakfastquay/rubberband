@@ -29,9 +29,9 @@
 extern "C" {
 #endif
 
-#define RUBBERBAND_VERSION "3.2.1"
+#define RUBBERBAND_VERSION "3.3.0"
 #define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 7
+#define RUBBERBAND_API_MINOR_VERSION 8
 
 #undef RB_EXTERN
 #ifdef _MSC_VER
@@ -138,6 +138,8 @@ RB_EXTERN void rubberband_set_expected_input_duration(RubberBandState, unsigned 
 RB_EXTERN unsigned int rubberband_get_samples_required(const RubberBandState);
 
 RB_EXTERN void rubberband_set_max_process_size(RubberBandState, unsigned int samples);
+RB_EXTERN unsigned int rubberband_get_process_size_limit(RubberBandState);
+    
 RB_EXTERN void rubberband_set_key_frame_map(RubberBandState, unsigned int keyframecount, unsigned int *from, unsigned int *to);
 
 RB_EXTERN void rubberband_study(RubberBandState, const float *const *input, unsigned int samples, int final);
