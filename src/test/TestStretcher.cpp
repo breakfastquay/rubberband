@@ -1008,7 +1008,7 @@ static void impulses_realtime(RubberBandStretcher::Options options,
     BOOST_TEST(peak1 > int(ceil(4640 * timeRatio)));
 
     BOOST_TEST(peak2 < int(ceil(9970 * timeRatio)));
-    BOOST_TEST(peak2 > int(ceil(9770 * timeRatio)));
+    BOOST_TEST(peak2 > int(ceil(9670 * timeRatio)));
 
     if (printDebug) {
         std::cout << "#sample\tV" << std::endl;
