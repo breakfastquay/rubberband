@@ -226,6 +226,13 @@ public:
         else m_r3->setMaxProcessSize(samples);
     }
 
+    size_t
+    getProcessSizeLimit() const
+    {
+        if (m_r2) return m_r2->getProcessSizeLimit();
+        else return m_r3->getProcessSizeLimit();
+    }
+
     void
     setKeyFrameMap(const std::map<size_t, size_t> &mapping)
     {
@@ -490,6 +497,12 @@ void
 RubberBandStretcher::setMaxProcessSize(size_t samples)
 {
     m_d->setMaxProcessSize(samples);
+}
+
+size_t
+RubberBandStretcher::getProcessSizeLimit() const
+{
+    return m_d->getProcessSizeLimit();
 }
 
 void

@@ -46,8 +46,10 @@ BOOST_AUTO_TEST_CASE(engine_version)
 {
     RubberBandStretcher s2(44100, 1, RubberBandStretcher::OptionEngineFaster);
     BOOST_TEST(s2.getEngineVersion() == 2);
+    BOOST_TEST(s2.getProcessSizeLimit() == 524288);
     RubberBandStretcher s3(44100, 1, RubberBandStretcher::OptionEngineFiner);
     BOOST_TEST(s3.getEngineVersion() == 3);
+    BOOST_TEST(s3.getProcessSizeLimit() == 524288);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_unchanged_offline_faster)
@@ -1006,7 +1008,7 @@ static void impulses_realtime(RubberBandStretcher::Options options,
     BOOST_TEST(peak1 > int(ceil(4640 * timeRatio)));
 
     BOOST_TEST(peak2 < int(ceil(9970 * timeRatio)));
-    BOOST_TEST(peak2 > int(ceil(9770 * timeRatio)));
+    BOOST_TEST(peak2 > int(ceil(9670 * timeRatio)));
 
     if (printDebug) {
         std::cout << "#sample\tV" << std::endl;

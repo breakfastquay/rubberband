@@ -24,9 +24,9 @@
 #ifndef RUBBERBAND_STRETCHER_H
 #define RUBBERBAND_STRETCHER_H
     
-#define RUBBERBAND_VERSION "3.2.1"
+#define RUBBERBAND_VERSION "3.3.0"
 #define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 7
+#define RUBBERBAND_API_MINOR_VERSION 8
 
 #undef RUBBERBAND_DLLEXPORT
 #ifdef _MSC_VER
@@ -805,10 +805,10 @@ public:
      *
      * Despite the existence of this call and its use of a size_t
      * argument, there is an internal limit to the maximum process
-     * buffer size that can be requested. This is currently 524288 (or
-     * 2^19). The Rubber Band API is essentially block-based and is
-     * not designed to process an entire signal within a single
-     * process cycle.
+     * buffer size that can be requested. Call getProcessSizeLimit()
+     * to query that limit. The Rubber Band API is essentially
+     * block-based and is not designed to process an entire signal
+     * within a single process cycle.
      *
      * Note that the value of "samples" refers to the number of audio
      * sample frames, which may be multi-channel, not the number of
@@ -818,6 +818,18 @@ public:
      */
     void setMaxProcessSize(size_t samples);
 
+    /**
+     * Obtain the overall maximum supported process buffer size in
+     * sample frames, which is also the maximum acceptable value to
+     * pass to setMaxProcessSize(). This value is fixed across
+     * instances and configurations. As of Rubber Band v3.3 it is
+     * always 524288 (or 2^19), but in principle it may change in
+     * future releases.
+     *
+     * This function was added in Rubber Band Library v3.3.
+     */
+    size_t getProcessSizeLimit() const;
+    
     /**
      * Ask the stretcher how many audio sample frames should be
      * provided as input in order to ensure that some more output
