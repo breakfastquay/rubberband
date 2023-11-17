@@ -192,7 +192,7 @@ D_IPP::D_IPP(Resampler::Quality /* quality */,
     //    elements with indices greater than m_time + length for the
     //    right filter wing for the last element.
     
-    m_history = int(m_window * 0.5 * max(1.0, 1.0 / m_factor)) + 1;
+    m_history = int(m_window * 0.5 * std::max(1.0, 1.0 / m_factor)) + 1;
 
     m_state = new IppsResamplingPolyphase_32f *[m_channels];
 
@@ -305,7 +305,7 @@ D_IPP::resample(float *const BQ_R__ *const BQ_R__ out,
 {
     if (ratio > m_factor) {
         m_factor = ratio;
-        m_history = int(m_window * 0.5 * max(1.0, 1.0 / m_factor)) + 1;
+        m_history = int(m_window * 0.5 * std::max(1.0, 1.0 / m_factor)) + 1;
     }
 
     if (m_debugLevel > 2) {
@@ -348,7 +348,7 @@ D_IPP::resampleInterleaved(float *const BQ_R__ out,
 {
     if (ratio > m_factor) {
         m_factor = ratio;
-        m_history = int(m_window * 0.5 * max(1.0, 1.0 / m_factor)) + 1;
+        m_history = int(m_window * 0.5 * std::max(1.0, 1.0 / m_factor)) + 1;
     }
 
     if (m_debugLevel > 2) {
