@@ -23,6 +23,9 @@
 
 package com.breakfastquay.rubberband;
 
+import java.util.Map;
+import java.util.Set;
+
 public class RubberBandStretcher
 {
     public RubberBandStretcher(int sampleRate, int channels,
@@ -62,6 +65,19 @@ public class RubberBandStretcher
     public native int getSamplesRequired();
 
     public native void setKeyFrameMap(long[] from, long[] to);
+    public void setKeyFrameMap(Map<Long, Long> m) {
+        Set<Long> keys = m.keySet();
+        int n = keys.size();
+        long[] from = new long[n];
+        long[] to = new long[n];
+        int i = 0;
+        for (Long k : keys) {
+            from[i] = k.longValue();
+            to[i] = m.get(k).longValue();
+            ++i;
+        }
+        setKeyFrameMap(from, to);
+    }
 
     public native void study(float[][] input, int offset, int n, boolean finalBlock);
     public void study(float[][] input, boolean finalBlock) {

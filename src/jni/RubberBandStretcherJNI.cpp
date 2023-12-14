@@ -185,6 +185,14 @@ JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_get
 
 /*
  * Class:     com_breakfastquay_rubberband_RubberBandStretcher
+ * Method:    setKeyFrameMap
+ * Signature: ([J[J)V
+ */
+JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_setKeyFrameMap
+  (JNIEnv *, jobject, jlongArray, jlongArray);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandStretcher
  * Method:    study
  * Signature: ([[FZ)V
  */
@@ -363,6 +371,22 @@ JNIEXPORT jint JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_getSamplesRequired(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->getSamplesRequired();
+}
+
+JNIEXPORT void JNICALL
+Java_com_breakfastquay_rubberband_RubberBandStretcher_setKeyFrameMap(JNIEnv *env, jobject obj, jlongArray from, jlongArray to)
+{
+    std::map<size_t, size_t> m;
+    int flen = env->GetArrayLength(from);
+    int tlen = env->GetArrayLength(to);
+    jlong *farr = env->GetLongArrayElements(from, 0);
+    jlong *tarr = env->GetLongArrayElements(to, 0);
+    for (int i = 0; i < flen && i < tlen; ++i) {
+        m[farr[i]] = tarr[i];
+    }
+    env->ReleaseLongArrayElements(from, farr, 0);
+    env->ReleaseLongArrayElements(to, tarr, 0);
+    getStretcher(env, obj)->setKeyFrameMap(m);
 }
 
 JNIEXPORT void JNICALL

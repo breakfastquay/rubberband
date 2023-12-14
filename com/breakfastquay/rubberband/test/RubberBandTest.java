@@ -3,6 +3,8 @@ package com.breakfastquay.rubberband.test;
 
 import com.breakfastquay.rubberband.RubberBandStretcher;
 
+import java.util.TreeMap;
+
 public class RubberBandTest
 {
 
@@ -15,7 +17,7 @@ public class RubberBandTest
             (rate,
              channels,
              RubberBandStretcher.OptionEngineFiner +
-             RubberBandStretcher.OptionProcessRealTime,
+             RubberBandStretcher.OptionProcessOffline,
              1.0,
              1.0);
 
@@ -38,10 +40,15 @@ public class RubberBandTest
                 ));
 
         int blocksize = 1024;
-        int blocks = 200;
+        int blocks = 400;
         double freq = 440.0;
         
         stretcher.setMaxProcessSize(blocksize);
+
+        TreeMap<Long, Long> keyFrameMap = new TreeMap<Long, Long>();
+        keyFrameMap.put((long)(3 * rate), (long)(4 * rate));
+        keyFrameMap.put((long)(5 * rate), (long)(5 * rate));
+        stretcher.setKeyFrameMap(keyFrameMap);
 
         float[][] buffer = new float[channels][blocksize];
 
@@ -53,6 +60,27 @@ public class RubberBandTest
                 for (int i = 0; i < blocksize; ++i) {
                     buffer[c][i] = (float)Math.sin
                         ((double)i0 * freq * Math.PI * 2.0 / (double)rate);
+                    if (i0 % rate == 0) {
+                        buffer[c][i] = 1.f;
+                    }
+                    ++i0;
+                }
+            }
+            
+            stretcher.study(buffer, block + 1 == blocks);
+        }
+
+        i0 = 0;
+
+        for (int block = 0; block < blocks; ++block) {
+
+            for (int c = 0; c < channels; ++c) {
+                for (int i = 0; i < blocksize; ++i) {
+                    buffer[c][i] = (float)Math.sin
+                        ((double)i0 * freq * Math.PI * 2.0 / (double)rate);
+                    if (i0 % rate == 0) {
+                        buffer[c][i] = 1.f;
+                    }
                     ++i0;
                 }
             }
