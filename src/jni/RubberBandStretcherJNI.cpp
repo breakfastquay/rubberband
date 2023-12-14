@@ -89,6 +89,22 @@ JNIEXPORT jdouble JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_
 
 /*
  * Class:     com_breakfastquay_rubberband_RubberBandStretcher
+ * Method:    getPreferredStartPad
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_getPreferredStartPad
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandStretcher
+ * Method:    getStartDelay
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_getStartDelay
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandStretcher
  * Method:    getLatency
  * Signature: ()I
  */
@@ -150,6 +166,14 @@ JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_set
  */
 JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_setMaxProcessSize
   (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandStretcher
+ * Method:    getProcessSizeLimit
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_getProcessSizeLimit
+  (JNIEnv *, jobject);
 
 /*
  * Class:     com_breakfastquay_rubberband_RubberBandStretcher
@@ -270,6 +294,18 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_getPitchScale(JNIEnv *env,
 }
 
 JNIEXPORT jint JNICALL
+Java_com_breakfastquay_rubberband_RubberBandStretcher_getPreferredStartPad(JNIEnv *env, jobject obj)
+{
+    return getStretcher(env, obj)->getPreferredStartPad();
+}
+
+JNIEXPORT jint JNICALL
+Java_com_breakfastquay_rubberband_RubberBandStretcher_getStartDelay(JNIEnv *env, jobject obj)
+{
+    return getStretcher(env, obj)->getStartDelay();
+}
+
+JNIEXPORT jint JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_getLatency(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->getLatency();
@@ -315,6 +351,12 @@ JNIEXPORT void JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_setMaxProcessSize(JNIEnv *env, jobject obj, jint size)
 {
     getStretcher(env, obj)->setMaxProcessSize(size);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_breakfastquay_rubberband_RubberBandStretcher_getProcessSizeLimit(JNIEnv *env, jobject obj)
+{
+    return getStretcher(env, obj)->getProcessSizeLimit();
 }
 
 JNIEXPORT jint JNICALL

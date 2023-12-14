@@ -45,6 +45,8 @@ public class RubberBandStretcher
     public native double getTimeRatio();
     public native double getPitchScale();
 
+    public native int getPreferredStartPad();
+    public native int getStartDelay();
     public native int getLatency();
 
     public native void setTransientsOption(int options);
@@ -54,11 +56,12 @@ public class RubberBandStretcher
     public native void setPitchOption(int options);
 
     public native void setExpectedInputDuration(long samples);
+    public native int getProcessSizeLimit();
     public native void setMaxProcessSize(int samples);
 
     public native int getSamplesRequired();
 
-    //!!! todo: setKeyFrameMap
+    public native void setKeyFrameMap(long[] from, long[] to);
 
     public native void study(float[][] input, int offset, int n, boolean finalBlock);
     public void study(float[][] input, boolean finalBlock) {
@@ -119,6 +122,9 @@ public class RubberBandStretcher
 
     public static final int OptionChannelsApart        = 0x00000000;
     public static final int OptionChannelsTogether     = 0x10000000;
+
+    public static final int OptionEngineFaster         = 0x00000000;
+    public static final int OptionEngineFiner          = 0x20000000;
 
     public static final int DefaultOptions             = 0x00000000;
     public static final int PercussiveOptions          = 0x00102000;
