@@ -49,7 +49,10 @@
 #pragma warning(disable:4127; disable:4244; disable:4267)
 #else
 #pragma GCC diagnostic ignored "-Wconversion"
-#pragma clang diagnostic ignored "-Wconversion"
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#pragma clang diagnostic ignored "-Wfloat-conversion"
+#pragma clang diagnostic ignored "-Wimplicit-float-conversion"
+#pragma clang diagnostic ignored "-Wshorten-64-to-32"
 #endif
 
 #ifdef __clang__
