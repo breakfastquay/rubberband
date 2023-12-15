@@ -45,6 +45,9 @@
 #  define R__
 #endif
 
+#pragma GCC diagnostic ignored "-Wconversion"
+#pragma clang diagnostic ignored "-Wconversion"
+
 #ifdef __clang__
 #  define RTENTRY__ __attribute__((annotate("realtime")))
 #else
