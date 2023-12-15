@@ -45,8 +45,12 @@
 #  define R__
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(disable:4127; disable:4244; disable:4267)
+#else
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma clang diagnostic ignored "-Wconversion"
+#endif
 
 #ifdef __clang__
 #  define RTENTRY__ __attribute__((annotate("realtime")))

@@ -35,6 +35,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _MSC_VER
+#pragma warning (disable: 4131; disable: 4706)
+#endif
+
 int	opterr = 1,		/* if error message should be printed */
 	optind = 1,		/* index into parent argv vector */
 	optopt,			/* character checked for validity */

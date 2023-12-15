@@ -54,6 +54,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#ifdef _MSC_VER
+#pragma warning (disable: 4131; disable: 4996)
+#endif
+
 GETOPT_API extern char opterrmsg[128];
 char opterrmsg[128]; /* last error message is stored here */
 

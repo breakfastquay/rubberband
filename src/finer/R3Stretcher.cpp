@@ -1006,7 +1006,7 @@ R3Stretcher::consume(bool final)
 
     while (true) {
 
-        Profiler profiler("R3Stretcher::consume/loop");
+        Profiler profiler2("R3Stretcher::consume/loop");
 
         int readSpace = cd0->inbuf->getReadSpace();
         m_log.log(2, "consume: read space", readSpace);
