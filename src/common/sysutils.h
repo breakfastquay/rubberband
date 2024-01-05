@@ -45,14 +45,17 @@
 #  define R__
 #endif
 
-#ifdef _MSC_VER
+#ifndef RUBBERBAND_ENABLE_WARNINGS
+#if defined(_MSC_VER)
 #pragma warning(disable:4127; disable:4244; disable:4267)
-#else
+#elif defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wconversion"
+#elif defined(__clang__)
 #pragma clang diagnostic ignored "-Wsign-conversion"
 #pragma clang diagnostic ignored "-Wfloat-conversion"
 #pragma clang diagnostic ignored "-Wimplicit-float-conversion"
 #pragma clang diagnostic ignored "-Wshorten-64-to-32"
+#endif
 #endif
 
 #ifdef __clang__
