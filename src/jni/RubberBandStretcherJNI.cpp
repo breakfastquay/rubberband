@@ -89,6 +89,22 @@ JNIEXPORT jdouble JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_
 
 /*
  * Class:     com_breakfastquay_rubberband_RubberBandStretcher
+ * Method:    getPreferredStartPad
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_getPreferredStartPad
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandStretcher
+ * Method:    getStartDelay
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_getStartDelay
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandStretcher
  * Method:    getLatency
  * Signature: ()I
  */
@@ -153,11 +169,27 @@ JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_set
 
 /*
  * Class:     com_breakfastquay_rubberband_RubberBandStretcher
+ * Method:    getProcessSizeLimit
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_getProcessSizeLimit
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandStretcher
  * Method:    getSamplesRequired
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_getSamplesRequired
   (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandStretcher
+ * Method:    setKeyFrameMap
+ * Signature: ([J[J)V
+ */
+JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_setKeyFrameMap
+  (JNIEnv *, jobject, jlongArray, jlongArray);
 
 /*
  * Class:     com_breakfastquay_rubberband_RubberBandStretcher
@@ -270,6 +302,18 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_getPitchScale(JNIEnv *env,
 }
 
 JNIEXPORT jint JNICALL
+Java_com_breakfastquay_rubberband_RubberBandStretcher_getPreferredStartPad(JNIEnv *env, jobject obj)
+{
+    return getStretcher(env, obj)->getPreferredStartPad();
+}
+
+JNIEXPORT jint JNICALL
+Java_com_breakfastquay_rubberband_RubberBandStretcher_getStartDelay(JNIEnv *env, jobject obj)
+{
+    return getStretcher(env, obj)->getStartDelay();
+}
+
+JNIEXPORT jint JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_getLatency(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->getLatency();
@@ -318,9 +362,31 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_setMaxProcessSize(JNIEnv *
 }
 
 JNIEXPORT jint JNICALL
+Java_com_breakfastquay_rubberband_RubberBandStretcher_getProcessSizeLimit(JNIEnv *env, jobject obj)
+{
+    return getStretcher(env, obj)->getProcessSizeLimit();
+}
+
+JNIEXPORT jint JNICALL
 Java_com_breakfastquay_rubberband_RubberBandStretcher_getSamplesRequired(JNIEnv *env, jobject obj)
 {
     return getStretcher(env, obj)->getSamplesRequired();
+}
+
+JNIEXPORT void JNICALL
+Java_com_breakfastquay_rubberband_RubberBandStretcher_setKeyFrameMap(JNIEnv *env, jobject obj, jlongArray from, jlongArray to)
+{
+    std::map<size_t, size_t> m;
+    int flen = env->GetArrayLength(from);
+    int tlen = env->GetArrayLength(to);
+    jlong *farr = env->GetLongArrayElements(from, 0);
+    jlong *tarr = env->GetLongArrayElements(to, 0);
+    for (int i = 0; i < flen && i < tlen; ++i) {
+        m[farr[i]] = tarr[i];
+    }
+    env->ReleaseLongArrayElements(from, farr, 0);
+    env->ReleaseLongArrayElements(to, tarr, 0);
+    getStretcher(env, obj)->setKeyFrameMap(m);
 }
 
 JNIEXPORT void JNICALL

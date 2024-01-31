@@ -90,17 +90,17 @@ double rubberband_get_formant_scale(const RubberBandState state)
 
 unsigned int rubberband_get_preferred_start_pad(const RubberBandState state) 
 {
-    return state->m_s->getPreferredStartPad();
+    return (unsigned int)state->m_s->getPreferredStartPad();
 }
 
 unsigned int rubberband_get_start_delay(const RubberBandState state) 
 {
-    return state->m_s->getStartDelay();
+    return (unsigned int)state->m_s->getStartDelay();
 }
 
 unsigned int rubberband_get_latency(const RubberBandState state) 
 {
-    return state->m_s->getLatency();
+    return (unsigned int)state->m_s->getLatency();
 }
 
 void rubberband_set_transients_option(RubberBandState state, RubberBandOptions options)
@@ -135,7 +135,7 @@ void rubberband_set_expected_input_duration(RubberBandState state, unsigned int 
 
 unsigned int rubberband_get_samples_required(const RubberBandState state)
 {
-    return state->m_s->getSamplesRequired();
+    return (unsigned int)state->m_s->getSamplesRequired();
 }
 
 void rubberband_set_max_process_size(RubberBandState state, unsigned int samples)
@@ -145,7 +145,7 @@ void rubberband_set_max_process_size(RubberBandState state, unsigned int samples
 
 unsigned int rubberband_get_process_size_limit(RubberBandState state)
 {
-    return state->m_s->getProcessSizeLimit();
+    return (unsigned int)state->m_s->getProcessSizeLimit();
 }
 
 void rubberband_set_key_frame_map(RubberBandState state, unsigned int keyframecount, unsigned int *from, unsigned int *to)
@@ -174,12 +174,12 @@ int rubberband_available(const RubberBandState state)
 
 unsigned int rubberband_retrieve(const RubberBandState state, float *const *output, unsigned int samples)
 {
-    return state->m_s->retrieve(output, samples);
+    return (unsigned int)state->m_s->retrieve(output, samples);
 }
 
 unsigned int rubberband_get_channel_count(const RubberBandState state)
 {
-    return state->m_s->getChannelCount();
+    return (unsigned int)state->m_s->getChannelCount();
 }
 
 void rubberband_calculate_stretch(RubberBandState state)

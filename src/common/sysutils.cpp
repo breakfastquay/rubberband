@@ -152,7 +152,7 @@ system_is_multiprocessor()
 
 #ifdef _WIN32
 
-void gettimeofday(struct timeval *tv, void *tz)
+void gettimeofday(struct timeval *tv, void * /* tz */)
 {
     union { 
 	long long ns100;  

@@ -89,8 +89,7 @@ R2Stretcher::ChannelData::construct(const std::set<size_t> &sizes,
 
     unityResetLow = 16000.f;
 
-    for (std::set<size_t>::const_iterator i = sizes.begin();
-         i != sizes.end(); ++i) {
+    for (i = sizes.begin(); i != sizes.end(); ++i) {
         ffts[*i] = new FFT(*i);
         if (sizeof(process_t) == sizeof(double)) {
             ffts[*i]->initDouble();

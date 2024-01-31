@@ -65,6 +65,10 @@ java_sources = [
   'com/breakfastquay/rubberband/RubberBandStretcher.java',
 ]
 
+java_test_sources = [
+  'com/breakfastquay/rubberband/test/RubberBandTest.java',
+]
+
 program_sources = [
   'main/main.cpp',
 ]
@@ -655,7 +659,8 @@ if have_jni
     # NB the JNI library is not versioned
     install: true,
   )
-  jar('rubberband', 'com/breakfastquay/rubberband/RubberBandStretcher.java')
+  jar('rubberband', java_sources)
+  jar('rubberband-test', java_test_sources)
 else
   target_summary += { 'JNI library': false }
   if not have_java
