@@ -37,6 +37,8 @@ extern "C" {
 #ifdef _MSC_VER
 #ifndef RUBBERBAND_STATIC
 #define RB_EXTERN extern __declspec(dllexport)
+#else
+#define RB_EXTERN extern
 #endif
 #else
 #define RB_EXTERN extern

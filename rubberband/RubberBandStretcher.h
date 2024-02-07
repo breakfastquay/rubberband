@@ -32,6 +32,8 @@
 #ifdef _MSC_VER
 #ifndef RUBBERBAND_STATIC
 #define RUBBERBAND_DLLEXPORT __declspec(dllexport)
+#else
+#define RUBBERBAND_DLLEXPORT
 #endif
 #else
 #define RUBBERBAND_DLLEXPORT
