@@ -52,18 +52,19 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
     int n = 100000;
     float freq = 440.f;
     int rate = 44100;
+
+    if (printDebug) {
+        RubberBandLiveShifter::setDefaultDebugLevel(2);
+    }
+    
     RubberBandLiveShifter shifter
         (rate, 1, RubberBandLiveShifter::OptionPitchModeB);
 
     //!!!
-    shifter.setPitchScale(2.0);
-    
-    if (printDebug) {
-        shifter.setDebugLevel(2);
-    }
+//    shifter.setPitchScale(2.0);
     
     int blocksize = shifter.getBlockSize();
-    BOOST_TEST(blocksize == 2560);
+    BOOST_TEST(blocksize == 512);
 
     n = (n / blocksize + 1) * blocksize;
     
@@ -79,6 +80,8 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
     }
 
     int delay = shifter.getStartDelay();
+
+    std::cerr << "delay reported as " << delay << std::endl;    
     
     // We now have n samples of a simple sinusoid with stretch factor
     // 1.0; obviously we expect the output to be essentially the same
@@ -106,18 +109,21 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
                tt::tolerance(0.001f) << tt::per_element());
 
     if (printDebug) {
-        // The initial # is to allow grep on the test output
-        std::cout << "#sample\tV" << std::endl;
-        for (int i = 0; i < int(out.size()); ++i) {
-            std::cout << "#" << i << "\t" << out[i] << std::endl;
+        // The prefix is to allow grep on the test output
+        
+        std::cout << "IN,sample,V" << std::endl;
+        for (int i = 0; i < int(in.size()); ++i) {
+            std::cout << "IN," << i << "," << in[i] << std::endl;
         }
-    }
+        
+        std::cout << "OUT,sample,V" << std::endl;
+        for (int i = 0; i < int(out.size()); ++i) {
+            std::cout << "OUT," << i << "," << out[i] << std::endl;
+        }
 
-    if (printDebug) {
-        // The initial @ is to allow grep on the test output
-        std::cout << "@sample\tV" << std::endl;
+        std::cout << "DIFF,V" << std::endl;
         for (int i = 0; i + delay < int(in.size()); ++i) {
-            std::cout << "@" << i << "\t" << out[i + delay] - in[i] << std::endl;
+            std::cout << "DIFF," << i << "," << out[i + delay] - in[i] << std::endl;
         }
     }
 #endif

@@ -212,6 +212,10 @@ R3LiveShifter::createResamplers()
     resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize;
     resamplerParameters.dynamism = Resampler::RatioOftenChanging;
     resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+
+    int debug = m_log.getDebugLevel();
+    if (debug > 0) --debug;
+    resamplerParameters.debugLevel = debug;
     
     m_inResampler = std::unique_ptr<Resampler>
         (new Resampler(resamplerParameters, m_parameters.channels));
@@ -235,15 +239,18 @@ R3LiveShifter::getFormantScale() const
 size_t
 R3LiveShifter::getPreferredStartPad() const
 {
-    //!!!???
     return 0;
 }
 
 size_t
 R3LiveShifter::getStartDelay() const
 {
+    //!!! need a principled way - measure it in ctor perhaps
     int resamplerDelay = 32;
-    int fixed = getWindowSourceSize() / 2 + resamplerDelay;
+#ifdef HAVE_LIBSAMPLERATE
+    resamplerDelay = 47;
+#endif
+    int fixed = getWindowSourceSize() / 2 + resamplerDelay * 2;
     int variable = getWindowSourceSize() / 2;
     if (m_contractThenExpand) {
         if (m_pitchScale < 1.0) {
@@ -305,7 +312,6 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
     m_log.log(2, "R3LiveShifter::shift: initially in outbuf", m_channelData[0]->outbuf->getReadSpace());
 
     int pad = 0;
-    int resamplerDelay = 32;
     if (m_firstProcess) {
         if (m_contractThenExpand) {
             pad = getWindowSourceSize();
@@ -315,7 +321,6 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
         } else {
             pad = getWindowSourceSize() / 2;
         }
-        pad += resamplerDelay;
         m_log.log(2, "R3LiveShifter::shift: extending input with pre-pad", incount, pad);
         for (int c = 0; c < m_parameters.channels; ++c) {
             m_channelData[c]->inbuf->zero(pad);
@@ -336,7 +341,7 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
         }
     }
     
-    int requiredInOutbuf = int(ceil(incount / outRatio)) + resamplerDelay;
+    int requiredInOutbuf = int(ceil(incount / outRatio));
     generate(requiredInOutbuf);
     
     int got = readOut(output, incount, 0);
@@ -417,8 +422,18 @@ R3LiveShifter::readIn(const float *const *input)
          incount,
          inRatio,
          false);
-
+    
     m_log.log(2, "R3LiveShifter::readIn: writing to inbuf from resampled data, former read space and samples being added", m_channelData[0]->inbuf->getReadSpace(), resampleOutput);
+
+    if (m_firstProcess) {
+        int expected = floor(incount * inRatio);
+        if (resampleOutput < expected) {
+            m_log.log(2, "R3LiveShifter::readIn: resampler left us short on first process, pre-padding output: expected and obtained", expected, resampleOutput);
+            for (int c = 0; c < m_parameters.channels; ++c) {
+                m_channelData[c]->inbuf->zero(expected - resampleOutput);
+            }
+        }
+    }
     
     for (int c = 0; c < m_parameters.channels; ++c) {
         m_channelData[c]->inbuf->write
@@ -646,7 +661,18 @@ R3LiveShifter::readOut(float *const *output, int outcount, int origin)
     }
 
     if (resampledCount < outcount) {
-        m_log.log(0, "R3LiveShifter::readOut: WARNING: Failed to obtain enough samples from resampler", resampledCount, outcount);
+        if (m_firstProcess) {
+            m_log.log(2, "R3LiveShifter::readOut: resampler left us short on first process, pre-padding output: expected and obtained", outcount, resampledCount);
+            int prepad = outcount - resampledCount;
+            for (int c = 0; c < m_parameters.channels; ++c) {
+                v_move(m_channelAssembly.mixdown.data()[c] + prepad,
+                       m_channelAssembly.mixdown.data()[c], resampledCount);
+                v_zero(m_channelAssembly.mixdown.data()[c], prepad);
+            }
+            resampledCount = outcount;
+        } else {
+            m_log.log(0, "R3LiveShifter::readOut: WARNING: Failed to obtain enough samples from resampler", resampledCount, outcount);
+        }
     }
     
     if (useMidSide()) {

@@ -299,6 +299,10 @@ R3Stretcher::createResampler()
         resamplerParameters.dynamism = Resampler::RatioMostlyFixed;
         resamplerParameters.ratioChange = Resampler::SuddenRatioChange;
     }
+
+    int debug = m_log.getDebugLevel();
+    if (debug > 0) --debug;
+    resamplerParameters.debugLevel = debug;
     
     m_resampler = std::unique_ptr<Resampler>
         (new Resampler(resamplerParameters, m_parameters.channels));
