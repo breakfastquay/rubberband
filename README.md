@@ -5,7 +5,7 @@ An audio time-stretching and pitch-shifting library and utility program.
 
 Written by Chris Cannam, chris.cannam@breakfastquay.com.
 Published by Particular Programs Ltd t/a Breakfast Quay.
-Copyright 2007-2023 Particular Programs Ltd.
+Copyright 2007-2024 Particular Programs Ltd.
 
 Rubber Band is a library and utility program that permits changing the
 tempo and pitch of an audio recording independently of one another.
@@ -19,7 +19,7 @@ CI builds:
 
 * [![Build status](https://builds.sr.ht/~breakfastquay/rubberband.svg)](https://builds.sr.ht/~breakfastquay/rubberband?) (Linux)
 * [![Build Status](https://github.com/breakfastquay/rubberband/workflows/macOS%20and%20iOS%20CI/badge.svg)](https://github.com/breakfastquay/rubberband/actions?query=workflow%3A%22macOS+and+iOS+CI%22) (macOS, iOS)
-* [![Build Status](https://ci.appveyor.com/api/projects/status/hhhhpf718jwhpyf6?svg=true)](https://ci.appveyor.com/project/breakfastquay/rubberband) (Windows)
+* [![Build Status](https://github.com/breakfastquay/rubberband/workflows/Windows%20CI/badge.svg)](https://github.com/breakfastquay/rubberband/actions?query=workflow%3A%22Windows+CI%22) (Windows)
 
 
 ## Licence

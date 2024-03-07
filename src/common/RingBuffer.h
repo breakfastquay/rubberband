@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2023 Particular Programs Ltd.
+    Copyright 2007-2024 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -238,7 +238,8 @@ RingBuffer<T>::resized(int newSize) const
 {
     RingBuffer<T> *newBuffer = new RingBuffer<T>(newSize);
     
-    MBARRIER();
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+    
     int w = m_writer;
     int r = m_reader;
 
@@ -464,7 +465,8 @@ RingBuffer<T>::write(const S *const R__ source, int n)
     w += n;
     while (w >= m_size) w -= m_size;
 
-    MBARRIER();
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+    
     m_writer = w;
 
     return n;
@@ -498,7 +500,8 @@ RingBuffer<T>::zero(int n)
     w += n;
     while (w >= m_size) w -= m_size;
 
-    MBARRIER();
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+    
     m_writer = w;
 
     return n;

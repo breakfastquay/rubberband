@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2023 Particular Programs Ltd.
+    Copyright 2007-2024 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -116,44 +116,6 @@ void gettimeofday(struct timeval *p, void *tz);
 #endif // _WIN32
 
 } // end namespace
-
-// The following should be functions in the RubberBand namespace, really
-
-#ifdef _WIN32
-
-namespace RubberBand {
-extern void system_memorybarrier();
-}
-#define MBARRIER() RubberBand::system_memorybarrier()
-
-#else // !_WIN32
-
-#include <stdio.h>
-
-#ifdef __APPLE__
-#  if defined __MAC_10_12
-#    define MBARRIER() __sync_synchronize()
-#  else
-#    include <libkern/OSAtomic.h>
-#    define MBARRIER() OSMemoryBarrier()
-#  endif
-#else
-#  if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)
-#    define MBARRIER() __sync_synchronize()
-#  else
-namespace RubberBand {
-extern void system_memorybarrier();
-}
-#    define MBARRIER() ::RubberBand::system_memorybarrier()
-#  endif
-#endif
-
-#endif // !_WIN32
-
-#ifdef NO_THREADING
-#  undef MBARRIER
-#  define MBARRIER() 
-#endif // NO_THREADING
 
 #endif
 
