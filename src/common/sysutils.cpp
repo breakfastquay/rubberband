@@ -166,31 +166,6 @@ void gettimeofday(struct timeval *tv, void * /* tz */)
 
 #endif
 
-#ifdef _WIN32
-void system_memorybarrier()
-{
-#ifdef _MSC_VER
-    MemoryBarrier();
-#else /* (mingw) */
-    LONG Barrier = 0;
-    __asm__ __volatile__("xchgl %%eax,%0 "
-                         : "=r" (Barrier));
-#endif
-}
-#else /* !_WIN32 */
-#if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)
-// Not required
-#else
-#include <pthread.h>
-void system_memorybarrier()
-{
-    pthread_mutex_t dummy = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_lock(&dummy);
-    pthread_mutex_unlock(&dummy);
-}
-#endif
-#endif
-
 }
 
 
