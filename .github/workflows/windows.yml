@@ -12,10 +12,14 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
-    - name: deps
+    - name: pipdeps
       run: |
         pip install meson
         pip install ninja
+    - name: chocodeps
+      uses: crazy-max/ghaction-chocolatey@v3
+      with:
+        args: install libsndfile
     - name: make
       run: |
         meson setup build
@@ -28,3 +32,5 @@ jobs:
         msbuild otherbuilds\rubberband-library.vcxproj /t:Build /p:Configuration=Release
     - name: dotnet
         msbuild dotnet\rubberband.sln /t:Restore;Build
+    - name: single
+        cl main\main.cpp single\RubberBandSingle.cpp .\src\ext\getopt\getopt.c src\ext\getopt\getopt_long.c "C:\Program Files\libsndfile\lib\sndfile.lib" /O2 /std:c++14 /D_USE_MATH_DEFINES /DNOMINMAX /EHs /I"C:\Program Files\libsndfile\include" /link /out:test_single.exe
