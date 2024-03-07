@@ -19,7 +19,7 @@ CI builds:
 
 * [![Build status](https://builds.sr.ht/~breakfastquay/rubberband.svg)](https://builds.sr.ht/~breakfastquay/rubberband?) (Linux)
 * [![Build Status](https://github.com/breakfastquay/rubberband/workflows/macOS%20and%20iOS%20CI/badge.svg)](https://github.com/breakfastquay/rubberband/actions?query=workflow%3A%22macOS+and+iOS+CI%22) (macOS, iOS)
-* [![Build Status](https://ci.appveyor.com/api/projects/status/hhhhpf718jwhpyf6?svg=true)](https://ci.appveyor.com/project/breakfastquay/rubberband) (Windows)
+* [![Build Status](https://github.com/breakfastquay/rubberband/workflows/Windows%20CI/badge.svg)](https://github.com/breakfastquay/rubberband/actions?query=workflow%3A%22Windows+CI%22) (Windows)
 
 
 ## Licence
