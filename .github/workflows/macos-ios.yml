@@ -14,9 +14,9 @@ jobs:
     - name: deps
       run: brew install libsndfile libsamplerate vamp-plugin-sdk meson ninja
     - name: configure macos
-      run: meson build_macos
+      run: meson setup build_macos
     - name: configure ios
-      run: meson build_ios --cross-file cross/ios.txt
+      run: meson setup build_ios --cross-file cross/ios.txt
     - name: make macos
       run: ninja -C build_macos
     - name: make ios
