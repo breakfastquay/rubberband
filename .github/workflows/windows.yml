@@ -23,3 +23,8 @@ jobs:
     - name: test
       run: |
         meson test -C build
+    - name: vcstatic
+      run: |
+        msbuild otherbuilds\rubberband-library.vcxproj /t:Build /p:Configuration=Release
+    - name: dotnet
+        msbuild dotnet\rubberband.sln /t:Restore;Build
