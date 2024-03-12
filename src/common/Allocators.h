@@ -28,6 +28,7 @@
 
 #include <new> // for std::bad_alloc
 #include <stdlib.h>
+#include <stddef.h>
 
 #include <stdexcept>
 
