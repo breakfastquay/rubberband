@@ -328,7 +328,7 @@ protected:
 
     void readIn(const float *const *input);
     void generate(int required);
-    int readOut(float *const *output, int outcount, int origin);
+    int readOut(float *const *output, int outcount);
     
     void createResamplers();
     void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
