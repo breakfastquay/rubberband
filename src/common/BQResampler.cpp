@@ -201,6 +201,13 @@ BQResampler::resampleInterleaved(float *const out,
         }
     }
 
+    if (i < incount_samples) {
+        std::cerr << "only used " << i << " of " << incount_samples
+                  << " samples to generate output count " << o
+                  << " (outspace_samples was " << outspace_samples << ")"
+                  << std::endl;
+    }
+
     int fbufsize = m_fade->buffer.size();
     int fi = 0, fo = 0;
     while (fo < o && m_fade_count > 0) {

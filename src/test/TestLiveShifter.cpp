@@ -52,6 +52,8 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
     
     RubberBandLiveShifter shifter(rate, 1, options);
 
+    shifter.setPitchScale(2.66968);
+    
     int blocksize = shifter.getBlockSize();
     BOOST_TEST(blocksize == 512);
 
@@ -118,7 +120,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_a)
         RubberBandLiveShifter::OptionPitchModeA;
     int n = 100000;
 
-    check_sinusoid_unchanged(n, 44100, 440.f, options, false);
+    check_sinusoid_unchanged(n, 44100, 440.f, options, true);
     check_sinusoid_unchanged(n, 48000, 260.f, options, false);
 }
 
@@ -128,7 +130,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_b)
         RubberBandLiveShifter::OptionPitchModeB;
     int n = 100000;
 
-    check_sinusoid_unchanged(n, 44100, 440.f, options, true);
+    check_sinusoid_unchanged(n, 44100, 440.f, options, false);
     check_sinusoid_unchanged(n, 48000, 260.f, options, false);
 }
 

@@ -552,11 +552,12 @@ protected:
         if (guidance.phaseReset.f0 < 100.0) {
             guidance.phaseReset.f0 = 0.0;
         }
-
-//        if (guidance.phaseReset.f0 > 0.0) {
-//            std::cout << unityCount << ": f0 = " << guidance.phaseReset.f0
-//                      << ", f1 = " << guidance.phaseReset.f1 << std::endl;
-//        }
+/*
+        if (guidance.phaseReset.f0 > 0.0) {
+            std::cout << "unity: f0 = " << guidance.phaseReset.f0
+                      << ", f1 = " << guidance.phaseReset.f1 << std::endl;
+        }
+*/
     }
 
     bool checkPotentialKick(const process_t *const magnitudes,

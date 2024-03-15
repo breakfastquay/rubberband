@@ -341,7 +341,7 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
         }
     }
     
-    int requiredInOutbuf = int(ceil(incount / outRatio));
+    int requiredInOutbuf = 1 + int(ceil(incount / outRatio));
     generate(requiredInOutbuf);
     
     int got = readOut(output, incount, 0);
@@ -615,6 +615,8 @@ R3LiveShifter::readOut(float *const *output, int outcount, int origin)
 
     int fromOutbuf = int(floor(outcount / outRatio));
 
+    m_log.log(2, "R3LiveShifter::readOut: origin and fromOutbuf", origin, fromOutbuf);
+    
     if (fromOutbuf == 0) {
         fromOutbuf = 1;
     }
@@ -630,9 +632,6 @@ R3LiveShifter::readOut(float *const *output, int outcount, int origin)
             }
             got = std::min(got, std::max(gotHere, 0));
         }
-
-        m_channelAssembly.resampled[c] = cd->resampled.data();
-        m_channelAssembly.mixdown[c] = output[c] + origin;
     }
 
     m_log.log(2, "R3LiveShifter::readOut: requested and got from outbufs", fromOutbuf, got);
@@ -641,6 +640,13 @@ R3LiveShifter::readOut(float *const *output, int outcount, int origin)
     int resampledCount = 0;
 
     if (got > 0) {
+
+        for (int c = 0; c < m_parameters.channels; ++c) {
+            auto &cd = m_channelData.at(c);
+            m_channelAssembly.resampled[c] = cd->resampled.data();
+            m_channelAssembly.mixdown[c] = output[c] + origin;
+        }
+            
         resampledCount = m_outResampler->resample
             (m_channelAssembly.mixdown.data(),
              outcount,
@@ -648,6 +654,17 @@ R3LiveShifter::readOut(float *const *output, int outcount, int origin)
              got,
              outRatio,
              false);
+    
+        if (useMidSide()) {
+            for (int i = 0; i < resampledCount; ++i) {
+                float m = output[0][origin + i];
+                float s = output[1][origin + i];
+                float l = m + s;
+                float r = m - s;
+                output[0][origin + i] = l;
+                output[1][origin + i] = r;
+            }
+        }
     }
 
     m_log.log(2, "R3LiveShifter::readOut: resampled to", resampledCount);
@@ -665,26 +682,18 @@ R3LiveShifter::readOut(float *const *output, int outcount, int origin)
             m_log.log(2, "R3LiveShifter::readOut: resampler left us short on first process, pre-padding output: expected and obtained", outcount, resampledCount);
             int prepad = outcount - resampledCount;
             for (int c = 0; c < m_parameters.channels; ++c) {
-                v_move(m_channelAssembly.mixdown.data()[c] + prepad,
-                       m_channelAssembly.mixdown.data()[c], resampledCount);
-                v_zero(m_channelAssembly.mixdown.data()[c], prepad);
+                v_move(output[c] + origin + prepad,
+                       output[c] + origin,
+                       resampledCount);
+                v_zero(output[c] + origin, prepad);
             }
             resampledCount = outcount;
         } else {
             m_log.log(0, "R3LiveShifter::readOut: WARNING: Failed to obtain enough samples from resampler", resampledCount, outcount);
         }
     }
-    
-    if (useMidSide()) {
-        for (int i = 0; i < resampledCount; ++i) {
-            float m = output[0][i];
-            float s = output[1][i];
-            float l = m + s;
-            float r = m - s;
-            output[0][i] = l;
-            output[1][i] = r;
-        }
-    }
+
+    m_log.log(2, "R3LiveShifter::readOut: returning", resampledCount);
     
     return resampledCount;
 }
