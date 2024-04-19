@@ -42,6 +42,7 @@ R3LiveShifter::R3LiveShifter(Parameters parameters, Log log) :
             m_log),
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
+    m_resamplerDelay(32),
     m_useReadahead(false),
     m_prevInhop(m_limits.maxInhopWithReadahead / 2),
     m_prevOuthop(m_prevInhop),
@@ -222,6 +223,30 @@ R3LiveShifter::createResamplers()
 
     m_outResampler = std::unique_ptr<Resampler>
         (new Resampler(resamplerParameters, m_parameters.channels));
+
+    measureResamplerDelay();
+}
+
+void
+R3LiveShifter::measureResamplerDelay()
+{
+    // Delay in the sense that the resampler at first returns fewer
+    // samples than requested, not that the samples are delayed within
+    // the returned buffer relative to their positions at input. We
+    // actually add the delay ourselves in the first block because we
+    // need a fixed block size and the resampler doesn't return one.
+
+    int bs = getBlockSize();
+    std::vector<float> inbuf(bs * m_parameters.channels, 0.f);
+    auto outbuf = inbuf;
+
+    int outcount = m_inResampler->resampleInterleaved
+        (outbuf.data(), bs, inbuf.data(), bs, 1.0, false);
+
+    m_inResampler->reset();
+
+    m_resamplerDelay = bs - outcount;
+    m_log.log(1, "R3LiveShifter::measureResamplerDelay: measured delay and outcount ", m_resamplerDelay, outcount);
 }
 
 double
@@ -245,12 +270,7 @@ R3LiveShifter::getPreferredStartPad() const
 size_t
 R3LiveShifter::getStartDelay() const
 {
-    //!!! need a principled way - measure it in ctor perhaps
-    int resamplerDelay = 32;
-#ifdef HAVE_LIBSAMPLERATE
-    resamplerDelay = 47;
-#endif
-    int fixed = getWindowSourceSize() / 2 + resamplerDelay * 2;
+    int fixed = getWindowSourceSize() / 2 + m_resamplerDelay * 2 - 1;
     int variable = getWindowSourceSize() / 2;
     if (m_contractThenExpand) {
         if (m_pitchScale < 1.0) {
@@ -292,6 +312,8 @@ R3LiveShifter::reset()
     for (auto &cd : m_channelData) {
         cd->reset();
     }
+
+    measureResamplerDelay();
 }
 
 size_t
@@ -414,7 +436,7 @@ R3LiveShifter::readIn(const float *const *input)
     m_log.log(2, "R3LiveShifter::readIn: ratio", inRatio);
     
     int resampleBufSize = int(m_channelData.at(0)->resampled.size());
-            
+
     int resampleOutput = m_inResampler->resample
         (m_channelAssembly.resampled.data(),
          resampleBufSize,
@@ -422,7 +444,7 @@ R3LiveShifter::readIn(const float *const *input)
          incount,
          inRatio,
          false);
-    
+
     m_log.log(2, "R3LiveShifter::readIn: writing to inbuf from resampled data, former read space and samples being added", m_channelData[0]->inbuf->getReadSpace(), resampleOutput);
 
     if (m_firstProcess) {
@@ -652,7 +674,7 @@ R3LiveShifter::readOut(float *const *output, int outcount)
             m_channelAssembly.resampled[c] = cd->resampled.data();
             m_channelAssembly.mixdown[c] = output[c] + resampledCount;
         }
-            
+
         auto resampledHere = m_outResampler->resample
             (m_channelAssembly.mixdown.data(),
              outcount - resampledCount,

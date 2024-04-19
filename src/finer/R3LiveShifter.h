@@ -317,6 +317,7 @@ protected:
     ChannelAssembly m_channelAssembly;
     std::unique_ptr<Resampler> m_inResampler;
     std::unique_ptr<Resampler> m_outResampler;
+    int m_resamplerDelay;
     bool m_useReadahead;
     int m_prevInhop;
     int m_prevOuthop;
@@ -331,6 +332,7 @@ protected:
     int readOut(float *const *output, int outcount);
     
     void createResamplers();
+    void measureResamplerDelay();
     void analyseChannel(int channel, int inhop, int prevInhop, int prevOuthop);
     void analyseFormant(int channel);
     void adjustFormant(int channel);
