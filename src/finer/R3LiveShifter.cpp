@@ -117,6 +117,9 @@ R3LiveShifter::initialise()
                 std::make_shared<ChannelScaleData>
                 (fftSize, m_guideConfiguration.longestFftSize);
         }
+        m_channelData[c]->guidance.phaseReset.present = true;
+        m_channelData[c]->guidance.phaseReset.f0 = 0.0;
+        m_channelData[c]->guidance.phaseReset.f1 = m_parameters.sampleRate / 2.0;
     }
 
     m_scaleData.clear();
