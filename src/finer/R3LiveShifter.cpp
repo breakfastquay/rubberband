@@ -273,7 +273,7 @@ R3LiveShifter::getPreferredStartPad() const
 size_t
 R3LiveShifter::getStartDelay() const
 {
-    int fixed = getWindowSourceSize() / 2 + m_resamplerDelay * 2 - 1;
+    int fixed = getWindowSourceSize() / 2 + m_resamplerDelay * 2;
     int variable = getWindowSourceSize() / 2;
     if (m_contractThenExpand) {
         if (m_pitchScale < 1.0) {
