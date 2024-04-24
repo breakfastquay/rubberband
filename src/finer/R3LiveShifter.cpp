@@ -639,7 +639,7 @@ R3LiveShifter::readOut(float *const *output, int outcount)
     m_log.log(2, "R3LiveShifter::readOut: outcount and ratio", outcount, outRatio);
 
     int resampledCount = 0;
-    bool fillingTail = true;
+    bool fillingTail = false;
 
     while (resampledCount < outcount) {
 
@@ -654,7 +654,7 @@ R3LiveShifter::readOut(float *const *output, int outcount)
             }
         }
         
-        m_log.log(2, "R3LiveShifter::readOut: fromOutbuf", fromOutbuf);
+        m_log.log(2, "R3LiveShifter::readOut: fillingTail and fromOutbuf", fillingTail, fromOutbuf);
 
         int got = fromOutbuf;
     
