@@ -249,6 +249,7 @@ R3LiveShifter::measureResamplerDelay()
     m_inResampler->reset();
 
     m_resamplerDelay = bs - outcount;
+
     m_log.log(1, "R3LiveShifter::measureResamplerDelay: measured delay and outcount ", m_resamplerDelay, outcount);
 }
 
@@ -1149,6 +1150,8 @@ R3LiveShifter::synthesiseChannel(int c, int outhop, bool draining)
 
         process_t winscale = process_t(outhop) / scaleData->windowScaleFactor;
 
+        m_log.log(2, "R3LiveShifter::synthesiseChannel: outhop and winscale", outhop, winscale);
+        
         // The frequency filter is applied naively in the frequency
         // domain. Aliasing is reduced by the shorter resynthesis
         // window. We resynthesise each scale individually, then sum -
