@@ -436,11 +436,11 @@ ladspa_symbol_args = []
 lv2_symbol_args = []
 vamp_symbol_args = []
 
-if get_option('buildtype').startswith('release')
-  config_summary += { 'Build type': 'Release' }
-  feature_defines += ['-DNO_THREAD_CHECKS', '-DNO_TIMING', '-DNDEBUG']
+if get_option('debug')
+  config_summary += { 'Debug': 'Enabled' }
 else
-  config_summary += { 'Build type': 'Debug' }
+  config_summary += { 'Debug': 'Disabled' }
+  feature_defines += ['-DNO_THREAD_CHECKS', '-DNO_TIMING', '-DNDEBUG']
 endif
 
 if system == 'darwin'
