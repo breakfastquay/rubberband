@@ -27,7 +27,8 @@
 #include "VectorOps.h"
 
 #include <new> // for std::bad_alloc
-#include <stdlib.h>
+#include <cstdlib>
+#include <cstddef> // ptrdiff_t
 
 #include <stdexcept>
 
