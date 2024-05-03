@@ -365,7 +365,7 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
         }
     }
     
-    int requiredInOutbuf = 1 + int(ceil(incount / outRatio));
+    int requiredInOutbuf = int(ceil(incount / outRatio));
     generate(requiredInOutbuf);
     
     int got = readOut(output, incount);
