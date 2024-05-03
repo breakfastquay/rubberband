@@ -593,7 +593,6 @@ RubberBandR3PitchShifter::runImpl(uint32_t insamples, uint32_t offset)
 
     const int samples = insamples;
     int processed = 0;
-    size_t outTotal = 0;
 
     while (processed < samples) {
 
@@ -622,7 +621,6 @@ RubberBandR3PitchShifter::runImpl(uint32_t insamples, uint32_t offset)
         }
         
         size_t actual = m_stretcher->retrieve(m_scratch, outchunk);
-        outTotal += actual;
 
         for (size_t c = 0; c < m_channels; ++c) {
             m_outputBuffer[c]->write(m_scratch[c], actual);

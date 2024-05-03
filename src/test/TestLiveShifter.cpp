@@ -117,7 +117,7 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
 BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_a)
 {
     RubberBandLiveShifter::Options options =
-        RubberBandLiveShifter::OptionPitchModeA;
+        RubberBandLiveShifter::OptionPitchMethodStandard;
     int n = 100000;
 
     check_sinusoid_unchanged(n, 44100, 440.f, options, false);
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_a)
 BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_b)
 {
     RubberBandLiveShifter::Options options =
-        RubberBandLiveShifter::OptionPitchModeB;
+        RubberBandLiveShifter::OptionPitchMethodAlternate;
     int n = 100000;
 
     check_sinusoid_unchanged(n, 44100, 440.f, options, false);

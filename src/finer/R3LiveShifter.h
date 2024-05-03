@@ -94,20 +94,14 @@ protected:
         int minInhop;
         int maxInhopWithReadahead;
         int maxInhop;
-        Limits(RubberBandLiveShifter::Options options, double rate) :
+        Limits(RubberBandLiveShifter::Options, double rate) :
             // commented values are results when rate = 44100 or 48000
-            minPreferredOuthop(roundUpDiv(rate, 512)), // 128
-            maxPreferredOuthop(roundUpDiv(rate, 128)), // 512
-            minInhop(1),
-            maxInhopWithReadahead(roundUpDiv(rate, 64)), // 1024
-            maxInhop(roundUpDiv(rate, 32))              // 2048
+            minInhop(1)
         {
-            if (!(options & RubberBandLiveShifter::OptionWindowLong)) {
-                minPreferredOuthop = roundUpDiv(rate, 256); // 256
-                maxPreferredOuthop = (roundUpDiv(rate, 128) * 5) / 4; // 640
-                maxInhopWithReadahead = roundUpDiv(rate, 128); // 512
-                maxInhop = (roundUpDiv(rate, 64) * 3) / 2; // 1536
-            }
+            minPreferredOuthop = roundUpDiv(rate, 256); // 256
+            maxPreferredOuthop = (roundUpDiv(rate, 128) * 5) / 4; // 640
+            maxInhopWithReadahead = roundUpDiv(rate, 128); // 512
+            maxInhop = (roundUpDiv(rate, 64) * 3) / 2; // 1536
         }
     };
     
@@ -321,7 +315,7 @@ protected:
     bool m_useReadahead;
     int m_prevInhop;
     int m_prevOuthop;
-    bool m_contractThenExpand; // otherwise expand then contract
+    bool m_expandThenContract; // otherwise contract then expand
     bool m_firstProcess;
     uint32_t m_unityCount;
 
@@ -391,8 +385,7 @@ protected:
     }
     
     bool isSingleWindowed() const {
-        return !(m_parameters.options &
-                 RubberBandLiveShifter::OptionWindowLong);
+        return true;
     }
 
     int getWindowSourceSize() const {

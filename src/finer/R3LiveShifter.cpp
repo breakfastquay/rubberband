@@ -37,8 +37,7 @@ R3LiveShifter::R3LiveShifter(Parameters parameters, Log log) :
     m_pitchScale(1.0),
     m_formantScale(0.0),
     m_guide(Guide::Parameters
-            (m_parameters.sampleRate,
-             !(m_parameters.options & RubberBandLiveShifter::OptionWindowLong)),
+            (m_parameters.sampleRate, true),
             m_log),
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
@@ -46,7 +45,7 @@ R3LiveShifter::R3LiveShifter(Parameters parameters, Log log) :
     m_useReadahead(false),
     m_prevInhop(m_limits.maxInhopWithReadahead / 2),
     m_prevOuthop(m_prevInhop),
-    m_contractThenExpand(false),
+    m_expandThenContract(false),
     m_firstProcess(true),
     m_unityCount(0)
 {
@@ -67,15 +66,14 @@ R3LiveShifter::initialise()
         m_log.log(1, "R3LiveShifter::R3LiveShifter: multi window enabled");
     }
 
-    if ((m_parameters.options & RubberBandLiveShifter::OptionWindowMedium) ||
-        (m_parameters.options & RubberBandLiveShifter::OptionWindowLong)) {
+    if (m_parameters.options & RubberBandLiveShifter::OptionWindowMedium) {
         m_log.log(1, "R3LiveShifter::R3LiveShifter: readahead enabled");
         m_useReadahead = true;
     }
 
-    if ((m_parameters.options & RubberBandLiveShifter::OptionPitchModeB)) {
-        m_log.log(1, "R3LiveShifter::R3LiveShifter: contract-then-expand enabled");
-        m_contractThenExpand = true;
+    if ((m_parameters.options & RubberBandLiveShifter::OptionPitchMethodAlternate)) {
+        m_log.log(1, "R3LiveShifter::R3LiveShifter: expand-then-contract enabled");
+        m_expandThenContract = true;
     }
     
     double maxClassifierFrequency = 16000.0;
@@ -276,17 +274,17 @@ R3LiveShifter::getStartDelay() const
 {
     int fixed = getWindowSourceSize() / 2 + m_resamplerDelay * 2;
     int variable = getWindowSourceSize() / 2;
-    if (m_contractThenExpand) {
+    if (m_expandThenContract) {
         if (m_pitchScale < 1.0) {
-            return size_t(fixed + ceil(variable / m_pitchScale));
-        } else {
             return size_t(fixed + ceil(variable * m_pitchScale));
+        } else {
+            return size_t(fixed + ceil(variable / m_pitchScale));
         }
     } else {
         if (m_pitchScale < 1.0) {
-            return size_t(fixed + ceil(variable * m_pitchScale));
-        } else {
             return size_t(fixed + ceil(variable / m_pitchScale));
+        } else {
+            return size_t(fixed + ceil(variable * m_pitchScale));
         }
     }
 }
@@ -339,13 +337,13 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
 
     int pad = 0;
     if (m_firstProcess) {
-        if (m_contractThenExpand) {
+        if (m_expandThenContract) {
+            pad = getWindowSourceSize() / 2;
+        } else {
             pad = getWindowSourceSize();
             if (m_pitchScale > 1.0) {
                 pad = int(ceil(pad * m_pitchScale));
             }
-        } else {
-            pad = getWindowSourceSize() / 2;
         }
         m_log.log(2, "R3LiveShifter::shift: extending input with pre-pad", incount, pad);
         for (int c = 0; c < m_parameters.channels; ++c) {
@@ -357,12 +355,12 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
 
     double outRatio = 1.0;
 
-    if (m_contractThenExpand) {
-        if (m_pitchScale < 1.0) {
+    if (m_expandThenContract) {
+        if (m_pitchScale > 1.0) {
             outRatio = 1.0 / m_pitchScale;
         }
     } else {
-        if (m_pitchScale > 1.0) {
+        if (m_pitchScale < 1.0) {
             outRatio = 1.0 / m_pitchScale;
         }
     }
@@ -427,12 +425,12 @@ R3LiveShifter::readIn(const float *const *input)
     
     double inRatio = 1.0;
 
-    if (m_contractThenExpand) {
-        if (m_pitchScale > 1.0) {
+    if (m_expandThenContract) {
+        if (m_pitchScale < 1.0) {
             inRatio = 1.0 / m_pitchScale;
         }
     } else {
-        if (m_pitchScale < 1.0) {
+        if (m_pitchScale > 1.0) {
             inRatio = 1.0 / m_pitchScale;
         }
     }
@@ -484,7 +482,6 @@ R3LiveShifter::generate(int requiredInOutbuf)
 
     int toGenerate = requiredInOutbuf - alreadyGenerated;
 
-//    int longest = m_guideConfiguration.longestFftSize;
     int channels = m_parameters.channels;
 
     int ws = getWindowSourceSize();
@@ -627,12 +624,12 @@ R3LiveShifter::readOut(float *const *output, int outcount)
 {
     double outRatio = 1.0;
 
-    if (m_contractThenExpand) {
-        if (m_pitchScale < 1.0) {
+    if (m_expandThenContract) {
+        if (m_pitchScale > 1.0) {
             outRatio = 1.0 / m_pitchScale;
         }
     } else {
-        if (m_pitchScale > 1.0) {
+        if (m_pitchScale < 1.0) {
             outRatio = 1.0 / m_pitchScale;
         }
     }

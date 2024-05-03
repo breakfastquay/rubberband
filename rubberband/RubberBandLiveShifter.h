@@ -98,14 +98,12 @@ public:
     enum Option {
         OptionWindowShort          = 0x00000000,
         OptionWindowMedium         = 0x00100000,
-        OptionWindowLong           = 0x00200000,
 
         OptionFormantShifted       = 0x00000000,
         OptionFormantPreserved     = 0x01000000,
 
-        //!!! Rename and document
-        OptionPitchModeA           = 0x00000000,
-        OptionPitchModeB           = 0x02000000,
+        OptionPitchMethodStandard  = 0x00000000,
+        OptionPitchMethodAlternate = 0x02000000,
 
         OptionChannelsApart        = 0x00000000,
         OptionChannelsTogether     = 0x10000000,
