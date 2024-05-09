@@ -331,7 +331,7 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
 
     int incount = int(getBlockSize());
     
-    m_log.log(2, "R3LiveShifter::shift: start of process with incount", incount);
+    m_log.log(2, "R3LiveShifter::shift: start of shift with incount", incount);
     m_log.log(2, "R3LiveShifter::shift: initially in inbuf", m_channelData[0]->inbuf->getReadSpace());
     m_log.log(2, "R3LiveShifter::shift: initially in outbuf", m_channelData[0]->outbuf->getReadSpace());
 
@@ -492,7 +492,7 @@ R3LiveShifter::generate(int requiredInOutbuf)
 
     int atInput = cd0->inbuf->getReadSpace();
     if (atInput <= ws) {
-        m_log.log(0, "R3LiveShifter::generate: insufficient samples at input: have and require more than", atInput, ws);
+        m_log.log(2, "R3LiveShifter::generate: insufficient samples at input: have and require more than", atInput, ws);
         return;
     }
 
@@ -658,7 +658,9 @@ R3LiveShifter::readOut(float *const *output, int outcount)
     
         for (int c = 0; c < m_parameters.channels; ++c) {
             auto &cd = m_channelData.at(c);
-            int gotHere = cd->outbuf->read(cd->resampled.data(), got);
+            int available = cd->outbuf->getReadSpace();
+            int gotHere = cd->outbuf->read
+                (cd->resampled.data(), std::min(got, available));
             if (gotHere < got) {
                 if (c > 0) {
                     m_log.log(0, "R3LiveShifter::readOut: WARNING: channel imbalance detected");

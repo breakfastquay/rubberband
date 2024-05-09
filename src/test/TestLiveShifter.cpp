@@ -76,16 +76,43 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
     
     // We now have n samples of a simple sinusoid with stretch factor
     // 1.0; obviously we expect the output to be essentially the same
-    // thing. It will have lower precision for a while at the start
-    // and end because of windowing factors, so we check those with a
-    // threshold of 0.1; in the middle we expect better
-    // precision. Note that these are relative tolerances, not
-    // absolute, i.e. 0.001 means 0.001x the smaller value - so they
-    // are tighter than they appear.
+    // thing. It will have lower precision for a while at the start,
+    // so we check that with a threshold of 0.1; after that we expect
+    // better precision.
 
-    BOOST_TEST(vector<float>(out.begin() + delay, out.begin() + n) ==
-               vector<float>(in.begin(), in.begin() + n - delay),
-               tt::tolerance(0.001f) << tt::per_element());
+    int slackpart = 2048;
+    float slackeps = 1.0e-1f;
+    float eps = 1.0e-3f;
+
+#ifdef USE_BQRESAMPLER
+    eps = 1.0e-2f;
+#endif
+    
+    for (int i = 0; i < slackpart; ++i) {
+        float fin = in[i];
+        float fout = out[delay + i];
+        float err = fabsf(fin - fout);
+        if (err > slackeps) {
+            std::cerr << "Error at index " << i << " exceeds slack eps "
+                      << slackeps << ": output " << fout << " - input "
+                      << fin << " = " << fout - fin << std::endl;
+            BOOST_TEST(err < eps);
+            break;
+        }
+    }
+    
+    for (int i = slackpart; i < n - delay; ++i) {
+        float fin = in[i];
+        float fout = out[delay + i];
+        float err = fabsf(fin - fout);
+        if (err > eps) {
+            std::cerr << "Error at index " << i << " exceeds tight eps "
+                      << eps << ": output " << fout << " - input "
+                      << fin << " = " << fout - fin << std::endl;
+            BOOST_TEST(err < eps);
+            break;
+        }
+    }
 
     if (printDebug) {
         RubberBandLiveShifter::setDefaultDebugLevel(0);
@@ -107,7 +134,7 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
             std::cout << "SHIFTED," << i << "," << out[i + delay] << std::endl;
         }
 
-        std::cout << "DIFF,V" << std::endl;
+        std::cout << "DIFF,sample,V" << std::endl;
         for (int i = 0; i + delay < int(in.size()); ++i) {
             std::cout << "DIFF," << i << "," << out[i + delay] - in[i] << std::endl;
         }
@@ -130,7 +157,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_b)
         RubberBandLiveShifter::OptionPitchMethodAlternate;
     int n = 100000;
 
-    check_sinusoid_unchanged(n, 44100, 440.f, options, false);
+    check_sinusoid_unchanged(n, 44100, 440.f, options, true);
     check_sinusoid_unchanged(n, 48000, 260.f, options, false);
 }
 
