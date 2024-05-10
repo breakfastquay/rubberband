@@ -218,7 +218,7 @@ R3LiveShifter::createResamplers()
     resamplerParameters.initialSampleRate = m_parameters.sampleRate;
     resamplerParameters.maxBufferSize = m_guideConfiguration.longestFftSize;
     resamplerParameters.dynamism = Resampler::RatioOftenChanging;
-    resamplerParameters.ratioChange = Resampler::SmoothRatioChange;
+    resamplerParameters.ratioChange = Resampler::SuddenRatioChange;
 
     int debug = m_log.getDebugLevel();
     if (debug > 0) --debug;
