@@ -41,7 +41,7 @@ R3LiveShifter::R3LiveShifter(Parameters parameters, Log log) :
             m_log),
     m_guideConfiguration(m_guide.getConfiguration()),
     m_channelAssembly(m_parameters.channels),
-    m_resamplerDelay(32),
+    m_initialResamplerDelays(32, 32),
     m_useReadahead(false),
     m_prevInhop(m_limits.maxInhopWithReadahead / 2),
     m_prevOuthop(m_prevInhop),
@@ -240,19 +240,18 @@ R3LiveShifter::measureResamplerDelay()
     std::vector<float> inbuf(bs * m_parameters.channels, 0.f);
     auto outbuf = inbuf;
     
-    double inRatio = 1.0;
-    if (m_pitchScale > 1.0) {
-        inRatio = 1.0 / m_pitchScale;
-    }
-
-    int outcount = m_inResampler->resampleInterleaved
-        (outbuf.data(), bs, inbuf.data(), bs, inRatio, false);
-
+    int incount = m_inResampler->resampleInterleaved
+        (outbuf.data(), bs, inbuf.data(), bs, getInRatio(), false);
     m_inResampler->reset();
 
-    m_resamplerDelay = bs - outcount;
+    int outcount = m_outResampler->resampleInterleaved
+        (outbuf.data(), bs, inbuf.data(), bs, getOutRatio(), false);
+    m_outResampler->reset();
+    
+    m_initialResamplerDelays = { bs - incount, bs - outcount };
 
-    m_log.log(1, "R3LiveShifter::measureResamplerDelay: measured delay and outcount ", m_resamplerDelay, outcount);
+    m_log.log(1, "R3LiveShifter::measureResamplerDelay: inRatio, outRatio ", getInRatio(), getOutRatio());
+    m_log.log(1, "R3LiveShifter::measureResamplerDelay: measured delays ", m_initialResamplerDelays.first, m_initialResamplerDelays.second);
 }
 
 double
@@ -276,13 +275,21 @@ R3LiveShifter::getPreferredStartPad() const
 size_t
 R3LiveShifter::getStartDelay() const
 {
-    int fixed = getWindowSourceSize() / 2 + m_resamplerDelay * 2;
-    int variable = getWindowSourceSize() / 2;
-    if (m_pitchScale < 1.0) {
-        return size_t(fixed + ceil(variable / m_pitchScale));
-    } else {
-        return size_t(fixed + ceil(variable * m_pitchScale));
+    int inDelay = getWindowSourceSize() + m_initialResamplerDelays.first;
+    int outDelay = int(floor(inDelay * getOutRatio())) + m_initialResamplerDelays.second;
+
+    int total = outDelay;
+    int bs = getBlockSize();
+    if (m_pitchScale > 1.0) {
+        total += bs - 1;
+    } else if (m_pitchScale < 1.0) {
+        int scaled = int(ceil(bs / m_pitchScale));
+        total -= bs * (scaled - bs) / bs;
     }
+
+    m_log.log(2, "R3LiveShifter::getStartDelay: inDelay, outDelay", inDelay, outDelay);
+    m_log.log(1, "R3LiveShifter::getStartDelay", total);
+    return total;
 }
 
 size_t
@@ -345,12 +352,7 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
     
     readIn(input);
 
-    double outRatio = 1.0;
-
-    if (m_pitchScale < 1.0) {
-        outRatio = 1.0 / m_pitchScale;
-    }
-    
+    double outRatio = getOutRatio();
     int requiredInOutbuf = int(ceil(incount / outRatio));
     generate(requiredInOutbuf);
     
@@ -409,11 +411,7 @@ R3LiveShifter::readIn(const float *const *input)
         }
     }
     
-    double inRatio = 1.0;
-    if (m_pitchScale > 1.0) {
-        inRatio = 1.0 / m_pitchScale;
-    }
-
+    double inRatio = getInRatio();
     m_log.log(2, "R3LiveShifter::readIn: ratio", inRatio);
     
     int resampleBufSize = int(m_channelData.at(0)->resampled.size());
@@ -601,11 +599,7 @@ R3LiveShifter::generate(int requiredInOutbuf)
 int
 R3LiveShifter::readOut(float *const *output, int outcount)
 {
-    double outRatio = 1.0;
-    if (m_pitchScale < 1.0) {
-        outRatio = 1.0 / m_pitchScale;
-    }
-    
+    double outRatio = getOutRatio();
     m_log.log(2, "R3LiveShifter::readOut: outcount and ratio", outcount, outRatio);
 
     int resampledCount = 0;

@@ -182,8 +182,6 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
 
     int delay = shifter.getStartDelay();
 
-    std::cerr << "delay reported as " << delay << std::endl;    
-    
     // We now have n samples of a simple sinusoid with stretch factor
     // 1.0; obviously we expect the output to be essentially the same
     // thing. It will have lower precision for a while at the start,
@@ -240,7 +238,28 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
 BOOST_AUTO_TEST_CASE(sinusoid_down_octave)
 {
     int n = 20000;
-    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, 0, true);
+    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, 0, false);
+//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0, false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_down_2octave)
+{
+    int n = 20000;
+    check_sinusoid_shifted(n, 44100, 440.f, 0.25f, 0, false);
+//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0, false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_up_octave)
+{
+    int n = 20000;
+    check_sinusoid_shifted(n, 44100, 440.f, 2.0f, 0, false);
+//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0, false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_up_2octave)
+{
+    int n = 20000;
+    check_sinusoid_shifted(n, 44100, 440.f, 4.0f, 0, false);
 //    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0, false);
 }
 

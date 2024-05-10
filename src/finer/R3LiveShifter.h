@@ -311,7 +311,7 @@ protected:
     ChannelAssembly m_channelAssembly;
     std::unique_ptr<Resampler> m_inResampler;
     std::unique_ptr<Resampler> m_outResampler;
-    int m_resamplerDelay;
+    std::pair<int, int> m_initialResamplerDelays;
     bool m_useReadahead;
     int m_prevInhop;
     int m_prevOuthop;
@@ -387,6 +387,22 @@ protected:
         return true;
     }
 
+    double getInRatio() const {
+        if (m_pitchScale > 1.0) {
+            return 1.0 / m_pitchScale;
+        } else {
+            return 1.0;
+        }
+    }
+
+    double getOutRatio() const {
+        if (m_pitchScale < 1.0) {
+            return 1.0 / m_pitchScale;
+        } else {
+            return 1.0;
+        }
+    }
+    
     int getWindowSourceSize() const {
         if (m_useReadahead) {
             int sz = m_guideConfiguration.classificationFftSize +
