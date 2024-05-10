@@ -102,9 +102,6 @@ public:
         OptionFormantShifted       = 0x00000000,
         OptionFormantPreserved     = 0x01000000,
 
-        OptionPitchMethodStandard  = 0x00000000,
-        OptionPitchMethodAlternate = 0x02000000,
-
         OptionChannelsApart        = 0x00000000,
         OptionChannelsTogether     = 0x10000000,
 

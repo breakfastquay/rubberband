@@ -230,34 +230,18 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
     }
 }
 
-BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_a)
+BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
 {
-    RubberBandLiveShifter::Options options =
-        RubberBandLiveShifter::OptionPitchMethodStandard;
     int n = 20000;
-
-    check_sinusoid_unchanged(n, 44100, 440.f, options, false);
-    check_sinusoid_unchanged(n, 48000, 260.f, options, false);
+    check_sinusoid_unchanged(n, 44100, 440.f, 0, false);
+    check_sinusoid_unchanged(n, 48000, 260.f, 0, false);
 }
 
-BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_b)
+BOOST_AUTO_TEST_CASE(sinusoid_down_octave)
 {
-    RubberBandLiveShifter::Options options =
-        RubberBandLiveShifter::OptionPitchMethodAlternate;
     int n = 20000;
-
-    check_sinusoid_unchanged(n, 44100, 440.f, options, false);
-    check_sinusoid_unchanged(n, 48000, 260.f, options, false);
-}
-
-BOOST_AUTO_TEST_CASE(sinusoid_down_octave_mode_a)
-{
-    RubberBandLiveShifter::Options options =
-        RubberBandLiveShifter::OptionPitchMethodStandard;
-    int n = 20000;
-
-    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, options, true);
-//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, options, false);
+    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, 0, true);
+//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0, false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

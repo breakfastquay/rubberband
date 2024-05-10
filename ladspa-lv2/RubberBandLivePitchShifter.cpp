@@ -266,7 +266,6 @@ RubberBandLivePitchShifter::RubberBandLivePitchShifter(int sampleRate, size_t ch
     m_currentFormant(false),
     m_shifter(new RubberBandLiveShifter
               (sampleRate, channels,
-               RubberBandLiveShifter::OptionPitchMethodStandard |
                RubberBandLiveShifter::OptionChannelsTogether)),
     m_sampleRate(sampleRate),
     m_channels(channels),

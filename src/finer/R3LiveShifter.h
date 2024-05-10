@@ -315,7 +315,6 @@ protected:
     bool m_useReadahead;
     int m_prevInhop;
     int m_prevOuthop;
-    bool m_expandThenContract; // otherwise contract then expand
     bool m_firstProcess;
     uint32_t m_unityCount;
 

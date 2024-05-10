@@ -45,7 +45,6 @@ R3LiveShifter::R3LiveShifter(Parameters parameters, Log log) :
     m_useReadahead(false),
     m_prevInhop(m_limits.maxInhopWithReadahead / 2),
     m_prevOuthop(m_prevInhop),
-    m_expandThenContract(false),
     m_firstProcess(true),
     m_unityCount(0)
 {
@@ -71,11 +70,6 @@ R3LiveShifter::initialise()
         m_useReadahead = true;
     }
 
-    if ((m_parameters.options & RubberBandLiveShifter::OptionPitchMethodAlternate)) {
-        m_log.log(1, "R3LiveShifter::R3LiveShifter: expand-then-contract enabled");
-        m_expandThenContract = true;
-    }
-    
     double maxClassifierFrequency = 16000.0;
     if (maxClassifierFrequency > m_parameters.sampleRate/2) {
         maxClassifierFrequency = m_parameters.sampleRate/2;
@@ -247,14 +241,8 @@ R3LiveShifter::measureResamplerDelay()
     auto outbuf = inbuf;
     
     double inRatio = 1.0;
-    if (m_expandThenContract) {
-        if (m_pitchScale < 1.0) {
-            inRatio = 1.0 / m_pitchScale;
-        }
-    } else {
-        if (m_pitchScale > 1.0) {
-            inRatio = 1.0 / m_pitchScale;
-        }
+    if (m_pitchScale > 1.0) {
+        inRatio = 1.0 / m_pitchScale;
     }
 
     int outcount = m_inResampler->resampleInterleaved
@@ -290,18 +278,10 @@ R3LiveShifter::getStartDelay() const
 {
     int fixed = getWindowSourceSize() / 2 + m_resamplerDelay * 2;
     int variable = getWindowSourceSize() / 2;
-    if (m_expandThenContract) {
-        if (m_pitchScale < 1.0) {
-            return size_t(fixed + ceil(variable * m_pitchScale));
-        } else {
-            return size_t(fixed + ceil(variable / m_pitchScale));
-        }
+    if (m_pitchScale < 1.0) {
+        return size_t(fixed + ceil(variable / m_pitchScale));
     } else {
-        if (m_pitchScale < 1.0) {
-            return size_t(fixed + ceil(variable / m_pitchScale));
-        } else {
-            return size_t(fixed + ceil(variable * m_pitchScale));
-        }
+        return size_t(fixed + ceil(variable * m_pitchScale));
     }
 }
 
@@ -353,13 +333,9 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
 
     int pad = 0;
     if (m_firstProcess) {
-        if (m_expandThenContract) {
-            pad = getWindowSourceSize() / 2;
-        } else {
-            pad = getWindowSourceSize();
-            if (m_pitchScale > 1.0) {
-                pad = int(ceil(pad * m_pitchScale));
-            }
+        pad = getWindowSourceSize();
+        if (m_pitchScale > 1.0) {
+            pad = int(ceil(pad * m_pitchScale));
         }
         m_log.log(2, "R3LiveShifter::shift: extending input with pre-pad", incount, pad);
         for (int c = 0; c < m_parameters.channels; ++c) {
@@ -371,14 +347,8 @@ R3LiveShifter::shift(const float *const *input, float *const *output)
 
     double outRatio = 1.0;
 
-    if (m_expandThenContract) {
-        if (m_pitchScale > 1.0) {
-            outRatio = 1.0 / m_pitchScale;
-        }
-    } else {
-        if (m_pitchScale < 1.0) {
-            outRatio = 1.0 / m_pitchScale;
-        }
+    if (m_pitchScale < 1.0) {
+        outRatio = 1.0 / m_pitchScale;
     }
     
     int requiredInOutbuf = int(ceil(incount / outRatio));
@@ -440,15 +410,8 @@ R3LiveShifter::readIn(const float *const *input)
     }
     
     double inRatio = 1.0;
-
-    if (m_expandThenContract) {
-        if (m_pitchScale < 1.0) {
-            inRatio = 1.0 / m_pitchScale;
-        }
-    } else {
-        if (m_pitchScale > 1.0) {
-            inRatio = 1.0 / m_pitchScale;
-        }
+    if (m_pitchScale > 1.0) {
+        inRatio = 1.0 / m_pitchScale;
     }
 
     m_log.log(2, "R3LiveShifter::readIn: ratio", inRatio);
@@ -639,15 +602,8 @@ int
 R3LiveShifter::readOut(float *const *output, int outcount)
 {
     double outRatio = 1.0;
-
-    if (m_expandThenContract) {
-        if (m_pitchScale > 1.0) {
-            outRatio = 1.0 / m_pitchScale;
-        }
-    } else {
-        if (m_pitchScale < 1.0) {
-            outRatio = 1.0 / m_pitchScale;
-        }
+    if (m_pitchScale < 1.0) {
+        outRatio = 1.0 / m_pitchScale;
     }
     
     m_log.log(2, "R3LiveShifter::readOut: outcount and ratio", outcount, outRatio);
