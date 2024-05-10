@@ -184,6 +184,7 @@ R3LiveShifter::setPitchScale(double scale)
     m_log.log(2, "R3LiveShifter::setPitchScale", scale);
     if (scale == m_pitchScale) return;
     m_pitchScale = scale;
+    measureResamplerDelay();
 }
 
 void
@@ -242,7 +243,7 @@ R3LiveShifter::measureResamplerDelay()
     auto outbuf = inbuf;
 
     int outcount = m_inResampler->resampleInterleaved
-        (outbuf.data(), bs, inbuf.data(), bs, 1.0, false);
+        (outbuf.data(), bs, inbuf.data(), bs, m_pitchScale, false);
 
     m_inResampler->reset();
 

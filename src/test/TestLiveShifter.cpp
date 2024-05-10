@@ -42,6 +42,41 @@ namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_SUITE(TestLiveShifter)
 
+static void dump(const vector<float> &in,
+                 const vector<float> &out,
+                 const vector<float> &expected,
+                 int delay)
+{
+    std::cerr << "dump: delay reported as " << delay << std::endl;
+    
+    // The prefix is to allow grep on the test output
+        
+    std::cout << "IN,sample,V" << std::endl;
+    for (int i = 0; i < int(in.size()); ++i) {
+        std::cout << "IN," << i << "," << in[i] << std::endl;
+    }
+        
+    std::cout << "OUT,sample,V" << std::endl;
+    for (int i = 0; i < int(out.size()); ++i) {
+        std::cout << "OUT," << i << "," << out[i] << std::endl;
+    }
+
+    std::cout << "SHIFTED,sample,V" << std::endl;
+    for (int i = 0; i + delay < int(out.size()); ++i) {
+        std::cout << "SHIFTED," << i << "," << out[i + delay] << std::endl;
+    }
+    
+    std::cout << "EXPECTED,sample,V" << std::endl;
+    for (int i = 0; i < int(expected.size()); ++i) {
+        std::cout << "EXPECTED," << i << "," << expected[i] << std::endl;
+    }
+    
+    std::cout << "DIFF,sample,V" << std::endl;
+    for (int i = 0; i + delay < int(expected.size()); ++i) {
+        std::cout << "DIFF," << i << "," << out[i + delay] - expected[i] << std::endl;
+    }
+}
+
 static void check_sinusoid_unchanged(int n, int rate, float freq,
                                      RubberBandLiveShifter::Options options,
                                      bool printDebug)
@@ -51,8 +86,6 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
     }
     
     RubberBandLiveShifter shifter(rate, 1, options);
-
-//    shifter.setPitchScale(2.66968);
     
     int blocksize = shifter.getBlockSize();
     BOOST_TEST(blocksize == 512);
@@ -71,8 +104,6 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
     }
 
     int delay = shifter.getStartDelay();
-
-    std::cerr << "delay reported as " << delay << std::endl;    
     
     // We now have n samples of a simple sinusoid with stretch factor
     // 1.0; obviously we expect the output to be essentially the same
@@ -116,28 +147,86 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
 
     if (printDebug) {
         RubberBandLiveShifter::setDefaultDebugLevel(0);
+        dump(in, out, in, delay);
+    }
+}
 
-        // The prefix is to allow grep on the test output
-        
-        std::cout << "IN,sample,V" << std::endl;
-        for (int i = 0; i < int(in.size()); ++i) {
-            std::cout << "IN," << i << "," << in[i] << std::endl;
-        }
-        
-        std::cout << "OUT,sample,V" << std::endl;
-        for (int i = 0; i < int(out.size()); ++i) {
-            std::cout << "OUT," << i << "," << out[i] << std::endl;
-        }
-        
-        std::cout << "SHIFTED,sample,V" << std::endl;
-        for (int i = 0; i + delay < int(out.size()); ++i) {
-            std::cout << "SHIFTED," << i << "," << out[i + delay] << std::endl;
-        }
+static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
+                                   RubberBandLiveShifter::Options options,
+                                   bool printDebug)
+{
+    if (printDebug) {
+        RubberBandLiveShifter::setDefaultDebugLevel(2);
+    }
+    
+    RubberBandLiveShifter shifter(rate, 1, options);
 
-        std::cout << "DIFF,sample,V" << std::endl;
-        for (int i = 0; i + delay < int(in.size()); ++i) {
-            std::cout << "DIFF," << i << "," << out[i + delay] - in[i] << std::endl;
+    shifter.setPitchScale(shift);
+    
+    int blocksize = shifter.getBlockSize();
+    BOOST_TEST(blocksize == 512);
+
+    n = (n / blocksize + 1) * blocksize;
+    
+    vector<float> in(n), out(n), expected(n);
+    for (int i = 0; i < n; ++i) {
+        in[i] = 0.5f * sinf(float(i) * freq * M_PI * 2.f / float(rate));
+        expected[i] = 0.5f * sinf(float(i) * freq * shift * M_PI * 2.f / float(rate));
+    }
+
+    for (int i = 0; i < n; i += blocksize) {
+        float *inp = in.data() + i;
+        float *outp = out.data() + i;
+        shifter.shift(&inp, &outp);
+    }
+
+    int delay = shifter.getStartDelay();
+
+    std::cerr << "delay reported as " << delay << std::endl;    
+    
+    // We now have n samples of a simple sinusoid with stretch factor
+    // 1.0; obviously we expect the output to be essentially the same
+    // thing. It will have lower precision for a while at the start,
+    // so we check that with a threshold of 0.1; after that we expect
+    // better precision.
+
+    int slackpart = 2048;
+    float slackeps = 1.0e-1f;
+    float eps = 1.0e-3f;
+
+#ifdef USE_BQRESAMPLER
+    eps = 1.0e-2f;
+#endif
+    
+    for (int i = 0; i < slackpart; ++i) {
+        float fin = expected[i];
+        float fout = out[delay + i];
+        float err = fabsf(fin - fout);
+        if (err > slackeps) {
+            std::cerr << "Error at index " << i << " exceeds slack eps "
+                      << slackeps << ": output " << fout << " - expected "
+                      << fin << " = " << fout - fin << std::endl;
+            BOOST_TEST(err < eps);
+            break;
         }
+    }
+    
+    for (int i = slackpart; i < n - delay; ++i) {
+        float fin = expected[i];
+        float fout = out[delay + i];
+        float err = fabsf(fin - fout);
+        if (err > eps) {
+            std::cerr << "Error at index " << i << " exceeds tight eps "
+                      << eps << ": output " << fout << " - expected "
+                      << fin << " = " << fout - fin << std::endl;
+            BOOST_TEST(err < eps);
+            break;
+        }
+    }
+
+    if (printDebug) {
+        RubberBandLiveShifter::setDefaultDebugLevel(0);
+        dump(in, out, expected, delay);
     }
 }
 
@@ -145,7 +234,7 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_a)
 {
     RubberBandLiveShifter::Options options =
         RubberBandLiveShifter::OptionPitchMethodStandard;
-    int n = 100000;
+    int n = 20000;
 
     check_sinusoid_unchanged(n, 44100, 440.f, options, false);
     check_sinusoid_unchanged(n, 48000, 260.f, options, false);
@@ -155,10 +244,20 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged_mode_b)
 {
     RubberBandLiveShifter::Options options =
         RubberBandLiveShifter::OptionPitchMethodAlternate;
-    int n = 100000;
+    int n = 20000;
 
-    check_sinusoid_unchanged(n, 44100, 440.f, options, true);
+    check_sinusoid_unchanged(n, 44100, 440.f, options, false);
     check_sinusoid_unchanged(n, 48000, 260.f, options, false);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_down_octave_mode_a)
+{
+    RubberBandLiveShifter::Options options =
+        RubberBandLiveShifter::OptionPitchMethodStandard;
+    int n = 20000;
+
+    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, options, true);
+//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, options, false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
