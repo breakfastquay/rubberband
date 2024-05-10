@@ -182,9 +182,13 @@ void
 R3LiveShifter::setPitchScale(double scale)
 {
     m_log.log(2, "R3LiveShifter::setPitchScale", scale);
+
     if (scale == m_pitchScale) return;
     m_pitchScale = scale;
-    measureResamplerDelay();
+
+    if (m_firstProcess) {
+        measureResamplerDelay();
+    }
 }
 
 void
@@ -241,9 +245,20 @@ R3LiveShifter::measureResamplerDelay()
     int bs = getBlockSize();
     std::vector<float> inbuf(bs * m_parameters.channels, 0.f);
     auto outbuf = inbuf;
+    
+    double inRatio = 1.0;
+    if (m_expandThenContract) {
+        if (m_pitchScale < 1.0) {
+            inRatio = 1.0 / m_pitchScale;
+        }
+    } else {
+        if (m_pitchScale > 1.0) {
+            inRatio = 1.0 / m_pitchScale;
+        }
+    }
 
     int outcount = m_inResampler->resampleInterleaved
-        (outbuf.data(), bs, inbuf.data(), bs, m_pitchScale, false);
+        (outbuf.data(), bs, inbuf.data(), bs, inRatio, false);
 
     m_inResampler->reset();
 
