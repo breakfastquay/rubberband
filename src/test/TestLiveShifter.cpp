@@ -29,6 +29,8 @@
 #include "../../rubberband/RubberBandLiveShifter.h"
 
 #include <iostream>
+#include <fstream>
+#include <string>
 
 #include <cmath>
 
@@ -37,50 +39,61 @@ using namespace RubberBand;
 using std::vector;
 using std::cerr;
 using std::endl;
+using std::string;
+using std::ofstream;
 
 namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_SUITE(TestLiveShifter)
 
-static void dump(const vector<float> &in,
+static void dumpTo(string basename,
+                   const vector<float> &data)
+{
+    string dir = "/tmp";
+    string filename = dir + "/" + basename + ".csv";
+    ofstream file(filename, std::ios::out | std::ios::binary);
+    if (!file) {
+        cerr << "dumpTo: failed to open file \"" << filename << "\" for writing" << endl;
+        return;
+    }
+    file << "sample,V" << endl;
+    for (int i = 0; i < int(data.size()); ++i) {
+        file << i << "," << data[i] << endl;
+    }
+}
+
+static void dump(string prefix,
+                 const vector<float> &in,
                  const vector<float> &out,
                  const vector<float> &expected,
                  int delay)
 {
-    std::cerr << "dump: delay reported as " << delay << std::endl;
-    
-    // The prefix is to allow grep on the test output
-        
-    std::cout << "IN,sample,V" << std::endl;
-    for (int i = 0; i < int(in.size()); ++i) {
-        std::cout << "IN," << i << "," << in[i] << std::endl;
-    }
-        
-    std::cout << "OUT,sample,V" << std::endl;
-    for (int i = 0; i < int(out.size()); ++i) {
-        std::cout << "OUT," << i << "," << out[i] << std::endl;
-    }
+    cerr << "dump: delay reported as " << delay << endl;
 
-    std::cout << "SHIFTED,sample,V" << std::endl;
+    if (prefix != "") {
+        prefix += "-";
+    }
+    
+    dumpTo(prefix + "in", in);
+    dumpTo(prefix + "out", out);
+    dumpTo(prefix + "expected", expected);
+
+    vector<float> shifted;
+    vector<float> diff;
     for (int i = 0; i + delay < int(out.size()); ++i) {
-        std::cout << "SHIFTED," << i << "," << out[i + delay] << std::endl;
+        shifted.push_back(out[i + delay]);
+        diff.push_back(out[i + delay] - expected[i]);
     }
-    
-    std::cout << "EXPECTED,sample,V" << std::endl;
-    for (int i = 0; i < int(expected.size()); ++i) {
-        std::cout << "EXPECTED," << i << "," << expected[i] << std::endl;
-    }
-    
-    std::cout << "DIFF,sample,V" << std::endl;
-    for (int i = 0; i + delay < int(expected.size()); ++i) {
-        std::cout << "DIFF," << i << "," << out[i + delay] - expected[i] << std::endl;
-    }
+    dumpTo(prefix + "shifted", shifted);
+    dumpTo(prefix + "diff", diff);
 }
 
 static void check_sinusoid_unchanged(int n, int rate, float freq,
                                      RubberBandLiveShifter::Options options,
-                                     bool printDebug)
+                                     string debugPrefix = {})
 {
+    bool printDebug = (debugPrefix != "");
+    
     if (printDebug) {
         RubberBandLiveShifter::setDefaultDebugLevel(2);
     }
@@ -124,9 +137,9 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
         float fout = out[delay + i];
         float err = fabsf(fin - fout);
         if (err > slackeps) {
-            std::cerr << "Error at index " << i << " exceeds slack eps "
-                      << slackeps << ": output " << fout << " - input "
-                      << fin << " = " << fout - fin << std::endl;
+            cerr << "Error at index " << i << " exceeds slack eps "
+                 << slackeps << ": output " << fout << " - input "
+                 << fin << " = " << fout - fin << endl;
             BOOST_TEST(err < eps);
             break;
         }
@@ -137,9 +150,9 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
         float fout = out[delay + i];
         float err = fabsf(fin - fout);
         if (err > eps) {
-            std::cerr << "Error at index " << i << " exceeds tight eps "
-                      << eps << ": output " << fout << " - input "
-                      << fin << " = " << fout - fin << std::endl;
+            cerr << "Error at index " << i << " exceeds tight eps "
+                 << eps << ": output " << fout << " - input "
+                 << fin << " = " << fout - fin << endl;
             BOOST_TEST(err < eps);
             break;
         }
@@ -147,14 +160,16 @@ static void check_sinusoid_unchanged(int n, int rate, float freq,
 
     if (printDebug) {
         RubberBandLiveShifter::setDefaultDebugLevel(0);
-        dump(in, out, in, delay);
+        dump(debugPrefix, in, out, in, delay);
     }
 }
 
 static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
                                    RubberBandLiveShifter::Options options,
-                                   bool printDebug)
+                                   string debugPrefix = {})
 {
+    bool printDebug = (debugPrefix != "");
+    
     if (printDebug) {
         RubberBandLiveShifter::setDefaultDebugLevel(2);
     }
@@ -201,9 +216,9 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
         float fout = out[delay + i];
         float err = fabsf(fin - fout);
         if (err > slackeps) {
-            std::cerr << "Error at index " << i << " exceeds slack eps "
-                      << slackeps << ": output " << fout << " - expected "
-                      << fin << " = " << fout - fin << std::endl;
+            cerr << "Error at index " << i << " exceeds slack eps "
+                 << slackeps << ": output " << fout << " - expected "
+                 << fin << " = " << fout - fin << endl;
             BOOST_TEST(err < eps);
             break;
         }
@@ -214,9 +229,9 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
         float fout = out[delay + i];
         float err = fabsf(fin - fout);
         if (err > eps) {
-            std::cerr << "Error at index " << i << " exceeds tight eps "
-                      << eps << ": output " << fout << " - expected "
-                      << fin << " = " << fout - fin << std::endl;
+            cerr << "Error at index " << i << " exceeds tight eps "
+                 << eps << ": output " << fout << " - expected "
+                 << fin << " = " << fout - fin << endl;
             BOOST_TEST(err < eps);
             break;
         }
@@ -224,43 +239,53 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
 
     if (printDebug) {
         RubberBandLiveShifter::setDefaultDebugLevel(0);
-        dump(in, out, expected, delay);
+        dump(debugPrefix, in, out, expected, delay);
     }
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
 {
     int n = 20000;
-    check_sinusoid_unchanged(n, 44100, 440.f, 0, false);
-    check_sinusoid_unchanged(n, 48000, 260.f, 0, false);
+    check_sinusoid_unchanged(n, 44100, 440.f, 0);
+    check_sinusoid_unchanged(n, 48000, 260.f, 0);
 }
 
-BOOST_AUTO_TEST_CASE(sinusoid_down_octave)
+BOOST_AUTO_TEST_CASE(sinusoid_down_octave_440)
 {
     int n = 20000;
-    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, 0, false);
-//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0, false);
+    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, 0);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_down_octave_260)
+{
+    int n = 20000;
+    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_down_2octave)
 {
     int n = 20000;
-    check_sinusoid_shifted(n, 44100, 440.f, 0.25f, 0, false);
-//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0, false);
+//    check_sinusoid_shifted(n, 44100, 440.f, 0.25f, 0);
+//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0);
 }
 
-BOOST_AUTO_TEST_CASE(sinusoid_up_octave)
+BOOST_AUTO_TEST_CASE(sinusoid_up_octave_440)
 {
     int n = 20000;
-    check_sinusoid_shifted(n, 44100, 440.f, 2.0f, 0, false);
-//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0, false);
+    check_sinusoid_shifted(n, 44100, 440.f, 2.0f, 0);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_up_octave_260)
+{
+    int n = 20000;
+    check_sinusoid_shifted(n, 44100, 260.f, 2.0f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_up_2octave)
 {
     int n = 20000;
-    check_sinusoid_shifted(n, 44100, 440.f, 4.0f, 0, false);
-//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0, false);
+//    check_sinusoid_shifted(n, 44100, 440.f, 4.0f, 0, true);
+//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
