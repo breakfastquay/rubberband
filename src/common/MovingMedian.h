@@ -31,6 +31,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <set>
 
 namespace RubberBand
 {
@@ -50,10 +51,11 @@ class MovingMedian : public SampleFilter<T>
 public:
     MovingMedian(int filterLength, float percentile = fifty) :
         m_buffer(filterLength),
-        m_sortspace(filterLength, {}),
         m_fill(0),
         m_percentile(percentile)
-    { }
+    {
+        m_sortspace.clear();
+    }
 
     ~MovingMedian() { }
 
@@ -69,7 +71,7 @@ public:
     }
     
     void push(T value) {
-        if (value != value) {
+        if (std::isnan(value)) {
             std::cerr << "WARNING: MovingMedian: NaN encountered" << std::endl;
             value = T();
         }
@@ -93,19 +95,14 @@ public:
      *  the median lies between two values, return the first of them.
      */
     T get() const {
-        int n = m_fill - 1;
-        if (m_percentile == fifty) { // exact default value
-            return m_sortspace[n / 2];
-        } else {
-            int index = int(floorf(float(n) * m_percentile / 100.f));
-            if (index >= m_fill) index = m_fill - 1;
-            return m_sortspace[index];
-        }
+        auto it = m_sortspace.begin();
+        std::advance(it, std::distance(m_sortspace.begin(), m_sortspace.end()) / 2);
+        return *it;
     }
 
     void reset() {
         m_buffer.reset();
-	v_zero(m_sortspace.data(), m_sortspace.size());
+        m_sortspace.clear(); 
         m_fill = 0;
     }
 
@@ -140,77 +137,22 @@ public:
     
 private:
     SingleThreadRingBuffer<T> m_buffer;
-    std::vector<T> m_sortspace;
+    std::multiset<T> m_sortspace;
     int m_fill;
     float m_percentile;
 
     void dropAndPut(const T &toDrop, const T &toPut) {
-	// precondition: sorted contains getSize values, one of which is toDrop
-	// postcondition: sorted contains getSize values, one of which is toPut
-        // (and one instance of toDrop has been removed)
-
-        // This implementation was timed for rather short filters (no
-        // longer than maybe 16 items). Two binary searches plus a
-        // memmove should be faster for longer ones.
-        
-        const int n = m_fill;
-        T *sorted = m_sortspace.data();
-        int dropIx;
-        if (toDrop <= *sorted) {
-            // this is quite a common short-circuit in situations
-            // where many values can be (the equivalent of) 0
-            dropIx = 0;
-        } else {
-            dropIx = std::lower_bound(sorted, sorted + n, toDrop) - sorted;
-        }
-        if (toPut > toDrop) {
-            int i = dropIx;
-            while (i+1 < n) {
-                if (sorted[i+1] > toPut) {
-                    break;
-                }
-                sorted[i] = sorted[i+1];
-                ++i;
-            }
-            sorted[i] = toPut;
-        } else if (toPut < toDrop) {
-            int i = dropIx;
-            while (true) {
-                if (--i < 0 || sorted[i] < toPut) {
-                    break;
-                }
-                sorted[i+1] = sorted[i];
-            }
-            sorted[i+1] = toPut;
-        }
+        m_sortspace.erase(m_sortspace.find(toDrop));
+        m_sortspace.insert(toPut);
     }
 
     void put(const T &toPut) {
-	// precondition: sorted contains m_fill values, m_fill < m_length,
-	// packed at the start
-	// postcondition: m_fill is incremented, sorted contains m_fill values,
-        // packed at the start, one of which is toPut
-        int n = m_fill;
-        T *sorted = m_sortspace.data();
-        int putIx = std::lower_bound(sorted, sorted + n, toPut) - sorted;
-        if (putIx < n) {
-            v_move(sorted + putIx + 1, sorted + putIx, n - putIx);
-        }
-        sorted[putIx] = toPut;
+        m_sortspace.insert(toPut);
         ++m_fill;
     }
 
     void drop(const T &toDrop) {
-	// precondition: sorted contains m_fill values, m_fill > 0, <= m_length,
-	// packed at the start, one of which is toDrop
-	// postcondition: m_fill decremented, sorted contains m_fill values,
-        // packed at the start, none of which is toDrop
-        int n = m_fill;
-        T *sorted = m_sortspace.data();
-        int dropIx = std::lower_bound(sorted, sorted + n, toDrop) - sorted;
-        if (dropIx < n - 1) {
-            v_move(sorted + dropIx, sorted + dropIx + 1, n - dropIx - 1);
-        }
+        m_sortspace.erase(m_sortspace.find(toDrop));
         --m_fill;
     }
 
