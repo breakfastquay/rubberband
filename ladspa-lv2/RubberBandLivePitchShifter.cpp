@@ -30,10 +30,9 @@
 
 using namespace RubberBand;
 
-using std::cout;
 using std::cerr;
 using std::endl;
-using std::min;
+using std::string;
 
 #ifdef RB_PLUGIN_LADSPA
 
@@ -342,18 +341,18 @@ RubberBandLivePitchShifter::instantiate(const LV2_Descriptor *desc, double rate,
                                     const char *, const LV2_Feature *const *)
 {
     if (rate < 1.0) {
-        std::cerr << "RubberBandLivePitchShifter::instantiate: invalid sample rate "
-                  << rate << " provided" << std::endl;
+        cerr << "RubberBandLivePitchShifter::instantiate: invalid sample rate "
+             << rate << " provided" << endl;
         return nullptr;
     }
     size_t srate = size_t(round(rate));
-    if (std::string(desc->URI) == lv2DescriptorMono.URI) {
+    if (string(desc->URI) == lv2DescriptorMono.URI) {
         return new RubberBandLivePitchShifter(srate, 1);
-    } else if (std::string(desc->URI) == lv2DescriptorStereo.URI) {
+    } else if (string(desc->URI) == lv2DescriptorStereo.URI) {
         return new RubberBandLivePitchShifter(srate, 2);
     } else {
-        std::cerr << "RubberBandLivePitchShifter::instantiate: unrecognised URI "
-                  << desc->URI << " requested" << std::endl;
+        cerr << "RubberBandLivePitchShifter::instantiate: unrecognised URI "
+             << desc->URI << " requested" << endl;
         return nullptr;
     }
 }
@@ -367,11 +366,11 @@ RubberBandLivePitchShifter::connectPort(LADSPA_Handle handle,
 #else 
 void
 RubberBandLivePitchShifter::connectPort(LV2_Handle handle,
-				    uint32_t port, void *location)
+                                        uint32_t port, void *location)
 #endif
 {
     RubberBandLivePitchShifter *shifter = (RubberBandLivePitchShifter *)handle;
-
+    
     float **ports[PortCountStereo] = {
         &shifter->m_latency,
 	&shifter->m_cents,
@@ -468,20 +467,6 @@ RubberBandLivePitchShifter::updateRatio()
     // integral: we want to enforce that, just to avoid
     // inconsistencies between hosts if some respect the hints more
     // than others
-    
-#ifdef RB_PLUGIN_LADSPA
-
-    // But we don't want to change the long-standing behaviour of the
-    // LADSPA plugin, so let's leave this as-is and only do "the right
-    // thing" for LV2
-    double oct = (m_octaves ? *m_octaves : 0.0);
-    oct += (m_semitones ? *m_semitones : 0.0) / 12;
-    oct += (m_cents ? *m_cents : 0.0) / 1200;
-    m_ratio = pow(2.0, oct);
-
-#else
-
-    // LV2
 
     double octaves = round(m_octaves ? *m_octaves : 0.0);
     if (octaves < -2.0) octaves = -2.0;
@@ -499,7 +484,6 @@ RubberBandLivePitchShifter::updateRatio()
                   octaves +
                   semitones / 12.0 +
                   cents / 1200.0);
-#endif
 }
 
 void
@@ -533,7 +517,7 @@ RubberBandLivePitchShifter::runImpl(uint32_t insamples)
         m_shifter->setPitchScale(m_ratio);
         m_prevRatio = m_ratio;
     }
-
+    
     updateFormant();
     
     if (m_latency) {
