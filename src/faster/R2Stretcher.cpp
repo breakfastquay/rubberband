@@ -993,6 +993,8 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
         mixdown = input[0];
     }
 
+    float *tmpFoldBuffer = nullptr;
+
     while (consumed < samples) {
 
 	size_t writable = inbuf.getWriteSpace();
@@ -1042,15 +1044,19 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
 
                 // Note that we can't do this in-place.  Pity
 
-                float *tmp = (float *)alloca
-                    (std::max(m_fftSize, m_aWindowSize) * sizeof(float));
+		// Avoid reallocating multiple times in this loop, as
+		// we'll end up blowing the stack:
+		if (tmpFoldBuffer == nullptr) {
+                    tmpFoldBuffer = (float *)alloca(
+		        std::max(m_fftSize, m_aWindowSize) * sizeof(float));
+		}
 
                 if (m_aWindowSize > m_fftSize) {
                     m_afilter->cut(cd.accumulator);
                 }
 
-                cutShiftAndFold(tmp, m_fftSize, cd.accumulator, m_awindow);
-                v_copy(cd.accumulator, tmp, m_fftSize);
+                cutShiftAndFold(tmpFoldBuffer, m_fftSize, cd.accumulator, m_awindow);
+                v_copy(cd.accumulator, tmpFoldBuffer, m_fftSize);
             }
 
             m_studyFFT->forwardMagnitude(cd.accumulator, cd.fltbuf);
