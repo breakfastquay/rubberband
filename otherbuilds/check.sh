@@ -29,13 +29,13 @@ else
     make -f otherbuilds/Makefile.macos
 
     echo " *** Linking against static library"
-    c++ -std=c++11 main/main.cpp lib/librubberband.a -I. -Isrc -o test_static -lsndfile -framework Accelerate
+    c++ -std=c++11 main/main.cpp lib/librubberband.a -I. -Isrc -o test_static -I/opt/homebrew/include -L/opt/homebrew/lib -lsndfile -framework Accelerate
     
     echo " *** Running build from macOS-specific Makefile"
     ./test_static -V
 
     echo " *** Building with single-file source"
-    c++ -O3 -std=c++11 main/main.cpp single/RubberBandSingle.cpp -o test_single -lsndfile -framework Accelerate
+    c++ -O3 -std=c++11 main/main.cpp single/RubberBandSingle.cpp -o test_single -I/opt/homebrew/include -L/opt/homebrew/lib -lsndfile -framework Accelerate
 
     echo " *** Running build from single-file source"
     ./test_single -V

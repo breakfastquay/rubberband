@@ -1516,4 +1516,32 @@ BOOST_AUTO_TEST_CASE(with_resets_2x_5up_realtime_faster)
     with_resets(RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionEngineFaster, 2.0, 1.5);
 }
 
+BOOST_AUTO_TEST_CASE(long_blocksize_with_smoothing)
+{
+    // Test added because the smoothing option was calling alloca in a
+    // loop, which could run us out of stack. This test is best used
+    // with a small stack artificially enforced via e.g. ulimit -s 32
+    
+    int n = 10000;
+    float freq = 440.f;
+    int rate = 44100;
+    RubberBandStretcher stretcher
+        (rate, 1,
+         RubberBandStretcher::OptionEngineFaster |
+         RubberBandStretcher::OptionProcessOffline |
+         RubberBandStretcher::OptionSmoothingOn);
+    
+    vector<float> in(n);
+    for (int i = 0; i < n; ++i) {
+        in[i] = sinf(float(i) * freq * M_PI * 2.f / float(rate));
+    }
+    float *inp = in.data();
+
+    stretcher.setMaxProcessSize(n);
+    stretcher.setExpectedInputDuration(n);
+
+    stretcher.study(&inp, n, true);
+    stretcher.process(&inp, n, true);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -215,7 +215,7 @@ public:
 class Condition
 {
 public:
-    Condition(std::string name) { }
+    Condition(std::string) { }
     ~Condition() { }
     
     void lock() { }
