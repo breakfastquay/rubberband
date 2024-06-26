@@ -236,6 +236,9 @@ R2Stretcher::consumeChannel(size_t c,
 
         inbuf.write(cd.resamplebuf, toWrite);
         cd.inCount += samples;
+
+        m_log.log(2, "consumeChannel: wrote to inbuf from resamplebuf, inCount now", toWrite, cd.inCount);
+        
         return samples;
 
     } else {
@@ -249,6 +252,9 @@ R2Stretcher::consumeChannel(size_t c,
 
         inbuf.write(input, toWrite);
         cd.inCount += toWrite;
+
+        m_log.log(2, "consumeChannel: wrote to inbuf from input, inCount now", toWrite, cd.inCount);
+        
         return toWrite;
     }
 }
@@ -340,7 +346,7 @@ R2Stretcher::processOneChunk()
             return false;
         }
         ChannelData &cd = *m_channelData[c];
-        m_log.log(3, "read space and draining", cd.inbuf->getReadSpace(), cd.draining);
+        m_log.log(2, "read space and draining", cd.inbuf->getReadSpace(), cd.draining);
         if (!cd.draining) {
             size_t ready = cd.inbuf->getReadSpace();
             assert(ready >= m_aWindowSize || cd.inputSize >= 0);

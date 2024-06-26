@@ -993,6 +993,8 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
         mixdown = input[0];
     }
 
+    std::vector<float> optionalFoldBuffer;
+    
     while (consumed < samples) {
 
 	size_t writable = inbuf.getWriteSpace();
@@ -1042,15 +1044,18 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
 
                 // Note that we can't do this in-place.  Pity
 
-                float *tmp = (float *)alloca
-                    (std::max(m_fftSize, m_aWindowSize) * sizeof(float));
+                // This doesn't have to be allocation-free, as we're
+                // in offline-mode study
+
+                optionalFoldBuffer.resize(std::max(m_fftSize, m_aWindowSize));
 
                 if (m_aWindowSize > m_fftSize) {
                     m_afilter->cut(cd.accumulator);
                 }
 
-                cutShiftAndFold(tmp, m_fftSize, cd.accumulator, m_awindow);
-                v_copy(cd.accumulator, tmp, m_fftSize);
+                cutShiftAndFold(optionalFoldBuffer.data(), m_fftSize,
+                                cd.accumulator, m_awindow);
+                v_copy(cd.accumulator, optionalFoldBuffer.data(), m_fftSize);
             }
 
             m_studyFFT->forwardMagnitude(cd.accumulator, cd.fltbuf);
@@ -1058,16 +1063,12 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
             float df = m_phaseResetAudioCurve->processFloat(cd.fltbuf, m_increment);
             m_phaseResetDf.push_back(df);
 
-//            cout << m_phaseResetDf.size() << " [" << final << "] -> " << df << " \t: ";
-
             df = m_silentAudioCurve->processFloat(cd.fltbuf, m_increment);
             bool silent = (df > 0.f);
             if (silent) {
                 m_log.log(2, "silence at", m_inputDuration);
             }
             m_silence.push_back(silent);
-
-//            cout << df << endl;
 
             // We have augmented the input by m_aWindowSize/2 so that
             // the first chunk is centred on the first audio sample.
@@ -1080,7 +1081,7 @@ R2Stretcher::study(const float *const *input, size_t samples, bool final)
             inbuf.skip(m_increment);
 	}
     }
-
+    
     if (final) {
         int rs = inbuf.getReadSpace();
         m_inputDuration += rs;
