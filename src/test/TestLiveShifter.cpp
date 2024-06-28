@@ -184,11 +184,17 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
     n = (n / blocksize + 1) * blocksize;
     
     vector<float> in(n), out(n), expected(n);
+    int endpoint = n;
+    if (endpoint > 20000) endpoint -= 10000;
     for (int i = 0; i < n; ++i) {
-        in[i] = 0.5f * sinf(float(i) * freq * M_PI * 2.f / float(rate));
+        float value = 0.5f * sinf(float(i) * freq * M_PI * 2.f / float(rate));
+        if (i > endpoint && value > 0.f && in[i-1] <= 0.f) break;
+        in[i] = value;
         expected[i] = 0.5f * sinf(float(i) * freq * shift * M_PI * 2.f / float(rate));
     }
 
+    in[1000] = 1.f;
+    
     for (int i = 0; i < n; i += blocksize) {
         float *inp = in.data() + i;
         float *outp = out.data() + i;
@@ -246,46 +252,81 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
 BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
 {
     int n = 20000;
-    check_sinusoid_unchanged(n, 44100, 440.f, 0);
+
+    // delay = 2112, correct
+    
+    check_sinusoid_unchanged(n, 44100, 440.f, 0, "unchanged-440");
     check_sinusoid_unchanged(n, 48000, 260.f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_down_octave_440)
 {
-    int n = 20000;
-    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, 0);
+    // Checked: delay = 3648, correct
+
+    // or about 3160?
+    
+    int n = 30000;
+    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, 0, "down-octave-440");
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_down_octave_260)
 {
-    int n = 20000;
+    // Checked: delay = 3648, correct
+
+    int n = 30000;
     check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_down_2octave)
 {
-    int n = 20000;
-//    check_sinusoid_shifted(n, 44100, 440.f, 0.25f, 0);
-//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0);
+    // Checked: delay = 6784, sound
+
+    // I like about 5250
+    
+    int n = 30000;
+    check_sinusoid_shifted(n, 44100, 440.f, 0.25f, 0, "down-2octave-440");
+//    check_sinusoid_shifted(n, 48000, 260.f, 0.25f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_up_octave_440)
 {
-    int n = 20000;
+    // Checked: delay = 2879, correct
+    
+    int n = 30000;
     check_sinusoid_shifted(n, 44100, 440.f, 2.0f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_up_octave_260)
 {
-    int n = 20000;
-    check_sinusoid_shifted(n, 44100, 260.f, 2.0f, 0);
+    // Checked: delay = 2879, correct
+
+    //!!! or 3380?
+    
+    int n = 30000;
+    check_sinusoid_shifted(n, 44100, 260.f, 2.0f, 0, "up-octave-260");
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_up_2octave)
 {
-    int n = 20000;
-//    check_sinusoid_shifted(n, 44100, 440.f, 4.0f, 0, true);
-//    check_sinusoid_shifted(n, 48000, 260.f, 0.5f, 0);
+    // Checked: delay = 3006 -> highly implausible, must be higher
+    // 3670 ish?
+    
+    int n = 30000;
+    check_sinusoid_shifted(n, 44100, 440.f, 4.0f, 0, "up-2octave-440");
+    check_sinusoid_shifted(n, 48000, 260.f, 4.0f, 0);
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_down_0_99)
+{
+    
+    int n = 30000;
+    check_sinusoid_shifted(n, 44100, 440.f, 0.99f, 0, "down-0_99-440");
+}
+
+BOOST_AUTO_TEST_CASE(sinusoid_up_1_01)
+{
+    int n = 30000;
+    check_sinusoid_shifted(n, 44100, 440.f, 1.01f, 0, "up-1_01-440");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

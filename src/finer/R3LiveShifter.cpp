@@ -281,10 +281,9 @@ R3LiveShifter::getStartDelay() const
     int total = outDelay;
     int bs = getBlockSize();
     if (m_pitchScale > 1.0) {
-        total += bs - 1;
+        total += bs * (m_pitchScale - 1.0);
     } else if (m_pitchScale < 1.0) {
-        int scaled = int(ceil(bs / m_pitchScale));
-        total -= bs * (scaled - bs) / bs;
+        total -= bs * (1.0 / m_pitchScale - 1.0);
     }
 
     m_log.log(2, "R3LiveShifter::getStartDelay: inDelay, outDelay", inDelay, outDelay);
