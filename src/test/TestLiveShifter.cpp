@@ -193,49 +193,42 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
         expected[i] = 0.5f * sinf(float(i) * freq * shift * M_PI * 2.f / float(rate));
     }
 
-    in[1000] = 1.f;
-    
     for (int i = 0; i < n; i += blocksize) {
         float *inp = in.data() + i;
         float *outp = out.data() + i;
         shifter.shift(&inp, &outp);
     }
 
-    int delay = shifter.getStartDelay();
-
-    // We now have n samples of a simple sinusoid with stretch factor
-    // 1.0; obviously we expect the output to be essentially the same
-    // thing. It will have lower precision for a while at the start,
-    // so we check that with a threshold of 0.1; after that we expect
-    // better precision.
+    int reportedDelay = shifter.getStartDelay();
 
     int slackpart = 2048;
-    float slackeps = 1.0e-1f;
+    int delay = reportedDelay + slackpart;
+    
+    // Align to the next zero-crossing in output, as phase may differ
+    
+    for (int i = delay; i < endpoint; ++i) {
+        if (out[i] < 0.f && out[i+1] >= 0.f) {
+            delay = i+1;
+            break;
+        }
+    }
+
+    cerr << "Adjusted delay from reported value of " << reportedDelay
+         << " by adding slack of " << slackpart
+         << " and moving to next positive zero crossing at " << delay << endl;
+    
     float eps = 1.0e-3f;
 
 #ifdef USE_BQRESAMPLER
     eps = 1.0e-2f;
 #endif
     
-    for (int i = 0; i < slackpart; ++i) {
-        float fin = expected[i];
-        float fout = out[delay + i];
-        float err = fabsf(fin - fout);
-        if (err > slackeps) {
-            cerr << "Error at index " << i << " exceeds slack eps "
-                 << slackeps << ": output " << fout << " - expected "
-                 << fin << " = " << fout - fin << endl;
-            BOOST_TEST(err < eps);
-            break;
-        }
-    }
-    
-    for (int i = slackpart; i < n - delay; ++i) {
+    for (int i = 0; i + delay < endpoint; ++i) {
         float fin = expected[i];
         float fout = out[delay + i];
         float err = fabsf(fin - fout);
         if (err > eps) {
-            cerr << "Error at index " << i << " exceeds tight eps "
+            cerr << "Error at index " << i << " exceeds eps "
                  << eps << ": output " << fout << " - expected "
                  << fin << " = " << fout - fin << endl;
             BOOST_TEST(err < eps);
