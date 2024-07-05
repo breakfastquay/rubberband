@@ -201,6 +201,37 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
 
     int reportedDelay = shifter.getStartDelay();
 
+    int lastCrossing = -1;
+    int nCrossings = 0;
+    int accWavelength = 0;
+    int minWavelength = 0;
+    int maxWavelength = 0;
+    for (int i = reportedDelay; i < endpoint; ++i) {
+        if (out[i-1] < 0.f && out[i] >= 0.f) {
+            if (lastCrossing >= 0) {
+                int wavelength = i - lastCrossing;
+                accWavelength += wavelength;
+                if (minWavelength == 0 || wavelength < minWavelength) {
+                    minWavelength = wavelength;
+                }
+                if (maxWavelength == 0 || wavelength > maxWavelength) {
+                    maxWavelength = wavelength;
+                }
+                cerr << wavelength << " ";
+                nCrossings ++;
+            }
+            lastCrossing = i;
+        }
+    }
+    cerr << endl;
+
+    int avgWavelength = 1;
+    if (nCrossings > 0) {
+        avgWavelength = accWavelength / nCrossings;
+    }
+    double detectedFreq = double(rate) / double(avgWavelength);
+    cerr << "nCrossings = " << nCrossings << ", minWavelength = " << minWavelength << ", maxWavelength = " << maxWavelength << ", avgWavelength = " << avgWavelength << ", detectedFreq = " << detectedFreq << " (expected " << freq * shift << ")" << endl;
+    
     int slackpart = 2048;
     int delay = reportedDelay + slackpart;
     
@@ -208,6 +239,7 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
     
     for (int i = delay; i < endpoint; ++i) {
         if (out[i] < 0.f && out[i+1] >= 0.f) {
+            cerr << "zc: at " << i << " we have " << out[i] << ", " << out[i+1] << endl;
             delay = i+1;
             break;
         }
@@ -216,9 +248,9 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
     cerr << "Adjusted delay from reported value of " << reportedDelay
          << " by adding slack of " << slackpart
          << " and moving to next positive zero crossing at " << delay << endl;
-    
-    float eps = 1.0e-3f;
 
+    float eps = 1.0e-3f;
+    
 #ifdef USE_BQRESAMPLER
     eps = 1.0e-2f;
 #endif
