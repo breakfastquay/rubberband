@@ -56,7 +56,7 @@ licences for some relevant library code are as follows, to the best of
 our knowledge. See also the file [COMPILING.md](COMPILING.md) for more
 details.
 
- * FFTW3 - GPL; proprietary licence needed for redistribution
+ * FFTW3 - GPL or proprietary non-free licence
  * Intel IPP - Proprietary; licence needed for redistribution
  * SLEEF - BSD-like
  * KissFFT - BSD-like
