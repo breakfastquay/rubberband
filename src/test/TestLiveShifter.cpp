@@ -186,12 +186,23 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
     vector<float> in(n), out(n), expected(n);
     int endpoint = n;
     if (endpoint > 20000) endpoint -= 10000;
+    double sumSquares = 0;
+    double peakIn = 0;
     for (int i = 0; i < n; ++i) {
         float value = 0.5f * sinf(float(i) * freq * M_PI * 2.f / float(rate));
+        if (i < endpoint) {
+            sumSquares += value * value;
+        }
         if (i > endpoint && value > 0.f && in[i-1] <= 0.f) break;
+        if (fabs(value) > peakIn) {
+            peakIn = fabs(value);
+        }
         in[i] = value;
         expected[i] = 0.5f * sinf(float(i) * freq * shift * M_PI * 2.f / float(rate));
     }
+    double rmsIn = sqrt(sumSquares / endpoint);
+    cerr << "rmsIn = " << rmsIn << endl;
+    cerr << "peakIn = " << peakIn << endl;
 
     for (int i = 0; i < n; i += blocksize) {
         float *inp = in.data() + i;
@@ -201,15 +212,20 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
 
     int reportedDelay = shifter.getStartDelay();
 
-    int lastCrossing = -1;
+    double lastCrossing = -1;
     int nCrossings = 0;
-    int accWavelength = 0;
-    int minWavelength = 0;
-    int maxWavelength = 0;
+    double accWavelength = 0;
+    double minWavelength = 0;
+    double maxWavelength = 0;
+    sumSquares = 0;
+    double peakOut = 0;
     for (int i = reportedDelay; i < endpoint; ++i) {
+        sumSquares += out[i] * out[i];
+        if (fabs(out[i]) > peakOut) peakOut = fabs(out[i]);
         if (out[i-1] < 0.f && out[i] >= 0.f) {
+            double crossing = (i-1) + (out[i-1] / (out[i-1] - out[i]));
             if (lastCrossing >= 0) {
-                int wavelength = i - lastCrossing;
+                double wavelength = crossing - lastCrossing;
                 accWavelength += wavelength;
                 if (minWavelength == 0 || wavelength < minWavelength) {
                     minWavelength = wavelength;
@@ -217,20 +233,24 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
                 if (maxWavelength == 0 || wavelength > maxWavelength) {
                     maxWavelength = wavelength;
                 }
-                cerr << wavelength << " ";
+                cerr << "wavelength = " << wavelength << " (freq " << rate / wavelength << ")" << endl;
                 nCrossings ++;
             }
-            lastCrossing = i;
+            lastCrossing = crossing;
         }
     }
     cerr << endl;
 
-    int avgWavelength = 1;
+    double avgWavelength = 1;
     if (nCrossings > 0) {
         avgWavelength = accWavelength / nCrossings;
     }
     double detectedFreq = double(rate) / double(avgWavelength);
     cerr << "nCrossings = " << nCrossings << ", minWavelength = " << minWavelength << ", maxWavelength = " << maxWavelength << ", avgWavelength = " << avgWavelength << ", detectedFreq = " << detectedFreq << " (expected " << freq * shift << ")" << endl;
+    
+    double rms = sqrt(sumSquares / (endpoint - reportedDelay));
+    cerr << "rms = " << rms << endl;
+    cerr << "peak = " << peakOut << endl;
     
     int slackpart = 2048;
     int delay = reportedDelay + slackpart;
