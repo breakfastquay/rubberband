@@ -211,36 +211,40 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
     }
 
     int reportedDelay = shifter.getStartDelay();
+    int slackpart = 2048;
 
-    double lastCrossing = -1;
-    int nCrossings = 0;
-    double accWavelength = 0;
-    double minWavelength = 0;
-    double maxWavelength = 0;
-    sumSquares = 0;
-    double peakOut = 0;
-    for (int i = reportedDelay; i < endpoint; ++i) {
-        sumSquares += out[i] * out[i];
-        if (fabs(out[i]) > peakOut) peakOut = fabs(out[i]);
-        if (out[i-1] < 0.f && out[i] >= 0.f) {
-            double crossing = (i-1) + (out[i-1] / (out[i-1] - out[i]));
-            if (lastCrossing >= 0) {
-                double wavelength = crossing - lastCrossing;
-                accWavelength += wavelength;
-                if (minWavelength == 0 || wavelength < minWavelength) {
-                    minWavelength = wavelength;
-                }
-                if (maxWavelength == 0 || wavelength > maxWavelength) {
-                    maxWavelength = wavelength;
-                }
-                cerr << "wavelength = " << wavelength << " (freq " << rate / wavelength << ")" << endl;
-                nCrossings ++;
-            }
-            lastCrossing = crossing;
+    for (int section = 0; section < 2; ++section) {
+
+        double lastCrossing = -1;
+        double freqeps = (section == 1 ? 0.15 : 5.0) * fabs(shift);
+
+        sumSquares = 0;
+
+        int i0 = reportedDelay;
+        int i1 = reportedDelay + slackpart;
+        if (section == 1) {
+            i0 = i1;
+            i1 = endpoint;
         }
-    }
-    cerr << endl;
+        
+        for (int i = i0; i < i1; ++i) {
+            sumSquares += out[i] * out[i];
+            if (out[i-1] < 0.f && out[i] >= 0.f) {
+                double crossing = (i-1) + (out[i-1] / (out[i-1] - out[i]));
+                if (lastCrossing >= 0) {
+                    double f = rate / (crossing - lastCrossing);
+                    double diff = freq * shift - f;
+                    if (fabs(diff) > freqeps) {
+                        cerr << "i = " << i << " (from " << i0 << " to " << i1 << "), f = " << f << ", freq = " << freq * shift << ", diff = " << diff << ", freqeps = " << freqeps << ", shift = " << shift << ", factor = " << fabs(diff)/freqeps << endl;
+                    }
+                }
+                lastCrossing = crossing;
+            }
+        }
 
+        // check rms
+    }
+/*
     double avgWavelength = 1;
     if (nCrossings > 0) {
         avgWavelength = accWavelength / nCrossings;
@@ -287,10 +291,10 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
             break;
         }
     }
-
+*/
     if (printDebug) {
         RubberBandLiveShifter::setDefaultDebugLevel(0);
-        dump(debugPrefix, in, out, expected, delay);
+        dump(debugPrefix, in, out, expected, reportedDelay);
     }
 }
 
