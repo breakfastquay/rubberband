@@ -3,7 +3,7 @@
 /*
     Rubber Band Library
     An audio time-stretching and pitch-shifting library.
-    Copyright 2007-2024 Particular Programs Ltd.
+    Copyright 2007-2023 Particular Programs Ltd.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -21,9 +21,9 @@
     you must obtain a valid commercial licence before doing so.
 */
 
-#include "RubberBandR3PitchShifter.h"
+#include "RubberBandLivePitchShifter.h"
 
-#include "RubberBandStretcher.h"
+#include "RubberBandLiveShifter.h"
 
 #include <iostream>
 #include <cmath>
@@ -37,7 +37,7 @@ using std::string;
 #ifdef RB_PLUGIN_LADSPA
 
 const char *const
-RubberBandR3PitchShifter::portNamesMono[PortCountMono] =
+RubberBandLivePitchShifter::portNamesMono[PortCountMono] =
 {
     "latency",
     "Cents",
@@ -50,7 +50,7 @@ RubberBandR3PitchShifter::portNamesMono[PortCountMono] =
 };
 
 const char *const
-RubberBandR3PitchShifter::portNamesStereo[PortCountStereo] =
+RubberBandLivePitchShifter::portNamesStereo[PortCountStereo] =
 {
     "latency",
     "Cents",
@@ -65,7 +65,7 @@ RubberBandR3PitchShifter::portNamesStereo[PortCountStereo] =
 };
 
 const LADSPA_PortDescriptor 
-RubberBandR3PitchShifter::portsMono[PortCountMono] =
+RubberBandLivePitchShifter::portsMono[PortCountMono] =
 {
     LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
@@ -78,7 +78,7 @@ RubberBandR3PitchShifter::portsMono[PortCountMono] =
 };
 
 const LADSPA_PortDescriptor 
-RubberBandR3PitchShifter::portsStereo[PortCountStereo] =
+RubberBandLivePitchShifter::portsStereo[PortCountStereo] =
 {
     LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL,
     LADSPA_PORT_INPUT  | LADSPA_PORT_CONTROL,
@@ -93,7 +93,7 @@ RubberBandR3PitchShifter::portsStereo[PortCountStereo] =
 };
 
 const LADSPA_PortRangeHint 
-RubberBandR3PitchShifter::hintsMono[PortCountMono] =
+RubberBandLivePitchShifter::hintsMono[PortCountMono] =
 {
     { 0, 0, 0 },                        // latency
     { LADSPA_HINT_DEFAULT_0 |           // cents
@@ -124,7 +124,7 @@ RubberBandR3PitchShifter::hintsMono[PortCountMono] =
 };
 
 const LADSPA_PortRangeHint 
-RubberBandR3PitchShifter::hintsStereo[PortCountStereo] =
+RubberBandLivePitchShifter::hintsStereo[PortCountStereo] =
 {
     { 0, 0, 0 },                        // latency
     { LADSPA_HINT_DEFAULT_0 |           // cents
@@ -157,15 +157,15 @@ RubberBandR3PitchShifter::hintsStereo[PortCountStereo] =
 };
 
 const LADSPA_Properties
-RubberBandR3PitchShifter::properties = LADSPA_PROPERTY_HARD_RT_CAPABLE;
+RubberBandLivePitchShifter::properties = LADSPA_PROPERTY_HARD_RT_CAPABLE;
 
 const LADSPA_Descriptor 
-RubberBandR3PitchShifter::ladspaDescriptorMono =
+RubberBandLivePitchShifter::ladspaDescriptorMono =
 {
-    29790, // "Unique" ID
-    "rubberband-r3-pitchshifter-mono", // Label
+    29791, // "Unique" ID
+    "rubberband-live-pitchshifter-mono", // Label
     properties,
-    "Rubber Band R3 Mono Pitch Shifter", // Name
+    "Rubber Band Live Mono Pitch Shifter", // Name
     "Breakfast Quay",
     "GPL",
     PortCountMono,
@@ -184,12 +184,12 @@ RubberBandR3PitchShifter::ladspaDescriptorMono =
 };
 
 const LADSPA_Descriptor 
-RubberBandR3PitchShifter::ladspaDescriptorStereo =
+RubberBandLivePitchShifter::ladspaDescriptorStereo =
 {
-    97920, // "Unique" ID
-    "rubberband-r3-pitchshifter-stereo", // Label
+    97921, // "Unique" ID
+    "rubberband-live-pitchshifter-stereo", // Label
     properties,
-    "Rubber Band R3 Stereo Pitch Shifter", // Name
+    "Rubber Band Live Stereo Pitch Shifter", // Name
     "Breakfast Quay",
     "GPL",
     PortCountStereo,
@@ -208,7 +208,7 @@ RubberBandR3PitchShifter::ladspaDescriptorStereo =
 };
 
 const LADSPA_Descriptor *
-RubberBandR3PitchShifter::getDescriptor(unsigned long index)
+RubberBandLivePitchShifter::getDescriptor(unsigned long index)
 {
     if (index == 0) return &ladspaDescriptorMono;
     if (index == 1) return &ladspaDescriptorStereo;
@@ -218,9 +218,9 @@ RubberBandR3PitchShifter::getDescriptor(unsigned long index)
 #else
 
 const LV2_Descriptor
-RubberBandR3PitchShifter::lv2DescriptorMono =
+RubberBandLivePitchShifter::lv2DescriptorMono =
 {
-    "http://breakfastquay.com/rdf/lv2-rubberband-r3#mono",
+    "http://breakfastquay.com/rdf/lv2-rubberband-live#mono",
     instantiate,
     connectPort,
     activate,
@@ -231,9 +231,9 @@ RubberBandR3PitchShifter::lv2DescriptorMono =
 };
 
 const LV2_Descriptor
-RubberBandR3PitchShifter::lv2DescriptorStereo =
+RubberBandLivePitchShifter::lv2DescriptorStereo =
 {
-    "http://breakfastquay.com/rdf/lv2-rubberband-r3#stereo",
+    "http://breakfastquay.com/rdf/lv2-rubberband-live#stereo",
     instantiate,
     connectPort,
     activate,
@@ -244,7 +244,7 @@ RubberBandR3PitchShifter::lv2DescriptorStereo =
 };
 
 const LV2_Descriptor *
-RubberBandR3PitchShifter::getDescriptor(uint32_t index)
+RubberBandLivePitchShifter::getDescriptor(uint32_t index)
 {
     if (index == 0) return &lv2DescriptorMono;
     if (index == 1) return &lv2DescriptorStereo;
@@ -253,7 +253,7 @@ RubberBandR3PitchShifter::getDescriptor(uint32_t index)
 
 #endif
 
-RubberBandR3PitchShifter::RubberBandR3PitchShifter(int sampleRate, size_t channels) :
+RubberBandLivePitchShifter::RubberBandLivePitchShifter(int sampleRate, size_t channels) :
     m_latency(nullptr),
     m_cents(nullptr),
     m_semitones(nullptr),
@@ -263,59 +263,60 @@ RubberBandR3PitchShifter::RubberBandR3PitchShifter(int sampleRate, size_t channe
     m_ratio(1.0),
     m_prevRatio(1.0),
     m_currentFormant(false),
-    m_blockSize(1024),
-    m_reserve(8192),
-    m_bufsize(0),
-    m_minfill(0),
-    m_stretcher(new RubberBandStretcher
-                (sampleRate, channels,
-                 RubberBandStretcher::OptionProcessRealTime |
-                 RubberBandStretcher::OptionEngineFiner |
-                 RubberBandStretcher::OptionPitchHighConsistency)),
+    m_shifter(new RubberBandLiveShifter
+              (sampleRate, channels,
+               RubberBandLiveShifter::OptionChannelsTogether)),
     m_sampleRate(sampleRate),
-    m_channels(channels)
+    m_channels(channels),
+    m_blockSize(0),
+    m_bufferSize(65536),
+    m_delay(0)
 {
     m_input = new float *[m_channels];
     m_output = new float *[m_channels];
 
-    m_outputBuffer = new RingBuffer<float> *[m_channels];
+    m_irb = new RingBuffer<float> *[m_channels];
+    m_orb = new RingBuffer<float> *[m_channels];
+
+    m_ib = new float *[m_channels];
+    m_ob = new float *[m_channels];
+
     m_delayMixBuffer = new RingBuffer<float> *[m_channels];
-    m_scratch = new float *[m_channels];
-    m_inptrs = new float *[m_channels];
+
+    m_blockSize = m_shifter->getBlockSize();
+    m_delay = m_shifter->getStartDelay();
     
-    m_bufsize = m_blockSize + m_reserve + 8192;
+    for (int c = 0; c < m_channels; ++c) {
 
-    for (size_t c = 0; c < m_channels; ++c) {
+        m_irb[c] = new RingBuffer<float>(m_bufferSize);
+        m_orb[c] = new RingBuffer<float>(m_bufferSize);
+        m_irb[c]->zero(m_blockSize);
 
-        m_input[c] = 0;
-        m_output[c] = 0;
-
-        m_outputBuffer[c] = new RingBuffer<float>(m_bufsize);
-        m_delayMixBuffer[c] = new RingBuffer<float>(m_bufsize);
-
-        m_scratch[c] = new float[m_bufsize];
-        for (size_t i = 0; i < m_bufsize; ++i) {
-            m_scratch[c][i] = 0.f;
-        }
-
-        m_inptrs[c] = 0;
+        m_ib[c] = new float[m_blockSize];
+        m_ob[c] = new float[m_blockSize];
+        
+        m_delayMixBuffer[c] = new RingBuffer<float>(m_bufferSize + m_delay);
+        m_irb[c]->zero(m_delay);
     }
 
     activateImpl();
 }
 
-RubberBandR3PitchShifter::~RubberBandR3PitchShifter()
+RubberBandLivePitchShifter::~RubberBandLivePitchShifter()
 {
-    delete m_stretcher;
-    for (size_t c = 0; c < m_channels; ++c) {
-        delete m_outputBuffer[c];
+    delete m_shifter;
+    for (int c = 0; c < m_channels; ++c) {
+        delete m_irb[c];
+        delete m_orb[c];
+        delete[] m_ib[c];
+        delete[] m_ob[c];
         delete m_delayMixBuffer[c];
-        delete[] m_scratch[c];
     }
-    delete[] m_outputBuffer;
+    delete[] m_irb;
+    delete[] m_orb;
+    delete[] m_ib;
+    delete[] m_ob;
     delete[] m_delayMixBuffer;
-    delete[] m_inptrs;
-    delete[] m_scratch;
     delete[] m_output;
     delete[] m_input;
 }
@@ -323,12 +324,12 @@ RubberBandR3PitchShifter::~RubberBandR3PitchShifter()
 #ifdef RB_PLUGIN_LADSPA
 
 LADSPA_Handle
-RubberBandR3PitchShifter::instantiate(const LADSPA_Descriptor *desc, unsigned long rate)
+RubberBandLivePitchShifter::instantiate(const LADSPA_Descriptor *desc, unsigned long rate)
 {
     if (desc->PortCount == ladspaDescriptorMono.PortCount) {
-        return new RubberBandR3PitchShifter(rate, 1);
+        return new RubberBandLivePitchShifter(rate, 1);
     } else if (desc->PortCount == ladspaDescriptorStereo.PortCount) {
-        return new RubberBandR3PitchShifter(rate, 2);
+        return new RubberBandLivePitchShifter(rate, 2);
     }
     return nullptr;
 }
@@ -336,21 +337,21 @@ RubberBandR3PitchShifter::instantiate(const LADSPA_Descriptor *desc, unsigned lo
 #else
 
 LV2_Handle
-RubberBandR3PitchShifter::instantiate(const LV2_Descriptor *desc, double rate,
+RubberBandLivePitchShifter::instantiate(const LV2_Descriptor *desc, double rate,
                                     const char *, const LV2_Feature *const *)
 {
     if (rate < 1.0) {
-        cerr << "RubberBandR3PitchShifter::instantiate: invalid sample rate "
+        cerr << "RubberBandLivePitchShifter::instantiate: invalid sample rate "
              << rate << " provided" << endl;
         return nullptr;
     }
     size_t srate = size_t(round(rate));
     if (string(desc->URI) == lv2DescriptorMono.URI) {
-        return new RubberBandR3PitchShifter(srate, 1);
+        return new RubberBandLivePitchShifter(srate, 1);
     } else if (string(desc->URI) == lv2DescriptorStereo.URI) {
-        return new RubberBandR3PitchShifter(srate, 2);
+        return new RubberBandLivePitchShifter(srate, 2);
     } else {
-        cerr << "RubberBandR3PitchShifter::instantiate: unrecognised URI "
+        cerr << "RubberBandLivePitchShifter::instantiate: unrecognised URI "
              << desc->URI << " requested" << endl;
         return nullptr;
     }
@@ -360,16 +361,16 @@ RubberBandR3PitchShifter::instantiate(const LV2_Descriptor *desc, double rate,
 
 #ifdef RB_PLUGIN_LADSPA
 void
-RubberBandR3PitchShifter::connectPort(LADSPA_Handle handle,
+RubberBandLivePitchShifter::connectPort(LADSPA_Handle handle,
 				    unsigned long port, LADSPA_Data *location)
 #else 
 void
-RubberBandR3PitchShifter::connectPort(LV2_Handle handle,
-				    uint32_t port, void *location)
+RubberBandLivePitchShifter::connectPort(LV2_Handle handle,
+                                        uint32_t port, void *location)
 #endif
 {
-    RubberBandR3PitchShifter *shifter = (RubberBandR3PitchShifter *)handle;
-
+    RubberBandLivePitchShifter *shifter = (RubberBandLivePitchShifter *)handle;
+    
     float **ports[PortCountStereo] = {
         &shifter->m_latency,
 	&shifter->m_cents,
@@ -398,34 +399,34 @@ RubberBandR3PitchShifter::connectPort(LV2_Handle handle,
 
 #ifdef RB_PLUGIN_LADSPA
 void
-RubberBandR3PitchShifter::activate(LADSPA_Handle handle)
+RubberBandLivePitchShifter::activate(LADSPA_Handle handle)
 #else
 void
-RubberBandR3PitchShifter::activate(LV2_Handle handle)
+RubberBandLivePitchShifter::activate(LV2_Handle handle)
 #endif
 {
-    RubberBandR3PitchShifter *shifter = (RubberBandR3PitchShifter *)handle;
+    RubberBandLivePitchShifter *shifter = (RubberBandLivePitchShifter *)handle;
     shifter->activateImpl();
 }
 
 #ifdef RB_PLUGIN_LADSPA
 void
-RubberBandR3PitchShifter::run(LADSPA_Handle handle, unsigned long samples)
+RubberBandLivePitchShifter::run(LADSPA_Handle handle, unsigned long samples)
 #else
 void
-RubberBandR3PitchShifter::run(LV2_Handle handle, uint32_t samples)
+RubberBandLivePitchShifter::run(LV2_Handle handle, uint32_t samples)
 #endif
 {
-    RubberBandR3PitchShifter *shifter = (RubberBandR3PitchShifter *)handle;
+    RubberBandLivePitchShifter *shifter = (RubberBandLivePitchShifter *)handle;
     shifter->runImpl(samples);
 }
 
 #ifdef RB_PLUGIN_LADSPA
 void
-RubberBandR3PitchShifter::deactivate(LADSPA_Handle handle)
+RubberBandLivePitchShifter::deactivate(LADSPA_Handle handle)
 #else
 void
-RubberBandR3PitchShifter::deactivate(LV2_Handle handle)
+RubberBandLivePitchShifter::deactivate(LV2_Handle handle)
 #endif
 {
     activate(handle); // both functions just reset the plugin
@@ -433,70 +434,39 @@ RubberBandR3PitchShifter::deactivate(LV2_Handle handle)
 
 #ifdef RB_PLUGIN_LADSPA
 void
-RubberBandR3PitchShifter::cleanup(LADSPA_Handle handle)
+RubberBandLivePitchShifter::cleanup(LADSPA_Handle handle)
 #else
 void
-RubberBandR3PitchShifter::cleanup(LV2_Handle handle)
+RubberBandLivePitchShifter::cleanup(LV2_Handle handle)
 #endif
 {
-    delete (RubberBandR3PitchShifter *)handle;
-}
-
-int
-RubberBandR3PitchShifter::getLatency() const
-{
-    return m_reserve;
+    delete (RubberBandLivePitchShifter *)handle;
 }
 
 void
-RubberBandR3PitchShifter::activateImpl()
+RubberBandLivePitchShifter::activateImpl()
 {
     updateRatio();
     m_prevRatio = m_ratio;
-    m_stretcher->reset();
-    m_stretcher->setPitchScale(m_ratio);
+    m_shifter->reset();
+    m_shifter->setPitchScale(m_ratio);
 
-    for (size_t c = 0; c < m_channels; ++c) {
-        m_outputBuffer[c]->reset();
-    }
-
-    for (size_t c = 0; c < m_channels; ++c) {
+    for (int c = 0; c < m_channels; ++c) {
+        m_irb[c]->reset();
+        m_irb[c]->zero(m_blockSize);
+        m_orb[c]->reset();
         m_delayMixBuffer[c]->reset();
-        m_delayMixBuffer[c]->zero(getLatency());
+        m_delayMixBuffer[c]->zero(m_delay);
     }
-    
-    for (size_t c = 0; c < m_channels; ++c) {
-        for (size_t i = 0; i < m_bufsize; ++i) {
-            m_scratch[c][i] = 0.f;
-        }
-    }
-
-    m_minfill = 0;
-
-    m_stretcher->process(m_scratch, m_reserve, false);
 }
 
 void
-RubberBandR3PitchShifter::updateRatio()
+RubberBandLivePitchShifter::updateRatio()
 {
     // The octaves, semitones, and cents parameters are supposed to be
     // integral: we want to enforce that, just to avoid
     // inconsistencies between hosts if some respect the hints more
     // than others
-    
-#ifdef RB_PLUGIN_LADSPA
-
-    // But we don't want to change the long-standing behaviour of the
-    // LADSPA plugin, so let's leave this as-is and only do "the right
-    // thing" for LV2
-    double oct = (m_octaves ? *m_octaves : 0.0);
-    oct += (m_semitones ? *m_semitones : 0.0) / 12;
-    oct += (m_cents ? *m_cents : 0.0) / 1200;
-    m_ratio = pow(2.0, oct);
-
-#else
-
-    // LV2
 
     double octaves = round(m_octaves ? *m_octaves : 0.0);
     if (octaves < -2.0) octaves = -2.0;
@@ -514,57 +484,74 @@ RubberBandR3PitchShifter::updateRatio()
                   octaves +
                   semitones / 12.0 +
                   cents / 1200.0);
-#endif
 }
 
 void
-RubberBandR3PitchShifter::updateFormant()
+RubberBandLivePitchShifter::updateFormant()
 {
     if (!m_formant) return;
 
     bool f = (*m_formant > 0.5f);
     if (f == m_currentFormant) return;
     
-    RubberBandStretcher *s = m_stretcher;
+    RubberBandLiveShifter *s = m_shifter;
     
     s->setFormantOption(f ?
-                        RubberBandStretcher::OptionFormantPreserved :
-                        RubberBandStretcher::OptionFormantShifted);
+                        RubberBandLiveShifter::OptionFormantPreserved :
+                        RubberBandLiveShifter::OptionFormantShifted);
 
     m_currentFormant = f;
 }
 
-void
-RubberBandR3PitchShifter::runImpl(uint32_t insamples)
+int
+RubberBandLivePitchShifter::getLatency() const
 {
-    for (size_t c = 0; c < m_channels; ++c) {
+    return m_shifter->getStartDelay() + m_blockSize;
+}
+
+void
+RubberBandLivePitchShifter::runImpl(uint32_t insamples)
+{
+    updateRatio();
+    if (m_ratio != m_prevRatio) {
+        m_shifter->setPitchScale(m_ratio);
+        m_prevRatio = m_ratio;
+    }
+    
+    updateFormant();
+    
+    if (m_latency) {
+        *m_latency = getLatency();
+    }
+    
+    for (int c = 0; c < m_channels; ++c) {
+        m_irb[c]->write(m_input[c], insamples);
         m_delayMixBuffer[c]->write(m_input[c], insamples);
     }
 
-    size_t offset = 0;
+    while (m_irb[0]->getReadSpace() >= m_blockSize) {
 
-    // We have to break up the input into chunks like this because
-    // insamples could be arbitrarily large and our output buffer is
-    // of limited size
-
-    while (offset < insamples) {
-
-        size_t block = m_blockSize;
-        if (offset + block > insamples) {
-            block = insamples - offset;
+        for (int c = 0; c < m_channels; ++c) {
+            m_irb[c]->read(m_ib[c], m_blockSize);
         }
 
-        runImpl(block, offset);
+        m_shifter->shift(m_ib, m_ob);
 
-        offset += block;
+        for (int c = 0; c < m_channels; ++c) {
+            m_orb[c]->write(m_ob[c], m_blockSize);
+        }
     }
 
+    for (int c = 0; c < m_channels; ++c) {
+        m_orb[c]->read(m_output[c], insamples);
+    }
+    
     float mix = 0.0;
     if (m_wetDry) mix = *m_wetDry;
 
-    for (size_t c = 0; c < m_channels; ++c) {
+    for (int c = 0; c < m_channels; ++c) {
         if (mix > 0.0) {
-            for (size_t i = 0; i < insamples; ++i) {
+            for (uint32_t i = 0; i < insamples; ++i) {
                 float dry = m_delayMixBuffer[c]->readOne();
                 m_output[c][i] *= (1.0 - mix);
                 m_output[c][i] += dry * mix;
@@ -572,73 +559,6 @@ RubberBandR3PitchShifter::runImpl(uint32_t insamples)
         } else {
             m_delayMixBuffer[c]->skip(insamples);
         }
-    }
-}
-
-void
-RubberBandR3PitchShifter::runImpl(uint32_t insamples, uint32_t offset)
-{
-    updateRatio();
-    if (m_ratio != m_prevRatio) {
-        m_stretcher->setPitchScale(m_ratio);
-        m_prevRatio = m_ratio;
-    }
-
-    if (m_latency) {
-        *m_latency = getLatency();
-    }
-
-    updateFormant();
-
-    const int samples = insamples;
-    int processed = 0;
-
-    while (processed < samples) {
-
-        // never feed more than the minimum necessary number of
-        // samples at a time; ensures nothing will overflow internally
-        // and we don't need to call setMaxProcessSize
-
-        int toCauseProcessing = m_stretcher->getSamplesRequired();
-        int inchunk = min(samples - processed, toCauseProcessing);
-
-        for (size_t c = 0; c < m_channels; ++c) {
-            m_inptrs[c] = &(m_input[c][offset + processed]);
-        }
-
-        m_stretcher->process(m_inptrs, inchunk, false);
-
-        processed += inchunk;
-
-        int avail = m_stretcher->available();
-        int writable = m_outputBuffer[0]->getWriteSpace();
-
-        int outchunk = avail;
-        if (outchunk > writable) {
-            cerr << "RubberBandR3PitchShifter::runImpl: buffer is not large enough: size = " << m_outputBuffer[0]->getSize() << ", chunk = " << outchunk << ", space = " << writable << " (buffer contains " << m_outputBuffer[0]->getReadSpace() << " unread)" << endl;
-            outchunk = writable;
-        }
-        
-        size_t actual = m_stretcher->retrieve(m_scratch, outchunk);
-
-        for (size_t c = 0; c < m_channels; ++c) {
-            m_outputBuffer[c]->write(m_scratch[c], actual);
-        }
-    }
-    
-    for (size_t c = 0; c < m_channels; ++c) {
-        int toRead = m_outputBuffer[c]->getReadSpace();
-        if (toRead < samples && c == 0) {
-            cerr << "RubberBandR3PitchShifter::runImpl: buffer underrun: required = " << samples << ", available = " << toRead << endl;
-        }
-        int chunk = min(toRead, samples);
-        m_outputBuffer[c]->read(&(m_output[c][offset]), chunk);
-    }
-
-    size_t fill = m_outputBuffer[0]->getReadSpace();
-    if (fill < m_minfill || m_minfill == 0) {
-        m_minfill = fill;
-//        cerr << "minfill = " << m_minfill << endl;
     }
 }
 

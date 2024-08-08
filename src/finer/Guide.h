@@ -457,7 +457,7 @@ public:
             << guidance.phaseReset.f0 << " to " << guidance.phaseReset.f1
             << "]" << std::endl;
 
-        m_log.log(1, str.str().c_str());
+        m_log.log(2, str.str().c_str());
 */
     }
 
@@ -478,7 +478,9 @@ protected:
     double m_maxHigher;
     
     void updateForSilence(Guidance &guidance) const {
-//        std::cout << "phase reset on silence" << std::endl;
+        
+        m_log.log(2, "Guide::updateForSilence");
+
         double nyquist = m_parameters.sampleRate / 2.0;
         if (!m_parameters.singleWindowMode) {
             guidance.fftBands[0].f0 = 0.0;
@@ -498,7 +500,7 @@ protected:
                         const BinSegmenter::Segmentation &segmentation,
                         bool realtime) const {
         
-//        std::cout << "unity" << std::endl;
+        m_log.log(2, "Guide::updateForUnity: realtime and single-window mode", (int)realtime, m_parameters.singleWindowMode);
         
         double nyquist = m_parameters.sampleRate / 2.0;
 
@@ -533,9 +535,9 @@ protected:
         if (!hadPhaseReset) {
             guidance.phaseReset.f0 = 16000.0;
             guidance.phaseReset.f1 = nyquist;
-//            std::cout << "f0 = " << guidance.phaseReset.f0 << std::endl;
             return;
         } else {
+            m_log.log(2, "Guide::updateForUnity: had phase reset");
             guidance.phaseReset.f0 *= 0.9;
             guidance.phaseReset.f1 *= 1.1;
         }
@@ -553,10 +555,7 @@ protected:
             guidance.phaseReset.f0 = 0.0;
         }
 
-//        if (guidance.phaseReset.f0 > 0.0) {
-//            std::cout << unityCount << ": f0 = " << guidance.phaseReset.f0
-//                      << ", f1 = " << guidance.phaseReset.f1 << std::endl;
-//        }
+        m_log.log(2, "Guide::updateForUnity: f0 and f1", guidance.phaseReset.f0, guidance.phaseReset.f1);
     }
 
     bool checkPotentialKick(const process_t *const magnitudes,

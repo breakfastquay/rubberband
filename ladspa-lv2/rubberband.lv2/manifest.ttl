@@ -12,12 +12,22 @@ rubberband:r3mono
         lv2:binary <lv2-rubberband.so> ;
         rdfs:seeAlso <lv2-rubberband.ttl> .
 
+rubberband:livemono
+        a lv2:Plugin ;
+        lv2:binary <lv2-rubberband.so> ;
+        rdfs:seeAlso <lv2-rubberband.ttl> .
+
 rubberband:stereo
         a lv2:Plugin ;
         lv2:binary <lv2-rubberband.so> ;
         rdfs:seeAlso <lv2-rubberband.ttl> .
 
 rubberband:r3stereo
+        a lv2:Plugin ;
+        lv2:binary <lv2-rubberband.so> ;
+        rdfs:seeAlso <lv2-rubberband.ttl> .
+
+rubberband:livestereo
         a lv2:Plugin ;
         lv2:binary <lv2-rubberband.so> ;
         rdfs:seeAlso <lv2-rubberband.ttl> .

@@ -299,7 +299,7 @@ vDSP        -Dfft=vdsp      -DHAVE_VDSP        Default on macOS/iOS (in
 
 FFTW3       -Dfft=fftw      -DHAVE_FFTW3       A bit faster than built-in,
                                                a bit slower than vDSP.
-                                               GPL licence.
+                                               GPL with commercial option.
 
 SLEEF       -Dfft=sleef     -DHAVE_SLEEF       Usually very fast. Not as widely
                                                distributed as FFTW3. Requires

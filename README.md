@@ -12,7 +12,6 @@ tempo and pitch of an audio recording independently of one another.
 
 * About Rubber Band: https://breakfastquay.com/rubberband/
 * Code repository: https://hg.sr.ht/~breakfastquay/rubberband
-* Issue tracker: https://todo.sr.ht/~breakfastquay/rubberband or https://github.com/breakfastquay/rubberband/issues
 * Github mirror: https://github.com/breakfastquay/rubberband
 
 CI builds:
@@ -56,8 +55,8 @@ licences for some relevant library code are as follows, to the best of
 our knowledge. See also the file [COMPILING.md](COMPILING.md) for more
 details.
 
- * FFTW3 - GPL; proprietary licence needed for redistribution
- * Intel IPP - Proprietary; licence needed for redistribution
+ * FFTW3 - GPL with commercial proprietary option
+ * Intel IPP - Proprietary of some nature
  * SLEEF - BSD-like
  * KissFFT - BSD-like
  * libsamplerate - BSD-like from version 0.1.9 onwards

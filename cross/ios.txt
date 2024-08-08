@@ -8,6 +8,9 @@ cpu = 'aarch64'
 system = 'darwin'
 endian = 'little'
 
+[properties]
+needs_exe_wrapper = true
+
 [binaries]
 c = 'cc'
 cpp = 'c++'

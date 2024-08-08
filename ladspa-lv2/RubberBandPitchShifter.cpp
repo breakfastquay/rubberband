@@ -34,6 +34,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::min;
+using std::string;
 
 #ifdef RB_PLUGIN_LADSPA
 
@@ -356,18 +357,18 @@ RubberBandPitchShifter::instantiate(const LV2_Descriptor *desc, double rate,
                                     const char *, const LV2_Feature *const *)
 {
     if (rate < 1.0) {
-        std::cerr << "RubberBandPitchShifter::instantiate: invalid sample rate "
-                  << rate << " provided" << std::endl;
+        cerr << "RubberBandPitchShifter::instantiate: invalid sample rate "
+             << rate << " provided" << endl;
         return nullptr;
     }
     size_t srate = size_t(round(rate));
-    if (std::string(desc->URI) == lv2DescriptorMono.URI) {
+    if (string(desc->URI) == lv2DescriptorMono.URI) {
         return new RubberBandPitchShifter(srate, 1);
-    } else if (std::string(desc->URI) == lv2DescriptorStereo.URI) {
+    } else if (string(desc->URI) == lv2DescriptorStereo.URI) {
         return new RubberBandPitchShifter(srate, 2);
     } else {
-        std::cerr << "RubberBandPitchShifter::instantiate: unrecognised URI "
-                  << desc->URI << " requested" << std::endl;
+        cerr << "RubberBandPitchShifter::instantiate: unrecognised URI "
+             << desc->URI << " requested" << endl;
         return nullptr;
     }
 }
@@ -642,7 +643,6 @@ RubberBandPitchShifter::runImpl(uint32_t insamples, uint32_t offset)
 
     const int samples = insamples;
     int processed = 0;
-    size_t outTotal = 0;
 
     while (processed < samples) {
 
@@ -671,7 +671,6 @@ RubberBandPitchShifter::runImpl(uint32_t insamples, uint32_t offset)
         }
         
         size_t actual = m_stretcher->retrieve(m_scratch, outchunk);
-        outTotal += actual;
 
         for (size_t c = 0; c < m_channels; ++c) {
             m_outputBuffer[c]->write(m_scratch[c], actual);
