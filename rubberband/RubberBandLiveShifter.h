@@ -41,8 +41,6 @@
 #include <memory>
 #include <cstddef>
 
-#pragma message("The RubberBandLiveShifter interface is in alpha test. It may fail to work correctly, or change at any time in the future. Use it at your own risk.")
-
 namespace RubberBand
 {
 
