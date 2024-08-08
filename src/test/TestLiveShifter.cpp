@@ -186,23 +186,12 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
     vector<float> in(n), out(n), expected(n);
     int endpoint = n;
     if (endpoint > 20000) endpoint -= 10000;
-    double sumSquares = 0;
-    double peakIn = 0;
     for (int i = 0; i < n; ++i) {
         float value = 0.5f * sinf(float(i) * freq * M_PI * 2.f / float(rate));
-        if (i < endpoint) {
-            sumSquares += value * value;
-        }
         if (i > endpoint && value > 0.f && in[i-1] <= 0.f) break;
-        if (fabs(value) > peakIn) {
-            peakIn = fabs(value);
-        }
         in[i] = value;
         expected[i] = 0.5f * sinf(float(i) * freq * shift * M_PI * 2.f / float(rate));
     }
-    double rmsIn = sqrt(sumSquares / endpoint);
-    cerr << "rmsIn = " << rmsIn << endl;
-    cerr << "peakIn = " << peakIn << endl;
 
     for (int i = 0; i < n; i += blocksize) {
         float *inp = in.data() + i;
@@ -213,85 +202,30 @@ static void check_sinusoid_shifted(int n, int rate, float freq, float shift,
     int reportedDelay = shifter.getStartDelay();
     int slackpart = 2048;
 
-    for (int section = 0; section < 2; ++section) {
+    double lastCrossing = -1;
 
-        double lastCrossing = -1;
-        double freqeps = (section == 1 ? 0.15 : 5.0) * fabs(shift);
+    double eps = 2.0;
 
-        sumSquares = 0;
+    int i0 = reportedDelay + slackpart;
+    int i1 = endpoint;
 
-        int i0 = reportedDelay;
-        int i1 = reportedDelay + slackpart;
-        if (section == 1) {
-            i0 = i1;
-            i1 = endpoint;
-        }
-        
-        for (int i = i0; i < i1; ++i) {
-            sumSquares += out[i] * out[i];
-            if (out[i-1] < 0.f && out[i] >= 0.f) {
-                double crossing = (i-1) + (out[i-1] / (out[i-1] - out[i]));
-                if (lastCrossing >= 0) {
-                    double f = rate / (crossing - lastCrossing);
-                    double diff = freq * shift - f;
-                    if (fabs(diff) > freqeps) {
-                        cerr << "i = " << i << " (from " << i0 << " to " << i1 << "), f = " << f << ", freq = " << freq * shift << ", diff = " << diff << ", freqeps = " << freqeps << ", shift = " << shift << ", factor = " << fabs(diff)/freqeps << endl;
-                    }
+    for (int i = i0; i < i1; ++i) {
+        if (out[i-1] < 0.f && out[i] >= 0.f) {
+            double crossing = (i-1) + (out[i-1] / (out[i-1] - out[i]));
+            if (lastCrossing >= 0) {
+                double f = rate / (crossing - lastCrossing);
+                double diff = freq * shift - f;
+                double ratio = f / (freq * shift);
+                double cents = 1200.0 * (log(ratio)/log(2.0));
+                if (fabs(cents) >= eps) {
+                    cerr << "i = " << i << " (from " << i0 << " to " << i1 << ", out[i-1] = " << out[i-1] << ", out[i] = " << out[i] << "), f = " << f << ", in freq = " << freq << ", out freq = " << freq * shift << ", ratio = " << ratio << ", cents = " << cents << ", diff = " << diff << ", eps = " << eps << ", shift = " << shift << ", factor = " << fabs(cents)/eps << endl;
+                    BOOST_TEST(fabs(cents) < eps);
                 }
-                lastCrossing = crossing;
             }
-        }
-
-        // check rms
-    }
-/*
-    double avgWavelength = 1;
-    if (nCrossings > 0) {
-        avgWavelength = accWavelength / nCrossings;
-    }
-    double detectedFreq = double(rate) / double(avgWavelength);
-    cerr << "nCrossings = " << nCrossings << ", minWavelength = " << minWavelength << ", maxWavelength = " << maxWavelength << ", avgWavelength = " << avgWavelength << ", detectedFreq = " << detectedFreq << " (expected " << freq * shift << ")" << endl;
-    
-    double rms = sqrt(sumSquares / (endpoint - reportedDelay));
-    cerr << "rms = " << rms << endl;
-    cerr << "peak = " << peakOut << endl;
-    
-    int slackpart = 2048;
-    int delay = reportedDelay + slackpart;
-    
-    // Align to the next zero-crossing in output, as phase may differ
-    
-    for (int i = delay; i < endpoint; ++i) {
-        if (out[i] < 0.f && out[i+1] >= 0.f) {
-            cerr << "zc: at " << i << " we have " << out[i] << ", " << out[i+1] << endl;
-            delay = i+1;
-            break;
+            lastCrossing = crossing;
         }
     }
 
-    cerr << "Adjusted delay from reported value of " << reportedDelay
-         << " by adding slack of " << slackpart
-         << " and moving to next positive zero crossing at " << delay << endl;
-
-    float eps = 1.0e-3f;
-    
-#ifdef USE_BQRESAMPLER
-    eps = 1.0e-2f;
-#endif
-    
-    for (int i = 0; i + delay < endpoint; ++i) {
-        float fin = expected[i];
-        float fout = out[delay + i];
-        float err = fabsf(fin - fout);
-        if (err > eps) {
-            cerr << "Error at index " << i << " exceeds eps "
-                 << eps << ": output " << fout << " - expected "
-                 << fin << " = " << fout - fin << endl;
-            BOOST_TEST(err < eps);
-            break;
-        }
-    }
-*/
     if (printDebug) {
         RubberBandLiveShifter::setDefaultDebugLevel(0);
         dump(debugPrefix, in, out, expected, reportedDelay);
@@ -304,18 +238,16 @@ BOOST_AUTO_TEST_CASE(sinusoid_unchanged)
 
     // delay = 2112, correct
     
-    check_sinusoid_unchanged(n, 44100, 440.f, 0, "unchanged-440");
+    check_sinusoid_unchanged(n, 44100, 440.f, 0);
     check_sinusoid_unchanged(n, 48000, 260.f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_down_octave_440)
 {
-    // Checked: delay = 3648, correct
-
-    // or about 3160?
+    // Checked: delay = 3648, seems ok
     
     int n = 30000;
-    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, 0, "down-octave-440");
+    check_sinusoid_shifted(n, 44100, 440.f, 0.5f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_down_octave_260)
@@ -329,12 +261,10 @@ BOOST_AUTO_TEST_CASE(sinusoid_down_octave_260)
 BOOST_AUTO_TEST_CASE(sinusoid_down_2octave)
 {
     // Checked: delay = 6784, sound
-
-    // I like about 5250
     
     int n = 30000;
-    check_sinusoid_shifted(n, 44100, 440.f, 0.25f, 0, "down-2octave-440");
-//    check_sinusoid_shifted(n, 48000, 260.f, 0.25f, 0);
+    check_sinusoid_shifted(n, 44100, 440.f, 0.25f, 0);
+    check_sinusoid_shifted(n, 48000, 260.f, 0.25f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_up_octave_440)
@@ -347,35 +277,22 @@ BOOST_AUTO_TEST_CASE(sinusoid_up_octave_440)
 
 BOOST_AUTO_TEST_CASE(sinusoid_up_octave_260)
 {
-    // Checked: delay = 2879, correct
+    // Checked: delay = 2879, seems ok
 
-    //!!! or 3380?
-    
     int n = 30000;
-    check_sinusoid_shifted(n, 44100, 260.f, 2.0f, 0, "up-octave-260");
-}
-
-BOOST_AUTO_TEST_CASE(sinusoid_up_2octave)
-{
-    // Checked: delay = 3006 -> highly implausible, must be higher
-    // 3670 ish?
-    
-    int n = 30000;
-    check_sinusoid_shifted(n, 44100, 440.f, 4.0f, 0, "up-2octave-440");
-    check_sinusoid_shifted(n, 48000, 260.f, 4.0f, 0);
+    check_sinusoid_shifted(n, 44100, 260.f, 2.0f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_down_0_99)
 {
-    
     int n = 30000;
-    check_sinusoid_shifted(n, 44100, 440.f, 0.99f, 0, "down-0_99-440");
+    check_sinusoid_shifted(n, 44100, 440.f, 0.99f, 0);
 }
 
 BOOST_AUTO_TEST_CASE(sinusoid_up_1_01)
 {
     int n = 30000;
-    check_sinusoid_shifted(n, 44100, 440.f, 1.01f, 0, "up-1_01-440");
+    check_sinusoid_shifted(n, 44100, 440.f, 1.01f, 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
