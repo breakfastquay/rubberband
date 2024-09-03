@@ -49,8 +49,9 @@ namespace RubberBand
  * 
  * RubberBand::RubberBandLiveShifter is an interface to the Rubber
  * Band Library designed for applications that need to perform
- * pitch-shifting only, without time-stretching, and to do so with the
- * shortest available processing delay.
+ * pitch-shifting only, without time-stretching, and to do so in a
+ * straightforward block-by-block process with the shortest available
+ * processing delay.
  *
  * RubberBandLiveShifter has a much simpler API than the general
  * RubberBandStretcher. Its process function, called
@@ -67,15 +68,15 @@ namespace RubberBand
  * it only needs to be queried once and then fixed-size buffers may be
  * passed.
  *
- * Using RubberBandLiveShifter also gives a substantially shorter
- * processing delay than a typical buffering setup using
- * RubberBandStretcher, making it a useful choice for some live
- * situations, although it is still not a low-latency effect (and
- * never will be) with a delay of 50ms or more between input and
- * output signals depending on configuration. The actual value may be
- * queried via RubberBandLiveShifter::getStartDelay(). The shifter is
- * real-time safe in the sense of avoiding allocation, locking, or
- * blocking operations in the processing path.
+ * Using RubberBandLiveShifter also gives a shorter processing delay
+ * than a typical buffering setup using RubberBandStretcher, making it
+ * a useful choice for some streamed or live situations. However, it
+ * is still not a low-latency effect, with a delay of 50ms or more
+ * between input and output signals depending on configuration. (The
+ * actual value may be queried via
+ * RubberBandLiveShifter::getStartDelay().) The shifter is real-time
+ * safe in the sense of avoiding allocation, locking, or blocking
+ * operations in the processing path.
  *
  * ### Thread safety
  * 
