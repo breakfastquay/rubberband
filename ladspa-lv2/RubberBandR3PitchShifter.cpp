@@ -220,7 +220,7 @@ RubberBandR3PitchShifter::getDescriptor(unsigned long index)
 const LV2_Descriptor
 RubberBandR3PitchShifter::lv2DescriptorMono =
 {
-    "http://breakfastquay.com/rdf/lv2-rubberband-r3#mono",
+    "http://breakfastquay.com/rdf/lv2-rubberband#r3mono",
     instantiate,
     connectPort,
     activate,
@@ -233,7 +233,7 @@ RubberBandR3PitchShifter::lv2DescriptorMono =
 const LV2_Descriptor
 RubberBandR3PitchShifter::lv2DescriptorStereo =
 {
-    "http://breakfastquay.com/rdf/lv2-rubberband-r3#stereo",
+    "http://breakfastquay.com/rdf/lv2-rubberband#r3stereo",
     instantiate,
     connectPort,
     activate,
