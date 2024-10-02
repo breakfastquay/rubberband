@@ -102,7 +102,7 @@ public:
         OptionFormantPreserved     = 0x01000000,
 
         OptionChannelsApart        = 0x00000000,
-        OptionChannelsTogether     = 0x10000000,
+        OptionChannelsTogether     = 0x10000000
 
         // n.b. Options is int, so we must stop before 0x80000000
     };

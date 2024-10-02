@@ -23,6 +23,7 @@
 
 #include "../rubberband/rubberband-c.h"
 #include "../rubberband/RubberBandStretcher.h"
+#include "../rubberband/RubberBandLiveShifter.h"
 
 struct RubberBandState_
 {
@@ -197,3 +198,78 @@ void rubberband_set_default_debug_level(int level)
     RubberBand::RubberBandStretcher::setDefaultDebugLevel(level);
 }
 
+struct RubberBandLiveState_
+{
+    RubberBand::RubberBandLiveShifter *m_s;
+};
+
+RubberBandLiveState rubberband_live_new(unsigned int sampleRate,
+                                        unsigned int channels,
+                                        RubberBandOptions options)
+{
+    RubberBandLiveState_ *state = new RubberBandLiveState_();
+    state->m_s = new RubberBand::RubberBandLiveShifter
+        (sampleRate, channels, options);
+    return state;
+}
+
+void rubberband_live_delete(RubberBandLiveState state)
+{
+    delete state->m_s;
+    delete state;
+}
+
+void rubberband_live_reset(RubberBandLiveState state)
+{
+    state->m_s->reset();
+}
+
+void rubberband_live_set_pitch_scale(RubberBandLiveState state, double scale)
+{
+    state->m_s->setPitchScale(scale);
+}
+
+double rubberband_live_get_pitch_scale(const RubberBandLiveState state)
+{
+    return state->m_s->getPitchScale();
+}
+
+void rubberband_live_set_formant_scale(RubberBandLiveState state, double scale)
+{
+    state->m_s->setFormantScale(scale);
+}
+
+double rubberband_live_get_formant_scale(const RubberBandLiveState state)
+{
+    return state->m_s->getFormantScale();
+}
+
+unsigned int rubberband_live_get_start_delay(const RubberBandLiveState state) 
+{
+    return (unsigned int)state->m_s->getStartDelay();
+}
+
+void rubberband_live_set_formant_option(RubberBandLiveState state, RubberBandOptions options)
+{
+    state->m_s->setFormantOption(options);
+}
+
+void rubberband_live_shift(RubberBandLiveState state, const float *const *input, float *const *output)
+{
+    state->m_s->shift(input, output);
+}
+
+unsigned int rubberband_live_get_channel_count(const RubberBandLiveState state)
+{
+    return (unsigned int)state->m_s->getChannelCount();
+}
+
+void rubberband_live_set_debug_level(RubberBandLiveState state, int level)
+{
+    state->m_s->setDebugLevel(level);
+}
+
+void rubberband_live_set_default_debug_level(int level)
+{
+    RubberBand::RubberBandStretcher::setDefaultDebugLevel(level);
+}
