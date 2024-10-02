@@ -28,10 +28,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define RUBBERBAND_VERSION "3.3.0"
-#define RUBBERBAND_API_MAJOR_VERSION 2
-#define RUBBERBAND_API_MINOR_VERSION 8
+    
+#define RUBBERBAND_VERSION "4.0.0"
+#define RUBBERBAND_API_MAJOR_VERSION 3
+#define RUBBERBAND_API_MINOR_VERSION 0
 
 #undef RB_EXTERN
 #ifdef _MSC_VER

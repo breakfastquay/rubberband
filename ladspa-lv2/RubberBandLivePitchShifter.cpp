@@ -220,7 +220,7 @@ RubberBandLivePitchShifter::getDescriptor(unsigned long index)
 const LV2_Descriptor
 RubberBandLivePitchShifter::lv2DescriptorMono =
 {
-    "http://breakfastquay.com/rdf/lv2-rubberband-live#mono",
+    "http://breakfastquay.com/rdf/lv2-rubberband#livemono",
     instantiate,
     connectPort,
     activate,
@@ -233,7 +233,7 @@ RubberBandLivePitchShifter::lv2DescriptorMono =
 const LV2_Descriptor
 RubberBandLivePitchShifter::lv2DescriptorStereo =
 {
-    "http://breakfastquay.com/rdf/lv2-rubberband-live#stereo",
+    "http://breakfastquay.com/rdf/lv2-rubberband#livestereo",
     instantiate,
     connectPort,
     activate,
