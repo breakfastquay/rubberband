@@ -63,6 +63,7 @@ jni_sources = [
 
 java_sources = [
   'com/breakfastquay/rubberband/RubberBandStretcher.java',
+  'com/breakfastquay/rubberband/RubberBandLiveShifter.java',
 ]
 
 java_test_sources = [

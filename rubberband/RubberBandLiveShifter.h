@@ -293,6 +293,9 @@ public:
      * array having enough room to store n samples where n is the value
      * returned by getBlockSize().
      *
+     * The input and output must be separate arrays; they cannot alias
+     * one another or overlap.
+     *
      * Sample values are conventionally expected to be in the range
      * -1.0f to +1.0f.
      */

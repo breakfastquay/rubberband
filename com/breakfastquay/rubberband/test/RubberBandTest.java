@@ -2,14 +2,14 @@
 package com.breakfastquay.rubberband.test;
 
 import com.breakfastquay.rubberband.RubberBandStretcher;
+import com.breakfastquay.rubberband.RubberBandLiveShifter;
 
 import java.util.TreeMap;
 
 public class RubberBandTest
 {
-
-    public static void main(String[] args) {
-
+    public static void exerciseStretcher() {
+        
         int channels = 1;
         int rate = 44100;
         
@@ -72,6 +72,9 @@ public class RubberBandTest
 
         i0 = 0;
 
+        double sqrtotal = 0.0;
+        int n = 0;
+
         for (int block = 0; block < blocks; ++block) {
 
             for (int c = 0; c < channels; ++c) {
@@ -98,12 +101,87 @@ public class RubberBandTest
                 }
                 int obtained = stretcher.retrieve(buffer, 0, requested);
                 for (int i = 0; i < obtained; ++i) {
-                    System.out.println(Float.toString(buffer[0][i]));
+                    sqrtotal += (double)(buffer[0][i] * buffer[0][i]);
+                    ++n;
                 }
             }
         }
+
+        System.err.println
+            (String.format("in = %d, out = %d, rms = %f",
+                           blocksize * blocks, n,
+                           Math.sqrt(sqrtotal / (double)n)));
         
         stretcher.dispose();
+    }
+
+    public static void exerciseLiveShifter() {
+        
+        int channels = 1;
+        int rate = 44100;
+        
+        RubberBandLiveShifter shifter = new RubberBandLiveShifter
+            (rate,
+             channels,
+             0);
+
+        shifter.setPitchScale(0.8);
+        
+        System.err.println
+            (String.format("Channel count: %d\n" +
+                           "Pitch scale: %f\n" +
+                           "Block size: %d\n" +
+                           "Start delay: %d",
+                           shifter.getChannelCount(),
+                           shifter.getPitchScale(),
+                           shifter.getBlockSize(),
+                           shifter.getStartDelay()
+                ));
+
+        int blocksize = shifter.getBlockSize();
+        int blocks = 400;
+        double freq = 440.0;
+        
+        float[][] inbuf = new float[channels][blocksize];
+        float[][] outbuf = new float[channels][blocksize];
+
+        int i0 = 0;
+
+        double sqrtotal = 0.0;
+        int n = 0;
+
+        for (int block = 0; block < blocks; ++block) {
+
+            for (int c = 0; c < channels; ++c) {
+                for (int i = 0; i < blocksize; ++i) {
+                    inbuf[c][i] = (float)Math.sin
+                        ((double)i0 * freq * Math.PI * 2.0 / (double)rate);
+                    if (i0 % rate == 0) {
+                        inbuf[c][i] = 1.f;
+                    }
+                    ++i0;
+                }
+            }
+            
+            shifter.shift(inbuf, outbuf);
+
+            for (int i = 0; i < blocksize; ++i) {
+                sqrtotal += (double)(outbuf[0][i] * outbuf[0][i]);
+                ++n;
+            }
+        }
+
+        System.err.println
+            (String.format("in = %d, out = %d, rms = %f",
+                           blocksize * blocks, n,
+                           Math.sqrt(sqrtotal / (double)n)));
+        
+        shifter.dispose();
+    }
+
+    public static void main(String[] args) {
+        exerciseStretcher();
+        exerciseLiveShifter();
     }
     
 }

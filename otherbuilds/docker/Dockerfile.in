@@ -1,0 +1,32 @@
+FROM ubuntu:22.04
+MAINTAINER Chris Cannam <cannam@all-day-breakfast.com>
+RUN apt-get update && \
+    apt-get install -y \
+    software-properties-common \
+    build-essential \
+    pkg-config \
+    libsamplerate0-dev \
+    libsndfile1-dev \
+    libfftw3-dev \
+    ladspa-sdk \
+    lv2-dev \
+    vamp-plugin-sdk \
+    libboost-test-dev \
+    mercurial \
+    meson \
+    ninja-build \
+    openjdk-8-jre \
+    openjdk-8-jdk
+
+WORKDIR /root
+
+RUN hg clone -u [[REVISION]] https://hg.sr.ht/~breakfastquay/rubberband
+
+WORKDIR rubberband
+
+RUN meson setup build
+RUN ninja -C build
+RUN meson test -C build
+
+WORKDIR build
+RUN java -Djava.library.path=$(pwd) -cp rubberband-test.jar com.breakfastquay.rubberband.test.RubberBandTest

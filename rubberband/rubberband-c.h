@@ -197,7 +197,7 @@ RB_EXTERN unsigned int rubberband_live_get_start_delay(const RubberBandLiveState
 
 RB_EXTERN void rubberband_live_set_formant_option(RubberBandLiveState, RubberBandOptions options);
 
-RB_EXTERN unsigned int rubberband_live_get_block_size(RubberBandLiveState, RubberBandOptions options);
+RB_EXTERN unsigned int rubberband_live_get_block_size(RubberBandLiveState);
 
 RB_EXTERN void rubberband_live_shift(RubberBandLiveState, const float *const *input, float *const *output);
 

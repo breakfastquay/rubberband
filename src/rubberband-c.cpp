@@ -254,6 +254,11 @@ void rubberband_live_set_formant_option(RubberBandLiveState state, RubberBandOpt
     state->m_s->setFormantOption(options);
 }
 
+unsigned int rubberband_live_get_block_size(RubberBandLiveState state)
+{
+    return (unsigned int)state->m_s->getBlockSize();
+}
+
 void rubberband_live_shift(RubberBandLiveState state, const float *const *input, float *const *output)
 {
     state->m_s->shift(input, output);
