@@ -1,5 +1,6 @@
 FROM ubuntu:22.04
 MAINTAINER Chris Cannam <cannam@all-day-breakfast.com>
+
 RUN apt-get update && \
     apt-get install -y \
     software-properties-common \
@@ -13,12 +14,17 @@ RUN apt-get update && \
     vamp-plugin-sdk \
     libboost-test-dev \
     mercurial \
-    meson \
     ninja-build \
-    openjdk-8-jre \
-    openjdk-8-jdk
+    plocate
+    
+RUN apt-get install -y \
+    openjdk-21-jdk
 
 WORKDIR /root
+
+ADD https://github.com/mesonbuild/meson/releases/download/1.3.1/meson-1.3.1.tar.gz .
+RUN tar xvf meson-1.3.1.tar.gz
+RUN ln -s $(pwd)/meson-1.3.1/meson.py /usr/bin/meson
 
 RUN hg clone -u [[REVISION]] https://hg.sr.ht/~breakfastquay/rubberband
 
@@ -29,4 +35,5 @@ RUN ninja -C build
 RUN meson test -C build
 
 WORKDIR build
+
 RUN java -Djava.library.path=$(pwd) -cp rubberband-test.jar com.breakfastquay.rubberband.test.RubberBandTest
