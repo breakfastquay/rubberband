@@ -8,11 +8,18 @@ packages:
   - lv2-dev
   - vamp-plugin-sdk
   - libboost-test-dev
-  - meson
   - ninja-build
+  - openjdk-21-jdk
+  - wget
 sources:
   - hg+https://hg.sr.ht/~breakfastquay/rubberband
 tasks:
+  - install-meson: |
+      mkdir -p tmp/meson
+      cd tmp/meson
+      wget https://github.com/mesonbuild/meson/releases/download/1.5.2/meson-1.5.2.tar.gz
+      tar xvf meson-1.5.2.tar.gz
+      sudo ln -s $(pwd)/meson-1.5.2/meson.py /usr/bin/meson
   - setup: |
       cd rubberband
       meson setup build
@@ -24,6 +31,7 @@ tasks:
       cd rubberband
       ninja -C build
       meson test -C build
+      java -Djava.library.path=build -cp build/rubberband-test.jar com.breakfastquay.rubberband.test.RubberBandTest
       build/rubberband -V
       ninja -C build_speex
       meson test -C build_speex
