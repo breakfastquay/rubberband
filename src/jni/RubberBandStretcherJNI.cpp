@@ -22,6 +22,7 @@
 */
 
 #include "rubberband/RubberBandStretcher.h"
+#include "rubberband/RubberBandLiveShifter.h"
 
 #include "common/Allocators.h"
 
@@ -231,6 +232,86 @@ JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_ret
 JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandStretcher_initialise
   (JNIEnv *, jobject, jint, jint, jint, jdouble, jdouble);
 
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    dispose
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_dispose
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    reset
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_reset
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    setPitchScale
+ * Signature: (D)V
+ */
+JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_setPitchScale
+  (JNIEnv *, jobject, jdouble);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    getChannelCount
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_getChannelCount
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    getPitchScale
+ * Signature: ()D
+ */
+JNIEXPORT jdouble JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_getPitchScale
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    getStartDelay
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_getStartDelay
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    setFormantOption
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_setFormantOption
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    getBlockSize
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_getBlockSize
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    shift
+ * Signature: ([[FI[[FI)V
+ */
+JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_shift
+(JNIEnv *, jobject, jobjectArray, jint, jobjectArray, jint);
+
+/*
+ * Class:     com_breakfastquay_rubberband_RubberBandLiveShifter
+ * Method:    initialise
+ * Signature: (III)V
+ */
+JNIEXPORT void JNICALL Java_com_breakfastquay_rubberband_RubberBandLiveShifter_initialise
+  (JNIEnv *, jobject, jint, jint, jint);
+
 }
 
 RubberBandStretcher *
@@ -390,45 +471,48 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_setKeyFrameMap(JNIEnv *env
 }
 
 JNIEXPORT void JNICALL
-Java_com_breakfastquay_rubberband_RubberBandStretcher_study(JNIEnv *env, jobject obj, jobjectArray data, jint offset, jint n, jboolean final)
+Java_com_breakfastquay_rubberband_RubberBandStretcher_study(JNIEnv *env, jobject obj, jobjectArray input, jint offset, jint n, jboolean final)
 {
-    int channels = env->GetArrayLength(data);
+    int channels = env->GetArrayLength(input);
     float **arr = allocate<float *>(channels);
-    float **input = allocate<float *>(channels);
+    float **inbuf = allocate<float *>(channels);
     for (int c = 0; c < channels; ++c) {
-        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(data, c);
+        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(input, c);
         arr[c] = env->GetFloatArrayElements(cdata, 0);
-        input[c] = arr[c] + offset;
+        inbuf[c] = arr[c] + offset;
     }
 
-    getStretcher(env, obj)->study(input, n, final);
+    getStretcher(env, obj)->study(inbuf, n, final);
 
     for (int c = 0; c < channels; ++c) {
-        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(data, c);
+        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(input, c);
         env->ReleaseFloatArrayElements(cdata, arr[c], 0);
     }
+
+    deallocate(inbuf);
+    deallocate(arr);
 }
 
 JNIEXPORT void JNICALL
-Java_com_breakfastquay_rubberband_RubberBandStretcher_process(JNIEnv *env, jobject obj, jobjectArray data, jint offset, jint n, jboolean final)
+Java_com_breakfastquay_rubberband_RubberBandStretcher_process(JNIEnv *env, jobject obj, jobjectArray input, jint offset, jint n, jboolean final)
 {
-    int channels = env->GetArrayLength(data);
+    int channels = env->GetArrayLength(input);
     float **arr = allocate<float *>(channels);
-    float **input = allocate<float *>(channels);
+    float **inbuf = allocate<float *>(channels);
     for (int c = 0; c < channels; ++c) {
-        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(data, c);
+        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(input, c);
         arr[c] = env->GetFloatArrayElements(cdata, 0);
-        input[c] = arr[c] + offset;
+        inbuf[c] = arr[c] + offset;
     }
 
-    getStretcher(env, obj)->process(input, n, final);
+    getStretcher(env, obj)->process(inbuf, n, final);
 
     for (int c = 0; c < channels; ++c) {
-        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(data, c);
+        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(input, c);
         env->ReleaseFloatArrayElements(cdata, arr[c], 0);
     }
 
-    deallocate(input);
+    deallocate(inbuf);
     deallocate(arr);
 }
 
@@ -455,4 +539,112 @@ Java_com_breakfastquay_rubberband_RubberBandStretcher_retrieve(JNIEnv *env, jobj
     deallocate_channels(outbuf, channels);
     return retrieved;
 }
+
+RubberBandLiveShifter *
+getLiveShifter(JNIEnv *env, jobject obj)
+{
+    jclass c = env->GetObjectClass(obj);
+    jfieldID fid = env->GetFieldID(c, "handle", "J");
+    jlong handle = env->GetLongField(obj, fid);
+    return (RubberBandLiveShifter *)handle;
+}
+
+void
+setLiveShifter(JNIEnv *env, jobject obj, RubberBandLiveShifter *stretcher)
+{
+    jclass c = env->GetObjectClass(obj);
+    jfieldID fid = env->GetFieldID(c, "handle", "J");
+    jlong handle = (jlong)stretcher;
+    env->SetLongField(obj, fid, handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_initialise(JNIEnv *env, jobject obj, jint sampleRate, jint channels, jint options)
+{
+    setLiveShifter(env, obj, new RubberBandLiveShifter
+                   (sampleRate, channels, options));
+}
+
+JNIEXPORT void JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_dispose(JNIEnv *env, jobject obj)
+{
+    delete getLiveShifter(env, obj);
+    setLiveShifter(env, obj, 0);
+}
+
+JNIEXPORT void JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_reset(JNIEnv *env, jobject obj)
+{
+    getLiveShifter(env, obj)->reset();
+}
+
+JNIEXPORT void JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_setPitchScale(JNIEnv *env, jobject obj, jdouble scale)
+{
+    getLiveShifter(env, obj)->setPitchScale(scale);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_getChannelCount(JNIEnv *env, jobject obj)
+{
+    return getLiveShifter(env, obj)->getChannelCount();
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_getPitchScale(JNIEnv *env, jobject obj)
+{
+    return getLiveShifter(env, obj)->getPitchScale();
+}
+
+JNIEXPORT jint JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_getStartDelay(JNIEnv *env, jobject obj)
+{
+    return getLiveShifter(env, obj)->getStartDelay();
+}
+
+JNIEXPORT void JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_setFormantOption(JNIEnv *env, jobject obj, jint options)
+{
+    getLiveShifter(env, obj)->setFormantOption(options);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_getBlockSize(JNIEnv *env, jobject obj)
+{
+    return getLiveShifter(env, obj)->getBlockSize();
+}
+
+JNIEXPORT void JNICALL
+Java_com_breakfastquay_rubberband_RubberBandLiveShifter_shift(JNIEnv *env, jobject obj, jobjectArray input, jint inOffset, jobjectArray output, jint outOffset)
+{
+    int channels = env->GetArrayLength(input);
+    float **inarr = allocate<float *>(channels);
+    float **inbuf = allocate<float *>(channels);
+    float **outarr = allocate<float *>(channels);
+    float **outbuf = allocate<float *>(channels);
+
+    for (int c = 0; c < channels; ++c) {
+        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(input, c);
+        inarr[c] = env->GetFloatArrayElements(cdata, 0);
+        inbuf[c] = inarr[c] + inOffset;
+        cdata = (jfloatArray)env->GetObjectArrayElement(output, c);
+        outarr[c] = env->GetFloatArrayElements(cdata, 0);
+        outbuf[c] = outarr[c] + outOffset;
+    }
+
+    getLiveShifter(env, obj)->shift(inbuf, outbuf);
+
+    for (int c = 0; c < channels; ++c) {
+        jfloatArray cdata = (jfloatArray)env->GetObjectArrayElement(input, c);
+        env->ReleaseFloatArrayElements(cdata, inarr[c], 0);
+        cdata = (jfloatArray)env->GetObjectArrayElement(output, c);
+        env->ReleaseFloatArrayElements(cdata, outarr[c], 0);
+    }
+
+    deallocate(inbuf);
+    deallocate(inarr);
+    deallocate(outbuf);
+    deallocate(outarr);
+}
+
 

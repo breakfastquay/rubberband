@@ -31,3 +31,4 @@ playlist-out/*
 formant-out-*/
 out*.wav
 packages/
+otherbuilds/docker/Dockerfile
