@@ -24,7 +24,7 @@ public class RubberBandTest
         stretcher.setTimeRatio(1.5);
         stretcher.setPitchScale(0.8);
         
-        System.err.println
+        System.out.println
             (String.format("Channel count: %d\n" +
                            "Time ratio: %f\n" +
                            "Pitch scale: %f\n" +
@@ -107,7 +107,7 @@ public class RubberBandTest
             }
         }
 
-        System.err.println
+        System.out.println
             (String.format("in = %d, out = %d, rms = %f",
                            blocksize * blocks, n,
                            Math.sqrt(sqrtotal / (double)n)));
@@ -127,7 +127,7 @@ public class RubberBandTest
 
         shifter.setPitchScale(0.8);
         
-        System.err.println
+        System.out.println
             (String.format("Channel count: %d\n" +
                            "Pitch scale: %f\n" +
                            "Block size: %d\n" +
@@ -171,17 +171,20 @@ public class RubberBandTest
             }
         }
 
-        System.err.println
+        System.out.println
             (String.format("in = %d, out = %d, rms = %f",
                            blocksize * blocks, n,
                            Math.sqrt(sqrtotal / (double)n)));
-        
+
         shifter.dispose();
     }
 
     public static void main(String[] args) {
+        System.out.println("Exercising RubberBandStretcher through JNI...");
         exerciseStretcher();
+        System.out.println("Exercising RubberBandLiveShifter through JNI...");
         exerciseLiveShifter();
+        System.out.println("Done");
     }
     
 }
