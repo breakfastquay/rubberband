@@ -372,7 +372,8 @@ if ipp_needed
   feature_defines += [
     '-DHAVE_IPP',
     '-DUSE_IPP_STATIC',
-    '-I' + ipp_path / 'include'
+    '-I' + ipp_path / 'include',
+    '-I' + ipp_path / 'include/ipp',
   ]
   if architecture == 'x86'
     feature_libraries += [
