@@ -1,0 +1,21 @@
+[binaries]
+c = '/Users/joel/Library/Android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android34-clang'
+cpp = '/Users/joel/Library/Android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android34-clang++'
+ar = '/Users/joel/Library/Android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-ar'
+strip = '/Users/joel/Library/Android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip'
+pkg-config = '/usr/local/bin/pkg-config'
+
+[host_machine]
+system = 'linux'
+cpu_family = 'aarch64'
+cpu = 'aarch64'
+endian = 'little'
+
+[built-in options]
+c_args = ['-DANDROID', '-fPIC']
+cpp_args = ['-DANDROID', '-fPIC']
+c_link_args = ['-fPIC']
+cpp_link_args = ['-fPIC']
+
+[properties]
+sys_root = '/Users/joel/Library/Android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/darwin-x86_64/sysroot'
