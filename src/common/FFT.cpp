@@ -69,13 +69,19 @@ extern "C" {
 #include "kiss_fftr.h"
 #endif
 
+#ifdef HAVE_PFFFT
+#include "pffft.h"
+#endif
+
 #ifndef HAVE_IPP
 #ifndef HAVE_FFTW3
 #ifndef HAVE_SLEEF
 #ifndef HAVE_KISSFFT
+#ifndef HAVE_PFFFT
 #ifndef USE_BUILTIN_FFT
 #ifndef HAVE_VDSP
 #error No FFT implementation selected!
+#endif
 #endif
 #endif
 #endif
@@ -1942,6 +1948,301 @@ private:
 
 #endif /* HAVE_KISSFFT */
 
+#ifdef HAVE_PFFFT
+
+class D_PFFFT : public FFTImpl
+{
+public:
+    D_PFFFT(int size) :
+        m_size(size),
+        m_setup(0)
+    {
+        m_setup = pffft_new_setup(size, PFFFT_REAL);
+        if (!m_setup) {
+            std::cerr << "ERROR: PFFFT setup failed for size " << size << std::endl;
+        }
+        m_fbuf = (float *)pffft_aligned_malloc(size * sizeof(float));
+        m_fpacked = (float *)pffft_aligned_malloc((size + 2) * sizeof(float));
+        m_fwork = (float *)pffft_aligned_malloc(size * sizeof(float));
+    }
+
+    ~D_PFFFT() {
+        pffft_destroy_setup(m_setup);
+        pffft_aligned_free(m_fbuf);
+        pffft_aligned_free(m_fpacked);
+        pffft_aligned_free(m_fwork);
+    }
+
+    int getSize() const {
+        return m_size;
+    }
+
+    FFT::Precisions
+    getSupportedPrecisions() const {
+        return FFT::SinglePrecision;
+    }
+
+    void initFloat() { }
+    void initDouble() { }
+
+    // pffft ordered output for real FFT: [DC, Nyquist, Re1, Im1, ..., Re(hs-1), Im(hs-1)]
+    // CCS format: [DC, 0, Re1, Im1, ..., Re(hs-1), Im(hs-1), Nyquist, 0]
+
+    void pffftToCCS(float *ccs) {
+        const int hs = m_size/2;
+        // Move bins hs-1 down to 1 first (in reverse to avoid overwriting)
+        for (int i = hs - 1; i >= 1; --i) {
+            ccs[i*2] = m_fpacked[i*2];
+            ccs[i*2 + 1] = m_fpacked[i*2 + 1];
+        }
+        // DC and Nyquist
+        ccs[0] = m_fpacked[0];
+        ccs[1] = 0.f;
+        ccs[hs*2] = m_fpacked[1];
+        ccs[hs*2 + 1] = 0.f;
+    }
+
+    void ccsToPffft(const float *ccs) {
+        const int hs = m_size/2;
+        // DC and Nyquist
+        m_fpacked[0] = ccs[0];
+        m_fpacked[1] = ccs[hs*2];
+        // Bins 1 to hs-1
+        for (int i = 1; i < hs; ++i) {
+            m_fpacked[i*2] = ccs[i*2];
+            m_fpacked[i*2 + 1] = ccs[i*2 + 1];
+        }
+    }
+
+    void packFloat(const float *BQ_R__ re, const float *BQ_R__ im) {
+        const int hs = m_size/2;
+        m_fpacked[0] = re[0];
+        m_fpacked[1] = re[hs];
+        for (int i = 1; i < hs; ++i) {
+            m_fpacked[i*2] = re[i];
+            m_fpacked[i*2 + 1] = im ? im[i] : 0.f;
+        }
+    }
+
+    void unpackFloat(float *BQ_R__ re, float *BQ_R__ im) {
+        const int hs = m_size/2;
+        re[0] = m_fpacked[0];
+        re[hs] = m_fpacked[1];
+        if (im) {
+            im[0] = 0.f;
+            im[hs] = 0.f;
+        }
+        for (int i = 1; i < hs; ++i) {
+            re[i] = m_fpacked[i*2];
+            if (im) im[i] = m_fpacked[i*2 + 1];
+        }
+    }
+
+    void packDouble(const double *BQ_R__ re, const double *BQ_R__ im) {
+        const int hs = m_size/2;
+        m_fpacked[0] = float(re[0]);
+        m_fpacked[1] = float(re[hs]);
+        for (int i = 1; i < hs; ++i) {
+            m_fpacked[i*2] = float(re[i]);
+            m_fpacked[i*2 + 1] = im ? float(im[i]) : 0.f;
+        }
+    }
+
+    void unpackDouble(double *BQ_R__ re, double *BQ_R__ im) {
+        const int hs = m_size/2;
+        re[0] = double(m_fpacked[0]);
+        re[hs] = double(m_fpacked[1]);
+        if (im) {
+            im[0] = 0.0;
+            im[hs] = 0.0;
+        }
+        for (int i = 1; i < hs; ++i) {
+            re[i] = double(m_fpacked[i*2]);
+            if (im) im[i] = double(m_fpacked[i*2 + 1]);
+        }
+    }
+
+    void forward(const double *BQ_R__ realIn, double *BQ_R__ realOut, double *BQ_R__ imagOut) {
+        v_convert(m_fbuf, realIn, m_size);
+        pffft_transform_ordered(m_setup, m_fbuf, m_fpacked, m_fwork, PFFFT_FORWARD);
+        unpackDouble(realOut, imagOut);
+    }
+
+    void forwardInterleaved(const double *BQ_R__ realIn, double *BQ_R__ complexOut) {
+        v_convert(m_fbuf, realIn, m_size);
+        pffft_transform_ordered(m_setup, m_fbuf, m_fpacked, m_fwork, PFFFT_FORWARD);
+        // Convert pffft format to CCS
+        const int hs = m_size/2;
+        complexOut[0] = double(m_fpacked[0]);
+        complexOut[1] = 0.0;
+        for (int i = 1; i < hs; ++i) {
+            complexOut[i*2] = double(m_fpacked[i*2]);
+            complexOut[i*2 + 1] = double(m_fpacked[i*2 + 1]);
+        }
+        complexOut[hs*2] = double(m_fpacked[1]);
+        complexOut[hs*2 + 1] = 0.0;
+    }
+
+    void forwardPolar(const double *BQ_R__ realIn, double *BQ_R__ magOut, double *BQ_R__ phaseOut) {
+        v_convert(m_fbuf, realIn, m_size);
+        pffft_transform_ordered(m_setup, m_fbuf, m_fpacked, m_fwork, PFFFT_FORWARD);
+        const int hs = m_size/2;
+        // DC
+        magOut[0] = fabs(double(m_fpacked[0]));
+        phaseOut[0] = m_fpacked[0] < 0 ? M_PI : 0.0;
+        // Nyquist
+        magOut[hs] = fabs(double(m_fpacked[1]));
+        phaseOut[hs] = m_fpacked[1] < 0 ? M_PI : 0.0;
+        // Bins 1 to hs-1
+        for (int i = 1; i < hs; ++i) {
+            double re = double(m_fpacked[i*2]);
+            double im = double(m_fpacked[i*2 + 1]);
+            magOut[i] = sqrt(re*re + im*im);
+            phaseOut[i] = atan2(im, re);
+        }
+    }
+
+    void forwardMagnitude(const double *BQ_R__ realIn, double *BQ_R__ magOut) {
+        v_convert(m_fbuf, realIn, m_size);
+        pffft_transform_ordered(m_setup, m_fbuf, m_fpacked, m_fwork, PFFFT_FORWARD);
+        const int hs = m_size/2;
+        magOut[0] = fabs(double(m_fpacked[0]));
+        magOut[hs] = fabs(double(m_fpacked[1]));
+        for (int i = 1; i < hs; ++i) {
+            double re = double(m_fpacked[i*2]);
+            double im = double(m_fpacked[i*2 + 1]);
+            magOut[i] = sqrt(re*re + im*im);
+        }
+    }
+
+    void forward(const float *BQ_R__ realIn, float *BQ_R__ realOut, float *BQ_R__ imagOut) {
+        pffft_transform_ordered(m_setup, realIn, m_fpacked, m_fwork, PFFFT_FORWARD);
+        unpackFloat(realOut, imagOut);
+    }
+
+    void forwardInterleaved(const float *BQ_R__ realIn, float *BQ_R__ complexOut) {
+        pffft_transform_ordered(m_setup, realIn, m_fpacked, m_fwork, PFFFT_FORWARD);
+        pffftToCCS(complexOut);
+    }
+
+    void forwardPolar(const float *BQ_R__ realIn, float *BQ_R__ magOut, float *BQ_R__ phaseOut) {
+        pffft_transform_ordered(m_setup, realIn, m_fpacked, m_fwork, PFFFT_FORWARD);
+        const int hs = m_size/2;
+        magOut[0] = fabsf(m_fpacked[0]);
+        phaseOut[0] = m_fpacked[0] < 0 ? float(M_PI) : 0.f;
+        magOut[hs] = fabsf(m_fpacked[1]);
+        phaseOut[hs] = m_fpacked[1] < 0 ? float(M_PI) : 0.f;
+        for (int i = 1; i < hs; ++i) {
+            float re = m_fpacked[i*2];
+            float im = m_fpacked[i*2 + 1];
+            magOut[i] = sqrtf(re*re + im*im);
+            phaseOut[i] = atan2f(im, re);
+        }
+    }
+
+    void forwardMagnitude(const float *BQ_R__ realIn, float *BQ_R__ magOut) {
+        pffft_transform_ordered(m_setup, realIn, m_fpacked, m_fwork, PFFFT_FORWARD);
+        const int hs = m_size/2;
+        magOut[0] = fabsf(m_fpacked[0]);
+        magOut[hs] = fabsf(m_fpacked[1]);
+        for (int i = 1; i < hs; ++i) {
+            float re = m_fpacked[i*2];
+            float im = m_fpacked[i*2 + 1];
+            magOut[i] = sqrtf(re*re + im*im);
+        }
+    }
+
+    void inverse(const double *BQ_R__ realIn, const double *BQ_R__ imagIn, double *BQ_R__ realOut) {
+        packDouble(realIn, imagIn);
+        pffft_transform_ordered(m_setup, m_fpacked, m_fbuf, m_fwork, PFFFT_BACKWARD);
+        v_convert(realOut, m_fbuf, m_size);
+    }
+
+    void inverseInterleaved(const double *BQ_R__ complexIn, double *BQ_R__ realOut) {
+        const int hs = m_size/2;
+        // Convert CCS to pffft format
+        m_fpacked[0] = float(complexIn[0]);
+        m_fpacked[1] = float(complexIn[hs*2]);
+        for (int i = 1; i < hs; ++i) {
+            m_fpacked[i*2] = float(complexIn[i*2]);
+            m_fpacked[i*2 + 1] = float(complexIn[i*2 + 1]);
+        }
+        pffft_transform_ordered(m_setup, m_fpacked, m_fbuf, m_fwork, PFFFT_BACKWARD);
+        v_convert(realOut, m_fbuf, m_size);
+    }
+
+    void inversePolar(const double *BQ_R__ magIn, const double *BQ_R__ phaseIn, double *BQ_R__ realOut) {
+        const int hs = m_size/2;
+        m_fpacked[0] = float(magIn[0] * cos(phaseIn[0]));
+        m_fpacked[1] = float(magIn[hs] * cos(phaseIn[hs]));
+        for (int i = 1; i < hs; ++i) {
+            m_fpacked[i*2] = float(magIn[i] * cos(phaseIn[i]));
+            m_fpacked[i*2 + 1] = float(magIn[i] * sin(phaseIn[i]));
+        }
+        pffft_transform_ordered(m_setup, m_fpacked, m_fbuf, m_fwork, PFFFT_BACKWARD);
+        v_convert(realOut, m_fbuf, m_size);
+    }
+
+    void inverseCepstral(const double *BQ_R__ magIn, double *BQ_R__ cepOut) {
+        const int hs = m_size/2;
+        m_fpacked[0] = float(log(magIn[0] + 0.000001));
+        m_fpacked[1] = float(log(magIn[hs] + 0.000001));
+        for (int i = 1; i < hs; ++i) {
+            m_fpacked[i*2] = float(log(magIn[i] + 0.000001));
+            m_fpacked[i*2 + 1] = 0.0f;
+        }
+        pffft_transform_ordered(m_setup, m_fpacked, m_fbuf, m_fwork, PFFFT_BACKWARD);
+        v_convert(cepOut, m_fbuf, m_size);
+    }
+
+    void inverse(const float *BQ_R__ realIn, const float *BQ_R__ imagIn, float *BQ_R__ realOut) {
+        packFloat(realIn, imagIn);
+        pffft_transform_ordered(m_setup, m_fpacked, realOut, m_fwork, PFFFT_BACKWARD);
+    }
+
+    void inverseInterleaved(const float *BQ_R__ complexIn, float *BQ_R__ realOut) {
+        const int hs = m_size/2;
+        m_fpacked[0] = complexIn[0];
+        m_fpacked[1] = complexIn[hs*2];
+        for (int i = 1; i < hs; ++i) {
+            m_fpacked[i*2] = complexIn[i*2];
+            m_fpacked[i*2 + 1] = complexIn[i*2 + 1];
+        }
+        pffft_transform_ordered(m_setup, m_fpacked, realOut, m_fwork, PFFFT_BACKWARD);
+    }
+
+    void inversePolar(const float *BQ_R__ magIn, const float *BQ_R__ phaseIn, float *BQ_R__ realOut) {
+        const int hs = m_size/2;
+        m_fpacked[0] = magIn[0] * cosf(phaseIn[0]);
+        m_fpacked[1] = magIn[hs] * cosf(phaseIn[hs]);
+        for (int i = 1; i < hs; ++i) {
+            m_fpacked[i*2] = magIn[i] * cosf(phaseIn[i]);
+            m_fpacked[i*2 + 1] = magIn[i] * sinf(phaseIn[i]);
+        }
+        pffft_transform_ordered(m_setup, m_fpacked, realOut, m_fwork, PFFFT_BACKWARD);
+    }
+
+    void inverseCepstral(const float *BQ_R__ magIn, float *BQ_R__ cepOut) {
+        const int hs = m_size/2;
+        m_fpacked[0] = logf(magIn[0] + 0.000001f);
+        m_fpacked[1] = logf(magIn[hs] + 0.000001f);
+        for (int i = 1; i < hs; ++i) {
+            m_fpacked[i*2] = logf(magIn[i] + 0.000001f);
+            m_fpacked[i*2 + 1] = 0.0f;
+        }
+        pffft_transform_ordered(m_setup, m_fpacked, cepOut, m_fwork, PFFFT_BACKWARD);
+    }
+
+private:
+    const int m_size;
+    PFFFT_Setup *m_setup;
+    float *m_fbuf;
+    float *m_fpacked;
+    float *m_fwork;
+};
+
+#endif /* HAVE_PFFFT */
+
 #ifdef USE_BUILTIN_FFT
 
 class D_Builtin : public FFTImpl
@@ -2578,6 +2879,9 @@ getImplementationDetails()
 #ifdef HAVE_KISSFFT
     impls["kissfft"] = SizeConstraintEven;
 #endif
+#ifdef HAVE_PFFFT
+    impls["pffft"] = SizeConstraintEvenPowerOfTwo;
+#endif
 #ifdef HAVE_VDSP
     impls["vdsp"] = SizeConstraintEvenPowerOfTwo;
 #endif
@@ -2619,7 +2923,7 @@ pickImplementation(int size)
     } 
     
     std::string preference[] = {
-        "ipp", "vdsp", "sleef", "fftw", "builtin", "kissfft"
+        "ipp", "vdsp", "sleef", "fftw", "builtin", "pffft", "kissfft"
     };
 
     for (int i = 0; i < int(sizeof(preference)/sizeof(preference[0])); ++i) {
@@ -2704,9 +3008,13 @@ FFT::FFT(int size, int debugLevel) :
 #ifdef HAVE_SLEEF
         d = new FFTs::D_SLEEF(size);
 #endif
-    } else if (impl == "kissfft") {        
+    } else if (impl == "kissfft") {
 #ifdef HAVE_KISSFFT
         d = new FFTs::D_KISSFFT(size);
+#endif
+    } else if (impl == "pffft") {
+#ifdef HAVE_PFFFT
+        d = new FFTs::D_PFFFT(size);
 #endif
     } else if (impl == "vdsp") {
 #ifdef HAVE_VDSP
@@ -2977,7 +3285,15 @@ FFT::tune()
         d->initFloat();
         d->initDouble();
         candidates["kissfft"] = d;
-#endif        
+#endif
+
+#ifdef HAVE_PFFFT
+        os << "Constructing new PFFFT object for size " << size << "..." << std::endl;
+        d = new FFTs::D_PFFFT(size);
+        d->initFloat();
+        d->initDouble();
+        candidates["pffft"] = d;
+#endif
 
 #ifdef USE_BUILTIN_FFT
         os << "Constructing new Builtin FFT object for size " << size << "..." << std::endl;

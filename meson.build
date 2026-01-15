@@ -241,6 +241,13 @@ elif fft == 'kissfft'
   feature_defines += ['-DHAVE_KISSFFT']
   general_include_dirs += 'src/ext/kissfft'
 
+elif fft == 'pffft'
+  config_summary += { 'FFT': 'PFFFT' }
+  message('For FFT: using PFFFT')
+  feature_sources += ['src/ext/pffft/pffft.c']
+  feature_defines += ['-DHAVE_PFFFT']
+  general_include_dirs += 'src/ext/pffft'
+
 elif fft == 'fftw'
   if not fftw3_dep.found()
     fftw3_dep = cpp.find_library('fftw3',
