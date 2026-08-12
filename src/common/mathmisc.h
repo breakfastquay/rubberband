@@ -24,6 +24,8 @@
 #ifndef RUBBERBAND_MATHMISC_H
 #define RUBBERBAND_MATHMISC_H
 
+#include <stddef.h>
+
 #include "sysutils.h"
 
 #ifndef M_PI
