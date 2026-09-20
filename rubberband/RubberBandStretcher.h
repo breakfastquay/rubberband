@@ -544,6 +544,11 @@ public:
      * Reset the stretcher's internal buffers.  The stretcher should
      * subsequently behave as if it had just been constructed
      * (although retaining the current time and pitch ratio).
+     *
+     * In RealTime mode this means the stretcher will again need the
+     * start padding and a full window of input before it produces
+     * any output; see getPreferredStartPad() for the recipe and for a
+     * note on what that costs within a single process() call.
      */
     void reset();
 
@@ -679,6 +684,20 @@ public:
      * Ensure you have set the time and pitch scale factors to their
      * proper starting values before calling getRequiredStartPad() or
      * getStartDelay().
+     *
+     * Note that this priming has a cost. Before the stretcher can
+     * emit anything it must analyse the padding and, after it, about
+     * a full window of input (see getSamplesRequired()), and it does
+     * that work inside the process() calls that supply them. If an
+     * application supplies the padding and that look-ahead in one go
+     * - for example after a reset() following a position jump - then
+     * that single process() call performs several blocks' worth of
+     * analysis, which in a real-time host may exceed the time budget
+     * of one audio callback. An application with a hard callback
+     * deadline that can anticipate the jump may prefer to keep a
+     * second stretcher instance and prime it during the callbacks
+     * leading up to the jump, or to spread the priming input across
+     * several process() calls.
      *
      * In Offline mode, padding and delay compensation are handled
      * internally and both functions always return zero.
