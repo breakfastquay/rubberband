@@ -129,7 +129,7 @@ speexdsp_dep = dependency('speexdsp', version: '>= 1.0.0', required: false)
 
 sndfile_dep = dependency('sndfile', version: '>= 1.0.16', required: get_option('cmdline'))
 vamp_dep = dependency('vamp-sdk', version: '>= 2.9', required: get_option('vamp'))
-boost_unit_test_dep = dependency('boost', modules: ['unit_test_framework'], version: '>= 1.73', required: get_option('tests'))
+boost_unit_test_dep = dependency('boost', modules: ['unit_test_framework'], version: '>= 1.73', required: get_option('tests'), static: false)
 thread_dep = dependency('threads')
 
 have_ladspa = cpp.has_header('ladspa.h', args: extra_include_args, required: get_option('ladspa'))
@@ -826,7 +826,7 @@ if have_boost_unit_test
   unit_tests = executable(
     unit_tests_name,
     unit_test_sources,
-    cpp_args: general_compile_args,
+    cpp_args: general_compile_args + ['-DBOOST_TEST_DYN_LINK'],
     c_args: general_compile_args,
     link_args: [
       arch_flags,
